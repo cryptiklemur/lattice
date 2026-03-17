@@ -121,3 +121,12 @@ export interface LoopStatus {
   startedAt: number | null;
   finishedAt: number | null;
 }
+
+export interface ImportableSession {
+  id: string;
+  title: string;
+  context: string;
+  createdAt: number;
+  messageCount: number;
+  alreadyImported: boolean;
+}

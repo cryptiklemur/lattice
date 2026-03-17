@@ -2,6 +2,7 @@ import type {
   Attachment,
   FileEntry,
   HistoryMessage,
+  ImportableSession,
   LatticeConfig,
   LoopStatus,
   NodeInfo,
@@ -30,6 +31,17 @@ export interface SessionRenameMessage {
 
 export interface SessionDeleteMessage {
   type: "session:delete";
+  sessionId: string;
+}
+
+export interface SessionListImportableMessage {
+  type: "session:list_importable";
+  projectSlug: string;
+}
+
+export interface SessionImportMessage {
+  type: "session:import";
+  projectSlug: string;
   sessionId: string;
 }
 
@@ -176,6 +188,8 @@ export type ClientMessage =
   | SessionActivateMessage
   | SessionRenameMessage
   | SessionDeleteMessage
+  | SessionListImportableMessage
+  | SessionImportMessage
   | ChatSendMessage
   | ChatPermissionResponseMessage
   | ChatRewindMessage
@@ -387,9 +401,16 @@ export interface NoteDeletedMessage {
   id: string;
 }
 
+export interface SessionImportableListMessage {
+  type: "session:importable_list";
+  projectSlug: string;
+  sessions: ImportableSession[];
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
+  | SessionImportableListMessage
   | SessionHistoryMessage
   | ChatUserMessage
   | ChatDeltaMessage

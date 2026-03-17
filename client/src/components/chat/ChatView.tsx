@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Sparkles, Terminal, Info } from "lucide-react";
+import { Terminal, Info } from "lucide-react";
+import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { Message } from "./Message";
@@ -76,18 +77,18 @@ export function ChatView() {
         className="flex-1 overflow-y-auto flex flex-col min-h-0 bg-lattice-grid"
       >
         {messages.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="text-center max-w-sm">
-              <div className="w-14 h-14 rounded-2xl bg-base-200 border border-base-300 flex items-center justify-center mx-auto mb-5">
-                <Sparkles size={24} strokeWidth={1.5} className="text-primary/60" />
+          <div className="flex-1 flex items-center justify-center p-10">
+            <div className="text-center max-w-[360px]">
+              <div className="text-primary mb-4 flex justify-center">
+                <LatticeLogomark size={48} />
               </div>
-              <p className="text-base font-semibold text-base-content mb-2 font-mono">
-                {activeSessionId ? "Start the conversation" : "Select a project to start"}
+              <p className="text-[17px] font-mono font-bold text-base-content mb-2 tracking-tight">
+                {activeSessionId ? "Start the conversation" : "Select a project"}
               </p>
-              <p className="text-sm text-base-content/40 leading-relaxed">
+              <p className="text-[13px] text-base-content/40 leading-relaxed">
                 {activeSessionId
                   ? "Type a message below to begin chatting with Claude."
-                  : "Choose a project from the sidebar, then create or select a session to begin chatting with Claude."}
+                  : "Choose a project from the sidebar, then create or select a session."}
               </p>
             </div>
           </div>

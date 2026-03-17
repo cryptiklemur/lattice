@@ -3,6 +3,52 @@ import type { SessionSummary, SessionListMessage, SessionCreatedMessage } from "
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 
+interface SessionGroup {
+  label: string;
+  sessions: SessionSummary[];
+}
+
+function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
+  var todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  var todayMs = todayStart.getTime();
+  var yesterdayMs = todayMs - 86400000;
+  var weekMs = todayMs - 6 * 86400000;
+  var monthMs = todayMs - 29 * 86400000;
+
+  var groups: Record<string, SessionSummary[]> = {
+    Today: [],
+    Yesterday: [],
+    "This Week": [],
+    "This Month": [],
+    Older: [],
+  };
+
+  for (var i = 0; i < sessions.length; i++) {
+    var ts = sessions[i].updatedAt;
+    if (ts >= todayMs) {
+      groups["Today"].push(sessions[i]);
+    } else if (ts >= yesterdayMs) {
+      groups["Yesterday"].push(sessions[i]);
+    } else if (ts >= weekMs) {
+      groups["This Week"].push(sessions[i]);
+    } else if (ts >= monthMs) {
+      groups["This Month"].push(sessions[i]);
+    } else {
+      groups["Older"].push(sessions[i]);
+    }
+  }
+
+  var order = ["Today", "Yesterday", "This Week", "This Month", "Older"];
+  var result: SessionGroup[] = [];
+  for (var j = 0; j < order.length; j++) {
+    if (groups[order[j]].length > 0) {
+      result.push({ label: order[j], sessions: groups[order[j]] });
+    }
+  }
+  return result;
+}
+
 interface ContextMenu {
   x: number;
   y: number;
@@ -159,56 +205,69 @@ export function SessionList(props: SessionListProps) {
       })
     : sessions;
 
+  var grouped = groupByTime(displayed);
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
       <div className="flex-1 overflow-y-auto py-0.5">
-        {displayed.length === 0 ? (
-          <div className="px-3 py-1.5 text-[13px] text-base-content/40 italic">
-            No sessions yet
+        {grouped.length === 0 ? (
+          <div className="px-3 py-2 text-sm text-base-content/40 italic">
+            {props.filter ? "No matches" : "No sessions yet"}
           </div>
         ) : (
-          displayed.map(function (session) {
-            var isActive = props.activeSessionId === session.id;
-            var isRenaming = renameId === session.id;
+          grouped.map(function (group) {
             return (
-              <div
-                key={session.id}
-                onClick={function () { handleActivate(session); }}
-                onContextMenu={function (e) { handleContextMenu(e, session); }}
-                className={
-                  "flex flex-col px-2.5 py-[5px] mx-1 rounded w-[calc(100%-8px)] cursor-pointer select-none transition-colors duration-[120ms] " +
-                  (isActive ? "bg-base-300" : "hover:bg-base-300/50")
-                }
-              >
-                {isRenaming ? (
-                  <input
-                    ref={renameInputRef}
-                    value={renameValue}
-                    onChange={function (e) { setRenameValue(e.target.value); }}
-                    onBlur={handleRenameCommit}
-                    onKeyDown={handleRenameKeyDown}
-                    onClick={function (e) { e.stopPropagation(); }}
-                    className="input input-xs input-bordered w-full text-[13px]"
-                  />
-                ) : (
-                  <span
-                    className={
-                      "text-[13px] truncate leading-snug " +
-                      (isActive ? "font-semibold text-base-content" : "text-base-content/70")
-                    }
-                  >
-                    {session.title}
-                  </span>
-                )}
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-[11px] text-base-content/40">
-                    {formatDate(session.updatedAt)}
-                  </span>
-                  <span className="text-[11px] text-base-content/40">&middot;</span>
-                  <span className="text-[11px] text-base-content/40">
-                    {session.messageCount} msg{session.messageCount !== 1 ? "s" : ""}
-                  </span>
+              <div key={group.label}>
+                <div className="text-[10px] uppercase tracking-widest text-base-content/30 px-3 pt-3 pb-1 select-none">
+                  {group.label}
                 </div>
+                <ul className="menu menu-sm p-0 gap-0.5">
+                  {group.sessions.map(function (session) {
+                    var isActive = props.activeSessionId === session.id;
+                    var isRenaming = renameId === session.id;
+                    return (
+                      <div
+                        key={session.id}
+                        onClick={function () { handleActivate(session); }}
+                        onContextMenu={function (e) { handleContextMenu(e, session); }}
+                        className={
+                          "flex flex-col px-2.5 py-[5px] mx-1 rounded w-[calc(100%-8px)] cursor-pointer select-none transition-colors duration-[120ms] " +
+                          (isActive ? "bg-base-300" : "hover:bg-base-300/50")
+                        }
+                      >
+                        {isRenaming ? (
+                          <input
+                            ref={renameInputRef}
+                            value={renameValue}
+                            onChange={function (e) { setRenameValue(e.target.value); }}
+                            onBlur={handleRenameCommit}
+                            onKeyDown={handleRenameKeyDown}
+                            onClick={function (e) { e.stopPropagation(); }}
+                            className="input input-xs input-bordered w-full text-[13px]"
+                          />
+                        ) : (
+                          <span
+                            className={
+                              "text-[13px] truncate leading-snug " +
+                              (isActive ? "font-semibold text-base-content" : "text-base-content/70")
+                            }
+                          >
+                            {session.title}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] text-base-content/40">
+                            {formatDate(session.updatedAt)}
+                          </span>
+                          <span className="text-[11px] text-base-content/40">&middot;</span>
+                          <span className="text-[11px] text-base-content/40">
+                            {session.messageCount} msg{session.messageCount !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </ul>
               </div>
             );
           })
