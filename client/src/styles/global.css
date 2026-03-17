@@ -35,39 +35,13 @@
   --noise: 0;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 :root {
-  --bg-surface: var(--base02);
-  --bg-overlay: var(--base02);
-
-  --border-subtle: var(--base01);
-  --border-default: var(--base02);
-
-  --accent-primary: var(--base0D);
-  --accent-secondary: var(--base0E);
-  --accent-success: var(--base0B);
-  --accent-warning: var(--base0A);
-  --accent-danger: var(--base08);
-
   --sidebar-width: 240px;
   --node-rail-width: 52px;
 
-  --font-sans: "Berkeley Mono", "Geist Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "Berkeley Mono", "Geist Mono", ui-monospace, monospace;
   --font-heading: "JetBrains Mono", "Berkeley Mono", ui-monospace, monospace;
-
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-
-  --transition-fast: 120ms ease;
-  --transition-default: 200ms ease;
 }
 
 html, body {
@@ -76,10 +50,6 @@ html, body {
   max-width: 100vw;
   overflow-x: hidden;
   font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-primary);
-  background-color: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -93,27 +63,6 @@ html, body {
   position: relative;
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  font: inherit;
-  color: inherit;
-}
-
-input, textarea {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  outline: none;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -124,12 +73,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-default);
+  background: oklch(25% 0.02 280);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: oklch(40% 0.02 280);
 }
 
 @keyframes pulse {
