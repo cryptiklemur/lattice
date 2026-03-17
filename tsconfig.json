@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    { "path": "./shared" },
+    { "path": "./server" },
+    { "path": "./client" }
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
