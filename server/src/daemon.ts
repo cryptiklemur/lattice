@@ -2,6 +2,8 @@ import { join } from "node:path";
 import type { ServerWebSocket } from "bun";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
+import { addClient, removeClient, routeMessage } from "./ws/server";
+import type { ClientMessage } from "@lattice/shared";
 
 interface WsData {
   id: string;
@@ -49,18 +51,20 @@ export async function startDaemon(): Promise<void> {
 
     websocket: {
       open(ws: ServerWebSocket<WsData>) {
+        addClient(ws);
         console.log(`[lattice] Client connected: ${ws.data.id}`);
       },
       message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
         var text = typeof message === "string" ? message : message.toString();
         try {
-          var msg = JSON.parse(text) as { type: string };
-          console.log(`[lattice] Message: ${msg.type}`);
+          var msg = JSON.parse(text) as ClientMessage;
+          routeMessage(ws.data.id, msg);
         } catch {
           console.error("[lattice] Invalid JSON message");
         }
       },
       close(ws: ServerWebSocket<WsData>) {
+        removeClient(ws.data.id);
         console.log(`[lattice] Client disconnected: ${ws.data.id}`);
       },
     },
