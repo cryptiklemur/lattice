@@ -16,6 +16,10 @@ export function clearActiveSession(clientId: string): void {
   activeSessionByClient.delete(clientId);
 }
 
+export function getActiveSession(clientId: string): { projectSlug: string; sessionId: string } | undefined {
+  return activeSessionByClient.get(clientId);
+}
+
 registerHandler("chat", function (clientId: string, message: ClientMessage) {
   if (message.type === "chat:send") {
     var sendMsg = message as ChatSendMessage;

@@ -326,7 +326,7 @@ export function SessionList(props: SessionListProps) {
           }}
         >
           <button
-            onClick={function () { handleRenameStart(contextMenu.session); }}
+            onClick={function () { handleRenameStart(contextMenu!.session); }}
             style={{
               display: "block",
               width: "100%",
@@ -349,7 +349,7 @@ export function SessionList(props: SessionListProps) {
             Rename
           </button>
           <button
-            onClick={function () { handleDeleteSession(contextMenu.session); }}
+            onClick={function () { handleDeleteSession(contextMenu!.session); }}
             style={{
               display: "block",
               width: "100%",
