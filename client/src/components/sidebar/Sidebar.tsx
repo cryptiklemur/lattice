@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { SessionSummary } from "@lattice/shared";
 import { useProjects } from "../../hooks/useProjects";
+import { useMesh } from "../../hooks/useMesh";
+import { NodeRail } from "./NodeRail";
 import { ProjectList } from "./ProjectList";
 import { SessionList } from "./SessionList";
 import { UserIsland } from "./UserIsland";
@@ -26,6 +28,7 @@ function SectionLabel({ label }: { label: string }) {
 
 export function Sidebar() {
   var { projects, activeProject, setActiveProject } = useProjects();
+  var { nodes, activeNodeId, setActiveNodeId } = useMesh();
   var [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   function handleSessionActivate(session: SessionSummary) {
@@ -40,12 +43,16 @@ export function Sidebar() {
     console.log("[lattice] Settings: not yet implemented");
   }
 
+  var filteredProjects = activeNodeId
+    ? projects.filter(function (p) { return p.nodeId === activeNodeId; })
+    : projects;
+
   return (
     <div
       className="sidebar-inner"
       style={{
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         height: "100%",
         width: "100%",
         overflow: "hidden",
@@ -53,84 +60,79 @@ export function Sidebar() {
         borderRight: "1px solid var(--border-subtle)",
       }}
     >
+      {nodes.length > 0 && (
+        <NodeRail
+          nodes={nodes}
+          activeNodeId={activeNodeId}
+          onSelectNode={setActiveNodeId}
+        />
+      )}
+
       <div
         style={{
-          height: "48px",
           display: "flex",
-          alignItems: "center",
-          padding: "0 12px",
-          borderBottom: "1px solid var(--border-subtle)",
-          flexShrink: 0,
+          flexDirection: "column",
+          flex: 1,
+          overflow: "hidden",
+          minHeight: 0,
         }}
       >
-        <span
+        <div
           style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            letterSpacing: "0.04em",
-            fontFamily: "var(--font-ui)",
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflow: "hidden",
+            minHeight: 0,
           }}
         >
-          Node Rail
-        </span>
-      </div>
+          <SectionLabel label="Projects" />
+          <ProjectList
+            projects={filteredProjects}
+            activeProject={activeProject}
+            onSelect={setActiveProject}
+            onAddProject={handleAddProject}
+          />
+        </div>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-          overflow: "hidden",
-          minHeight: 0,
-        }}
-      >
-        <SectionLabel label="Projects" />
-        <ProjectList
-          projects={projects}
-          activeProject={activeProject}
-          onSelect={setActiveProject}
-          onAddProject={handleAddProject}
+        <div
+          style={{
+            height: "1px",
+            background: "var(--border-subtle)",
+            flexShrink: 0,
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflow: "hidden",
+            minHeight: 0,
+          }}
+        >
+          <SectionLabel label="Sessions" />
+          <SessionList
+            projectSlug={activeProject?.slug ?? null}
+            activeSessionId={activeSessionId}
+            onSessionActivate={handleSessionActivate}
+          />
+        </div>
+
+        <div
+          style={{
+            height: "1px",
+            background: "var(--border-subtle)",
+            flexShrink: 0,
+          }}
+        />
+
+        <UserIsland
+          nodeName="localhost"
+          onSettingsClick={handleSettingsClick}
         />
       </div>
-
-      <div
-        style={{
-          height: "1px",
-          background: "var(--border-subtle)",
-          flexShrink: 0,
-        }}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-          overflow: "hidden",
-          minHeight: 0,
-        }}
-      >
-        <SectionLabel label="Sessions" />
-        <SessionList
-          projectSlug={activeProject?.slug ?? null}
-          activeSessionId={activeSessionId}
-          onSessionActivate={handleSessionActivate}
-        />
-      </div>
-
-      <div
-        style={{
-          height: "1px",
-          background: "var(--border-subtle)",
-          flexShrink: 0,
-        }}
-      />
-
-      <UserIsland
-        nodeName="localhost"
-        onSettingsClick={handleSettingsClick}
-      />
     </div>
   );
 }

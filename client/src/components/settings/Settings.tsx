@@ -4,8 +4,9 @@ import { Status } from "./Status";
 import { Appearance } from "./Appearance";
 import { ClaudeSettings } from "./ClaudeSettings";
 import { Environment } from "./Environment";
+import { MeshStatus } from "./MeshStatus";
 
-type Section = "status" | "appearance" | "claude" | "environment" | "restart" | "shutdown";
+type Section = "status" | "appearance" | "claude" | "environment" | "mesh" | "restart" | "shutdown";
 
 interface NavItem {
   id: Section;
@@ -57,6 +58,17 @@ function IconRestart() {
   );
 }
 
+function IconMesh() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <circle cx="3" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="13" cy="4" r="2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="13" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5 8h2m4-3.5-3 2.5m3 5-3-2.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function IconShutdown() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -70,6 +82,7 @@ var NAV_ITEMS: NavItem[] = [
   { id: "appearance", label: "Appearance", icon: <IconAppearance /> },
   { id: "claude", label: "Claude Settings", icon: <IconClaude /> },
   { id: "environment", label: "Environment", icon: <IconEnvironment /> },
+  { id: "mesh", label: "Mesh", icon: <IconMesh /> },
   { id: "restart", label: "Restart", icon: <IconRestart /> },
   { id: "shutdown", label: "Shutdown", icon: <IconShutdown /> },
 ];
@@ -280,6 +293,9 @@ export function Settings(props: SettingsProps) {
     }
     if (section === "environment") {
       return <Environment />;
+    }
+    if (section === "mesh") {
+      return <MeshStatus />;
     }
     if (section === "restart") {
       return <RestartSection onClose={props.onClose} />;
