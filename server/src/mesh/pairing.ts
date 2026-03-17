@@ -46,10 +46,10 @@ function stripCode(code: string): string {
   return code.replace(/^LTCE-/i, "").replace(/-/g, "");
 }
 
-export function generateInviteCode(
+export async function generateInviteCode(
   address: string,
   port: number
-): { code: string; token: string; qrDataUrl: string } {
+): Promise<{ code: string; token: string; qrDataUrl: string }> {
   var token = randomBytes(8).toString("hex");
   var payload = Buffer.from(address + ":" + port + ":" + token, "utf-8");
   var encoded = base62Encode(payload);
@@ -57,10 +57,7 @@ export function generateInviteCode(
 
   pendingTokens.add(token);
 
-  var qrDataUrl = QRCode.toString(code, { type: "svg" }) as unknown as string;
-  if (typeof qrDataUrl !== "string") {
-    qrDataUrl = "";
-  }
+  var qrDataUrl = await QRCode.toString(code, { type: "svg" });
 
   return { code, token, qrDataUrl };
 }

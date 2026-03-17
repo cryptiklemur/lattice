@@ -10,6 +10,7 @@ import "./handlers/chat";
 import "./handlers/fs";
 import "./handlers/terminal";
 import "./handlers/settings";
+import "./handlers/mesh";
 
 interface WsData {
   id: string;
