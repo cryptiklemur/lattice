@@ -6,6 +6,7 @@ import type {
   ChatToolResultMessage,
   ChatPermissionRequestMessage,
   ChatUserMessage,
+  ChatStatusMessage,
   SessionHistoryMessage,
   ServerMessage,
 } from "@lattice/shared";
@@ -18,6 +19,7 @@ export interface SessionState {
   activeSessionId: string | null;
   sendMessage: (text: string) => void;
   activateSession: (projectSlug: string, sessionId: string) => void;
+  currentStatus: { phase: string; toolName?: string; elapsed?: number; summary?: string } | null;
 }
 
 export function useSession(): SessionState {
@@ -25,6 +27,7 @@ export function useSession(): SessionState {
   var [isProcessing, setIsProcessing] = useState<boolean>(false);
   var [activeProjectSlug, setActiveProjectSlug] = useState<string | null>(null);
   var [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  var [currentStatus, setCurrentStatus] = useState<SessionState["currentStatus"]>(null);
   var { send, subscribe, unsubscribe } = useWebSocket();
   var currentAssistantUuidRef = useRef<string | null>(null);
 
@@ -136,12 +139,19 @@ export function useSession(): SessionState {
 
       function handleDone() {
         setIsProcessing(false);
+        setCurrentStatus(null);
         currentAssistantUuidRef.current = null;
       }
 
       function handleError() {
         setIsProcessing(false);
+        setCurrentStatus(null);
         currentAssistantUuidRef.current = null;
+      }
+
+      function handleStatus(msg: ServerMessage) {
+        var m = msg as ChatStatusMessage;
+        setCurrentStatus({ phase: m.phase, toolName: m.toolName, elapsed: m.elapsed, summary: m.summary });
       }
 
       function handlePermissionRequest(msg: ServerMessage) {
@@ -175,6 +185,7 @@ export function useSession(): SessionState {
       subscribe("chat:done", handleDone);
       subscribe("chat:error", handleError);
       subscribe("chat:permission_request", handlePermissionRequest);
+      subscribe("chat:status", handleStatus);
       subscribe("session:history", handleHistory);
 
       return function () {
@@ -185,6 +196,7 @@ export function useSession(): SessionState {
         unsubscribe("chat:done", handleDone);
         unsubscribe("chat:error", handleError);
         unsubscribe("chat:permission_request", handlePermissionRequest);
+        unsubscribe("chat:status", handleStatus);
         unsubscribe("session:history", handleHistory);
       };
     },
@@ -198,5 +210,6 @@ export function useSession(): SessionState {
     activeSessionId,
     sendMessage,
     activateSession,
+    currentStatus,
   };
 }

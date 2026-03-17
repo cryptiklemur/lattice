@@ -5,9 +5,10 @@ import { useSession } from "../../hooks/useSession";
 import { Message } from "./Message";
 import { ChatInput } from "./ChatInput";
 import { ModelSelector } from "./ModelSelector";
+import { StatusBar } from "./StatusBar";
 
 export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, currentStatus } = useSession();
   var scrollParentRef = useRef<HTMLDivElement>(null);
   var bottomRef = useRef<HTMLDivElement>(null);
   var prevLengthRef = useRef<number>(0);
@@ -142,6 +143,8 @@ export function ChatView() {
 
         <div ref={bottomRef} className="h-4 flex-shrink-0" />
       </div>
+
+      <StatusBar status={currentStatus} />
 
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200">
         <div className="flex items-center gap-2 px-4 pt-2.5 pb-1">

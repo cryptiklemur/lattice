@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface ModelSelectorState {
   model: string;
@@ -49,36 +50,42 @@ export function ModelSelector(props: ModelSelectorProps) {
   }
 
   return (
-    <div className="flex items-center gap-1 text-[11px] text-base-content/40">
-      <select
-        value={model}
-        onChange={handleModelChange}
-        title="Select model"
-        className="select select-ghost select-xs text-[11px] text-base-content/40 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
-      >
-        {MODEL_OPTIONS.map(function (opt) {
-          return (
-            <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
-              {opt.label}
-            </option>
-          );
-        })}
-      </select>
+    <div className="flex items-center gap-1 text-[11px] text-base-content/60">
+      <div className="flex items-center">
+        <select
+          value={model}
+          onChange={handleModelChange}
+          title="Select model"
+          className="select select-ghost select-xs text-[11px] text-base-content/60 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
+        >
+          {MODEL_OPTIONS.map(function (opt) {
+            return (
+              <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
+                {opt.label}
+              </option>
+            );
+          })}
+        </select>
+        <ChevronDown size={10} className="text-base-content/30 pointer-events-none -ml-0.5" />
+      </div>
       <span className="text-base-content/20">|</span>
-      <select
-        value={effort}
-        onChange={handleEffortChange}
-        title="Select effort"
-        className="select select-ghost select-xs text-[11px] text-base-content/40 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
-      >
-        {EFFORT_OPTIONS.map(function (opt) {
-          return (
-            <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
-              {opt.label}
-            </option>
-          );
-        })}
-      </select>
+      <div className="flex items-center">
+        <select
+          value={effort}
+          onChange={handleEffortChange}
+          title="Select effort"
+          className="select select-ghost select-xs text-[11px] text-base-content/60 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
+        >
+          {EFFORT_OPTIONS.map(function (opt) {
+            return (
+              <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
+                {opt.label}
+              </option>
+            );
+          })}
+        </select>
+        <ChevronDown size={10} className="text-base-content/30 pointer-events-none -ml-0.5" />
+      </div>
     </div>
   );
 }

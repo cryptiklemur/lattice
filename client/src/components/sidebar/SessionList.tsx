@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus } from "lucide-react";
 import type { SessionSummary, SessionListMessage, SessionCreatedMessage } from "@lattice/shared";
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -14,6 +13,7 @@ interface SessionListProps {
   projectSlug: string | null;
   activeSessionId: string | null;
   onSessionActivate: (session: SessionSummary) => void;
+  filter?: string;
 }
 
 function formatDate(ts: number): string {
@@ -96,13 +96,6 @@ export function SessionList(props: SessionListProps) {
     };
   }, [contextMenu]);
 
-  function handleNewSession() {
-    if (!props.projectSlug) {
-      return;
-    }
-    ws.send({ type: "session:create", projectSlug: props.projectSlug });
-  }
-
   function handleActivate(session: SessionSummary) {
     if (!props.projectSlug) {
       return;
@@ -160,25 +153,21 @@ export function SessionList(props: SessionListProps) {
     );
   }
 
+  var displayed = props.filter
+    ? sessions.filter(function (s) {
+        return s.title.toLowerCase().includes(props.filter!.toLowerCase());
+      })
+    : sessions;
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-      <div className="p-1.5 pb-0.5">
-        <button
-          onClick={handleNewSession}
-          className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded text-[12px] text-base-content/40 hover:text-base-content hover:bg-base-300 transition-colors duration-[120ms] cursor-pointer"
-        >
-          <Plus size={12} />
-          New Session
-        </button>
-      </div>
-
       <div className="flex-1 overflow-y-auto py-0.5">
-        {sessions.length === 0 ? (
+        {displayed.length === 0 ? (
           <div className="px-3 py-1.5 text-[13px] text-base-content/40 italic">
             No sessions yet
           </div>
         ) : (
-          sessions.map(function (session) {
+          displayed.map(function (session) {
             var isActive = props.activeSessionId === session.id;
             var isRenaming = renameId === session.id;
             return (

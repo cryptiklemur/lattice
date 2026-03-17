@@ -1,24 +1,30 @@
 import type { ProjectInfo } from "@lattice/shared";
-import { Plus } from "lucide-react";
 
 interface ProjectListProps {
   projects: ProjectInfo[];
   activeProject: ProjectInfo | null;
   onSelect: (project: ProjectInfo) => void;
-  onAddProject: () => void;
+  filter?: string;
 }
 
 export function ProjectList(props: ProjectListProps) {
+  var displayed = props.filter
+    ? props.projects.filter(function (p) {
+        var q = props.filter!.toLowerCase();
+        return p.title.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q);
+      })
+    : props.projects;
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
       <div className="flex-1 overflow-y-auto py-0.5">
-        {props.projects.length === 0 ? (
+        {displayed.length === 0 ? (
           <div className="px-3 py-1.5 text-[13px] text-base-content/40 italic">
             No projects yet
           </div>
         ) : (
           <ul className="menu menu-sm gap-0 p-0">
-            {props.projects.map(function (project) {
+            {displayed.map(function (project) {
               var isActive = props.activeProject?.slug === project.slug;
               return (
                 <li key={project.slug}>
@@ -43,16 +49,6 @@ export function ProjectList(props: ProjectListProps) {
             })}
           </ul>
         )}
-      </div>
-
-      <div className="p-1.5">
-        <button
-          onClick={props.onAddProject}
-          className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded text-[12px] text-base-content/40 hover:text-base-content hover:bg-base-300 transition-colors duration-[120ms] cursor-pointer"
-        >
-          <Plus size={12} />
-          Add Project
-        </button>
       </div>
     </div>
   );

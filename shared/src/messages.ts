@@ -262,6 +262,14 @@ export interface ChatPermissionRequestMessage {
   args: string;
 }
 
+export interface ChatStatusMessage {
+  type: "chat:status";
+  phase: "thinking" | "tool_call" | "tool_result";
+  toolName?: string;
+  elapsed?: number;
+  summary?: string;
+}
+
 export interface FsListResultMessage {
   type: "fs:list_result";
   path: string;
@@ -390,6 +398,7 @@ export type ServerMessage =
   | ChatDoneMessage
   | ChatErrorMessage
   | ChatPermissionRequestMessage
+  | ChatStatusMessage
   | FsListResultMessage
   | FsReadResultMessage
   | FsChangedMessage

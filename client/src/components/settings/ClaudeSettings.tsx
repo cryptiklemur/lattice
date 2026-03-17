@@ -30,14 +30,15 @@ export function ClaudeSettings() {
         return;
       }
       var data = msg as SettingsDataMessage;
-      if ((data.config as Record<string, unknown>).claudeMd) {
-        setClaudeMd(String((data.config as Record<string, unknown>).claudeMd));
+      var cfg = data.config as unknown as Record<string, unknown>;
+      if (cfg.claudeMd) {
+        setClaudeMd(String(cfg.claudeMd));
       }
-      if ((data.config as Record<string, unknown>).defaultModel) {
-        setModel(String((data.config as Record<string, unknown>).defaultModel));
+      if (cfg.defaultModel) {
+        setModel(String(cfg.defaultModel));
       }
-      if ((data.config as Record<string, unknown>).defaultEffort) {
-        setEffort(String((data.config as Record<string, unknown>).defaultEffort));
+      if (cfg.defaultEffort) {
+        setEffort(String(cfg.defaultEffort));
       }
     }
 
