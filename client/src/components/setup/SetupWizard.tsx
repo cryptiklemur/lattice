@@ -453,6 +453,74 @@ function AppearanceStep(props: AppearanceStepProps) {
           );
         })}
       </div>
+
+      <div style={{
+        marginTop: "16px",
+        borderRadius: "8px",
+        border: "1px solid var(--border-default)",
+        overflow: "hidden",
+        transition: "all 300ms ease",
+      }}>
+        <div style={{
+          fontSize: "9px",
+          fontFamily: "var(--font-mono)",
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          color: "var(--text-muted)",
+          padding: "6px 10px",
+          background: "var(--bg-tertiary)",
+          borderBottom: "1px solid var(--border-subtle)",
+          transition: "all 300ms ease",
+        }}>Preview</div>
+        <div style={{
+          display: "flex",
+          height: "100px",
+          background: "var(--bg-primary)",
+          transition: "all 300ms ease",
+        }}>
+          <div style={{
+            width: "72px",
+            flexShrink: 0,
+            borderRight: "1px solid var(--border-subtle)",
+            padding: "8px 6px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+            transition: "all 300ms ease",
+          }}>
+            <div style={{ fontSize: "8px", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "2px", transition: "color 300ms ease" }}>Projects</div>
+            <div style={{ height: "6px", width: "90%", borderRadius: "3px", background: "var(--accent-primary)", opacity: 0.8, transition: "background 300ms ease" }} />
+            <div style={{ height: "6px", width: "70%", borderRadius: "3px", background: "var(--bg-overlay)", transition: "background 300ms ease" }} />
+            <div style={{ height: "6px", width: "80%", borderRadius: "3px", background: "var(--bg-overlay)", transition: "background 300ms ease" }} />
+          </div>
+          <div style={{
+            flex: 1,
+            padding: "8px 10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            transition: "all 300ms ease",
+          }}>
+            <div style={{ fontSize: "9px", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)", transition: "color 300ms ease" }}>New Session</div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px", justifyContent: "center" }}>
+              <div style={{ display: "flex", gap: "4px", alignItems: "flex-start" }}>
+                <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--accent-primary)", flexShrink: 0, opacity: 0.6, transition: "background 300ms ease" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ height: "4px", width: "120px", borderRadius: "2px", background: "var(--text-secondary)", opacity: 0.5, transition: "background 300ms ease" }} />
+                  <div style={{ height: "4px", width: "80px", borderRadius: "2px", background: "var(--text-secondary)", opacity: 0.3, transition: "background 300ms ease" }} />
+                </div>
+              </div>
+            </div>
+            <div style={{
+              height: "18px",
+              borderRadius: "4px",
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-subtle)",
+              transition: "all 300ms ease",
+            }} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -793,9 +861,8 @@ var overlayStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "rgba(0,0,0,0.9)",
-  backdropFilter: "blur(16px)",
-  WebkitBackdropFilter: "blur(16px)",
+  background: "var(--bg-primary)",
+  transition: "background 300ms ease",
 };
 
 var fullscreenWelcomeStyle: React.CSSProperties = {
