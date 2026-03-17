@@ -16,6 +16,7 @@ import {
   renameSession,
 } from "../project/session";
 import { setActiveSession } from "./chat";
+import { setActiveProject } from "./fs";
 
 registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:create") {
@@ -33,6 +34,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:activate") {
     var activateMsg = message as SessionActivateMessage;
     setActiveSession(clientId, activateMsg.projectSlug, activateMsg.sessionId);
+    setActiveProject(clientId, activateMsg.projectSlug);
     var history = loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId);
     sendTo(clientId, { type: "session:history", messages: history });
     return;
