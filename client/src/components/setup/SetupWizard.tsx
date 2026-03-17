@@ -84,8 +84,10 @@ export function SetupWizard(props: SetupWizardProps) {
   function handleProjectNext() {
     var path = projectPath.trim();
     if (path.length > 0) {
-      ws.send({ type: "settings:update", settings: { projects: [{ path, slug: "", title: projectTitle.trim() || path.split("/").pop() || path, env: {} }] } });
-      setConfigured(function (c) { return [...c.filter(function (x) { return !x.startsWith("project:"); }), "project: " + (projectTitle.trim() || path.split("/").pop() || path)]; });
+      var derivedName = path.replace(/\/+$/, "").split("/").pop() || path;
+      var title = projectTitle.trim() || derivedName;
+      ws.send({ type: "settings:update", settings: { projects: [{ path: path, slug: "", title: title, env: {} }] } });
+      setConfigured(function (c) { return [...c.filter(function (x) { return !x.startsWith("project:"); }), "project: " + title]; });
     }
     goNext();
   }
@@ -642,7 +644,7 @@ function ProjectStep(props: ProjectStepProps) {
           type="text"
           value={props.title}
           onChange={function (e) { props.onTitleChange(e.target.value); }}
-          placeholder="My App"
+          placeholder={props.path ? (props.path.replace(/\/+$/, "").split("/").pop() || "My App") : "My App"}
           style={inputStyle}
         />
       </div>
