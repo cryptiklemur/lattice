@@ -18,6 +18,8 @@ import "./handlers/terminal";
 import "./handlers/settings";
 import "./handlers/mesh";
 import "./handlers/loop";
+import "./handlers/scheduler";
+import { startScheduler } from "./features/scheduler";
 
 interface WsData {
   id: string;
@@ -274,6 +276,8 @@ export async function startDaemon(): Promise<void> {
   startDiscovery(identity.id, config.name, config.port);
 
   startMeshConnections();
+
+  startScheduler();
 
   onPeerConnected(function (nodeId: string) {
     broadcast({ type: "mesh:node_online", nodeId: nodeId });
