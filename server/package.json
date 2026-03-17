@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "@lattice/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
   }
 }
