@@ -4,6 +4,7 @@ import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
 import { addClient, removeClient, routeMessage } from "./ws/server";
 import type { ClientMessage } from "@lattice/shared";
+import "./handlers/session";
 
 interface WsData {
   id: string;
