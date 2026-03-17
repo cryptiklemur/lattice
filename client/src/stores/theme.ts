@@ -1,0 +1,44 @@
+import { Store } from "@tanstack/react-store";
+
+export interface ThemeState {
+  mode: "dark" | "light";
+  darkThemeId: string;
+  lightThemeId: string;
+}
+
+function loadInitialState(): ThemeState {
+  var mode = localStorage.getItem("lattice-theme-mode");
+  var darkThemeId = localStorage.getItem("lattice-theme-dark");
+  var lightThemeId = localStorage.getItem("lattice-theme-light");
+
+  return {
+    mode: mode === "light" ? "light" : "dark",
+    darkThemeId: darkThemeId ?? "dracula",
+    lightThemeId: lightThemeId ?? "ayu-light",
+  };
+}
+
+var themeStore = new Store<ThemeState>(loadInitialState());
+
+export function getThemeStore(): Store<ThemeState> {
+  return themeStore;
+}
+
+export function toggleMode(): void {
+  themeStore.setState(function (state) {
+    var next: ThemeState["mode"] = state.mode === "dark" ? "light" : "dark";
+    localStorage.setItem("lattice-theme-mode", next);
+    return { ...state, mode: next };
+  });
+}
+
+export function setThemeForMode(themeId: string): void {
+  themeStore.setState(function (state) {
+    if (state.mode === "dark") {
+      localStorage.setItem("lattice-theme-dark", themeId);
+      return { ...state, darkThemeId: themeId };
+    }
+    localStorage.setItem("lattice-theme-light", themeId);
+    return { ...state, lightThemeId: themeId };
+  });
+}

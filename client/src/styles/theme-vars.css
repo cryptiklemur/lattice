@@ -1,0 +1,18 @@
+:root {
+  --bg-primary: var(--base00);
+  --bg-secondary: var(--base01);
+  --bg-tertiary: var(--base02);
+  --text-muted: var(--base03);
+  --text-secondary: var(--base04);
+  --text-primary: var(--base05);
+  --text-bright: var(--base06);
+  --text-accent: var(--base07);
+  --red: var(--base08);
+  --orange: var(--base09);
+  --yellow: var(--base0A);
+  --green: var(--base0B);
+  --cyan: var(--base0C);
+  --blue: var(--base0D);
+  --purple: var(--base0E);
+  --magenta: var(--base0F);
+}

@@ -1,3 +1,6 @@
-export default function App() {
-  return <div>Lattice</div>;
+import { RouterProvider } from "@tanstack/react-router";
+import { router } from "./router";
+
+export function App() {
+  return <RouterProvider router={router} />;
 }
