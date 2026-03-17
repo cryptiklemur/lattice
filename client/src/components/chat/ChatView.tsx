@@ -1,13 +1,49 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useSession } from "../../hooks/useSession";
+import { Message } from "./Message";
+import { ChatInput } from "./ChatInput";
+import { ModelSelector } from "./ModelSelector";
 
 export function ChatView() {
-  var inputRef = useRef<HTMLTextAreaElement>(null);
+  var { messages, isProcessing, sendMessage, activeSessionId } = useSession();
+  var scrollParentRef = useRef<HTMLDivElement>(null);
+  var bottomRef = useRef<HTMLDivElement>(null);
+  var prevLengthRef = useRef<number>(0);
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-    }
-  }
+  var virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: function () {
+      return scrollParentRef.current;
+    },
+    estimateSize: function () {
+      return 80;
+    },
+    overscan: 10,
+  });
+
+  useEffect(
+    function () {
+      if (messages.length > prevLengthRef.current) {
+        prevLengthRef.current = messages.length;
+        if (bottomRef.current) {
+          bottomRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    },
+    [messages.length]
+  );
+
+  useEffect(
+    function () {
+      if (isProcessing && bottomRef.current) {
+        bottomRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    [isProcessing]
+  );
+
+  var virtualItems = virtualizer.getVirtualItems();
 
   return (
     <div
@@ -42,7 +78,7 @@ export function ChatView() {
             flex: 1,
           }}
         >
-          New Session
+          {activeSessionId ? "Session" : "New Session"}
         </span>
         <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
           <button
@@ -56,6 +92,9 @@ export function ChatView() {
               justifyContent: "center",
               color: "var(--text-muted)",
               transition: "color var(--transition-fast), background var(--transition-fast)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
             }}
             onMouseEnter={function (e) {
               (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
@@ -83,6 +122,9 @@ export function ChatView() {
               justifyContent: "center",
               color: "var(--text-muted)",
               transition: "color var(--transition-fast), background var(--transition-fast)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
             }}
             onMouseEnter={function (e) {
               (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
@@ -103,6 +145,7 @@ export function ChatView() {
       </div>
 
       <div
+        ref={scrollParentRef}
         style={{
           flex: 1,
           overflowY: "auto",
@@ -111,57 +154,134 @@ export function ChatView() {
           minHeight: 0,
         }}
       >
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "40px 20px",
-          }}
-        >
-          <div style={{ textAlign: "center", maxWidth: "360px" }}>
+        {messages.length === 0 ? (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "40px 20px",
+            }}
+          >
+            <div style={{ textAlign: "center", maxWidth: "360px" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "12px",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                    fill="var(--text-muted)"
+                  />
+                </svg>
+              </div>
+              <p
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  marginBottom: "8px",
+                }}
+              >
+                {activeSessionId ? "Start the conversation" : "Select a project to start"}
+              </p>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "var(--text-muted)",
+                  lineHeight: 1.6,
+                }}
+              >
+                {activeSessionId
+                  ? "Type a message below to begin chatting with Claude."
+                  : "Choose a project from the sidebar, then create or select a session to begin chatting with Claude."}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              position: "relative",
+              height: virtualizer.getTotalSize() + "px",
+              width: "100%",
+            }}
+          >
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: "translateY(" + (virtualItems.length > 0 ? virtualItems[0].start : 0) + "px)",
+              }}
+            >
+              {virtualItems.map(function (virtualItem) {
+                var msg = messages[virtualItem.index];
+                return (
+                  <div
+                    key={virtualItem.key}
+                    data-index={virtualItem.index}
+                    ref={virtualizer.measureElement}
+                    style={{ paddingTop: virtualItem.index === 0 ? "12px" : undefined }}
+                  >
+                    <Message message={msg} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {isProcessing && (
+          <div style={{ display: "flex", padding: "8px 20px", gap: "10px", alignItems: "center" }}>
+            <div
+              style={{
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
                 background: "var(--bg-surface)",
                 border: "1px solid var(--border-subtle)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                margin: "0 auto 16px",
+                flexShrink: 0,
               }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-                  fill="var(--text-muted)"
-                />
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="var(--accent-primary)" />
               </svg>
             </div>
-            <p
-              style={{
-                fontSize: "15px",
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                marginBottom: "8px",
-              }}
-            >
-              Select a project to start
-            </p>
-            <p
-              style={{
-                fontSize: "13px",
-                color: "var(--text-muted)",
-                lineHeight: 1.6,
-              }}
-            >
-              Choose a project from the sidebar, then create or select a session to begin chatting with Claude.
-            </p>
+            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              {[0, 1, 2].map(function (i) {
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: "var(--text-muted)",
+                      animation: "pulse 1.2s ease-in-out infinite",
+                      animationDelay: i * 0.2 + "s",
+                    }}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+
+        <div ref={bottomRef} style={{ height: "12px", flexShrink: 0 }} />
       </div>
 
       <div
@@ -169,7 +289,7 @@ export function ChatView() {
           flexShrink: 0,
           borderTop: "1px solid var(--border-subtle)",
           background: "var(--bg-secondary)",
-          padding: "12px 16px 14px",
+          paddingTop: "10px",
         }}
       >
         <div
@@ -177,7 +297,7 @@ export function ChatView() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            marginBottom: "8px",
+            padding: "0 16px 8px",
           }}
         >
           <button
@@ -191,6 +311,9 @@ export function ChatView() {
               justifyContent: "center",
               color: "var(--text-muted)",
               transition: "color var(--transition-fast)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
             }}
             onMouseEnter={function (e) {
               (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
@@ -209,103 +332,12 @@ export function ChatView() {
               />
             </svg>
           </button>
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
-          >
-            <span>claude-sonnet-4-5</span>
-            <span style={{ color: "var(--border-default)" }}>|</span>
-            <span>balanced</span>
+          <div style={{ marginLeft: "auto" }}>
+            <ModelSelector />
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            gap: "8px",
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-default)",
-            borderRadius: "var(--radius-lg)",
-            padding: "10px 12px",
-            transition: "border-color var(--transition-fast)",
-          }}
-          onFocusCapture={function (e) {
-            (e.currentTarget as HTMLDivElement).style.borderColor = "var(--accent-primary)";
-          }}
-          onBlurCapture={function (e) {
-            (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border-default)";
-          }}
-        >
-          <textarea
-            ref={inputRef}
-            placeholder="Message Claude..."
-            onKeyDown={handleKeyDown}
-            rows={1}
-            style={{
-              flex: 1,
-              resize: "none",
-              background: "transparent",
-              color: "var(--text-primary)",
-              fontSize: "14px",
-              lineHeight: "1.5",
-              maxHeight: "160px",
-              overflowY: "auto",
-              fontFamily: "var(--font-ui)",
-            }}
-            onInput={function (e) {
-              var el = e.currentTarget as HTMLTextAreaElement;
-              el.style.height = "auto";
-              el.style.height = Math.min(el.scrollHeight, 160) + "px";
-            }}
-          />
-          <button
-            aria-label="Send message"
-            style={{
-              width: "30px",
-              height: "30px",
-              borderRadius: "var(--radius-sm)",
-              background: "var(--accent-primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              flexShrink: 0,
-              transition: "background var(--transition-fast)",
-            }}
-            onMouseEnter={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--accent-secondary)";
-            }}
-            onMouseLeave={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--accent-primary)";
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M13.5 8L2.5 2l3 6-3 6 11-6z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-        <div
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            marginTop: "6px",
-            paddingLeft: "2px",
-          }}
-        >
-          Enter to send  •  Shift+Enter for newline
-        </div>
+        <ChatInput onSend={sendMessage} disabled={isProcessing || !activeSessionId} />
       </div>
     </div>
   );
