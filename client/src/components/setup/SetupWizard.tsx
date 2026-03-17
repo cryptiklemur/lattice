@@ -283,10 +283,10 @@ function LatticeLogomark(props: { size: number }) {
 function TerminalPreview() {
   var [visible, setVisible] = useState(0);
   var lines = [
-    { prefix: "$ ", text: "lattice connect dev-machine", color: "var(--text-primary)" },
-    { prefix: "", text: "  connected to mesh (3 nodes)", color: "var(--accent-success)" },
-    { prefix: "$ ", text: "lattice run 'refactor auth module'", color: "var(--text-primary)" },
-    { prefix: "", text: "  running on 2 agents in parallel", color: "var(--accent-primary)" },
+    { prefix: "$ ", text: "lattice", color: "var(--text-primary)" },
+    { prefix: "", text: "  [lattice] Daemon started (PID 4821)", color: "var(--text-muted)" },
+    { prefix: "", text: "  [lattice] Listening on https://0.0.0.0:7654", color: "var(--accent-success)" },
+    { prefix: "", text: "  [discovery] Found 2 nodes on mesh", color: "var(--accent-primary)" },
   ];
 
   useEffect(function () {
