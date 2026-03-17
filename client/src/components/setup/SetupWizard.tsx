@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ArrowRight, ChevronRight, ChevronLeft, Server, Palette, Lock, Folder, Info, Moon, Sun, Check } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { themes } from "../../themes/index";
@@ -946,7 +947,7 @@ var welcomeSubnoteStyle: React.CSSProperties = {
 };
 
 var terminalBlockStyle: React.CSSProperties = {
-  width: "340px",
+  width: "380px",
   maxWidth: "calc(100vw - 48px)",
   background: "var(--bg-secondary)",
   border: "1px solid var(--border-default)",
