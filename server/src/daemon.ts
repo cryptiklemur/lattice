@@ -3,6 +3,7 @@ import type { ServerWebSocket } from "bun";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
 import { addClient, removeClient, routeMessage } from "./ws/server";
+import { startDiscovery } from "./mesh/discovery";
 import type { ClientMessage } from "@lattice/shared";
 import "./handlers/session";
 import "./handlers/chat";
@@ -76,4 +77,6 @@ export async function startDaemon(): Promise<void> {
   });
 
   console.log(`[lattice] Listening on http://0.0.0.0:${config.port}`);
+
+  startDiscovery(identity.id, config.name, config.port);
 }
