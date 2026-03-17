@@ -7,6 +7,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { NodeRail } from "./NodeRail";
 import { ProjectList } from "./ProjectList";
 import { SessionList } from "./SessionList";
+import { ImportPanel } from "./ImportPanel";
 import { UserIsland } from "./UserIsland";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { SearchFilter } from "./SearchFilter";
@@ -156,6 +157,14 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
             filter={sessionSearch}
           />
         </div>
+
+        {importOpen && activeProject && (
+          <ImportPanel
+            projectSlug={activeProject.slug}
+            onClose={function () { setImportOpen(false); }}
+            onImported={function () { setImportOpen(false); }}
+          />
+        )}
 
         <div className="divider m-0 h-px bg-base-300 flex-shrink-0" />
 
