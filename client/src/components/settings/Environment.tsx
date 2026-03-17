@@ -87,125 +87,51 @@ export function Environment() {
     }, 400);
   }
 
-  var inputBase: React.CSSProperties = {
-    padding: "6px 8px",
-    borderRadius: "var(--radius-sm)",
-    border: "1px solid var(--border-default)",
-    background: "var(--bg-tertiary)",
-    color: "var(--text-primary)",
-    fontSize: "12px",
-    fontFamily: "var(--font-mono)",
-    outline: "none",
-    width: "100%",
-    transition: "border-color var(--transition-fast)",
-  };
-
   return (
-    <div style={{ padding: "8px 0" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          marginBottom: "16px",
-        }}
-      >
+    <div className="py-2">
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
         Environment Variables
       </div>
 
-      <div
-        style={{
-          fontSize: "12px",
-          color: "var(--text-muted)",
-          marginBottom: "16px",
-          lineHeight: "1.5",
-        }}
-      >
+      <div className="text-[12px] text-base-content/40 mb-4 leading-relaxed">
         Global environment variables passed to all Claude sessions.
       </div>
 
       {entries.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr auto",
-            gap: "6px",
-            marginBottom: "10px",
-          }}
-        >
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", padding: "0 2px" }}>
-            Key
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", padding: "0 2px" }}>
-            Value
-          </div>
-          <div style={{ width: "28px" }} />
+        <div className="grid gap-1.5 mb-2.5" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
+          <div className="text-[11px] text-base-content/40 font-semibold tracking-[0.06em] uppercase px-0.5">Key</div>
+          <div className="text-[11px] text-base-content/40 font-semibold tracking-[0.06em] uppercase px-0.5">Value</div>
+          <div className="w-7" />
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
+      <div className="flex flex-col gap-1.5 mb-3">
         {entries.map(function (entry) {
           return (
             <div
               key={entry.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr auto",
-                gap: "6px",
-                alignItems: "center",
-              }}
+              className="grid gap-1.5 items-center"
+              style={{ gridTemplateColumns: "1fr 1fr auto" }}
             >
               <input
                 type="text"
                 value={entry.key}
                 onChange={function (e) { handleKeyChange(entry.id, e.target.value); }}
                 placeholder="VARIABLE_NAME"
-                style={inputBase}
-                onFocus={function (e) {
-                  (e.currentTarget as HTMLInputElement).style.borderColor = "var(--blue)";
-                }}
-                onBlur={function (e) {
-                  (e.currentTarget as HTMLInputElement).style.borderColor = "var(--border-default)";
-                }}
+                className="input input-bordered input-xs bg-base-300 text-base-content font-mono text-[12px] focus:border-info"
               />
               <input
                 type="text"
                 value={entry.value}
                 onChange={function (e) { handleValueChange(entry.id, e.target.value); }}
                 placeholder="value"
-                style={inputBase}
-                onFocus={function (e) {
-                  (e.currentTarget as HTMLInputElement).style.borderColor = "var(--blue)";
-                }}
-                onBlur={function (e) {
-                  (e.currentTarget as HTMLInputElement).style.borderColor = "var(--border-default)";
-                }}
+                className="input input-bordered input-xs bg-base-300 text-base-content font-mono text-[12px] focus:border-info"
               />
               <button
                 onClick={function () { handleDelete(entry.id); }}
                 aria-label="Delete row"
                 title="Delete"
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "var(--radius-sm)",
-                  color: "var(--text-muted)",
-                  flexShrink: 0,
-                  transition: "color var(--transition-fast), background var(--transition-fast)",
-                }}
-                onMouseEnter={function (e) {
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--red)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-                }}
-                onMouseLeave={function (e) {
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                }}
+                className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error w-7 h-7"
               >
                 <X size={12} />
               </button>
@@ -216,48 +142,21 @@ export function Environment() {
 
       <button
         onClick={handleAddRow}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "6px 12px",
-          borderRadius: "var(--radius-sm)",
-          border: "1px dashed var(--border-default)",
-          background: "transparent",
-          color: "var(--text-muted)",
-          fontSize: "12px",
-          transition: "color var(--transition-fast), border-color var(--transition-fast)",
-          marginBottom: "20px",
-        }}
-        onMouseEnter={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-default)";
-        }}
-        onMouseLeave={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-subtle)";
-        }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer"
       >
         <Plus size={12} />
         Add Variable
       </button>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div className="flex justify-end">
         <button
           onClick={handleSave}
           disabled={saving}
-          style={{
-            padding: "7px 18px",
-            borderRadius: "var(--radius-sm)",
-            background: saved ? "var(--green)" : "var(--blue)",
-            color: "#fff",
-            fontSize: "13px",
-            fontWeight: 600,
-            border: "none",
-            cursor: saving ? "not-allowed" : "pointer",
-            opacity: saving ? 0.7 : 1,
-            transition: "background var(--transition-default)",
-          }}
+          className={
+            "btn btn-sm " +
+            (saved ? "btn-success" : "btn-info") +
+            (saving ? " opacity-70 cursor-not-allowed" : "")
+          }
         >
           {saving ? "Saving..." : saved ? "Saved" : "Save Changes"}
         </button>

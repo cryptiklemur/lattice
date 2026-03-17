@@ -37,32 +37,12 @@ export function ChatInput(props: ChatInputProps) {
   }
 
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        borderTop: "1px solid var(--border-subtle)",
-        background: "var(--bg-secondary)",
-        padding: "12px 16px 14px",
-      }}
-    >
+    <div className="flex-shrink-0 bg-base-200 px-4 pb-3.5">
       <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "8px",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-default)",
-          borderRadius: "var(--radius-lg)",
-          padding: "10px 12px",
-          transition: "border-color var(--transition-fast)",
-          opacity: props.disabled ? 0.7 : 1,
-        }}
-        onFocusCapture={function (e) {
-          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--accent-primary)";
-        }}
-        onBlurCapture={function (e) {
-          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border-default)";
-        }}
+        className={
+          "flex items-end gap-2 bg-base-300 border border-base-content/15 rounded-xl px-3 py-2.5 transition-colors duration-[120ms] focus-within:border-primary " +
+          (props.disabled ? "opacity-70" : "")
+        }
       >
         <textarea
           ref={textareaRef}
@@ -71,60 +51,27 @@ export function ChatInput(props: ChatInputProps) {
           onKeyDown={handleKeyDown}
           onInput={handleInput}
           rows={1}
-          style={{
-            flex: 1,
-            resize: "none",
-            background: "transparent",
-            color: "var(--text-primary)",
-            fontSize: "14px",
-            lineHeight: "1.5",
-            maxHeight: "160px",
-            overflowY: "auto",
-            fontFamily: "var(--font-ui)",
-            cursor: props.disabled ? "not-allowed" : "text",
-          }}
+          className={
+            "flex-1 resize-none bg-transparent text-base-content text-[14px] leading-relaxed max-h-[160px] overflow-y-auto " +
+            (props.disabled ? "cursor-not-allowed" : "cursor-text")
+          }
         />
         <button
           aria-label="Send message"
           disabled={props.disabled}
           onClick={submit}
-          style={{
-            width: "30px",
-            height: "30px",
-            borderRadius: "var(--radius-sm)",
-            background: props.disabled ? "var(--bg-overlay)" : "var(--accent-primary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: props.disabled ? "var(--text-muted)" : "#fff",
-            flexShrink: 0,
-            transition: "background var(--transition-fast)",
-            cursor: props.disabled ? "not-allowed" : "pointer",
-            border: "none",
-          }}
-          onMouseEnter={function (e) {
-            if (!props.disabled) {
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--accent-secondary)";
-            }
-          }}
-          onMouseLeave={function (e) {
-            if (!props.disabled) {
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--accent-primary)";
-            }
-          }}
+          className={
+            "w-[30px] h-[30px] rounded flex items-center justify-center flex-shrink-0 transition-colors duration-[120ms] " +
+            (props.disabled
+              ? "bg-base-content/10 text-base-content/30 cursor-not-allowed"
+              : "bg-primary text-primary-content hover:bg-primary/80 cursor-pointer")
+          }
         >
           <SendHorizontal size={14} />
         </button>
       </div>
-      <div
-        style={{
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          marginTop: "6px",
-          paddingLeft: "2px",
-        }}
-      >
-        Enter to send  •  Shift+Enter for newline
+      <div className="text-[11px] text-base-content/30 mt-1.5 pl-0.5">
+        Enter to send &bull; Shift+Enter for newline
       </div>
     </div>
   );

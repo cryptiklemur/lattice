@@ -5,13 +5,8 @@ import type { ThemeEntry } from "../../themes/index";
 function Swatch({ color }: { color: string }) {
   return (
     <div
-      style={{
-        width: "10px",
-        height: "10px",
-        borderRadius: "2px",
-        background: "#" + color,
-        flexShrink: 0,
-      }}
+      className="w-[10px] h-[10px] rounded-sm flex-shrink-0"
+      style={{ background: "#" + color }}
     />
   );
 }
@@ -30,61 +25,20 @@ function ThemeCard({
   return (
     <button
       onClick={onSelect}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        padding: "10px 12px",
-        borderRadius: "var(--radius-md)",
-        border: active
-          ? "1.5px solid var(--blue)"
-          : "1.5px solid var(--border-subtle)",
-        background: active ? "var(--bg-overlay)" : "var(--bg-tertiary)",
-        cursor: "pointer",
-        textAlign: "left",
-        transition: "border-color var(--transition-fast), background var(--transition-fast)",
-        position: "relative",
-      }}
-      onMouseEnter={function (e) {
-        if (!active) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-default)";
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-surface)";
-        }
-      }}
-      onMouseLeave={function (e) {
-        if (!active) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-subtle)";
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tertiary)";
-        }
-      }}
+      className={
+        "flex flex-col gap-2 p-2.5 px-3 rounded-md border cursor-pointer text-left transition-all duration-[120ms] relative " +
+        (active
+          ? "border-info bg-base-300"
+          : "border-base-300 bg-base-300 hover:border-base-content/30 hover:bg-base-content/5")
+      }
     >
       {active && (
-        <div
-          style={{
-            position: "absolute",
-            top: "6px",
-            right: "6px",
-            width: "14px",
-            height: "14px",
-            borderRadius: "50%",
-            background: "var(--blue)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-info flex items-center justify-center">
           <Check size={8} color="white" strokeWidth={1.8} />
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          gap: "3px",
-          flexWrap: "wrap",
-          width: "80px",
-        }}
-      >
+      <div className="flex gap-[3px] flex-wrap w-[80px]">
         <Swatch color={t.base00} />
         <Swatch color={t.base01} />
         <Swatch color={t.base02} />
@@ -103,14 +57,7 @@ function ThemeCard({
         <Swatch color={t.base0F} />
       </div>
 
-      <div
-        style={{
-          fontSize: "12px",
-          fontWeight: 500,
-          color: "var(--text-primary)",
-          fontFamily: "var(--font-ui)",
-        }}
-      >
+      <div className="text-[12px] font-medium text-base-content">
         {t.name}
       </div>
     </button>
@@ -133,26 +80,11 @@ function ThemeGroup({
   }
 
   return (
-    <div style={{ marginBottom: "24px" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          marginBottom: "12px",
-        }}
-      >
+    <div className="mb-6">
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-3">
         {label}
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
-          gap: "8px",
-        }}
-      >
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
         {entries.map(function (entry) {
           return (
             <ThemeCard
@@ -175,64 +107,22 @@ export function Appearance() {
   var lightThemes = themes.filter(function (e) { return e.theme.variant === "light"; });
 
   return (
-    <div style={{ padding: "8px 0" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          marginBottom: "16px",
-        }}
-      >
+    <div className="py-2">
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
         Appearance
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "24px",
-          padding: "12px 14px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border-subtle)",
-        }}
-      >
+      <div className="flex items-center justify-between mb-6 p-3 px-3.5 bg-base-300 rounded-md border border-base-300">
         <div>
-          <div style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-primary)" }}>
-            Color Mode
-          </div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+          <div className="text-[13px] font-medium text-base-content">Color Mode</div>
+          <div className="text-[12px] text-base-content/40 mt-0.5">
             Currently: {mode === "dark" ? "Dark" : "Light"}
           </div>
         </div>
 
         <button
           onClick={toggleMode}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "6px 12px",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border-default)",
-            background: "var(--bg-overlay)",
-            color: "var(--text-secondary)",
-            fontSize: "12px",
-            fontWeight: 500,
-            transition: "background var(--transition-fast), color var(--transition-fast)",
-          }}
-          onMouseEnter={function (e) {
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--border-default)";
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={function (e) {
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
-          }}
+          className="btn btn-ghost btn-sm border border-base-content/20"
         >
           {mode === "dark" ? (
             <>

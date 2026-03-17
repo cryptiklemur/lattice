@@ -47,90 +47,21 @@ export function ChatView() {
   var virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        width: "100%",
-        background: "var(--bg-primary)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          height: "48px",
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 20px",
-          borderBottom: "1px solid var(--border-subtle)",
-          background: "var(--bg-primary)",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "14px",
-            fontWeight: 600,
-            color: "var(--text-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            flex: 1,
-          }}
-        >
+    <div className="flex flex-col h-full w-full bg-base-100 overflow-hidden">
+      <div className="h-12 flex-shrink-0 flex items-center px-5 border-b border-base-300 bg-base-100">
+        <span className="text-[14px] font-semibold text-base-content truncate flex-1">
           {activeSessionId ? "Session" : "New Session"}
         </span>
-        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+        <div className="flex gap-1 items-center">
           <button
             aria-label="Session info"
-            style={{
-              width: "30px",
-              height: "30px",
-              borderRadius: "var(--radius-sm)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-muted)",
-              transition: "color var(--transition-fast), background var(--transition-fast)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-            onMouseEnter={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-            }}
-            onMouseLeave={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            }}
+            className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content"
           >
             <Info size={15} />
           </button>
           <button
             aria-label="Open terminal"
-            style={{
-              width: "30px",
-              height: "30px",
-              borderRadius: "var(--radius-sm)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-muted)",
-              transition: "color var(--transition-fast), background var(--transition-fast)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-            onMouseEnter={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-            }}
-            onMouseLeave={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            }}
+            className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content"
           >
             <Terminal size={15} />
           </button>
@@ -139,57 +70,18 @@ export function ChatView() {
 
       <div
         ref={scrollParentRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
-        }}
+        className="flex-1 overflow-y-auto flex flex-col min-h-0"
       >
         {messages.length === 0 ? (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "40px 20px",
-            }}
-          >
-            <div style={{ textAlign: "center", maxWidth: "360px" }}>
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "12px",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 16px",
-                }}
-              >
-                <Info size={22} strokeWidth={1.5} color="var(--text-muted)" />
+          <div className="flex-1 flex items-center justify-center p-10">
+            <div className="text-center max-w-[360px]">
+              <div className="w-12 h-12 rounded-xl bg-base-200 border border-base-300 flex items-center justify-center mx-auto mb-4">
+                <Info size={22} strokeWidth={1.5} className="text-base-content/30" />
               </div>
-              <p
-                style={{
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
-                  marginBottom: "8px",
-                }}
-              >
+              <p className="text-[15px] font-semibold text-base-content mb-2">
                 {activeSessionId ? "Start the conversation" : "Select a project to start"}
               </p>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "var(--text-muted)",
-                  lineHeight: 1.6,
-                }}
-              >
+              <p className="text-[13px] text-base-content/40 leading-relaxed">
                 {activeSessionId
                   ? "Type a message below to begin chatting with Claude."
                   : "Choose a project from the sidebar, then create or select a session to begin chatting with Claude."}
@@ -198,18 +90,12 @@ export function ChatView() {
           </div>
         ) : (
           <div
-            style={{
-              position: "relative",
-              height: virtualizer.getTotalSize() + "px",
-              width: "100%",
-            }}
+            className="relative w-full"
+            style={{ height: virtualizer.getTotalSize() + "px" }}
           >
             <div
+              className="absolute top-0 left-0 w-full"
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
                 transform: "translateY(" + (virtualItems.length > 0 ? virtualItems[0].start : 0) + "px)",
               }}
             >
@@ -220,7 +106,7 @@ export function ChatView() {
                     key={virtualItem.key}
                     data-index={virtualItem.index}
                     ref={virtualizer.measureElement}
-                    style={{ paddingTop: virtualItem.index === 0 ? "12px" : undefined }}
+                    className={virtualItem.index === 0 ? "pt-3" : ""}
                   >
                     <Message message={msg} />
                   </div>
@@ -231,32 +117,17 @@ export function ChatView() {
         )}
 
         {isProcessing && (
-          <div style={{ display: "flex", padding: "8px 20px", gap: "10px", alignItems: "center" }}>
-            <div
-              style={{
-                width: "24px",
-                height: "24px",
-                borderRadius: "50%",
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-subtle)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--accent-primary)" }} />
+          <div className="flex px-5 py-2 gap-2.5 items-center">
+            <div className="w-6 h-6 rounded-full bg-base-200 border border-base-300 flex items-center justify-center flex-shrink-0">
+              <div className="w-3 h-3 rounded-full bg-primary" />
             </div>
-            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+            <div className="flex gap-1 items-center">
               {[0, 1, 2].map(function (i) {
                 return (
                   <div
                     key={i}
+                    className="w-1.5 h-1.5 rounded-full bg-base-content/30"
                     style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "var(--text-muted)",
                       animation: "pulse 1.2s ease-in-out infinite",
                       animationDelay: i * 0.2 + "s",
                     }}
@@ -267,50 +138,18 @@ export function ChatView() {
           </div>
         )}
 
-        <div ref={bottomRef} style={{ height: "12px", flexShrink: 0 }} />
+        <div ref={bottomRef} className="h-3 flex-shrink-0" />
       </div>
 
-      <div
-        style={{
-          flexShrink: 0,
-          borderTop: "1px solid var(--border-subtle)",
-          background: "var(--bg-secondary)",
-          paddingTop: "10px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "0 16px 8px",
-          }}
-        >
+      <div className="flex-shrink-0 border-t border-base-300 bg-base-200 pt-2.5">
+        <div className="flex items-center gap-2 px-4 pb-2">
           <button
             aria-label="Attach file"
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "var(--radius-sm)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-muted)",
-              transition: "color var(--transition-fast)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-            onMouseEnter={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-            }}
+            className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content"
           >
             <Paperclip size={15} />
           </button>
-          <div style={{ marginLeft: "auto" }}>
+          <div className="ml-auto">
             <ModelSelector />
           </div>
         </div>

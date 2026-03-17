@@ -103,18 +103,31 @@ export function SetupWizard(props: SetupWizardProps) {
   var isForward = step > prevStep;
 
   return (
-    <div style={overlayStyle}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-100 transition-colors duration-300">
       <style>{wizardCSS}</style>
 
       {step === 1 ? (
-        <div style={fullscreenWelcomeStyle}>
-          <div style={gridPatternStyle} aria-hidden="true" />
-          <div style={welcomeInnerStyle}>
+        <div className="relative w-full max-w-[520px] px-6 py-12 flex flex-col items-center text-center">
+          <div
+            className="fixed inset-0 pointer-events-none z-0"
+            aria-hidden="true"
+            style={{
+              backgroundImage: "linear-gradient(rgba(124,106,247,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(124,106,247,0.07) 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+              animation: "wizard-grid-shift 8s linear infinite",
+            }}
+          />
+          <div className="relative z-[1] flex flex-col items-center gap-0">
             <div className="wizard-fade-in" style={{ animationDelay: "0ms" }}>
               <LatticeLogomark size={64} />
             </div>
-            <h1 className="wizard-fade-in" style={{ ...wordmarkStyle, animationDelay: "80ms" }}>Lattice</h1>
-            <p className="wizard-fade-in" style={{ ...taglineStyle, animationDelay: "160ms" }}>
+            <h1
+              className="wizard-fade-in font-mono font-bold text-base-content leading-none mt-5 mb-0"
+              style={{ fontSize: "clamp(48px, 10vw, 72px)", letterSpacing: "-0.04em", animationDelay: "80ms" }}
+            >
+              Lattice
+            </h1>
+            <p className="wizard-fade-in text-[17px] text-base-content/60 mt-3 mb-8 tracking-[0.01em]" style={{ animationDelay: "160ms" }}>
               One dashboard. Every machine.
             </p>
             <div className="wizard-fade-in" style={{ animationDelay: "240ms" }}>
@@ -123,22 +136,21 @@ export function SetupWizard(props: SetupWizardProps) {
             <div className="wizard-fade-in" style={{ animationDelay: "320ms" }}>
               <button
                 onClick={goNext}
-                style={welcomeCTAStyle}
-                className="wizard-btn-primary"
+                className="wizard-btn-primary btn btn-primary inline-flex items-center gap-2 mt-7 h-[52px] px-8 text-[15px] font-semibold cursor-pointer"
               >
                 Get Started
                 <ArrowRight size={16} />
               </button>
             </div>
-            <p className="wizard-fade-in" style={{ ...welcomeSubnoteStyle, animationDelay: "380ms" }}>
+            <p className="wizard-fade-in text-[12px] text-base-content/30 mt-4" style={{ animationDelay: "380ms" }}>
               Takes about 2 minutes
             </p>
           </div>
         </div>
       ) : (
-        <div style={cardStyle}>
-          <div style={cardHeaderStyle}>
-            <div style={stepDotsStyle}>
+        <div className="w-[480px] max-w-[calc(100vw-24px)] bg-base-200 border border-base-300 rounded-xl flex flex-col overflow-hidden shadow-2xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 bg-base-100">
+            <div className="flex items-center gap-1.5">
               {Array.from({ length: TOTAL_STEPS - 1 }, function (_, i) {
                 var dotStep = i + 2;
                 var isComplete = step > dotStep;
@@ -146,25 +158,23 @@ export function SetupWizard(props: SetupWizardProps) {
                 return (
                   <div
                     key={i}
+                    className="h-1.5 rounded-full transition-all duration-[250ms]"
                     style={{
-                      ...dotStyle,
-                      background: isComplete ? "var(--accent-primary)" : isActive ? "var(--accent-primary)" : "var(--border-default)",
+                      background: (isComplete || isActive) ? "var(--accent-primary)" : "var(--border-default)",
                       opacity: isActive ? 1 : isComplete ? 0.7 : 0.35,
                       width: isActive ? "24px" : "8px",
-                      transition: "all 250ms ease",
                     }}
                   />
                 );
               })}
             </div>
-            <span style={stepCounterStyle}>
+            <span className="text-[11px] text-base-content/40 font-mono tracking-[0.06em]">
               {step - 1} / {TOTAL_STEPS - 1}
             </span>
           </div>
 
           <div
-            style={contentStyle}
-            className={animating ? (isForward ? "wizard-slide-out-left" : "wizard-slide-out-right") : (isForward ? "wizard-slide-in-right" : "wizard-slide-in-left")}
+            className={"px-7 pt-7 pb-2 flex-1 min-h-[320px] " + (animating ? (isForward ? "wizard-slide-out-left" : "wizard-slide-out-right") : (isForward ? "wizard-slide-in-right" : "wizard-slide-in-left"))}
             key={step}
           >
             {step === 2 && (
@@ -203,33 +213,27 @@ export function SetupWizard(props: SetupWizardProps) {
             {step === 6 && <DoneStep configured={configured} />}
           </div>
 
-          <div style={footerStyle}>
-            {step > 2 && step < TOTAL_STEPS && (
-              <button onClick={goBack} style={backButtonStyle} className="wizard-btn-back">
+          <div className="flex items-center gap-2 px-6 py-4 border-t border-base-300 bg-base-100">
+            {step >= 2 && step < TOTAL_STEPS && (
+              <button onClick={goBack} className="wizard-btn-back btn btn-ghost btn-sm gap-1 text-base-content/40">
                 <ChevronLeft size={14} />
                 Back
               </button>
             )}
-            {step === 2 && (
-              <button onClick={goBack} style={backButtonStyle} className="wizard-btn-back">
-                <ChevronLeft size={14} />
-                Back
-              </button>
-            )}
-            <div style={footerRightStyle}>
+            <div className="flex items-center gap-2 ml-auto">
               {step === 2 && (
-                <button onClick={skipToNext} style={skipButtonStyle} className="wizard-btn-skip">Skip</button>
+                <button onClick={skipToNext} className="wizard-btn-skip btn btn-ghost btn-sm text-base-content/40">Skip</button>
               )}
               {step === 3 && (
-                <button onClick={handleAppearanceNext} style={primaryButtonStyle} className="wizard-btn-primary">
+                <button onClick={handleAppearanceNext} className="wizard-btn-primary btn btn-primary btn-sm gap-1">
                   Continue
                   <ChevronRight size={14} />
                 </button>
               )}
               {step === 4 && (
                 <>
-                  <button onClick={skipToNext} style={skipButtonStyle} className="wizard-btn-skip">Skip</button>
-                  <button onClick={handleSecurityNext} style={primaryButtonStyle} className="wizard-btn-primary">
+                  <button onClick={skipToNext} className="wizard-btn-skip btn btn-ghost btn-sm text-base-content/40">Skip</button>
+                  <button onClick={handleSecurityNext} className="wizard-btn-primary btn btn-primary btn-sm gap-1">
                     Continue
                     <ChevronRight size={14} />
                   </button>
@@ -237,21 +241,21 @@ export function SetupWizard(props: SetupWizardProps) {
               )}
               {step === 5 && (
                 <>
-                  <button onClick={skipToNext} style={skipButtonStyle} className="wizard-btn-skip">Skip</button>
-                  <button onClick={handleProjectNext} style={primaryButtonStyle} className="wizard-btn-primary">
+                  <button onClick={skipToNext} className="wizard-btn-skip btn btn-ghost btn-sm text-base-content/40">Skip</button>
+                  <button onClick={handleProjectNext} className="wizard-btn-primary btn btn-primary btn-sm gap-1">
                     Add &amp; Continue
                     <ChevronRight size={14} />
                   </button>
                 </>
               )}
               {step === 6 && (
-                <button onClick={handleDone} style={doneButtonStyle} className="wizard-btn-done">
+                <button onClick={handleDone} className="wizard-btn-done btn btn-success btn-sm gap-2 font-bold">
                   Open Dashboard
                   <ArrowRight size={16} />
                 </button>
               )}
               {step === 2 && (
-                <button onClick={handleNameNext} style={primaryButtonStyle} className="wizard-btn-primary">
+                <button onClick={handleNameNext} className="wizard-btn-primary btn btn-primary btn-sm gap-1">
                   Continue
                   <ChevronRight size={14} />
                 </button>
@@ -298,34 +302,36 @@ function TerminalPreview() {
   }, []);
 
   return (
-    <div style={terminalBlockStyle}>
-      <div style={terminalTitleBarStyle}>
-        <span style={terminalDotStyle("#ef4444")} />
-        <span style={terminalDotStyle("#f59e0b")} />
-        <span style={terminalDotStyle("#22c55e")} />
-        <span style={terminalTitleTextStyle}>lattice — zsh</span>
+    <div className="w-[380px] max-w-[calc(100vw-48px)] bg-base-200 border border-base-300 rounded-xl overflow-hidden shadow-2xl">
+      <div className="flex items-center gap-1.5 px-3.5 py-2.5 bg-base-300 border-b border-base-300">
+        <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] opacity-80 flex-shrink-0" />
+        <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] opacity-80 flex-shrink-0" />
+        <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] opacity-80 flex-shrink-0" />
+        <span className="text-[11px] text-base-content/40 font-mono mx-auto tracking-[0.02em]">lattice — zsh</span>
       </div>
-      <div style={terminalBodyStyle}>
+      <div className="px-4 py-3.5 flex flex-col gap-1 min-h-[96px]">
         {lines.map(function (line, i) {
           return (
             <div
               key={i}
+              className="text-[12px] font-mono leading-relaxed whitespace-pre transition-all duration-200"
               style={{
-                ...terminalLineStyle,
                 opacity: i < visible ? 1 : 0,
                 transform: i < visible ? "translateY(0)" : "translateY(4px)",
-                transition: "opacity 200ms ease, transform 200ms ease",
                 color: line.color,
               }}
             >
               {line.prefix && <span style={{ color: "var(--accent-primary)" }}>{line.prefix}</span>}
-              <span style={{ fontFamily: "var(--font-mono)" }}>{line.text}</span>
+              <span>{line.text}</span>
             </div>
           );
         })}
-        <div style={terminalCursorRowStyle}>
+        <div className="flex items-center gap-0.5 text-[12px] font-mono mt-0.5">
           <span style={{ color: "var(--accent-primary)" }}>$ </span>
-          <span style={terminalCursorStyle} />
+          <span
+            className="inline-block w-2 h-3.5 rounded-[1px] align-middle opacity-90"
+            style={{ background: "var(--accent-primary)", animation: "wizard-cursor-blink 1s step-end infinite" }}
+          />
         </div>
       </div>
     </div>
@@ -340,33 +346,37 @@ interface NameStepProps {
 function NameStep(props: NameStepProps) {
   var displayName = props.value.trim() || "this-machine";
   return (
-    <div style={stepContentStyle}>
-      <div style={stepIconRowStyle}>
+    <div className="flex flex-col">
+      <div className="flex items-center mb-3.5">
         <Server size={22} color="var(--accent-primary)" />
       </div>
-      <h2 style={stepHeadingStyle}>Name this machine</h2>
-      <p style={stepDescStyle}>
+      <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
+        Name this machine
+      </h2>
+      <p className="text-[13px] text-base-content/60 leading-relaxed mb-5">
         Give this node a recognizable name. It appears in your mesh when you connect multiple computers.
       </p>
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Machine name</label>
-        <div style={inputWrapperStyle}>
-          <span style={inputPromptStyle}>&gt;</span>
+      <fieldset className="fieldset mb-3.5">
+        <legend className="fieldset-legend text-[11px] font-semibold text-base-content/40 uppercase tracking-[0.08em]">
+          Machine name
+        </legend>
+        <div className="flex items-center gap-2 bg-base-300 border border-base-content/20 rounded-md px-3 h-[44px] focus-within:border-primary transition-colors duration-[120ms]">
+          <span className="text-primary font-mono font-bold text-[16px]">&gt;</span>
           <input
             type="text"
             value={props.value}
             onChange={function (e) { props.onChange(e.target.value); }}
             placeholder="my-laptop"
-            style={monoInputStyle}
+            className="flex-1 bg-transparent text-base-content font-mono text-[14px] outline-none"
             autoFocus
             spellCheck={false}
           />
         </div>
-      </div>
-      <div style={previewBannerStyle}>
-        <span style={previewLabelStyle}>Preview</span>
-        <span style={previewValueStyle}>{displayName}</span>
-        <span style={{ color: "var(--text-muted)", fontSize: "12px" }}>will appear on your mesh</span>
+      </fieldset>
+      <div className="flex items-center gap-2 px-3 py-2 bg-base-300 border border-base-content/10 rounded-md">
+        <span className="text-[10px] uppercase tracking-[0.08em] text-base-content/40 font-semibold">Preview</span>
+        <span className="font-mono text-[13px] font-semibold text-base-content">{displayName}</span>
+        <span className="text-base-content/30 text-[12px]">will appear on your mesh</span>
       </div>
     </div>
   );
@@ -383,39 +393,41 @@ function AppearanceStep(props: AppearanceStepProps) {
   var quickPicks = theme.mode === "dark" ? darkQuickPicks : lightQuickPicks;
 
   return (
-    <div style={stepContentStyle}>
-      <div style={stepIconRowStyle}>
+    <div className="flex flex-col">
+      <div className="flex items-center mb-3.5">
         <Palette size={22} color="var(--accent-primary)" />
       </div>
-      <h2 style={stepHeadingStyle}>Choose appearance</h2>
-      <p style={stepDescStyle}>Pick a color theme. You can always change this in settings.</p>
+      <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
+        Choose appearance
+      </h2>
+      <p className="text-[13px] text-base-content/60 leading-relaxed mb-4">
+        Pick a color theme. You can always change this in settings.
+      </p>
 
-      <div style={modeToggleRowStyle}>
+      <div className="flex gap-1.5 mb-4 p-1 bg-base-300 rounded-lg w-fit">
         <button
           onClick={function () { if (theme.mode !== "dark") { theme.toggleMode(); } }}
-          style={{
-            ...modeTabStyle,
-            background: theme.mode === "dark" ? "var(--accent-primary)" : "var(--bg-overlay)",
-            color: theme.mode === "dark" ? "#fff" : "var(--text-secondary)",
-          }}
+          className={
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-[120ms] cursor-pointer " +
+            (theme.mode === "dark" ? "bg-primary text-primary-content" : "text-base-content/60 hover:text-base-content")
+          }
         >
           <Moon size={13} />
           Dark
         </button>
         <button
           onClick={function () { if (theme.mode !== "light") { theme.toggleMode(); } }}
-          style={{
-            ...modeTabStyle,
-            background: theme.mode === "light" ? "var(--accent-primary)" : "var(--bg-overlay)",
-            color: theme.mode === "light" ? "#fff" : "var(--text-secondary)",
-          }}
+          className={
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-[120ms] cursor-pointer " +
+            (theme.mode === "light" ? "bg-primary text-primary-content" : "text-base-content/60 hover:text-base-content")
+          }
         >
           <Sun size={13} />
           Light
         </button>
       </div>
 
-      <div style={themeGridStyle}>
+      <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))" }}>
         {quickPicks.map(function (entry: ThemeEntry) {
           var isActive = entry.id === theme.currentThemeId;
           var bg = "#" + entry.theme.base00;
@@ -427,28 +439,27 @@ function AppearanceStep(props: AppearanceStepProps) {
             <button
               key={entry.id}
               onClick={function () { theme.setTheme(entry.id); }}
-              style={{
-                ...themeCardStyle,
-                outline: isActive ? "2px solid var(--accent-primary)" : "2px solid transparent",
-                outlineOffset: "2px",
-              }}
               title={entry.theme.name}
+              className={
+                "relative flex flex-col gap-1.5 p-0 rounded-md overflow-hidden cursor-pointer border-2 transition-all duration-[120ms] " +
+                (isActive ? "border-primary" : "border-transparent hover:border-base-content/20")
+              }
             >
-              <div style={{ ...themeCardPreviewStyle, background: bg }}>
-                <div style={{ ...themeCardBarStyle, background: "#" + entry.theme.base01 }}>
-                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: red, display: "inline-block" }} />
-                  <span style={{ width: "24px", height: "4px", borderRadius: "2px", background: accent, opacity: 0.7, display: "inline-block", marginLeft: "4px" }} />
+              <div className="w-full h-[48px] flex flex-col" style={{ background: bg }}>
+                <div className="flex items-center gap-1 px-1.5 py-1" style={{ background: "#" + entry.theme.base01 }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: red }} />
+                  <span className="w-6 h-1 rounded" style={{ background: accent, opacity: 0.7 }} />
                 </div>
-                <div style={{ padding: "4px 5px", display: "flex", flexDirection: "column", gap: "3px" }}>
-                  <div style={{ width: "80%", height: "3px", borderRadius: "2px", background: accent, opacity: 0.8 }} />
-                  <div style={{ width: "60%", height: "3px", borderRadius: "2px", background: text, opacity: 0.4 }} />
-                  <div style={{ width: "70%", height: "3px", borderRadius: "2px", background: green, opacity: 0.6 }} />
+                <div className="flex flex-col gap-[3px] px-1.5 py-1">
+                  <div className="h-[3px] rounded w-[80%]" style={{ background: accent, opacity: 0.8 }} />
+                  <div className="h-[3px] rounded w-[60%]" style={{ background: text, opacity: 0.4 }} />
+                  <div className="h-[3px] rounded w-[70%]" style={{ background: green, opacity: 0.6 }} />
                 </div>
               </div>
-              <span style={themeCardLabelStyle}>{entry.theme.name}</span>
+              <span className="text-[10px] text-base-content/60 truncate px-1.5 pb-1">{entry.theme.name}</span>
               {isActive && (
-                <div style={themeCardCheckStyle}>
-                  <Check size={10} />
+                <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
+                  <Check size={8} color="white" />
                 </div>
               )}
             </button>
@@ -456,70 +467,29 @@ function AppearanceStep(props: AppearanceStepProps) {
         })}
       </div>
 
-      <div style={{
-        marginTop: "16px",
-        borderRadius: "8px",
-        border: "1px solid var(--border-default)",
-        overflow: "hidden",
-        transition: "all 300ms ease",
-      }}>
-        <div style={{
-          fontSize: "9px",
-          fontFamily: "var(--font-mono)",
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          padding: "6px 10px",
-          background: "var(--bg-tertiary)",
-          borderBottom: "1px solid var(--border-subtle)",
-          transition: "all 300ms ease",
-        }}>Preview</div>
-        <div style={{
-          display: "flex",
-          height: "100px",
-          background: "var(--bg-primary)",
-          transition: "all 300ms ease",
-        }}>
-          <div style={{
-            width: "72px",
-            flexShrink: 0,
-            borderRight: "1px solid var(--border-subtle)",
-            padding: "8px 6px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-            transition: "all 300ms ease",
-          }}>
-            <div style={{ fontSize: "8px", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "2px", transition: "color 300ms ease" }}>Projects</div>
-            <div style={{ height: "6px", width: "90%", borderRadius: "3px", background: "var(--accent-primary)", opacity: 0.8, transition: "background 300ms ease" }} />
-            <div style={{ height: "6px", width: "70%", borderRadius: "3px", background: "var(--bg-overlay)", transition: "background 300ms ease" }} />
-            <div style={{ height: "6px", width: "80%", borderRadius: "3px", background: "var(--bg-overlay)", transition: "background 300ms ease" }} />
+      <div className="rounded-lg border border-base-300 overflow-hidden transition-all duration-300">
+        <div className="text-[9px] font-mono tracking-[0.05em] uppercase text-base-content/40 px-2.5 py-1.5 bg-base-300 border-b border-base-300 transition-all duration-300">
+          Preview
+        </div>
+        <div className="flex h-[100px] bg-base-100 transition-all duration-300">
+          <div className="w-[72px] flex-shrink-0 border-r border-base-300 p-2 flex flex-col gap-1">
+            <div className="text-[8px] font-mono text-base-content/30 uppercase tracking-[0.05em] mb-0.5">Projects</div>
+            <div className="h-1.5 w-[90%] rounded bg-primary opacity-80" />
+            <div className="h-1.5 w-[70%] rounded bg-base-300" />
+            <div className="h-1.5 w-[80%] rounded bg-base-300" />
           </div>
-          <div style={{
-            flex: 1,
-            padding: "8px 10px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            transition: "all 300ms ease",
-          }}>
-            <div style={{ fontSize: "9px", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)", transition: "color 300ms ease" }}>New Session</div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px", justifyContent: "center" }}>
-              <div style={{ display: "flex", gap: "4px", alignItems: "flex-start" }}>
-                <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--accent-primary)", flexShrink: 0, opacity: 0.6, transition: "background 300ms ease" }} />
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div style={{ height: "4px", width: "120px", borderRadius: "2px", background: "var(--text-secondary)", opacity: 0.5, transition: "background 300ms ease" }} />
-                  <div style={{ height: "4px", width: "80px", borderRadius: "2px", background: "var(--text-secondary)", opacity: 0.3, transition: "background 300ms ease" }} />
+          <div className="flex-1 p-2.5 flex flex-col gap-1.5">
+            <div className="text-[9px] font-mono font-semibold text-base-content">New Session</div>
+            <div className="flex-1 flex flex-col gap-[3px] justify-center">
+              <div className="flex gap-1 items-start">
+                <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0 opacity-60" />
+                <div className="flex flex-col gap-0.5">
+                  <div className="h-1 w-[120px] rounded bg-base-content/20" />
+                  <div className="h-1 w-[80px] rounded bg-base-content/15" />
                 </div>
               </div>
             </div>
-            <div style={{
-              height: "18px",
-              borderRadius: "4px",
-              background: "var(--bg-secondary)",
-              border: "1px solid var(--border-subtle)",
-              transition: "all 300ms ease",
-            }} />
+            <div className="h-[18px] rounded bg-base-200 border border-base-300" />
           </div>
         </div>
       </div>
@@ -539,62 +509,66 @@ function SecurityStep(props: SecurityStepProps) {
   var strength = getPassphraseStrength(props.passphrase);
 
   return (
-    <div style={stepContentStyle}>
-      <div style={stepIconRowStyle}>
+    <div className="flex flex-col">
+      <div className="flex items-center mb-3.5">
         <Lock size={22} color="var(--accent-primary)" />
       </div>
-      <h2 style={stepHeadingStyle}>Set a passphrase</h2>
+      <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
+        Set a passphrase
+      </h2>
 
-      <div style={infoBoxStyle}>
-        <Info size={16} color="var(--text-muted)" style={{ flexShrink: 0, marginTop: "1px" }} />
-        <p style={infoBoxTextStyle}>
+      <div className="flex gap-2 p-3 bg-base-300 border border-base-300 rounded-md mb-4">
+        <Info size={16} className="text-base-content/40 flex-shrink-0 mt-[1px]" />
+        <p className="text-[12px] text-base-content/50 leading-relaxed">
           Optional. Protects your dashboard on shared networks. Node-to-node connections use separate key-based auth.
         </p>
       </div>
 
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Passphrase</label>
+      <fieldset className="fieldset mb-3.5">
+        <legend className="fieldset-legend text-[11px] font-semibold text-base-content/40 uppercase tracking-[0.08em]">
+          Passphrase
+        </legend>
         <input
           type="password"
           value={props.passphrase}
           onChange={function (e) { props.onPassphraseChange(e.target.value); }}
           placeholder="Leave blank to skip"
-          style={inputStyle}
+          className="input input-bordered w-full bg-base-300 text-base-content text-[14px] focus:border-primary"
           autoFocus
         />
         {props.passphrase.length > 0 && (
-          <div style={strengthBarRowStyle}>
-            <div style={strengthBarTrackStyle}>
-              <div style={{
-                ...strengthBarFillStyle,
-                width: strength.pct + "%",
-                background: strength.color,
-                transition: "width 200ms ease, background 200ms ease",
-              }} />
+          <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex-1 h-1 bg-base-300 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-200"
+                style={{ width: strength.pct + "%", background: strength.color }}
+              />
             </div>
-            <span style={{ ...strengthLabelStyle, color: strength.color }}>{strength.label}</span>
+            <span className="text-[11px] font-semibold" style={{ color: strength.color }}>{strength.label}</span>
           </div>
         )}
-      </div>
+      </fieldset>
 
       {props.passphrase.length > 0 && (
-        <div style={fieldStyle}>
-          <label style={labelStyle}>Confirm passphrase</label>
+        <fieldset className="fieldset mb-3.5">
+          <legend className="fieldset-legend text-[11px] font-semibold text-base-content/40 uppercase tracking-[0.08em]">
+            Confirm passphrase
+          </legend>
           <input
             type="password"
             value={props.passphraseConfirm}
             onChange={function (e) { props.onConfirmChange(e.target.value); }}
             placeholder="Repeat passphrase"
-            style={{
-              ...inputStyle,
-              borderColor: props.error ? "var(--accent-danger)" : "var(--border-default)",
-            }}
+            className={
+              "input input-bordered w-full bg-base-300 text-base-content text-[14px] focus:border-primary " +
+              (props.error ? "border-error" : "")
+            }
           />
-        </div>
+        </fieldset>
       )}
 
       {props.error && (
-        <p style={errorTextStyle}>{props.error}</p>
+        <p className="text-[12px] text-error mt-1">{props.error}</p>
       )}
     </div>
   );
@@ -617,37 +591,45 @@ interface ProjectStepProps {
 
 function ProjectStep(props: ProjectStepProps) {
   return (
-    <div style={stepContentStyle}>
-      <div style={stepIconRowStyle}>
+    <div className="flex flex-col">
+      <div className="flex items-center mb-3.5">
         <Folder size={22} color="var(--accent-primary)" />
       </div>
-      <h2 style={stepHeadingStyle}>Add your first project</h2>
-      <p style={stepDescStyle}>
+      <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
+        Add your first project
+      </h2>
+      <p className="text-[13px] text-base-content/60 leading-relaxed mb-5">
         Point Lattice at a local directory. Claude runs inside that workspace. Add more projects from the sidebar anytime.
       </p>
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Project path</label>
+      <fieldset className="fieldset mb-3.5">
+        <legend className="fieldset-legend text-[11px] font-semibold text-base-content/40 uppercase tracking-[0.08em]">
+          Project path
+        </legend>
         <input
           type="text"
           value={props.path}
           onChange={function (e) { props.onPathChange(e.target.value); }}
           placeholder="/home/you/projects/my-app"
-          style={monoInputStyle}
+          className="input input-bordered w-full bg-base-300 text-base-content font-mono text-[14px] focus:border-primary"
           autoFocus
           spellCheck={false}
         />
-        <span style={hintStyle}>Absolute path to a local directory on this machine.</span>
-      </div>
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Display name <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+        <p className="fieldset-label text-[11px] text-base-content/30 mt-1">
+          Absolute path to a local directory on this machine.
+        </p>
+      </fieldset>
+      <fieldset className="fieldset mb-3.5">
+        <legend className="fieldset-legend text-[11px] font-semibold text-base-content/40 uppercase tracking-[0.08em]">
+          Display name <span className="font-normal normal-case tracking-normal">(optional)</span>
+        </legend>
         <input
           type="text"
           value={props.title}
           onChange={function (e) { props.onTitleChange(e.target.value); }}
           placeholder={props.path ? (props.path.replace(/\/+$/, "").split("/").pop() || "My App") : "My App"}
-          style={inputStyle}
+          className="input input-bordered w-full bg-base-300 text-base-content text-[14px] focus:border-primary"
         />
-      </div>
+      </fieldset>
     </div>
   );
 }
@@ -658,28 +640,34 @@ interface DoneStepProps {
 
 function DoneStep(props: DoneStepProps) {
   return (
-    <div style={doneStepStyle}>
-      <div style={doneCheckCircleStyle} className="wizard-check-pop">
+    <div className="flex flex-col items-center text-center">
+      <div className="wizard-check-pop mb-4">
         <CheckCircle size={36} color="var(--accent-success)" strokeWidth={1.5} aria-hidden="true" />
       </div>
-      <h2 style={doneHeadingStyle}>You're all set</h2>
-      <p style={stepDescStyle}>Lattice is configured and ready to go.</p>
+      <h2 className="font-mono text-[26px] font-bold text-base-content tracking-tight mb-2">
+        You're all set
+      </h2>
+      <p className="text-[13px] text-base-content/60 leading-relaxed mb-5">
+        Lattice is configured and ready to go.
+      </p>
 
       {props.configured.length > 0 ? (
-        <ul style={summaryListStyle}>
+        <ul className="list-none p-0 m-0 flex flex-col gap-1.5 text-left w-full">
           {props.configured.map(function (item: string, i: number) {
             return (
-              <li key={i} style={summaryItemStyle} className="wizard-fade-in" data-delay={i * 60}>
-                <span style={summaryCheckStyle}>
+              <li key={i} className="wizard-fade-in flex items-center gap-2 bg-base-300 px-3 py-2 rounded-md" data-delay={i * 60}>
+                <span className="w-4 h-4 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0">
                   <Check size={10} />
                 </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-secondary)" }}>{item}</span>
+                <span className="font-mono text-[12px] text-base-content/60">{item}</span>
               </li>
             );
           })}
         </ul>
       ) : (
-        <p style={hintStyle}>Everything was skipped — configure it from settings anytime.</p>
+        <p className="text-[11px] text-base-content/30">
+          Everything was skipped — configure it from settings anytime.
+        </p>
       )}
     </div>
   );
@@ -697,6 +685,14 @@ var wizardCSS = `
   @keyframes wizard-slide-in-left {
     from { opacity: 0; transform: translateX(-24px); }
     to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes wizard-slide-out-left {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-24px); }
+  }
+  @keyframes wizard-slide-out-right {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(24px); }
   }
   @keyframes wizard-check-pop {
     0% { transform: scale(0.5); opacity: 0; }
@@ -720,6 +716,12 @@ var wizardCSS = `
   .wizard-slide-in-left {
     animation: wizard-slide-in-left 220ms ease both;
   }
+  .wizard-slide-out-left {
+    animation: wizard-slide-out-left 180ms ease both;
+  }
+  .wizard-slide-out-right {
+    animation: wizard-slide-out-right 180ms ease both;
+  }
   .wizard-check-pop {
     animation: wizard-check-pop 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   }
@@ -727,7 +729,6 @@ var wizardCSS = `
     transition: background 150ms ease, transform 100ms ease, box-shadow 150ms ease !important;
   }
   .wizard-btn-primary:hover {
-    background: var(--accent-secondary) !important;
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(124, 106, 247, 0.35);
   }
@@ -745,607 +746,4 @@ var wizardCSS = `
   .wizard-btn-done:active {
     transform: translateY(0);
   }
-  .wizard-btn-back:hover {
-    color: var(--text-primary) !important;
-    background: var(--bg-surface) !important;
-  }
-  .wizard-btn-skip:hover {
-    color: var(--text-secondary) !important;
-  }
 `;
-
-var overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 9999,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "var(--bg-primary)",
-  transition: "background 300ms ease",
-};
-
-var fullscreenWelcomeStyle: React.CSSProperties = {
-  position: "relative",
-  width: "100%",
-  maxWidth: "520px",
-  padding: "48px 24px",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  textAlign: "center",
-};
-
-var gridPatternStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  backgroundImage: `
-    linear-gradient(rgba(124,106,247,0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124,106,247,0.07) 1px, transparent 1px)
-  `,
-  backgroundSize: "40px 40px",
-  animation: "wizard-grid-shift 8s linear infinite",
-  pointerEvents: "none",
-  zIndex: 0,
-};
-
-var welcomeInnerStyle: React.CSSProperties = {
-  position: "relative",
-  zIndex: 1,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "0",
-};
-
-var wordmarkStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "clamp(48px, 10vw, 72px)",
-  fontWeight: 700,
-  color: "var(--text-primary)",
-  letterSpacing: "-0.04em",
-  marginTop: "20px",
-  marginBottom: "0",
-  lineHeight: 1,
-};
-
-var taglineStyle: React.CSSProperties = {
-  fontFamily: "var(--font-ui)",
-  fontSize: "17px",
-  color: "var(--text-secondary)",
-  marginTop: "12px",
-  marginBottom: "32px",
-  letterSpacing: "0.01em",
-};
-
-var welcomeCTAStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "8px",
-  marginTop: "28px",
-  padding: "0 32px",
-  height: "52px",
-  background: "var(--accent-primary)",
-  color: "#fff",
-  borderRadius: "var(--radius-md)",
-  fontSize: "15px",
-  fontWeight: 600,
-  fontFamily: "var(--font-ui)",
-  cursor: "pointer",
-  letterSpacing: "0.01em",
-  border: "none",
-};
-
-var welcomeSubnoteStyle: React.CSSProperties = {
-  marginTop: "16px",
-  fontSize: "12px",
-  color: "var(--text-muted)",
-  fontFamily: "var(--font-ui)",
-};
-
-var terminalBlockStyle: React.CSSProperties = {
-  width: "380px",
-  maxWidth: "calc(100vw - 48px)",
-  background: "var(--bg-secondary)",
-  border: "1px solid var(--border-default)",
-  borderRadius: "var(--radius-lg)",
-  overflow: "hidden",
-  boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,106,247,0.1)",
-};
-
-var terminalTitleBarStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  padding: "10px 14px",
-  background: "var(--bg-overlay)",
-  borderBottom: "1px solid var(--border-subtle)",
-};
-
-function terminalDotStyle(color: string): React.CSSProperties {
-  return {
-    width: "10px",
-    height: "10px",
-    borderRadius: "50%",
-    background: color,
-    opacity: 0.8,
-    flexShrink: 0,
-  };
-}
-
-var terminalTitleTextStyle: React.CSSProperties = {
-  fontSize: "11px",
-  color: "var(--text-muted)",
-  fontFamily: "var(--font-mono)",
-  marginLeft: "auto",
-  marginRight: "auto",
-  letterSpacing: "0.02em",
-};
-
-var terminalBodyStyle: React.CSSProperties = {
-  padding: "14px 16px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "4px",
-  minHeight: "96px",
-};
-
-var terminalLineStyle: React.CSSProperties = {
-  fontSize: "12px",
-  lineHeight: 1.6,
-  fontFamily: "var(--font-mono)",
-  whiteSpace: "pre",
-};
-
-var terminalCursorRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "2px",
-  fontSize: "12px",
-  fontFamily: "var(--font-mono)",
-  marginTop: "2px",
-};
-
-var terminalCursorStyle: React.CSSProperties = {
-  display: "inline-block",
-  width: "8px",
-  height: "14px",
-  background: "var(--accent-primary)",
-  borderRadius: "1px",
-  animation: "wizard-cursor-blink 1s step-end infinite",
-  opacity: 0.9,
-  verticalAlign: "middle",
-};
-
-var cardStyle: React.CSSProperties = {
-  width: "480px",
-  maxWidth: "calc(100vw - 24px)",
-  background: "var(--bg-secondary)",
-  border: "1px solid var(--border-default)",
-  borderRadius: "12px",
-  display: "flex",
-  flexDirection: "column",
-  boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(124,106,247,0.08)",
-  overflow: "hidden",
-};
-
-var cardHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "16px 24px",
-  borderBottom: "1px solid var(--border-subtle)",
-  background: "var(--bg-primary)",
-};
-
-var stepDotsStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-};
-
-var dotStyle: React.CSSProperties = {
-  height: "6px",
-  borderRadius: "3px",
-};
-
-var stepCounterStyle: React.CSSProperties = {
-  fontSize: "11px",
-  color: "var(--text-muted)",
-  fontFamily: "var(--font-mono)",
-  letterSpacing: "0.06em",
-};
-
-var contentStyle: React.CSSProperties = {
-  padding: "28px 28px 8px",
-  flex: 1,
-  minHeight: "320px",
-};
-
-var footerStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  padding: "16px 24px",
-  borderTop: "1px solid var(--border-subtle)",
-  background: "var(--bg-primary)",
-};
-
-var footerRightStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  marginLeft: "auto",
-};
-
-var primaryButtonStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "6px",
-  height: "40px",
-  padding: "0 18px",
-  background: "var(--accent-primary)",
-  color: "#fff",
-  borderRadius: "var(--radius-md)",
-  fontSize: "13px",
-  fontWeight: 600,
-  fontFamily: "var(--font-ui)",
-  cursor: "pointer",
-  border: "none",
-  letterSpacing: "0.01em",
-};
-
-var doneButtonStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "8px",
-  height: "44px",
-  padding: "0 24px",
-  background: "var(--accent-success)",
-  color: "#051a0a",
-  borderRadius: "var(--radius-md)",
-  fontSize: "14px",
-  fontWeight: 700,
-  fontFamily: "var(--font-ui)",
-  cursor: "pointer",
-  border: "none",
-  letterSpacing: "0.01em",
-};
-
-var backButtonStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "4px",
-  height: "40px",
-  padding: "0 14px",
-  background: "var(--bg-overlay)",
-  color: "var(--text-muted)",
-  borderRadius: "var(--radius-md)",
-  fontSize: "13px",
-  fontFamily: "var(--font-ui)",
-  cursor: "pointer",
-  border: "1px solid var(--border-subtle)",
-  transition: "color 120ms ease, background 120ms ease",
-};
-
-var skipButtonStyle: React.CSSProperties = {
-  height: "40px",
-  padding: "0 14px",
-  background: "transparent",
-  color: "var(--text-muted)",
-  borderRadius: "var(--radius-md)",
-  fontSize: "13px",
-  fontFamily: "var(--font-ui)",
-  cursor: "pointer",
-  border: "none",
-  transition: "color 120ms ease",
-};
-
-var stepContentStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-};
-
-var stepIconRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  marginBottom: "14px",
-};
-
-var stepHeadingStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "22px",
-  fontWeight: 700,
-  color: "var(--text-primary)",
-  letterSpacing: "-0.02em",
-  marginBottom: "8px",
-  lineHeight: 1.2,
-};
-
-var stepDescStyle: React.CSSProperties = {
-  fontSize: "13px",
-  color: "var(--text-secondary)",
-  lineHeight: 1.65,
-  marginBottom: "20px",
-  fontFamily: "var(--font-ui)",
-};
-
-var fieldStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "6px",
-  marginBottom: "14px",
-};
-
-var labelStyle: React.CSSProperties = {
-  fontSize: "11px",
-  fontWeight: 600,
-  color: "var(--text-muted)",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  fontFamily: "var(--font-ui)",
-};
-
-var inputStyle: React.CSSProperties = {
-  height: "44px",
-  padding: "0 14px",
-  background: "var(--bg-tertiary)",
-  border: "1px solid var(--border-default)",
-  borderRadius: "var(--radius-md)",
-  color: "var(--text-primary)",
-  fontSize: "14px",
-  outline: "none",
-  width: "100%",
-  fontFamily: "var(--font-ui)",
-  transition: "border-color 150ms ease",
-};
-
-var inputWrapperStyle: React.CSSProperties = {
-  position: "relative",
-  display: "flex",
-  alignItems: "center",
-};
-
-var inputPromptStyle: React.CSSProperties = {
-  position: "absolute",
-  left: "14px",
-  color: "var(--accent-primary)",
-  fontFamily: "var(--font-mono)",
-  fontSize: "14px",
-  pointerEvents: "none",
-  userSelect: "none",
-  zIndex: 1,
-};
-
-var monoInputStyle: React.CSSProperties = {
-  height: "44px",
-  padding: "0 14px 0 32px",
-  background: "var(--bg-tertiary)",
-  border: "1px solid var(--border-default)",
-  borderRadius: "var(--radius-md)",
-  color: "var(--text-primary)",
-  fontSize: "13px",
-  outline: "none",
-  width: "100%",
-  fontFamily: "var(--font-mono)",
-  letterSpacing: "0.01em",
-  transition: "border-color 150ms ease",
-};
-
-var hintStyle: React.CSSProperties = {
-  fontSize: "11px",
-  color: "var(--text-muted)",
-  lineHeight: 1.5,
-  fontFamily: "var(--font-ui)",
-};
-
-var previewBannerStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  padding: "10px 14px",
-  background: "var(--bg-tertiary)",
-  border: "1px solid var(--border-subtle)",
-  borderRadius: "var(--radius-md)",
-  marginTop: "4px",
-};
-
-var previewLabelStyle: React.CSSProperties = {
-  fontSize: "10px",
-  fontWeight: 600,
-  color: "var(--text-muted)",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  fontFamily: "var(--font-ui)",
-  flexShrink: 0,
-};
-
-var previewValueStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "13px",
-  color: "var(--accent-primary)",
-  fontWeight: 600,
-  flex: 1,
-};
-
-var modeToggleRowStyle: React.CSSProperties = {
-  display: "flex",
-  gap: "8px",
-  marginBottom: "16px",
-};
-
-var modeTabStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "6px",
-  height: "36px",
-  padding: "0 16px",
-  borderRadius: "var(--radius-md)",
-  fontSize: "13px",
-  fontWeight: 500,
-  fontFamily: "var(--font-ui)",
-  cursor: "pointer",
-  border: "1px solid var(--border-subtle)",
-  transition: "background 150ms ease, color 150ms ease",
-};
-
-var themeGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(5, 1fr)",
-  gap: "8px",
-};
-
-var themeCardStyle: React.CSSProperties = {
-  position: "relative",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "stretch",
-  background: "var(--bg-tertiary)",
-  border: "1px solid var(--border-subtle)",
-  borderRadius: "var(--radius-md)",
-  cursor: "pointer",
-  overflow: "hidden",
-  padding: "0",
-  transition: "border-color 150ms ease, transform 150ms ease",
-};
-
-var themeCardPreviewStyle: React.CSSProperties = {
-  height: "52px",
-  borderRadius: "var(--radius-sm) var(--radius-sm) 0 0",
-  overflow: "hidden",
-};
-
-var themeCardBarStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  padding: "4px 5px",
-  gap: "3px",
-};
-
-var themeCardLabelStyle: React.CSSProperties = {
-  fontSize: "10px",
-  color: "var(--text-muted)",
-  padding: "4px 6px 6px",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  fontFamily: "var(--font-ui)",
-  display: "block",
-};
-
-var themeCardCheckStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "5px",
-  right: "5px",
-  width: "16px",
-  height: "16px",
-  borderRadius: "50%",
-  background: "var(--accent-primary)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-var infoBoxStyle: React.CSSProperties = {
-  display: "flex",
-  gap: "10px",
-  padding: "12px 14px",
-  background: "var(--bg-tertiary)",
-  border: "1px solid var(--border-subtle)",
-  borderRadius: "var(--radius-md)",
-  marginBottom: "20px",
-};
-
-var infoBoxTextStyle: React.CSSProperties = {
-  fontSize: "12px",
-  color: "var(--text-muted)",
-  lineHeight: 1.6,
-  fontFamily: "var(--font-ui)",
-};
-
-var strengthBarRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  marginTop: "2px",
-};
-
-var strengthBarTrackStyle: React.CSSProperties = {
-  flex: 1,
-  height: "3px",
-  background: "var(--border-subtle)",
-  borderRadius: "2px",
-  overflow: "hidden",
-};
-
-var strengthBarFillStyle: React.CSSProperties = {
-  height: "100%",
-  borderRadius: "2px",
-};
-
-var strengthLabelStyle: React.CSSProperties = {
-  fontSize: "11px",
-  fontWeight: 600,
-  letterSpacing: "0.04em",
-  fontFamily: "var(--font-ui)",
-  minWidth: "44px",
-  textAlign: "right",
-};
-
-var errorTextStyle: React.CSSProperties = {
-  fontSize: "12px",
-  color: "var(--accent-danger)",
-  fontFamily: "var(--font-ui)",
-  marginTop: "-6px",
-};
-
-var doneStepStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-};
-
-var doneCheckCircleStyle: React.CSSProperties = {
-  marginBottom: "16px",
-};
-
-var doneHeadingStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "22px",
-  fontWeight: 700,
-  color: "var(--text-primary)",
-  letterSpacing: "-0.02em",
-  marginBottom: "8px",
-};
-
-var summaryListStyle: React.CSSProperties = {
-  listStyle: "none",
-  display: "flex",
-  flexDirection: "column",
-  gap: "6px",
-  marginTop: "8px",
-  width: "100%",
-};
-
-var summaryItemStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  padding: "8px 12px",
-  background: "var(--bg-tertiary)",
-  borderRadius: "var(--radius-sm)",
-  border: "1px solid var(--border-subtle)",
-};
-
-var summaryCheckStyle: React.CSSProperties = {
-  width: "18px",
-  height: "18px",
-  borderRadius: "50%",
-  background: "var(--accent-success)",
-  color: "#051a0a",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-};

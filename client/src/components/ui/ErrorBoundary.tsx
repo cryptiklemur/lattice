@@ -35,11 +35,18 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
       return (
-        <div className="error-boundary">
-          <div className="error-boundary-content">
-            <h2>Something went wrong</h2>
-            <p>{this.state.error?.message || "An unexpected error occurred."}</p>
-            <button onClick={this.handleReload}>Reload</button>
+        <div className="min-h-screen bg-base-100 flex items-center justify-center">
+          <div className="text-center max-w-[400px] p-8">
+            <h2 className="text-[20px] font-semibold text-error mb-3">Something went wrong</h2>
+            <p className="text-[14px] text-base-content/60 mb-5">
+              {this.state.error?.message || "An unexpected error occurred."}
+            </p>
+            <button
+              onClick={this.handleReload}
+              className="btn btn-primary btn-sm"
+            >
+              Reload
+            </button>
           </div>
         </div>
       );

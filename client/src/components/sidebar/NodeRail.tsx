@@ -20,87 +20,42 @@ function NodeButton(props: NodeButtonProps) {
   var initials = getInitials(props.node.name);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <button
         onClick={props.onClick}
         title={props.node.name}
         onMouseEnter={function () { setHovered(true); }}
         onMouseLeave={function () { setHovered(false); }}
-        style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: props.isActive ? "10px" : "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.02em",
-          fontFamily: "var(--font-ui)",
-          background: props.isActive
-            ? "var(--accent)"
+        className={
+          "w-9 h-9 flex items-center justify-center text-[11px] font-bold tracking-[0.02em] cursor-pointer transition-all duration-[120ms] " +
+          (props.isActive
+            ? "rounded-[10px] bg-primary text-primary-content border border-transparent"
             : props.node.isLocal
-            ? "var(--bg-overlay)"
-            : "var(--bg-tertiary)",
-          color: props.isActive
-            ? "var(--accent-fg, #fff)"
-            : "var(--text-secondary)",
-          border: props.node.isLocal && !props.isActive
-            ? "1px solid var(--border-default)"
-            : "1px solid transparent",
-          transition: "border-radius var(--transition-fast), background var(--transition-fast)",
-          cursor: "pointer",
-          position: "relative",
-        }}
-        onFocus={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.outline = "2px solid var(--accent)";
-          (e.currentTarget as HTMLButtonElement).style.outlineOffset = "2px";
-        }}
-        onBlur={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.outline = "none";
-        }}
+            ? "rounded-full bg-base-300 text-base-content/60 border border-base-content/20"
+            : "rounded-full bg-base-200 text-base-content/60 border border-transparent")
+        }
       >
         {initials}
       </button>
 
       <div
-        style={{
-          position: "absolute",
-          bottom: "1px",
-          right: "1px",
-          width: "8px",
-          height: "8px",
-          borderRadius: "50%",
-          background: props.node.online ? "var(--green)" : "var(--text-muted)",
-          border: "1.5px solid var(--bg-secondary)",
-          pointerEvents: "none",
-        }}
+        className={
+          "absolute bottom-[1px] right-[1px] w-2 h-2 rounded-full border-[1.5px] border-base-200 pointer-events-none " +
+          (props.node.online ? "bg-success" : "bg-base-content/30")
+        }
       />
 
       {hovered && (
         <div
+          className="fixed pointer-events-none z-[9000] bg-base-300 border border-base-content/20 rounded px-2 py-1 text-xs text-base-content whitespace-nowrap shadow-xl"
           style={{
-            position: "fixed",
             left: "calc(var(--node-rail-width, 52px) + 8px)",
             transform: "translateY(-50%)",
-            pointerEvents: "none",
-            zIndex: 9000,
-            background: "var(--bg-tooltip, var(--bg-overlay))",
-            border: "1px solid var(--border-default)",
-            borderRadius: "var(--radius-sm)",
-            padding: "4px 8px",
-            fontSize: "12px",
-            color: "var(--text-primary)",
-            fontFamily: "var(--font-ui)",
-            whiteSpace: "nowrap",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
           }}
         >
           {props.node.name}
           {props.node.isLocal && (
-            <span style={{ color: "var(--text-muted)", marginLeft: "6px" }}>
-              (this machine)
-            </span>
+            <span className="text-base-content/40 ml-1.5">(this machine)</span>
           )}
         </div>
       )}
@@ -118,23 +73,12 @@ function AllButton(props: AllButtonProps) {
     <button
       onClick={props.onClick}
       title="All nodes"
-      style={{
-        width: "36px",
-        height: "36px",
-        borderRadius: props.isActive ? "10px" : "50%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "10px",
-        fontWeight: 700,
-        letterSpacing: "0.02em",
-        fontFamily: "var(--font-ui)",
-        background: props.isActive ? "var(--accent)" : "var(--bg-overlay)",
-        color: props.isActive ? "var(--accent-fg, #fff)" : "var(--text-muted)",
-        border: "1px solid var(--border-subtle)",
-        transition: "border-radius var(--transition-fast), background var(--transition-fast)",
-        cursor: "pointer",
-      }}
+      className={
+        "w-9 h-9 flex items-center justify-center text-[10px] font-bold tracking-[0.02em] cursor-pointer transition-all duration-[120ms] border " +
+        (props.isActive
+          ? "rounded-[10px] bg-primary text-primary-content border-transparent"
+          : "rounded-full bg-base-300 text-base-content/40 border-base-content/20")
+      }
     >
       ALL
     </button>
@@ -152,43 +96,23 @@ export function NodeRail(props: NodeRailProps) {
   var remoteNodes = props.nodes.filter(function (n) { return !n.isLocal; });
 
   return (
-    <div
-      style={{
-        width: "52px",
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        paddingTop: "10px",
-        paddingBottom: "10px",
-        gap: "6px",
-        background: "var(--bg-primary)",
-        borderRight: "1px solid var(--border-subtle)",
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-    >
+    <div className="w-[52px] flex-shrink-0 flex flex-col items-center pt-2.5 pb-2.5 gap-1.5 bg-base-100 border-r border-base-300 overflow-y-auto overflow-x-hidden">
       {localNode && (
         <NodeButton
           node={localNode}
           isActive={props.activeNodeId === localNode.id}
-          onClick={function () {
-            props.onSelectNode(
-              props.activeNodeId === localNode.id ? null : localNode.id
-            );
-          }}
+          onClick={(function (n) {
+            return function () {
+              props.onSelectNode(
+                props.activeNodeId === n.id ? null : n.id
+              );
+            };
+          })(localNode)}
         />
       )}
 
       {remoteNodes.length > 0 && (
-        <div
-          style={{
-            width: "20px",
-            height: "1px",
-            background: "var(--border-subtle)",
-            margin: "2px 0",
-          }}
-        />
+        <div className="w-5 h-px bg-base-300 my-0.5" />
       )}
 
       {remoteNodes.map(function (node) {
@@ -208,14 +132,7 @@ export function NodeRail(props: NodeRailProps) {
 
       {props.nodes.length > 1 && (
         <>
-          <div
-            style={{
-              width: "20px",
-              height: "1px",
-              background: "var(--border-subtle)",
-              margin: "2px 0",
-            }}
-          />
+          <div className="w-5 h-px bg-base-300 my-0.5" />
           <AllButton
             isActive={props.activeNodeId === null}
             onClick={function () { props.onSelectNode(null); }}

@@ -11,25 +11,25 @@ interface NoteCardProps {
 function NoteCard(props: NoteCardProps) {
   var { note, onEdit, onDelete } = props;
   return (
-    <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)", borderRadius: 6, padding: "10px 12px", position: "relative" }}>
-      <div
-        style={{ fontSize: 13, color: "var(--text-primary)", whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.5, minHeight: 48 }}
-      >
-        {note.content}
-      </div>
-      <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "flex-end" }}>
-        <button
-          onClick={function () { onEdit(note.id); }}
-          style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-secondary)", cursor: "pointer", fontSize: 11, padding: "2px 8px" }}
-        >
-          Edit
-        </button>
-        <button
-          onClick={function () { onDelete(note.id); }}
-          style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-secondary)", cursor: "pointer", fontSize: 11, padding: "2px 8px" }}
-        >
-          Delete
-        </button>
+    <div className="card bg-base-200 border border-base-300">
+      <div className="card-body p-3">
+        <div className="text-[13px] text-base-content whitespace-pre-wrap break-words leading-relaxed min-h-12">
+          {note.content}
+        </div>
+        <div className="flex gap-1.5 justify-end mt-2">
+          <button
+            onClick={function () { onEdit(note.id); }}
+            className="btn btn-ghost btn-xs border border-base-300"
+          >
+            Edit
+          </button>
+          <button
+            onClick={function () { onDelete(note.id); }}
+            className="btn btn-ghost btn-xs border border-base-300 text-base-content/60"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -46,41 +46,30 @@ function EditModal(props: EditModalProps) {
   var [content, setContent] = useState(initial);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 8, padding: 20, width: 400, maxWidth: "90vw" }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: "var(--text-primary)" }}>Edit Note</div>
-        <textarea
-          autoFocus
-          value={content}
-          onChange={function (e) { setContent(e.target.value); }}
-          style={{
-            width: "100%",
-            minHeight: 120,
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border)",
-            borderRadius: 4,
-            color: "var(--text-primary)",
-            fontSize: 13,
-            fontFamily: "inherit",
-            padding: "8px 10px",
-            resize: "vertical",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
-        <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button
-            onClick={onCancel}
-            style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, padding: "5px 14px" }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={function () { onSave(content); }}
-            style={{ background: "var(--accent)", border: "none", borderRadius: 4, color: "var(--bg-primary)", cursor: "pointer", fontSize: 12, fontWeight: 600, padding: "5px 14px" }}
-          >
-            Save
-          </button>
+    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center">
+      <div className="card bg-base-200 border border-base-300 w-[400px] max-w-[90vw] shadow-2xl">
+        <div className="card-body p-5">
+          <div className="text-[13px] font-semibold text-base-content mb-3">Edit Note</div>
+          <textarea
+            autoFocus
+            value={content}
+            onChange={function (e) { setContent(e.target.value); }}
+            className="textarea textarea-bordered w-full min-h-[120px] bg-base-300 text-base-content text-[13px] resize-y"
+          />
+          <div className="flex gap-2 justify-end mt-3">
+            <button
+              onClick={onCancel}
+              className="btn btn-ghost btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={function () { onSave(content); }}
+              className="btn btn-primary btn-sm"
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -149,20 +138,20 @@ export function StickyNotes() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg-primary)" }}>
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Sticky Notes</span>
+    <div className="flex flex-col h-full bg-base-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-base-300">
+        <span className="text-[13px] font-semibold text-base-content">Sticky Notes</span>
         <button
           onClick={function () { setCreating(true); }}
-          style={{ background: "var(--accent)", border: "none", borderRadius: 4, color: "var(--bg-primary)", cursor: "pointer", fontSize: 12, fontWeight: 600, padding: "4px 12px" }}
+          className="btn btn-primary btn-xs"
         >
           New Note
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="flex-1 overflow-auto p-3 flex flex-col gap-2.5">
         {notes.length === 0 && (
-          <div style={{ color: "var(--text-secondary)", fontSize: 13, textAlign: "center", marginTop: 40 }}>
+          <div className="text-base-content/50 text-[13px] text-center mt-10">
             No notes yet. Create one to get started.
           </div>
         )}

@@ -10,31 +10,13 @@ export function NodeBadge(props: NodeBadgeProps) {
   return (
     <span
       title={props.node.name + (props.node.online ? " (online)" : " (offline)")}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "3px",
-        padding: "1px 5px",
-        borderRadius: "999px",
-        background: "var(--bg-overlay)",
-        border: "1px solid var(--border-subtle)",
-        fontSize: "10px",
-        fontWeight: 600,
-        color: "var(--text-muted)",
-        fontFamily: "var(--font-ui)",
-        letterSpacing: "0.03em",
-        flexShrink: 0,
-      }}
+      className="inline-flex items-center gap-[3px] px-[5px] py-[1px] rounded-full bg-base-300 border border-base-content/15 text-[10px] font-semibold text-base-content/40 tracking-[0.03em] flex-shrink-0"
     >
       <span
-        style={{
-          width: "5px",
-          height: "5px",
-          borderRadius: "50%",
-          background: props.node.online ? "var(--green)" : "var(--text-muted)",
-          flexShrink: 0,
-          display: "inline-block",
-        }}
+        className={
+          "w-[5px] h-[5px] rounded-full flex-shrink-0 inline-block " +
+          (props.node.online ? "bg-success" : "bg-base-content/30")
+        }
       />
       {initials}
     </span>

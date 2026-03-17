@@ -9,18 +9,7 @@ import { UserIsland } from "./UserIsland";
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div
-      style={{
-        padding: "8px 12px 4px",
-        fontSize: "11px",
-        fontWeight: 600,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        color: "var(--text-muted)",
-        fontFamily: "var(--font-ui)",
-        flexShrink: 0,
-      }}
-    >
+    <div className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-[0.08em] uppercase text-base-content/40 flex-shrink-0">
       {label}
     </div>
   );
@@ -48,18 +37,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
     : projects;
 
   return (
-    <div
-      className="sidebar-inner"
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        height: "100%",
-        width: "100%",
-        overflow: "hidden",
-        background: "var(--bg-secondary)",
-        borderRight: "1px solid var(--border-subtle)",
-      }}
-    >
+    <div className="flex flex-row h-full w-full overflow-hidden bg-base-200">
       {nodes.length > 0 && (
         <NodeRail
           nodes={nodes}
@@ -68,24 +46,8 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
         />
       )}
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-          overflow: "hidden",
-          minHeight: 0,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            overflow: "hidden",
-            minHeight: 0,
-          }}
-        >
+      <div className="flex flex-col flex-1 overflow-hidden min-h-0">
+        <div className="flex flex-col flex-1 overflow-hidden min-h-0">
           <SectionLabel label="Projects" />
           <ProjectList
             projects={filteredProjects}
@@ -95,23 +57,9 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
           />
         </div>
 
-        <div
-          style={{
-            height: "1px",
-            background: "var(--border-subtle)",
-            flexShrink: 0,
-          }}
-        />
+        <div className="h-px bg-base-300 flex-shrink-0" />
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            overflow: "hidden",
-            minHeight: 0,
-          }}
-        >
+        <div className="flex flex-col flex-1 overflow-hidden min-h-0">
           <SectionLabel label="Sessions" />
           <SessionList
             projectSlug={activeProject?.slug ?? null}
@@ -120,13 +68,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
           />
         </div>
 
-        <div
-          style={{
-            height: "1px",
-            background: "var(--border-subtle)",
-            flexShrink: 0,
-          }}
-        />
+        <div className="h-px bg-base-300 flex-shrink-0" />
 
         <UserIsland
           nodeName="localhost"

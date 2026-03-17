@@ -64,50 +64,21 @@ export function ClaudeSettings() {
   }
 
   return (
-    <div style={{ padding: "8px 0" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          marginBottom: "16px",
-        }}
-      >
+    <div className="py-2">
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
         Claude Settings
       </div>
 
-      <div style={{ marginBottom: "20px" }}>
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            marginBottom: "8px",
-          }}
-        >
-          Default Model
-        </div>
+      <div className="mb-5">
+        <div className="text-[12px] font-semibold text-base-content/60 mb-2">Default Model</div>
         <select
           value={model}
           onChange={function (e) { setModel(e.target.value); }}
-          style={{
-            width: "100%",
-            padding: "8px 10px",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border-default)",
-            background: "var(--bg-tertiary)",
-            color: "var(--text-primary)",
-            fontSize: "13px",
-            fontFamily: "var(--font-ui)",
-            outline: "none",
-            cursor: "pointer",
-          }}
+          className="select select-bordered select-sm w-full bg-base-300 text-base-content text-[13px]"
         >
           {CLAUDE_MODELS.map(function (m) {
             return (
-              <option key={m.id} value={m.id} style={{ background: "var(--bg-tertiary)" }}>
+              <option key={m.id} value={m.id} className="bg-base-300">
                 {m.label}
               </option>
             );
@@ -115,37 +86,21 @@ export function ClaudeSettings() {
         </select>
       </div>
 
-      <div style={{ marginBottom: "24px" }}>
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            marginBottom: "8px",
-          }}
-        >
-          Default Effort
-        </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+      <div className="mb-6">
+        <div className="text-[12px] font-semibold text-base-content/60 mb-2">Default Effort</div>
+        <div className="flex gap-2">
           {EFFORT_LEVELS.map(function (e) {
             var active = effort === e.id;
             return (
               <button
                 key={e.id}
                 onClick={function () { setEffort(e.id); }}
-                style={{
-                  flex: 1,
-                  padding: "6px 0",
-                  borderRadius: "var(--radius-sm)",
-                  border: active
-                    ? "1.5px solid var(--blue)"
-                    : "1.5px solid var(--border-default)",
-                  background: active ? "var(--bg-overlay)" : "var(--bg-tertiary)",
-                  color: active ? "var(--text-primary)" : "var(--text-secondary)",
-                  fontSize: "12px",
-                  fontWeight: active ? 600 : 400,
-                  transition: "all var(--transition-fast)",
-                }}
+                className={
+                  "flex-1 py-1.5 rounded border text-[12px] transition-all duration-[120ms] cursor-pointer " +
+                  (active
+                    ? "border-info bg-base-300 text-base-content font-semibold"
+                    : "border-base-300 bg-base-300 text-base-content/60 hover:border-base-content/30")
+                }
               >
                 {e.label}
               </button>
@@ -154,66 +109,29 @@ export function ClaudeSettings() {
         </div>
       </div>
 
-      <div style={{ marginBottom: "20px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "8px",
-          }}
-        >
-          <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
-            Global CLAUDE.md
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-            ~/.claude/CLAUDE.md
-          </div>
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[12px] font-semibold text-base-content/60">Global CLAUDE.md</div>
+          <div className="text-[11px] text-base-content/40">~/.claude/CLAUDE.md</div>
         </div>
         <textarea
           value={claudeMd}
           onChange={function (e) { setClaudeMd(e.target.value); }}
-          placeholder="# Global instructions for Claude&#10;&#10;Add your global instructions here..."
+          placeholder={"# Global instructions for Claude\n\nAdd your global instructions here..."}
           rows={14}
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border-default)",
-            background: "var(--bg-tertiary)",
-            color: "var(--text-primary)",
-            fontSize: "12px",
-            fontFamily: "var(--font-mono)",
-            lineHeight: "1.6",
-            resize: "vertical",
-            outline: "none",
-            transition: "border-color var(--transition-fast)",
-          }}
-          onFocus={function (e) {
-            (e.currentTarget as HTMLTextAreaElement).style.borderColor = "var(--blue)";
-          }}
-          onBlur={function (e) {
-            (e.currentTarget as HTMLTextAreaElement).style.borderColor = "var(--border-default)";
-          }}
+          className="textarea textarea-bordered w-full bg-base-300 text-base-content text-[12px] font-mono leading-relaxed resize-y focus:border-info"
         />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div className="flex justify-end">
         <button
           onClick={handleSave}
           disabled={saving}
-          style={{
-            padding: "7px 18px",
-            borderRadius: "var(--radius-sm)",
-            background: saved ? "var(--green)" : "var(--blue)",
-            color: "#fff",
-            fontSize: "13px",
-            fontWeight: 600,
-            border: "none",
-            cursor: saving ? "not-allowed" : "pointer",
-            opacity: saving ? 0.7 : 1,
-            transition: "background var(--transition-default)",
-          }}
+          className={
+            "btn btn-sm " +
+            (saved ? "btn-success" : "btn-info") +
+            (saving ? " opacity-70 cursor-not-allowed" : "")
+          }
         >
           {saving ? "Saving..." : saved ? "Saved" : "Save Changes"}
         </button>

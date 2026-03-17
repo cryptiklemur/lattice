@@ -20,52 +20,18 @@ export function UserIsland(props: UserIslandProps) {
   var initial = props.nodeName.charAt(0).toUpperCase();
 
   return (
-    <div
-      style={{
-        padding: "10px 12px",
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-      }}
-    >
-      <div
-        style={{
-          width: "28px",
-          height: "28px",
-          borderRadius: "50%",
-          background: "var(--accent-primary)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "12px",
-          fontWeight: 700,
-          color: "#fff",
-          flexShrink: 0,
-          fontFamily: "var(--font-ui)",
-        }}
-      >
-        {initial}
+    <div className="flex items-center gap-2 px-3 py-2.5">
+      <div className="avatar placeholder flex-shrink-0">
+        <div className="w-7 h-7 rounded-full bg-primary text-primary-content text-[12px] font-bold flex items-center justify-center">
+          <span>{initial}</span>
+        </div>
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--text-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-semibold text-base-content truncate">
           {props.nodeName}
         </div>
-        <div
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-          }}
-        >
+        <div className="text-[11px] text-base-content/40">
           v0.0.1
         </div>
       </div>
@@ -73,25 +39,7 @@ export function UserIsland(props: UserIslandProps) {
       <button
         aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         onClick={toggleMode}
-        style={{
-          width: "24px",
-          height: "24px",
-          borderRadius: "var(--radius-sm)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--text-muted)",
-          flexShrink: 0,
-          transition: "color var(--transition-fast), background var(--transition-fast)",
-        }}
-        onMouseEnter={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-        }}
-        onMouseLeave={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-        }}
+        className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content flex-shrink-0"
       >
         {mode === "dark" ? (
           <Sun size={14} />
@@ -103,25 +51,7 @@ export function UserIsland(props: UserIslandProps) {
       <button
         aria-label="Settings"
         onClick={handleSettingsClick}
-        style={{
-          width: "24px",
-          height: "24px",
-          borderRadius: "var(--radius-sm)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--text-muted)",
-          flexShrink: 0,
-          transition: "color var(--transition-fast), background var(--transition-fast)",
-        }}
-        onMouseEnter={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-        }}
-        onMouseLeave={function (e) {
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-        }}
+        className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content flex-shrink-0"
       >
         <SettingsIcon size={14} />
       </button>

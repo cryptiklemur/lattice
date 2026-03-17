@@ -9,35 +9,11 @@ interface NodeStatus {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        padding: "10px 0",
-        borderBottom: "1px solid var(--border-subtle)",
-        gap: "16px",
-      }}
-    >
-      <div
-        style={{
-          width: "120px",
-          fontSize: "12px",
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          fontWeight: 600,
-          flexShrink: 0,
-        }}
-      >
+    <div className="flex items-center py-2.5 border-b border-base-300 gap-4">
+      <div className="w-[120px] text-[12px] text-base-content/40 uppercase tracking-[0.06em] font-semibold flex-shrink-0">
         {label}
       </div>
-      <div
-        style={{
-          fontSize: "13px",
-          color: "var(--text-primary)",
-          fontFamily: "var(--font-mono)",
-        }}
-      >
+      <div className="text-[13px] text-base-content font-mono">
         {value}
       </div>
     </div>
@@ -73,17 +49,8 @@ export function Status() {
   var config = status.config;
 
   return (
-    <div style={{ padding: "8px 0" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          marginBottom: "16px",
-        }}
-      >
+    <div className="py-2">
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
         Node Status
       </div>
 
@@ -97,60 +64,23 @@ export function Status() {
           <Row label="Projects" value={String(config.projects.length)} />
         </div>
       ) : (
-        <div
-          style={{
-            fontSize: "13px",
-            color: "var(--text-muted)",
-            padding: "16px 0",
-          }}
-        >
+        <div className="text-[13px] text-base-content/40 py-4">
           Loading node status...
         </div>
       )}
 
-      <div
-        style={{
-          marginTop: "24px",
-          padding: "12px 14px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border-subtle)",
-          display: "flex",
-          gap: "24px",
-        }}
-      >
+      <div className="mt-6 p-3 px-3.5 bg-base-300 rounded-md border border-base-300 flex gap-6">
         <div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>
-            Status
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "13px",
-              color: "var(--green)",
-            }}
-          >
-            <div
-              style={{
-                width: "7px",
-                height: "7px",
-                borderRadius: "50%",
-                background: "var(--green)",
-              }}
-            />
+          <div className="text-[11px] text-base-content/40 mb-1">Status</div>
+          <div className="flex items-center gap-1.5 text-[13px] text-success">
+            <div className="w-[7px] h-[7px] rounded-full bg-success" />
             Online
           </div>
         </div>
 
         <div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>
-            Runtime
-          </div>
-          <div style={{ fontSize: "13px", color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
-            Bun
-          </div>
+          <div className="text-[11px] text-base-content/40 mb-1">Runtime</div>
+          <div className="text-[13px] text-base-content font-mono">Bun</div>
         </div>
       </div>
     </div>

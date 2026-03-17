@@ -44,72 +44,41 @@ function RestartSection({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div style={{ padding: "8px 0" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          marginBottom: "16px",
-        }}
-      >
+    <div className="py-2">
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
         Restart Daemon
       </div>
 
-      <div
-        style={{
-          padding: "16px",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border-subtle)",
-          background: "var(--bg-tertiary)",
-          marginBottom: "20px",
-        }}
-      >
-        <div style={{ fontSize: "13px", color: "var(--text-primary)", marginBottom: "8px", fontWeight: 500 }}>
+      <div className="p-4 rounded-md border border-base-300 bg-base-300 mb-5">
+        <div className="text-[13px] text-base-content font-medium mb-2">
           Restart the Lattice daemon
         </div>
-        <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.5" }}>
+        <div className="text-[12px] text-base-content/50 leading-relaxed">
           The daemon will restart immediately. Your browser will reconnect automatically.
           Active Claude sessions will be interrupted.
         </div>
       </div>
 
-      <button
-        onClick={handleRestart}
-        style={{
-          padding: "8px 18px",
-          borderRadius: "var(--radius-sm)",
-          border: confirming ? "1px solid var(--yellow)" : "1px solid var(--border-default)",
-          background: confirming ? "var(--yellow)" : "var(--bg-overlay)",
-          color: confirming ? "#000" : "var(--text-secondary)",
-          fontSize: "13px",
-          fontWeight: 600,
-          transition: "all var(--transition-fast)",
-          cursor: "pointer",
-        }}
-      >
-        {confirming ? "Click again to confirm restart" : "Restart Daemon"}
-      </button>
-
-      {confirming && (
+      <div className="flex gap-2.5">
         <button
-          onClick={function () { setConfirming(false); }}
-          style={{
-            marginLeft: "10px",
-            padding: "8px 14px",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border-default)",
-            background: "transparent",
-            color: "var(--text-muted)",
-            fontSize: "13px",
-            cursor: "pointer",
-          }}
+          onClick={handleRestart}
+          className={
+            "btn btn-sm " +
+            (confirming ? "btn-warning" : "btn-ghost border border-base-300")
+          }
         >
-          Cancel
+          {confirming ? "Click again to confirm restart" : "Restart Daemon"}
         </button>
-      )}
+
+        {confirming && (
+          <button
+            onClick={function () { setConfirming(false); }}
+            className="btn btn-ghost btn-sm"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -127,71 +96,41 @@ function ShutdownSection({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div style={{ padding: "8px 0" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          marginBottom: "16px",
-        }}
-      >
+    <div className="py-2">
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
         Shutdown Daemon
       </div>
 
-      <div
-        style={{
-          padding: "16px",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border-subtle)",
-          background: "var(--bg-tertiary)",
-          marginBottom: "20px",
-        }}
-      >
-        <div style={{ fontSize: "13px", color: "var(--text-primary)", marginBottom: "8px", fontWeight: 500 }}>
+      <div className="p-4 rounded-md border border-base-300 bg-base-300 mb-5">
+        <div className="text-[13px] text-base-content font-medium mb-2">
           Stop the Lattice daemon
         </div>
-        <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-          All active sessions will be terminated. Run <code style={{ fontFamily: "var(--font-mono)", color: "var(--blue)" }}>lattice</code> to start it again.
+        <div className="text-[12px] text-base-content/50 leading-relaxed">
+          All active sessions will be terminated. Run{" "}
+          <code className="font-mono text-info">lattice</code> to start it again.
         </div>
       </div>
 
-      <button
-        onClick={handleShutdown}
-        style={{
-          padding: "8px 18px",
-          borderRadius: "var(--radius-sm)",
-          border: confirming ? "1px solid var(--red)" : "1px solid var(--border-default)",
-          background: confirming ? "var(--red)" : "var(--bg-overlay)",
-          color: confirming ? "#fff" : "var(--text-secondary)",
-          fontSize: "13px",
-          fontWeight: 600,
-          transition: "all var(--transition-fast)",
-          cursor: "pointer",
-        }}
-      >
-        {confirming ? "Click again to confirm shutdown" : "Shutdown Daemon"}
-      </button>
-
-      {confirming && (
+      <div className="flex gap-2.5">
         <button
-          onClick={function () { setConfirming(false); }}
-          style={{
-            marginLeft: "10px",
-            padding: "8px 14px",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border-default)",
-            background: "transparent",
-            color: "var(--text-muted)",
-            fontSize: "13px",
-            cursor: "pointer",
-          }}
+          onClick={handleShutdown}
+          className={
+            "btn btn-sm " +
+            (confirming ? "btn-error" : "btn-ghost border border-base-300")
+          }
         >
-          Cancel
+          {confirming ? "Click again to confirm shutdown" : "Shutdown Daemon"}
         </button>
-      )}
+
+        {confirming && (
+          <button
+            onClick={function () { setConfirming(false); }}
+            className="btn btn-ghost btn-sm"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -246,56 +185,19 @@ export function Settings(props: SettingsProps) {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "stretch",
-        background: "rgba(0, 0, 0, 0.6)",
-        backdropFilter: "blur(4px)",
-      }}
+      className="fixed inset-0 z-[9999] flex items-stretch bg-black/60 backdrop-blur-sm"
       onClick={props.onClose}
     >
       <div
-        style={{
-          position: "absolute",
-          inset: "5%",
-          display: "flex",
-          borderRadius: "var(--radius-lg)",
-          border: "1px solid var(--border-default)",
-          background: "var(--bg-secondary)",
-          overflow: "hidden",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-        }}
+        className="absolute inset-[5%] flex rounded-xl border border-base-300 bg-base-200 overflow-hidden shadow-2xl"
         onClick={function (e) { e.stopPropagation(); }}
       >
-        <div
-          style={{
-            width: "200px",
-            flexShrink: 0,
-            borderRight: "1px solid var(--border-subtle)",
-            background: "var(--bg-primary)",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "16px 16px 12px",
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "var(--text-secondary)",
-              letterSpacing: "0.04em",
-              borderBottom: "1px solid var(--border-subtle)",
-              flexShrink: 0,
-            }}
-          >
+        <div className="w-[200px] flex-shrink-0 border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+          <div className="px-4 py-3.5 text-[13px] font-bold text-base-content/60 tracking-[0.04em] border-b border-base-300 flex-shrink-0">
             Settings
           </div>
 
-          <nav style={{ flex: 1, overflow: "auto", padding: "8px 6px" }}>
+          <nav className="flex-1 overflow-auto p-2">
             {NAV_ITEMS.map(function (item) {
               var active = section === item.id;
               var isDanger = item.id === "shutdown";
@@ -303,37 +205,16 @@ export function Settings(props: SettingsProps) {
                 <button
                   key={item.id}
                   onClick={function () { setSection(item.id); }}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "7px 10px",
-                    borderRadius: "var(--radius-sm)",
-                    background: active ? "var(--bg-overlay)" : "transparent",
-                    color: active
-                      ? "var(--text-primary)"
+                  className={
+                    "w-full flex items-center gap-2 px-2.5 py-[7px] rounded text-[13px] text-left mb-px transition-colors duration-[120ms] cursor-pointer " +
+                    (active
+                      ? "bg-base-300 text-base-content font-semibold"
                       : isDanger
-                      ? "var(--red)"
-                      : "var(--text-secondary)",
-                    fontSize: "13px",
-                    fontWeight: active ? 600 : 400,
-                    textAlign: "left",
-                    marginBottom: "1px",
-                    transition: "background var(--transition-fast), color var(--transition-fast)",
-                  }}
-                  onMouseEnter={function (e) {
-                    if (!active) {
-                      (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-surface)";
-                    }
-                  }}
-                  onMouseLeave={function (e) {
-                    if (!active) {
-                      (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                    }
-                  }}
+                      ? "text-error hover:bg-base-200"
+                      : "text-base-content/60 hover:bg-base-200 hover:text-base-content")
+                  }
                 >
-                  <span style={{ flexShrink: 0, opacity: active ? 1 : 0.7 }}>
+                  <span className={active ? "opacity-100" : "opacity-70"}>
                     {item.icon}
                   </span>
                   {item.label}
@@ -343,55 +224,22 @@ export function Settings(props: SettingsProps) {
           </nav>
         </div>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div
-            style={{
-              height: "48px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 20px",
-              borderBottom: "1px solid var(--border-subtle)",
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="h-12 flex items-center justify-between px-5 border-b border-base-300 flex-shrink-0">
+            <div className="text-[14px] font-semibold text-base-content">
               {NAV_ITEMS.find(function (i) { return i.id === section; })?.label ?? "Settings"}
             </div>
 
             <button
               onClick={props.onClose}
               aria-label="Close settings"
-              style={{
-                width: "28px",
-                height: "28px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "var(--radius-sm)",
-                color: "var(--text-muted)",
-                transition: "color var(--transition-fast), background var(--transition-fast)",
-              }}
-              onMouseEnter={function (e) {
-                (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-                (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-              }}
-              onMouseLeave={function (e) {
-                (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-              }}
+              className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content"
             >
               <X size={14} />
             </button>
           </div>
 
-          <div
-            style={{
-              flex: 1,
-              overflow: "auto",
-              padding: "20px 24px",
-            }}
-          >
+          <div className="flex-1 overflow-auto px-6 py-5">
             {renderContent()}
           </div>
         </div>

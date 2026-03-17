@@ -18,17 +18,22 @@ export function Toast(props: ToastProps) {
   }
 
   return (
-    <div className="toast-container">
+    <div className="toast toast-top toast-end z-[9999]">
       {props.items.map(function (item) {
+        var alertClass =
+          item.type === "error"
+            ? "alert-error"
+            : item.type === "warning"
+            ? "alert-warning"
+            : "alert-info";
+
         return (
-          <div key={item.id} className={"toast toast--" + item.type}>
-            <span className="toast-message">{item.message}</span>
+          <div key={item.id} className={"alert " + alertClass + " flex items-center gap-3 pr-2 shadow-lg max-w-[360px] animate-[toast-in_0.18s_ease]"}>
+            <span className="flex-1 text-[13px] font-medium leading-snug">{item.message}</span>
             <button
-              className="toast-dismiss"
-              onClick={function () {
-                props.onDismiss(item.id);
-              }}
+              onClick={function () { props.onDismiss(item.id); }}
               aria-label="Dismiss"
+              className="btn btn-ghost btn-xs btn-square opacity-70 hover:opacity-100"
             >
               &times;
             </button>

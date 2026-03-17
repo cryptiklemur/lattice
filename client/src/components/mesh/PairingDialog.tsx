@@ -13,7 +13,6 @@ interface PairingDialogProps {
   onClose: () => void;
 }
 
-
 export function PairingDialog(props: PairingDialogProps) {
   var ws = useWebSocket();
   var mesh = useMesh();
@@ -114,73 +113,25 @@ export function PairingDialog(props: PairingDialogProps) {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 10000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.65)",
-        backdropFilter: "blur(4px)",
-      }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 backdrop-blur-sm"
       onClick={props.onClose}
     >
       <div
-        style={{
-          width: "440px",
-          borderRadius: "var(--radius-lg)",
-          border: "1px solid var(--border-default)",
-          background: "var(--bg-secondary)",
-          overflow: "hidden",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-        }}
+        className="w-[440px] rounded-xl border border-base-300 bg-base-200 overflow-hidden shadow-2xl"
         onClick={function (e) { e.stopPropagation(); }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-subtle)",
-          }}
-        >
-          <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>
-            Pair a Node
-          </div>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-base-300">
+          <div className="text-[14px] font-semibold text-base-content">Pair a Node</div>
           <button
             onClick={props.onClose}
             aria-label="Close"
-            style={{
-              width: "28px",
-              height: "28px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "var(--radius-sm)",
-              color: "var(--text-muted)",
-              transition: "color var(--transition-fast), background var(--transition-fast)",
-            }}
-            onMouseEnter={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-            }}
-            onMouseLeave={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            }}
+            className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content"
           >
             <X size={14} />
           </button>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            borderBottom: "1px solid var(--border-subtle)",
-          }}
-        >
+        <div className="flex border-b border-base-300">
           {(["generate", "enter"] as Tab[]).map(function (t) {
             var label = t === "generate" ? "Generate Invite" : "Enter Code";
             var isActive = tab === t;
@@ -188,16 +139,12 @@ export function PairingDialog(props: PairingDialogProps) {
               <button
                 key={t}
                 onClick={function () { setTab(t); }}
-                style={{
-                  flex: 1,
-                  padding: "10px 16px",
-                  fontSize: "13px",
-                  fontWeight: isActive ? 600 : 400,
-                  color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                  borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
-                  transition: "color var(--transition-fast)",
-                  cursor: "pointer",
-                }}
+                className={
+                  "flex-1 px-4 py-2.5 text-[13px] cursor-pointer transition-colors duration-[120ms] border-b-2 " +
+                  (isActive
+                    ? "font-semibold text-base-content border-primary"
+                    : "font-normal text-base-content/40 border-transparent hover:text-base-content/70")
+                }
               >
                 {label}
               </button>
@@ -205,10 +152,10 @@ export function PairingDialog(props: PairingDialogProps) {
           })}
         </div>
 
-        <div style={{ padding: "20px" }}>
+        <div className="p-5">
           {tab === "generate" && (
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px", lineHeight: "1.5" }}>
+              <div className="text-[12px] text-base-content/40 mb-4 leading-relaxed">
                 Generate an invite code on this machine and share it with the other node.
                 The code encodes this node&apos;s address and a one-time auth token.
               </div>
@@ -216,23 +163,7 @@ export function PairingDialog(props: PairingDialogProps) {
               {!mesh.inviteCode && (
                 <button
                   onClick={handleGenerateInvite}
-                  style={{
-                    padding: "8px 18px",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--accent)",
-                    background: "var(--accent)",
-                    color: "var(--accent-fg, #fff)",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "opacity var(--transition-fast)",
-                  }}
-                  onMouseEnter={function (e) {
-                    (e.currentTarget as HTMLButtonElement).style.opacity = "0.85";
-                  }}
-                  onMouseLeave={function (e) {
-                    (e.currentTarget as HTMLButtonElement).style.opacity = "1";
-                  }}
+                  className="btn btn-primary btn-sm"
                 >
                   Generate Invite Code
                 </button>
@@ -240,48 +171,17 @@ export function PairingDialog(props: PairingDialogProps) {
 
               {mesh.inviteCode && (
                 <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "10px 14px",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--bg-primary)",
-                      border: "1px solid var(--border-default)",
-                      marginBottom: "16px",
-                    }}
-                  >
-                    <code
-                      style={{
-                        flex: 1,
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        color: "var(--text-primary)",
-                        letterSpacing: "0.08em",
-                        wordBreak: "break-all",
-                      }}
-                    >
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 rounded bg-base-100 border border-base-300 mb-4">
+                    <code className="flex-1 font-mono text-[14px] font-semibold text-base-content tracking-[0.08em] break-all">
                       {mesh.inviteCode}
                     </code>
                     <button
                       onClick={handleCopyCode}
                       title="Copy code"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        padding: "4px 8px",
-                        borderRadius: "var(--radius-sm)",
-                        border: "1px solid var(--border-subtle)",
-                        background: copied ? "var(--green)" : "var(--bg-overlay)",
-                        color: copied ? "#fff" : "var(--text-muted)",
-                        fontSize: "11px",
-                        cursor: "pointer",
-                        transition: "background var(--transition-fast), color var(--transition-fast)",
-                        flexShrink: 0,
-                      }}
+                      className={
+                        "btn btn-xs gap-1 flex-shrink-0 " +
+                        (copied ? "btn-success" : "btn-ghost border border-base-300")
+                      }
                     >
                       {copied ? <Check size={12} /> : <Copy size={12} />}
                       {copied ? "Copied!" : "Copy"}
@@ -289,29 +189,19 @@ export function PairingDialog(props: PairingDialogProps) {
                   </div>
 
                   {mesh.inviteQr && (
-                    <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+                    <div className="flex justify-center mb-4">
                       <img
                         src={mesh.inviteQr}
                         alt="QR code for invite"
-                        style={{
-                          width: "160px",
-                          height: "160px",
-                          borderRadius: "var(--radius-sm)",
-                          border: "1px solid var(--border-subtle)",
-                          imageRendering: "pixelated",
-                        }}
+                        className="w-40 h-40 rounded border border-base-300"
+                        style={{ imageRendering: "pixelated" }}
                       />
                     </div>
                   )}
 
                   <button
                     onClick={handleGenerateInvite}
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--text-muted)",
-                      textDecoration: "underline",
-                      cursor: "pointer",
-                    }}
+                    className="text-[12px] text-base-content/40 underline cursor-pointer"
                   >
                     Generate new code
                   </button>
@@ -322,7 +212,7 @@ export function PairingDialog(props: PairingDialogProps) {
 
           {tab === "enter" && (
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px", lineHeight: "1.5" }}>
+              <div className="text-[12px] text-base-content/40 mb-4 leading-relaxed">
                 Paste the invite code generated on the other node to pair with it.
               </div>
 
@@ -343,104 +233,46 @@ export function PairingDialog(props: PairingDialogProps) {
                 }}
                 placeholder="LTCE-XXXX-XXXX"
                 disabled={pairStatus === "connecting" || pairStatus === "paired"}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--border-default)",
-                  background: "var(--bg-primary)",
-                  color: "var(--text-primary)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "14px",
-                  letterSpacing: "0.06em",
-                  marginBottom: "12px",
-                  boxSizing: "border-box",
-                  outline: "none",
-                }}
-                onFocus={function (e) {
-                  e.currentTarget.style.borderColor = "var(--accent)";
-                }}
-                onBlur={function (e) {
-                  e.currentTarget.style.borderColor = "var(--border-default)";
-                }}
+                className="input input-bordered w-full bg-base-100 text-base-content font-mono text-[14px] tracking-[0.06em] mb-3 focus:border-primary"
               />
 
               {pairStatus === "idle" && (
                 <button
                   onClick={handlePair}
                   disabled={!pairCode.trim()}
-                  style={{
-                    padding: "8px 18px",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--accent)",
-                    background: pairCode.trim() ? "var(--accent)" : "var(--bg-overlay)",
-                    color: pairCode.trim() ? "var(--accent-fg, #fff)" : "var(--text-muted)",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: pairCode.trim() ? "pointer" : "not-allowed",
-                    transition: "background var(--transition-fast), color var(--transition-fast)",
-                  }}
+                  className={
+                    "btn btn-sm " +
+                    (pairCode.trim() ? "btn-primary" : "btn-ghost border border-base-300 cursor-not-allowed")
+                  }
                 >
                   Pair
                 </button>
               )}
 
               {pairStatus === "connecting" && (
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "var(--text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
+                <div className="flex items-center gap-2 text-[13px] text-base-content/40">
                   <span
-                    style={{
-                      width: "12px",
-                      height: "12px",
-                      borderRadius: "50%",
-                      border: "2px solid var(--accent)",
-                      borderTopColor: "transparent",
-                      display: "inline-block",
-                      animation: "spin 0.6s linear infinite",
-                    }}
+                    className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent inline-block"
+                    style={{ animation: "spin 0.6s linear infinite" }}
                   />
                   Connecting...
                 </div>
               )}
 
               {pairStatus === "paired" && (
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    color: "var(--green)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
+                <div className="flex items-center gap-1.5 text-[13px] font-semibold text-success">
                   <Check size={14} />
                   Paired successfully!
                 </div>
               )}
 
               {pairStatus === "failed" && pairError && (
-                <div style={{ fontSize: "12px", color: "var(--red)", marginTop: "8px" }}>
-                  {pairError}
-                </div>
+                <div className="text-[12px] text-error mt-2">{pairError}</div>
               )}
             </div>
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -28,60 +28,41 @@ function RootLayout() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        width: "100%",
-        height: "100%",
-        overflow: "hidden",
-        background: "var(--bg-primary)",
-      }}
-    >
-      <div
-        className={"sidebar-backdrop" + (sidebarOpen ? " sidebar-backdrop--visible" : "")}
-        onClick={closeSidebar}
-      />
+    <div className="flex w-full h-full overflow-hidden bg-base-100">
+      <div className="drawer lg:drawer-open h-full w-full">
+        <input
+          id="sidebar-drawer"
+          type="checkbox"
+          className="drawer-toggle"
+          checked={sidebarOpen}
+          onChange={function () {}}
+        />
 
-      <div
-        className={"sidebar" + (sidebarOpen ? " sidebar--open" : "")}
-        style={{
-          width: "var(--sidebar-width)",
-          minWidth: "var(--sidebar-width)",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <Sidebar onSessionSelect={closeSidebar} />
-      </div>
-
-      <div
-        className="main-content"
-        style={{
-          flex: 1,
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          minWidth: 0,
-        }}
-      >
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "0 12px",
-          minHeight: "44px",
-          borderBottom: "1px solid var(--border-subtle)",
-          background: "var(--bg-secondary)",
-        }}>
-          <button className="mobile-menu-btn" onClick={toggleSidebar} aria-label="Toggle sidebar">
-            <Menu size={18} />
-          </button>
-          <div style={{ flex: 1 }} />
+        <div className="drawer-content flex flex-col h-full min-w-0">
+          <div className="flex items-center gap-2 px-3 min-h-[44px] border-b border-base-300 bg-base-200 lg:hidden flex-shrink-0">
+            <label
+              htmlFor="sidebar-drawer"
+              className="btn btn-ghost btn-sm btn-square"
+              aria-label="Toggle sidebar"
+              onClick={toggleSidebar}
+            >
+              <Menu size={18} />
+            </label>
+          </div>
+          <Outlet />
         </div>
-        <Outlet />
+
+        <div className="drawer-side z-50 h-full">
+          <label
+            htmlFor="sidebar-drawer"
+            aria-label="close sidebar"
+            className="drawer-overlay"
+            onClick={closeSidebar}
+          />
+          <div className="h-full w-[240px] flex flex-col overflow-hidden bg-base-200 border-r border-base-300">
+            <Sidebar onSessionSelect={closeSidebar} />
+          </div>
+        </div>
       </div>
     </div>
   );

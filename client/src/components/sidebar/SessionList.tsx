@@ -154,69 +154,27 @@ export function SessionList(props: SessionListProps) {
 
   if (!props.projectSlug) {
     return (
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "flex-start",
-          padding: "6px 12px",
-        }}
-      >
-        <span style={{ fontSize: "13px", color: "var(--text-muted)", fontStyle: "italic" }}>
-          Select a project
-        </span>
+      <div className="flex-1 flex items-start px-3 py-1.5">
+        <span className="text-[13px] text-base-content/40 italic">Select a project</span>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        flex: 1,
-        overflow: "hidden",
-        minHeight: 0,
-      }}
-    >
-      <div style={{ padding: "4px 6px 2px" }}>
+    <div className="flex flex-col flex-1 overflow-hidden min-h-0">
+      <div className="p-1.5 pb-0.5">
         <button
           onClick={handleNewSession}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            width: "100%",
-            padding: "5px 8px",
-            borderRadius: "var(--radius-sm)",
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            transition: "color var(--transition-fast), background var(--transition-fast)",
-          }}
-          onMouseEnter={function (e) {
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-          }}
-          onMouseLeave={function (e) {
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-          }}
+          className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded text-[12px] text-base-content/40 hover:text-base-content hover:bg-base-300 transition-colors duration-[120ms] cursor-pointer"
         >
           <Plus size={12} />
           New Session
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "2px 0" }}>
+      <div className="flex-1 overflow-y-auto py-0.5">
         {sessions.length === 0 ? (
-          <div
-            style={{
-              padding: "6px 12px",
-              fontSize: "13px",
-              color: "var(--text-muted)",
-              fontStyle: "italic",
-            }}
-          >
+          <div className="px-3 py-1.5 text-[13px] text-base-content/40 italic">
             No sessions yet
           </div>
         ) : (
@@ -228,28 +186,10 @@ export function SessionList(props: SessionListProps) {
                 key={session.id}
                 onClick={function () { handleActivate(session); }}
                 onContextMenu={function (e) { handleContextMenu(e, session); }}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  padding: "5px 10px",
-                  margin: "1px 4px",
-                  borderRadius: "var(--radius-sm)",
-                  width: "calc(100% - 8px)",
-                  background: isActive ? "var(--bg-overlay)" : "transparent",
-                  cursor: "pointer",
-                  transition: "background var(--transition-fast)",
-                  userSelect: "none",
-                }}
-                onMouseEnter={function (e) {
-                  if (!isActive) {
-                    (e.currentTarget as HTMLDivElement).style.background = "var(--bg-tertiary)";
-                  }
-                }}
-                onMouseLeave={function (e) {
-                  if (!isActive) {
-                    (e.currentTarget as HTMLDivElement).style.background = "transparent";
-                  }
-                }}
+                className={
+                  "flex flex-col px-2.5 py-[5px] mx-1 rounded w-[calc(100%-8px)] cursor-pointer select-none transition-colors duration-[120ms] " +
+                  (isActive ? "bg-base-300" : "hover:bg-base-300/50")
+                }
               >
                 {isRenaming ? (
                   <input
@@ -259,46 +199,24 @@ export function SessionList(props: SessionListProps) {
                     onBlur={handleRenameCommit}
                     onKeyDown={handleRenameKeyDown}
                     onClick={function (e) { e.stopPropagation(); }}
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: isActive ? 600 : 400,
-                      color: "var(--text-primary)",
-                      background: "var(--bg-surface)",
-                      border: "1px solid var(--accent-primary)",
-                      borderRadius: "var(--radius-sm)",
-                      padding: "0 4px",
-                      width: "100%",
-                    }}
+                    className="input input-xs input-bordered w-full text-[13px]"
                   />
                 ) : (
                   <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: isActive ? 600 : 400,
-                      color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
+                    className={
+                      "text-[13px] truncate leading-snug " +
+                      (isActive ? "font-semibold text-base-content" : "text-base-content/70")
+                    }
                   >
                     {session.title}
                   </span>
                 )}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    marginTop: "2px",
-                  }}
-                >
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[11px] text-base-content/40">
                     {formatDate(session.updatedAt)}
                   </span>
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                    &middot;
-                  </span>
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                  <span className="text-[11px] text-base-content/40">&middot;</span>
+                  <span className="text-[11px] text-base-content/40">
                     {session.messageCount} msg{session.messageCount !== 1 ? "s" : ""}
                   </span>
                 </div>
@@ -311,60 +229,18 @@ export function SessionList(props: SessionListProps) {
       {contextMenu !== null && (
         <div
           onMouseDown={function (e) { e.stopPropagation(); }}
-          style={{
-            position: "fixed",
-            top: contextMenu.y,
-            left: contextMenu.x,
-            zIndex: 9999,
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-default)",
-            borderRadius: "var(--radius-md)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
-            padding: "4px",
-            minWidth: "140px",
-          }}
+          className="fixed z-[9999] bg-base-200 border border-base-content/20 rounded-md shadow-xl p-1 min-w-[140px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button
             onClick={function () { handleRenameStart(contextMenu!.session); }}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "6px 10px",
-              borderRadius: "var(--radius-sm)",
-              fontSize: "13px",
-              color: "var(--text-secondary)",
-              textAlign: "left",
-              transition: "background var(--transition-fast), color var(--transition-fast)",
-            }}
-            onMouseEnter={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
-            }}
+            className="block w-full px-2.5 py-1.5 rounded text-[13px] text-base-content/70 text-left hover:bg-base-300 hover:text-base-content transition-colors duration-[120ms] cursor-pointer"
           >
             Rename
           </button>
           <button
             onClick={function () { handleDeleteSession(contextMenu!.session); }}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "6px 10px",
-              borderRadius: "var(--radius-sm)",
-              fontSize: "13px",
-              color: "var(--accent-danger)",
-              textAlign: "left",
-              transition: "background var(--transition-fast)",
-            }}
-            onMouseEnter={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-            }}
-            onMouseLeave={function (e) {
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            }}
+            className="block w-full px-2.5 py-1.5 rounded text-[13px] text-error text-left hover:bg-base-300 transition-colors duration-[120ms] cursor-pointer"
           >
             Delete
           </button>

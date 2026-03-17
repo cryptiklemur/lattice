@@ -24,19 +24,6 @@ var EFFORT_OPTIONS = [
   { value: "max", label: "Max" },
 ];
 
-var selectStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "none",
-  color: "var(--text-muted)",
-  fontSize: "11px",
-  fontFamily: "var(--font-ui)",
-  cursor: "pointer",
-  padding: "0 2px",
-  outline: "none",
-  appearance: "none",
-  WebkitAppearance: "none",
-};
-
 interface ModelSelectorProps {
   onChange?: (state: ModelSelectorState) => void;
 }
@@ -61,53 +48,37 @@ export function ModelSelector(props: ModelSelectorProps) {
     }
   }
 
-  var currentModel = MODEL_OPTIONS.find(function (o) {
-    return o.value === model;
-  });
-  var currentEffort = EFFORT_OPTIONS.find(function (o) {
-    return o.value === effort;
-  });
-
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        fontSize: "11px",
-        color: "var(--text-muted)",
-      }}
-    >
+    <div className="flex items-center gap-1 text-[11px] text-base-content/40">
       <select
         value={model}
         onChange={handleModelChange}
         title="Select model"
-        style={selectStyle}
+        className="select select-ghost select-xs text-[11px] text-base-content/40 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
       >
         {MODEL_OPTIONS.map(function (opt) {
           return (
-            <option key={opt.value} value={opt.value} style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}>
+            <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
               {opt.label}
             </option>
           );
         })}
       </select>
-      <span style={{ color: "var(--border-default)" }}>|</span>
+      <span className="text-base-content/20">|</span>
       <select
         value={effort}
         onChange={handleEffortChange}
         title="Select effort"
-        style={selectStyle}
+        className="select select-ghost select-xs text-[11px] text-base-content/40 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
       >
         {EFFORT_OPTIONS.map(function (opt) {
           return (
-            <option key={opt.value} value={opt.value} style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}>
+            <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
               {opt.label}
             </option>
           );
         })}
       </select>
-      {!currentModel && !currentEffort && null}
     </div>
   );
 }

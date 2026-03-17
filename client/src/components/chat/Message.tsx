@@ -17,29 +17,12 @@ function formatTime(timestamp: number): string {
 function UserMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        padding: "4px 20px",
-      }}
-    >
-      <div style={{ maxWidth: "75%", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-        <div
-          style={{
-            background: "var(--accent-primary)",
-            color: "#fff",
-            borderRadius: "var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)",
-            padding: "10px 14px",
-            fontSize: "14px",
-            lineHeight: "1.5",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
-          {msg.text}
-        </div>
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{formatTime(msg.timestamp)}</span>
+    <div className="chat chat-end px-5 py-1">
+      <div className="chat-bubble bg-primary text-primary-content text-[14px] leading-relaxed whitespace-pre-wrap break-words max-w-[75%]">
+        {msg.text}
+      </div>
+      <div className="chat-footer text-[11px] text-base-content/40 mt-0.5">
+        {formatTime(msg.timestamp)}
       </div>
     </div>
   );
@@ -48,36 +31,17 @@ function UserMessage(props: { message: HistoryMessage }) {
 function AssistantMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
   return (
-    <div style={{ display: "flex", padding: "4px 20px", gap: "10px" }}>
-      <div
-        style={{
-          width: "24px",
-          height: "24px",
-          borderRadius: "50%",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-subtle)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          marginTop: "2px",
-        }}
-      >
-        <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--accent-primary)" }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-        <div
-          style={{
-            fontSize: "14px",
-            lineHeight: "1.6",
-            color: "var(--text-primary)",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
-          {msg.text || ""}
+    <div className="chat chat-start px-5 py-1">
+      <div className="chat-image">
+        <div className="w-6 h-6 rounded-full bg-base-200 border border-base-300 flex items-center justify-center mt-0.5">
+          <div className="w-3 h-3 rounded-full bg-primary" />
         </div>
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{formatTime(msg.timestamp)}</span>
+      </div>
+      <div className="chat-bubble bg-transparent text-base-content text-[14px] leading-relaxed whitespace-pre-wrap break-words p-0 shadow-none min-h-0">
+        {msg.text || ""}
+      </div>
+      <div className="chat-footer text-[11px] text-base-content/40 mt-0.5">
+        {formatTime(msg.timestamp)}
       </div>
     </div>
   );
@@ -98,98 +62,52 @@ function ToolMessage(props: { message: HistoryMessage }) {
   }
 
   return (
-    <div style={{ padding: "4px 20px" }}>
-      <div
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: "var(--radius-md)",
-          overflow: "hidden",
-          fontSize: "12px",
-        }}
-      >
+    <div className="px-5 py-1">
+      <div className="bg-base-200 border border-base-300 rounded-md overflow-hidden text-[12px]">
         <button
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 12px",
-            textAlign: "left",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            background: "transparent",
-            border: "none",
-          }}
+          className="w-full flex items-center gap-2 px-3 py-2 text-left text-base-content/60 cursor-pointer bg-transparent"
           onClick={function () {
-            setExpanded(function (v) {
-              return !v;
-            });
+            setExpanded(function (v) { return !v; });
           }}
         >
           <ChevronRight
             size={12}
-            style={{
-              transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.15s",
-              flexShrink: 0,
-            }}
+            className="flex-shrink-0 transition-transform duration-150"
+            style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
           />
-          <Lock size={13} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
-          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)", flex: 1 }}>
+          <Lock size={13} className="text-primary flex-shrink-0" />
+          <span className="font-mono font-semibold text-base-content flex-1">
             {msg.name}
           </span>
           {hasResult ? (
-            <span style={{ fontSize: "10px", color: "var(--text-muted)", background: "var(--bg-overlay)", padding: "2px 6px", borderRadius: "4px" }}>
+            <span className="text-[10px] text-base-content/40 bg-base-300 px-1.5 py-0.5 rounded">
               done
             </span>
           ) : (
-            <span style={{ fontSize: "10px", color: "var(--accent-primary)", background: "color-mix(in srgb, var(--accent-primary) 12%, transparent)", padding: "2px 6px", borderRadius: "4px" }}>
+            <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
               running
             </span>
           )}
         </button>
 
         {expanded && (
-          <div style={{ borderTop: "1px solid var(--border-subtle)" }}>
+          <div className="border-t border-base-300">
             {parsedArgs && (
-              <div style={{ padding: "10px 12px" }}>
-                <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div className="p-2.5">
+                <div className="text-[10px] text-base-content/40 mb-1.5 uppercase tracking-[0.05em]">
                   Arguments
                 </div>
-                <pre
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "12px",
-                    color: "var(--text-secondary)",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    margin: 0,
-                    lineHeight: "1.5",
-                  }}
-                >
+                <pre className="font-mono text-[12px] text-base-content/60 whitespace-pre-wrap break-words m-0 leading-relaxed">
                   {parsedArgs}
                 </pre>
               </div>
             )}
             {hasResult && (
-              <div style={{ padding: "10px 12px", borderTop: parsedArgs ? "1px solid var(--border-subtle)" : undefined }}>
-                <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div className={"p-2.5" + (parsedArgs ? " border-t border-base-300" : "")}>
+                <div className="text-[10px] text-base-content/40 mb-1.5 uppercase tracking-[0.05em]">
                   Result
                 </div>
-                <pre
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "12px",
-                    color: "var(--text-secondary)",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    margin: 0,
-                    lineHeight: "1.5",
-                    maxHeight: "300px",
-                    overflowY: "auto",
-                  }}
-                >
+                <pre className="font-mono text-[12px] text-base-content/60 whitespace-pre-wrap break-words m-0 leading-relaxed max-h-[300px] overflow-y-auto">
                   {msg.content}
                 </pre>
               </div>
@@ -224,91 +142,39 @@ function PermissionMessage(props: { message: HistoryMessage }) {
   }
 
   return (
-    <div style={{ padding: "4px 20px" }}>
-      <div
-        style={{
-          background: "color-mix(in srgb, var(--accent-warning, #f59e0b) 8%, var(--bg-surface))",
-          border: "1px solid color-mix(in srgb, var(--accent-warning, #f59e0b) 30%, transparent)",
-          borderRadius: "var(--radius-md)",
-          padding: "14px 16px",
-          fontSize: "13px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-          <TriangleAlert size={15} color="#f59e0b" />
-          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>Permission required</span>
-          <code
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "12px",
-              background: "var(--bg-overlay)",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              color: "var(--text-secondary)",
-            }}
-          >
+    <div className="px-5 py-1">
+      <div className="alert alert-warning border border-warning/30 bg-warning/10 text-[13px] flex-col items-start gap-2.5">
+        <div className="flex items-center gap-2">
+          <TriangleAlert size={15} className="text-warning flex-shrink-0" />
+          <span className="font-semibold text-base-content">Permission required</span>
+          <code className="font-mono text-[12px] bg-base-300 px-1.5 py-0.5 rounded text-base-content/70">
             {msg.name}
           </code>
         </div>
 
         {parsedArgs && (
-          <pre
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "12px",
-              color: "var(--text-secondary)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              margin: "0 0 12px",
-              lineHeight: "1.5",
-              background: "var(--bg-overlay)",
-              padding: "8px 10px",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
+          <pre className="font-mono text-[12px] text-base-content/60 whitespace-pre-wrap break-words m-0 leading-relaxed bg-base-300 px-2.5 py-2 rounded w-full">
             {parsedArgs}
           </pre>
         )}
 
         {!responded ? (
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="flex gap-2">
             <button
-              style={{
-                padding: "6px 16px",
-                borderRadius: "var(--radius-sm)",
-                background: "var(--accent-primary)",
-                color: "#fff",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: "pointer",
-                border: "none",
-              }}
-              onClick={function () {
-                respond(true);
-              }}
+              className="btn btn-primary btn-sm"
+              onClick={function () { respond(true); }}
             >
               Allow
             </button>
             <button
-              style={{
-                padding: "6px 16px",
-                borderRadius: "var(--radius-sm)",
-                background: "var(--bg-overlay)",
-                color: "var(--text-secondary)",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: "pointer",
-                border: "1px solid var(--border-default)",
-              }}
-              onClick={function () {
-                respond(false);
-              }}
+              className="btn btn-ghost btn-sm"
+              onClick={function () { respond(false); }}
             >
               Deny
             </button>
           </div>
         ) : (
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Response sent</span>
+          <span className="text-[12px] text-base-content/40">Response sent</span>
         )}
       </div>
     </div>

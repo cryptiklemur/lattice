@@ -39,52 +39,29 @@ function FileTreeItem(props: FileTreeItemProps) {
             onSelect(node.entry.path);
           }
         }}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "3px 8px 3px " + (8 + depth * 16) + "px",
-          cursor: "pointer",
-          fontSize: "13px",
-          color: isSelected ? "var(--text-accent)" : "var(--text-primary)",
-          background: isSelected ? "var(--bg-overlay)" : "transparent",
-          borderRadius: "var(--radius-sm)",
-          userSelect: "none",
-        }}
-        onMouseEnter={function (e) {
-          if (!isSelected) {
-            (e.currentTarget as HTMLDivElement).style.background = "var(--bg-tertiary)";
-          }
-        }}
-        onMouseLeave={function (e) {
-          if (!isSelected) {
-            (e.currentTarget as HTMLDivElement).style.background = "transparent";
-          }
-        }}
+        className={
+          "flex items-center gap-1.5 py-[3px] pr-2 cursor-pointer text-[13px] rounded select-none " +
+          (isSelected ? "bg-base-300 text-primary" : "text-base-content hover:bg-base-200")
+        }
+        style={{ paddingLeft: (8 + depth * 16) + "px" }}
       >
         {isDir ? (
           <ChevronRight
             size={12}
-            style={{
-              flexShrink: 0,
-              transform: node.expanded ? "rotate(90deg)" : "none",
-              transition: "transform var(--transition-fast)",
-              color: "var(--text-muted)",
-            }}
+            className="flex-shrink-0 text-base-content/40 transition-transform duration-[120ms]"
+            style={{ transform: node.expanded ? "rotate(90deg)" : "none" }}
           />
         ) : (
           <FileIcon
             size={12}
-            style={{ flexShrink: 0, color: "var(--text-muted)" }}
+            className="flex-shrink-0 text-base-content/40"
           />
         )}
         <span
-          style={{
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            color: isDir ? "var(--blue)" : "var(--text-primary)",
-          }}
+          className={
+            "truncate " +
+            (isDir ? "text-info" : "text-base-content")
+          }
         >
           {node.entry.name}
         </span>
@@ -201,44 +178,13 @@ export function FileBrowser() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100%",
-        width: "100%",
-        overflow: "hidden",
-        background: "var(--bg-primary)",
-      }}
-    >
-      <div
-        style={{
-          width: "220px",
-          flexShrink: 0,
-          borderRight: "1px solid var(--border-subtle)",
-          overflowY: "auto",
-          padding: "8px 4px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "var(--text-muted)",
-            padding: "4px 8px 8px",
-          }}
-        >
+    <div className="flex h-full w-full overflow-hidden bg-base-100">
+      <div className="w-[220px] flex-shrink-0 border-r border-base-300 overflow-y-auto p-2">
+        <div className="text-[11px] font-semibold tracking-[0.06em] uppercase text-base-content/40 px-2 pb-2 pt-1">
           Files
         </div>
         {rootNodes.length === 0 ? (
-          <div
-            style={{
-              padding: "12px 8px",
-              fontSize: "12px",
-              color: "var(--text-muted)",
-            }}
-          >
+          <div className="px-2 py-3 text-[12px] text-base-content/40">
             Loading...
           </div>
         ) : (
@@ -257,100 +203,34 @@ export function FileBrowser() {
         )}
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <div className="flex-1 flex flex-col overflow-hidden">
         {selectedPath && (
-          <div
-            style={{
-              height: "36px",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              padding: "0 16px",
-              borderBottom: "1px solid var(--border-subtle)",
-              background: "var(--bg-secondary)",
-              fontSize: "12px",
-              color: "var(--text-secondary)",
-              fontFamily: "var(--font-mono)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {selectedPath}
+          <div className="h-9 flex-shrink-0 flex items-center px-4 border-b border-base-300 bg-base-200 text-[12px] text-base-content/60 font-mono overflow-hidden">
+            <span className="truncate">{selectedPath}</span>
           </div>
         )}
 
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-          }}
-        >
+        <div className="flex-1 overflow-auto">
           {!selectedPath && (
-            <div
-              style={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-muted)",
-                fontSize: "13px",
-              }}
-            >
+            <div className="h-full flex items-center justify-center text-base-content/40 text-[13px]">
               Select a file to view its contents
             </div>
           )}
 
           {selectedPath && loadingContent && (
-            <div
-              style={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-muted)",
-                fontSize: "13px",
-              }}
-            >
+            <div className="h-full flex items-center justify-center text-base-content/40 text-[13px]">
               Loading...
             </div>
           )}
 
           {selectedPath && !loadingContent && fileContent !== null && (
-            <pre
-              style={{
-                margin: 0,
-                padding: "16px",
-                fontSize: "13px",
-                fontFamily: "var(--font-mono)",
-                color: "var(--text-primary)",
-                lineHeight: 1.6,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
+            <pre className="m-0 p-4 text-[13px] font-mono text-base-content leading-relaxed whitespace-pre-wrap break-words">
               {fileContent}
             </pre>
           )}
 
           {selectedPath && !loadingContent && fileContent === null && (
-            <div
-              style={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-muted)",
-                fontSize: "13px",
-              }}
-            >
+            <div className="h-full flex items-center justify-center text-base-content/40 text-[13px]">
               Cannot display this file (binary or too large)
             </div>
           )}

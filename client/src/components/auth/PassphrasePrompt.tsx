@@ -30,27 +30,40 @@ export function PassphrasePrompt() {
   }
 
   return (
-    <div className="passphrase-prompt">
-      <div className="passphrase-card">
-        <h1>Lattice</h1>
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="passphrase">Passphrase</label>
-          <input
-            id="passphrase"
-            type="password"
-            value={passphrase}
-            onChange={function (e) {
-              setPassphrase(e.target.value);
-            }}
-            autoFocus
-            autoComplete="current-password"
-            disabled={loading}
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? "Authenticating..." : "Authenticate"}
-          </button>
-          {error && <p className="passphrase-error">{error}</p>}
-        </form>
+    <div className="min-h-screen bg-base-100 flex items-center justify-center">
+      <div className="card bg-base-200 border border-base-300 w-full max-w-[340px] shadow-xl">
+        <div className="card-body p-10">
+          <h1 className="text-[15px] font-bold tracking-[0.12em] uppercase text-base-content/60 mb-7">
+            Lattice
+          </h1>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend text-[11px] uppercase tracking-[0.1em] text-base-content/40">
+                Passphrase
+              </legend>
+              <input
+                id="passphrase"
+                type="password"
+                value={passphrase}
+                onChange={function (e) { setPassphrase(e.target.value); }}
+                autoFocus
+                autoComplete="current-password"
+                disabled={loading}
+                className="input input-bordered w-full bg-base-100 text-base-content text-[14px]"
+              />
+            </fieldset>
+            <button
+              type="submit"
+              disabled={loading}
+              className={"btn btn-primary w-full mt-1 " + (loading ? "cursor-not-allowed" : "")}
+            >
+              {loading ? "Authenticating..." : "Authenticate"}
+            </button>
+            {error && (
+              <p className="text-[12px] text-error text-center">{error}</p>
+            )}
+          </form>
+        </div>
       </div>
     </div>
   );
