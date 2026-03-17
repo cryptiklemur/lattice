@@ -1,9 +1,21 @@
 import { createRouter, createRootRoute, createRoute, createMemoryHistory } from "@tanstack/react-router";
 import { Outlet } from "@tanstack/react-router";
+import { useState } from "react";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { ChatView } from "./components/chat/ChatView";
+import { SetupWizard } from "./components/setup/SetupWizard";
 
 function RootLayout() {
+  var [setupComplete, setSetupComplete] = useState(function () {
+    return localStorage.getItem("lattice-setup-complete") === "1";
+  });
+
+  if (!setupComplete) {
+    return (
+      <SetupWizard onComplete={function () { setSetupComplete(true); }} />
+    );
+  }
+
   return (
     <div
       style={{
