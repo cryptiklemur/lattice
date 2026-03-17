@@ -19,7 +19,9 @@ import "./handlers/settings";
 import "./handlers/mesh";
 import "./handlers/loop";
 import "./handlers/scheduler";
+import "./handlers/notes";
 import { startScheduler } from "./features/scheduler";
+import { loadNotes } from "./features/sticky-notes";
 
 interface WsData {
   id: string;
@@ -278,6 +280,8 @@ export async function startDaemon(): Promise<void> {
   startMeshConnections();
 
   startScheduler();
+
+  loadNotes();
 
   onPeerConnected(function (nodeId: string) {
     broadcast({ type: "mesh:node_online", nodeId: nodeId });
