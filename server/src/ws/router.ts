@@ -51,7 +51,20 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
 
   var handler = handlers.get(prefix);
   if (handler) {
-    handler(clientId, message);
+    try {
+      var result = handler(clientId, message);
+      if (result && typeof result.then === "function") {
+        result.then(undefined, function (err: unknown) {
+          var stack = err instanceof Error ? err.stack : String(err);
+          console.error("[lattice] Async handler error for " + message.type + ":", stack);
+          sendTo(clientId, { type: "chat:error", message: "Internal server error processing " + message.type });
+        });
+      }
+    } catch (err) {
+      var stack = err instanceof Error ? (err as Error).stack : String(err);
+      console.error("[lattice] Handler error for " + message.type + ":", stack);
+      sendTo(clientId, { type: "chat:error", message: "Internal server error processing " + message.type });
+    }
     return;
   }
   console.warn(`[lattice] No handler for message type: ${message.type}`);

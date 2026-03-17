@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { ClientMessage, ServerMessage } from "@lattice/shared";
 import { WebSocketContext, getWebSocketUrl } from "../hooks/useWebSocket";
 import type { WebSocketStatus } from "../hooks/useWebSocket";
+import { showToast } from "../components/ui/Toast";
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -17,6 +18,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
   var retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   var unmountedRef = useRef<boolean>(false);
   var listenersRef = useRef<Map<string, Set<(msg: ServerMessage) => void>>>(new Map());
+  var hasConnectedRef = useRef<boolean>(false);
 
   function connect() {
     if (unmountedRef.current) {
@@ -36,6 +38,11 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       console.log("[lattice] Connected");
       setStatus("connected");
       backoffRef.current = 1000;
+      if (hasConnectedRef.current) {
+        showToast("Reconnected to daemon", "info");
+        ws.send(JSON.stringify({ type: "settings:get" }));
+      }
+      hasConnectedRef.current = true;
     };
 
     ws.onmessage = function (event: MessageEvent) {
@@ -59,6 +66,9 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       console.log("[lattice] Disconnected");
       setStatus("disconnected");
       wsRef.current = null;
+      if (hasConnectedRef.current) {
+        showToast("Disconnected from daemon. Reconnecting...", "warning");
+      }
       scheduleReconnect();
     };
 
