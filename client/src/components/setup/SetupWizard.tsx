@@ -4,6 +4,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { themes } from "../../themes/index";
 import type { ThemeEntry } from "../../themes/index";
+import { LatticeLogomark } from "../ui/LatticeLogomark";
 
 var POPULAR_DARK_THEMES = ["dracula", "catppuccin-mocha", "tokyo-night", "one-dark", "amoled"];
 var POPULAR_LIGHT_THEMES = ["ayu-light", "catppuccin-latte", "github-light", "one-light", "rose-pine-dawn"];
@@ -118,7 +119,7 @@ export function SetupWizard(props: SetupWizardProps) {
             }}
           />
           <div className="relative z-[1] flex flex-col items-center gap-0">
-            <div className="wizard-fade-in" style={{ animationDelay: "0ms" }}>
+            <div className="wizard-fade-in text-primary" style={{ animationDelay: "0ms" }}>
               <LatticeLogomark size={64} />
             </div>
             <h1
@@ -265,22 +266,6 @@ export function SetupWizard(props: SetupWizardProps) {
         </div>
       )}
     </div>
-  );
-}
-
-function LatticeLogomark(props: { size: number }) {
-  var s = props.size;
-  return (
-    <svg width={s} height={s} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <rect x="4" y="4" width="18" height="18" rx="3" fill="var(--accent-primary)" />
-      <rect x="26" y="4" width="18" height="18" rx="3" fill="var(--accent-primary)" opacity="0.55" />
-      <rect x="4" y="26" width="18" height="18" rx="3" fill="var(--accent-primary)" opacity="0.55" />
-      <rect x="26" y="26" width="18" height="18" rx="3" fill="var(--accent-primary)" opacity="0.25" />
-      <line x1="13" y1="22" x2="13" y2="26" stroke="var(--accent-primary)" strokeWidth="1.5" opacity="0.8" />
-      <line x1="35" y1="22" x2="35" y2="26" stroke="var(--accent-primary)" strokeWidth="1.5" opacity="0.5" />
-      <line x1="22" y1="13" x2="26" y2="13" stroke="var(--accent-primary)" strokeWidth="1.5" opacity="0.8" />
-      <line x1="22" y1="35" x2="26" y2="35" stroke="var(--accent-primary)" strokeWidth="1.5" opacity="0.5" />
-    </svg>
   );
 }
 

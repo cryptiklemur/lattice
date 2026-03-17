@@ -6,10 +6,11 @@ import { NodeRail } from "./NodeRail";
 import { ProjectList } from "./ProjectList";
 import { SessionList } from "./SessionList";
 import { UserIsland } from "./UserIsland";
+import { LatticeLogomark } from "../ui/LatticeLogomark";
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-[0.08em] uppercase text-base-content/40 flex-shrink-0">
+    <div className="px-4 pt-4 pb-2 text-xs font-bold tracking-wider uppercase text-base-content/40 flex-shrink-0 select-none">
       {label}
     </div>
   );
@@ -22,6 +23,9 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
 
   function handleSessionActivate(session: SessionSummary) {
     setActiveSessionId(session.id);
+    if (onSessionSelect) {
+      onSessionSelect();
+    }
   }
 
   function handleAddProject() {
@@ -47,7 +51,14 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
       )}
 
       <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-        <div className="flex flex-col flex-1 overflow-hidden min-h-0">
+        <div className="px-4 py-3 border-b border-base-300 flex-shrink-0 flex items-center gap-2">
+          <LatticeLogomark size={20} />
+          <span className="text-sm font-mono font-bold tracking-widest text-base-content/80 uppercase">
+            lattice
+          </span>
+        </div>
+
+        <div className="flex flex-col overflow-hidden min-h-0" style={{ flex: "0 0 auto", maxHeight: "40%" }}>
           <SectionLabel label="Projects" />
           <ProjectList
             projects={filteredProjects}
@@ -57,7 +68,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
           />
         </div>
 
-        <div className="h-px bg-base-300 flex-shrink-0" />
+        <div className="divider m-0 px-4 h-px bg-base-300 flex-shrink-0" />
 
         <div className="flex flex-col flex-1 overflow-hidden min-h-0">
           <SectionLabel label="Sessions" />
@@ -68,7 +79,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
           />
         </div>
 
-        <div className="h-px bg-base-300 flex-shrink-0" />
+        <div className="divider m-0 h-px bg-base-300 flex-shrink-0" />
 
         <UserIsland
           nodeName="localhost"

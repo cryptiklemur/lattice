@@ -45,21 +45,21 @@ function RestartSection({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="py-2">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
+      <div className="text-xs font-bold tracking-wider uppercase text-base-content/40 mb-4">
         Restart Daemon
       </div>
 
-      <div className="p-4 rounded-md border border-base-300 bg-base-300 mb-5">
-        <div className="text-[13px] text-base-content font-medium mb-2">
+      <div className="p-4 rounded-xl border border-base-300 bg-base-300/50 mb-5">
+        <div className="text-sm text-base-content font-medium mb-2">
           Restart the Lattice daemon
         </div>
-        <div className="text-[12px] text-base-content/50 leading-relaxed">
+        <div className="text-xs text-base-content/50 leading-relaxed">
           The daemon will restart immediately. Your browser will reconnect automatically.
           Active Claude sessions will be interrupted.
         </div>
       </div>
 
-      <div className="flex gap-2.5">
+      <div className="flex gap-3">
         <button
           onClick={handleRestart}
           className={
@@ -97,21 +97,21 @@ function ShutdownSection({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="py-2">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
+      <div className="text-xs font-bold tracking-wider uppercase text-base-content/40 mb-4">
         Shutdown Daemon
       </div>
 
-      <div className="p-4 rounded-md border border-base-300 bg-base-300 mb-5">
-        <div className="text-[13px] text-base-content font-medium mb-2">
+      <div className="p-4 rounded-xl border border-base-300 bg-base-300/50 mb-5">
+        <div className="text-sm text-base-content font-medium mb-2">
           Stop the Lattice daemon
         </div>
-        <div className="text-[12px] text-base-content/50 leading-relaxed">
+        <div className="text-xs text-base-content/50 leading-relaxed">
           All active sessions will be terminated. Run{" "}
           <code className="font-mono text-info">lattice</code> to start it again.
         </div>
       </div>
 
-      <div className="flex gap-2.5">
+      <div className="flex gap-3">
         <button
           onClick={handleShutdown}
           className={
@@ -154,10 +154,6 @@ export function Settings(props: SettingsProps) {
     };
   }, [props.isOpen, handleKeyDown]);
 
-  if (!props.isOpen) {
-    return null;
-  }
-
   function renderContent() {
     if (section === "status") {
       return <Status />;
@@ -185,14 +181,14 @@ export function Settings(props: SettingsProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-stretch bg-black/60 backdrop-blur-sm"
+      className={"fixed inset-0 z-[9999] transition-colors duration-200 " + (props.isOpen ? "bg-black/40" : "bg-transparent pointer-events-none")}
       onClick={props.onClose}
     >
       <div
-        className="absolute inset-[5%] flex rounded-xl border border-base-300 bg-base-200 overflow-hidden shadow-2xl"
+        className={"fixed top-0 right-0 h-full w-[400px] max-w-[90vw] flex border-l border-base-300 bg-base-300 shadow-2xl transition-transform duration-200 ease-out " + (props.isOpen ? "translate-x-0" : "translate-x-full")}
         onClick={function (e) { e.stopPropagation(); }}
       >
-        <div className="w-[200px] flex-shrink-0 border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+        <div className="w-[160px] flex-shrink-0 border-r border-base-300 bg-base-200 flex flex-col overflow-hidden">
           <div className="px-4 py-3.5 text-[13px] font-bold text-base-content/60 tracking-[0.04em] border-b border-base-300 flex-shrink-0">
             Settings
           </div>
