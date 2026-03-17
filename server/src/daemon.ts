@@ -8,6 +8,7 @@ import "./handlers/session";
 import "./handlers/chat";
 import "./handlers/fs";
 import "./handlers/terminal";
+import "./handlers/settings";
 
 interface WsData {
   id: string;

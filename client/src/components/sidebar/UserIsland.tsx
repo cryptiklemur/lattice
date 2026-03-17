@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTheme } from "../../hooks/useTheme";
+import { Settings } from "../settings/Settings";
 
 interface UserIslandProps {
   nodeName: string;
@@ -144,55 +145,7 @@ export function UserIsland(props: UserIslandProps) {
         </svg>
       </button>
 
-      {settingsOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9998,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.5)",
-          }}
-          onClick={function () { setSettingsOpen(false); }}
-        >
-          <div
-            style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-default)",
-              borderRadius: "var(--radius-lg)",
-              padding: "24px",
-              minWidth: "320px",
-              color: "var(--text-primary)",
-            }}
-            onClick={function (e) { e.stopPropagation(); }}
-          >
-            <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>Settings</div>
-            <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>Settings panel coming soon.</div>
-            <button
-              onClick={function () { setSettingsOpen(false); }}
-              style={{
-                marginTop: "20px",
-                padding: "6px 16px",
-                borderRadius: "var(--radius-sm)",
-                background: "var(--bg-overlay)",
-                color: "var(--text-secondary)",
-                fontSize: "13px",
-                transition: "background var(--transition-fast)",
-              }}
-              onMouseEnter={function (e) {
-                (e.currentTarget as HTMLButtonElement).style.background = "var(--border-default)";
-              }}
-              onMouseLeave={function (e) {
-                (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-overlay)";
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <Settings isOpen={settingsOpen} onClose={function () { setSettingsOpen(false); }} />
     </div>
   );
 }
