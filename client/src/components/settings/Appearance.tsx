@@ -1,4 +1,5 @@
 import { useTheme } from "../../hooks/useTheme";
+import { Sun, Moon, Check } from "lucide-react";
 import type { ThemeEntry } from "../../themes/index";
 
 function Swatch({ color }: { color: string }) {
@@ -72,9 +73,7 @@ function ThemeCard({
             justifyContent: "center",
           }}
         >
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-            <path d="M1.5 4L3.5 6L6.5 2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <Check size={8} color="white" strokeWidth={1.8} />
         </div>
       )}
 
@@ -237,17 +236,12 @@ export function Appearance() {
         >
           {mode === "dark" ? (
             <>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M8 1v1M8 14v1M1 8h1M14 8h1M3.05 3.05l.7.7M12.25 12.25l.7.7M12.25 3.75l-.7.7M3.75 12.25l-.7.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              <Sun size={12} />
               Switch to Light
             </>
           ) : (
             <>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <path d="M13.5 9.5A5.5 5.5 0 016.5 2.5a5.5 5.5 0 107 7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Moon size={12} />
               Switch to Dark
             </>
           )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sun, Moon, Settings as SettingsIcon } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 import { Settings } from "../settings/Settings";
 
@@ -93,14 +94,9 @@ export function UserIsland(props: UserIslandProps) {
         }}
       >
         {mode === "dark" ? (
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M8 1v1M8 14v1M1 8h1M14 8h1M3.05 3.05l.7.7M12.25 12.25l.7.7M12.25 3.75l-.7.7M3.75 12.25l-.7.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <Sun size={14} />
         ) : (
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13.5 9.5A5.5 5.5 0 016.5 2.5a5.5 5.5 0 107 7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <Moon size={14} />
         )}
       </button>
 
@@ -127,22 +123,7 @@ export function UserIsland(props: UserIslandProps) {
           (e.currentTarget as HTMLButtonElement).style.background = "transparent";
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M8 10a2 2 0 100-4 2 2 0 000 4z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M13.3 7a5.3 5.3 0 00-.1-1l1.1-.9a.3.3 0 000-.4l-1-1.7a.3.3 0 00-.4-.1l-1.3.5a5 5 0 00-.9-.5L10.5 1.7a.3.3 0 00-.3-.2H8.2a.3.3 0 00-.3.2L7.6 3a5 5 0 00-.9.5L5.4 3a.3.3 0 00-.4.1L4 4.8a.3.3 0 000 .4L5 6.1A5.3 5.3 0 005 7v.5l-1.1.8a.3.3 0 000 .4l1 1.7a.3.3 0 00.4.1l1.3-.5a5 5 0 00.9.5L7.8 12a.3.3 0 00.3.2h2a.3.3 0 00.3-.2l.3-1.5a5 5 0 00.9-.5l1.3.5a.3.3 0 00.4-.1l1-1.7a.3.3 0 000-.4L13.4 7.5A5.3 5.3 0 0013.3 7z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <SettingsIcon size={14} />
       </button>
 
       <Settings isOpen={settingsOpen} onClose={function () { setSettingsOpen(false); }} />

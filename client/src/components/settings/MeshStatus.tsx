@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { PairingDialog } from "../mesh/PairingDialog";
@@ -246,9 +247,7 @@ export function MeshStatus() {
               (e.currentTarget as HTMLButtonElement).style.color = "var(--accent)";
             }}
           >
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <Plus size={10} />
             Pair New Node
           </button>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Clock, Palette, FileText, Terminal, Network, RefreshCw, Power, X } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { Status } from "./Status";
 import { Appearance } from "./Appearance";
@@ -14,77 +15,14 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-function IconStatus() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 5v3l2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconAppearance() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 5a3 3 0 000 6V5z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function IconClaude() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 6h6M5 9h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconEnvironment() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="M3 4l4 4-4 4M8 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconRestart() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="M3.5 8A4.5 4.5 0 018 3.5a4.5 4.5 0 014.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M12.5 5v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconMesh() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <circle cx="3" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="13" cy="4" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="13" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 8h2m4-3.5-3 2.5m3 5-3-2.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconShutdown() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="M8 2v5M5.5 4A5 5 0 108 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 var NAV_ITEMS: NavItem[] = [
-  { id: "status", label: "Status", icon: <IconStatus /> },
-  { id: "appearance", label: "Appearance", icon: <IconAppearance /> },
-  { id: "claude", label: "Claude Settings", icon: <IconClaude /> },
-  { id: "environment", label: "Environment", icon: <IconEnvironment /> },
-  { id: "mesh", label: "Mesh", icon: <IconMesh /> },
-  { id: "restart", label: "Restart", icon: <IconRestart /> },
-  { id: "shutdown", label: "Shutdown", icon: <IconShutdown /> },
+  { id: "status", label: "Status", icon: <Clock size={14} /> },
+  { id: "appearance", label: "Appearance", icon: <Palette size={14} /> },
+  { id: "claude", label: "Claude Settings", icon: <FileText size={14} /> },
+  { id: "environment", label: "Environment", icon: <Terminal size={14} /> },
+  { id: "mesh", label: "Mesh", icon: <Network size={14} /> },
+  { id: "restart", label: "Restart", icon: <RefreshCw size={14} /> },
+  { id: "shutdown", label: "Shutdown", icon: <Power size={14} /> },
 ];
 
 interface SettingsProps {
@@ -443,9 +381,7 @@ export function Settings(props: SettingsProps) {
                 (e.currentTarget as HTMLButtonElement).style.background = "transparent";
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              <X size={14} />
             </button>
           </div>
 

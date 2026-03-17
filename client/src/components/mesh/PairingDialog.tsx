@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { X, Copy, Check } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { clearInvite } from "../../stores/mesh";
@@ -12,22 +13,6 @@ interface PairingDialogProps {
   onClose: () => void;
 }
 
-function IconClose() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconCopy() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export function PairingDialog(props: PairingDialogProps) {
   var ws = useWebSocket();
@@ -186,7 +171,7 @@ export function PairingDialog(props: PairingDialogProps) {
               (e.currentTarget as HTMLButtonElement).style.background = "transparent";
             }}
           >
-            <IconClose />
+            <X size={14} />
           </button>
         </div>
 
@@ -298,7 +283,7 @@ export function PairingDialog(props: PairingDialogProps) {
                         flexShrink: 0,
                       }}
                     >
-                      <IconCopy />
+                      {copied ? <Check size={12} /> : <Copy size={12} />}
                       {copied ? "Copied!" : "Copy"}
                     </button>
                   </div>
@@ -436,9 +421,7 @@ export function PairingDialog(props: PairingDialogProps) {
                     gap: "6px",
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 8l4 4 6-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <Check size={14} />
                   Paired successfully!
                 </div>
               )}

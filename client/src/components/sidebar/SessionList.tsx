@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Plus } from "lucide-react";
 import type { SessionSummary, SessionListMessage, SessionCreatedMessage } from "@lattice/shared";
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -201,9 +202,7 @@ export function SessionList(props: SessionListProps) {
             (e.currentTarget as HTMLButtonElement).style.background = "transparent";
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <Plus size={12} />
           New Session
         </button>
       </div>

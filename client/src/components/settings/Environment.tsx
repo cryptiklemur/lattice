@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { X, Plus } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
 
@@ -206,9 +207,7 @@ export function Environment() {
                   (e.currentTarget as HTMLButtonElement).style.background = "transparent";
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                <X size={12} />
               </button>
             </div>
           );
@@ -239,9 +238,7 @@ export function Environment() {
           (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-subtle)";
         }}
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
+        <Plus size={12} />
         Add Variable
       </button>
 

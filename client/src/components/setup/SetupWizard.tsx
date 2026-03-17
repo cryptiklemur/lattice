@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, ChevronRight, ChevronLeft, Server, Palette, Lock, Folder, Info, Moon, Sun, Check } from "lucide-react";
+import { ArrowRight, ChevronRight, ChevronLeft, Server, Palette, Lock, Folder, Info, Moon, Sun, Check, CheckCircle } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { themes } from "../../themes/index";
@@ -127,7 +127,7 @@ export function SetupWizard(props: SetupWizardProps) {
                 className="wizard-btn-primary"
               >
                 Get Started
-                <ArrowRightIcon />
+                <ArrowRight size={16} />
               </button>
             </div>
             <p className="wizard-fade-in" style={{ ...welcomeSubnoteStyle, animationDelay: "380ms" }}>
@@ -206,13 +206,13 @@ export function SetupWizard(props: SetupWizardProps) {
           <div style={footerStyle}>
             {step > 2 && step < TOTAL_STEPS && (
               <button onClick={goBack} style={backButtonStyle} className="wizard-btn-back">
-                <ChevronLeftIcon />
+                <ChevronLeft size={14} />
                 Back
               </button>
             )}
             {step === 2 && (
               <button onClick={goBack} style={backButtonStyle} className="wizard-btn-back">
-                <ChevronLeftIcon />
+                <ChevronLeft size={14} />
                 Back
               </button>
             )}
@@ -223,7 +223,7 @@ export function SetupWizard(props: SetupWizardProps) {
               {step === 3 && (
                 <button onClick={handleAppearanceNext} style={primaryButtonStyle} className="wizard-btn-primary">
                   Continue
-                  <ChevronRightIcon />
+                  <ChevronRight size={14} />
                 </button>
               )}
               {step === 4 && (
@@ -231,7 +231,7 @@ export function SetupWizard(props: SetupWizardProps) {
                   <button onClick={skipToNext} style={skipButtonStyle} className="wizard-btn-skip">Skip</button>
                   <button onClick={handleSecurityNext} style={primaryButtonStyle} className="wizard-btn-primary">
                     Continue
-                    <ChevronRightIcon />
+                    <ChevronRight size={14} />
                   </button>
                 </>
               )}
@@ -240,20 +240,20 @@ export function SetupWizard(props: SetupWizardProps) {
                   <button onClick={skipToNext} style={skipButtonStyle} className="wizard-btn-skip">Skip</button>
                   <button onClick={handleProjectNext} style={primaryButtonStyle} className="wizard-btn-primary">
                     Add &amp; Continue
-                    <ChevronRightIcon />
+                    <ChevronRight size={14} />
                   </button>
                 </>
               )}
               {step === 6 && (
                 <button onClick={handleDone} style={doneButtonStyle} className="wizard-btn-done">
                   Open Dashboard
-                  <ArrowRightIcon />
+                  <ArrowRight size={16} />
                 </button>
               )}
               {step === 2 && (
                 <button onClick={handleNameNext} style={primaryButtonStyle} className="wizard-btn-primary">
                   Continue
-                  <ChevronRightIcon />
+                  <ChevronRight size={14} />
                 </button>
               )}
             </div>
@@ -266,7 +266,6 @@ export function SetupWizard(props: SetupWizardProps) {
 
 function LatticeLogomark(props: { size: number }) {
   var s = props.size;
-  var u = s / 4;
   return (
     <svg width={s} height={s} viewBox="0 0 48 48" fill="none" aria-hidden="true">
       <rect x="4" y="4" width="18" height="18" rx="3" fill="var(--accent-primary)" />
@@ -343,7 +342,7 @@ function NameStep(props: NameStepProps) {
   return (
     <div style={stepContentStyle}>
       <div style={stepIconRowStyle}>
-        <ServerIcon />
+        <Server size={22} color="var(--accent-primary)" />
       </div>
       <h2 style={stepHeadingStyle}>Name this machine</h2>
       <p style={stepDescStyle}>
@@ -386,7 +385,7 @@ function AppearanceStep(props: AppearanceStepProps) {
   return (
     <div style={stepContentStyle}>
       <div style={stepIconRowStyle}>
-        <PaletteIcon />
+        <Palette size={22} color="var(--accent-primary)" />
       </div>
       <h2 style={stepHeadingStyle}>Choose appearance</h2>
       <p style={stepDescStyle}>Pick a color theme. You can always change this in settings.</p>
@@ -400,7 +399,7 @@ function AppearanceStep(props: AppearanceStepProps) {
             color: theme.mode === "dark" ? "#fff" : "var(--text-secondary)",
           }}
         >
-          <MoonIcon />
+          <Moon size={13} />
           Dark
         </button>
         <button
@@ -411,7 +410,7 @@ function AppearanceStep(props: AppearanceStepProps) {
             color: theme.mode === "light" ? "#fff" : "var(--text-secondary)",
           }}
         >
-          <SunIcon />
+          <Sun size={13} />
           Light
         </button>
       </div>
@@ -449,7 +448,7 @@ function AppearanceStep(props: AppearanceStepProps) {
               <span style={themeCardLabelStyle}>{entry.theme.name}</span>
               {isActive && (
                 <div style={themeCardCheckStyle}>
-                  <CheckIcon small />
+                  <Check size={10} />
                 </div>
               )}
             </button>
@@ -542,12 +541,12 @@ function SecurityStep(props: SecurityStepProps) {
   return (
     <div style={stepContentStyle}>
       <div style={stepIconRowStyle}>
-        <LockIcon />
+        <Lock size={22} color="var(--accent-primary)" />
       </div>
       <h2 style={stepHeadingStyle}>Set a passphrase</h2>
 
       <div style={infoBoxStyle}>
-        <InfoIcon />
+        <Info size={16} color="var(--text-muted)" style={{ flexShrink: 0, marginTop: "1px" }} />
         <p style={infoBoxTextStyle}>
           Optional. Protects your dashboard on shared networks. Node-to-node connections use separate key-based auth.
         </p>
@@ -620,7 +619,7 @@ function ProjectStep(props: ProjectStepProps) {
   return (
     <div style={stepContentStyle}>
       <div style={stepIconRowStyle}>
-        <FolderIcon />
+        <Folder size={22} color="var(--accent-primary)" />
       </div>
       <h2 style={stepHeadingStyle}>Add your first project</h2>
       <p style={stepDescStyle}>
@@ -661,10 +660,7 @@ function DoneStep(props: DoneStepProps) {
   return (
     <div style={doneStepStyle}>
       <div style={doneCheckCircleStyle} className="wizard-check-pop">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-          <circle cx="18" cy="18" r="17" stroke="var(--accent-success)" strokeWidth="1.5" />
-          <path d="M10 18.5L15.5 24L26 13" stroke="var(--accent-success)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <CheckCircle size={36} color="var(--accent-success)" strokeWidth={1.5} aria-hidden="true" />
       </div>
       <h2 style={doneHeadingStyle}>You're all set</h2>
       <p style={stepDescStyle}>Lattice is configured and ready to go.</p>
@@ -675,7 +671,7 @@ function DoneStep(props: DoneStepProps) {
             return (
               <li key={i} style={summaryItemStyle} className="wizard-fade-in" data-delay={i * 60}>
                 <span style={summaryCheckStyle}>
-                  <CheckIcon small />
+                  <Check size={10} />
                 </span>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-secondary)" }}>{item}</span>
               </li>
@@ -686,105 +682,6 @@ function DoneStep(props: DoneStepProps) {
         <p style={hintStyle}>Everything was skipped — configure it from settings anytime.</p>
       )}
     </div>
-  );
-}
-
-function CheckIcon(props: { small?: boolean }) {
-  var size = props.small ? 10 : 14;
-  return (
-    <svg width={size} height={size} viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M2 6.5L4.5 9L10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ChevronLeftIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <path d="M9 3L5 7l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ServerIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" stroke="var(--accent-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="18" height="6" rx="1.5" />
-      <rect x="2" y="13" width="18" height="6" rx="1.5" />
-      <circle cx="6" cy="6" r="1" fill="var(--accent-primary)" stroke="none" />
-      <circle cx="6" cy="16" r="1" fill="var(--accent-success)" stroke="none" />
-    </svg>
-  );
-}
-
-function PaletteIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" stroke="var(--accent-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <circle cx="8" cy="8.5" r="1.2" fill="var(--accent-primary)" stroke="none" />
-      <circle cx="14" cy="8.5" r="1.2" fill="var(--accent-warning)" stroke="none" />
-      <circle cx="11" cy="14" r="1.2" fill="var(--accent-success)" stroke="none" />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" stroke="var(--accent-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="10" width="12" height="9" rx="2" />
-      <path d="M8 10V7a3 3 0 116 0v3" />
-      <circle cx="11" cy="14.5" r="1" fill="var(--accent-primary)" stroke="none" />
-    </svg>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" stroke="var(--accent-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7a2 2 0 012-2h3.586a1 1 0 01.707.293L10.707 6.7A1 1 0 0011.414 7H17a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: "1px" }}>
-      <circle cx="8" cy="8" r="6.5" />
-      <path d="M8 7.5v3.5M8 5.5v.5" />
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 8.5A5 5 0 015.5 2a6.5 6.5 0 100 10 5 5 0 016.5-3.5z" />
-    </svg>
-  );
-}
-
-function SunIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7" cy="7" r="2.5" />
-      <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M10.01 3.99l1.06-1.06M2.93 11.07l1.06-1.06" />
-    </svg>
   );
 }
 

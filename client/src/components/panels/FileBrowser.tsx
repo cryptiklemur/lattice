@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronRight, FileIcon } from "lucide-react";
 import type { FileEntry, FsListResultMessage, FsReadResultMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ServerMessage } from "@lattice/shared";
@@ -62,38 +63,20 @@ function FileTreeItem(props: FileTreeItemProps) {
         }}
       >
         {isDir ? (
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+          <ChevronRight
+            size={12}
             style={{
               flexShrink: 0,
               transform: node.expanded ? "rotate(90deg)" : "none",
               transition: "transform var(--transition-fast)",
               color: "var(--text-muted)",
             }}
-          >
-            <path d="M4 2.5L8 6L4 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          />
         ) : (
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+          <FileIcon
+            size={12}
             style={{ flexShrink: 0, color: "var(--text-muted)" }}
-          >
-            <path
-              d="M2.5 1.5H7.5L9.5 3.5V10.5H2.5V1.5Z"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeLinejoin="round"
-            />
-            <path d="M7.5 1.5V3.5H9.5" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
-          </svg>
+          />
         )}
         <span
           style={{

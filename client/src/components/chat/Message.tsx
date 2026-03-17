@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronRight, Lock, TriangleAlert } from "lucide-react";
 import type { HistoryMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 
@@ -62,12 +63,7 @@ function AssistantMessage(props: { message: HistoryMessage }) {
           marginTop: "2px",
         }}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
-            fill="var(--accent-primary)"
-          />
-        </svg>
+        <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--accent-primary)" }} />
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
         <div
@@ -131,25 +127,15 @@ function ToolMessage(props: { message: HistoryMessage }) {
             });
           }}
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+          <ChevronRight
+            size={12}
             style={{
               transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
               transition: "transform 0.15s",
               flexShrink: 0,
             }}
-          >
-            <path d="M4 2.5l4 3.5-4 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-            <rect x="1.5" y="5.5" width="13" height="8" rx="1.5" stroke="var(--accent-primary)" strokeWidth="1.5" />
-            <path d="M5 5.5V4a3 3 0 016 0v1.5" stroke="var(--accent-primary)" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="8" cy="9.5" r="1" fill="var(--accent-primary)" />
-          </svg>
+          />
+          <Lock size={13} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
           <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)", flex: 1 }}>
             {msg.name}
           </span>
@@ -249,11 +235,7 @@ function PermissionMessage(props: { message: HistoryMessage }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 1.5l6.5 12h-13L8 1.5z" stroke="#f59e0b" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M8 6v3.5" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="8" cy="11.5" r="0.75" fill="#f59e0b" />
-          </svg>
+          <TriangleAlert size={15} color="#f59e0b" />
           <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>Permission required</span>
           <code
             style={{

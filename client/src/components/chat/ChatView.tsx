@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Info, Terminal, Paperclip } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { Message } from "./Message";
@@ -105,11 +106,7 @@ export function ChatView() {
               (e.currentTarget as HTMLButtonElement).style.background = "transparent";
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M8 7v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <circle cx="8" cy="4.5" r="0.75" fill="currentColor" />
-            </svg>
+            <Info size={15} />
           </button>
           <button
             aria-label="Open terminal"
@@ -135,11 +132,7 @@ export function ChatView() {
               (e.currentTarget as HTMLButtonElement).style.background = "transparent";
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M4.5 6l2.5 2L4.5 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8.5 10h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <Terminal size={15} />
           </button>
         </div>
       </div>
@@ -178,12 +171,7 @@ export function ChatView() {
                   margin: "0 auto 16px",
                 }}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-                    fill="var(--text-muted)"
-                  />
-                </svg>
+                <Info size={22} strokeWidth={1.5} color="var(--text-muted)" />
               </div>
               <p
                 style={{
@@ -257,9 +245,7 @@ export function ChatView() {
                 flexShrink: 0,
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="var(--accent-primary)" />
-              </svg>
+              <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--accent-primary)" }} />
             </div>
             <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
               {[0, 1, 2].map(function (i) {
@@ -322,15 +308,7 @@ export function ChatView() {
               (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M13.5 7.5L7 14a4 4 0 01-5.66-5.66l6.5-6.5a2.5 2.5 0 013.54 3.54L5 11.84a1 1 0 01-1.41-1.41L10 4"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Paperclip size={15} />
           </button>
           <div style={{ marginLeft: "auto" }}>
             <ModelSelector />

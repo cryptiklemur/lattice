@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { SendHorizontal } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -112,9 +113,7 @@ export function ChatInput(props: ChatInputProps) {
             }
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13.5 8L2.5 2l3 6-3 6 11-6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          </svg>
+          <SendHorizontal size={14} />
         </button>
       </div>
       <div
