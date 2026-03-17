@@ -170,8 +170,11 @@ function buildLoginPage(): string {
 </html>`;
 }
 
-export async function startDaemon(): Promise<void> {
+export async function startDaemon(portOverride?: number | null): Promise<void> {
   var config = loadConfig();
+  if (portOverride && !isNaN(portOverride)) {
+    config.port = portOverride;
+  }
   var identity = loadOrCreateIdentity();
 
   console.log(`[lattice] Node: ${config.name} (${identity.id})`);

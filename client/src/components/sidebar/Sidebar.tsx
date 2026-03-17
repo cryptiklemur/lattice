@@ -26,7 +26,7 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
   var { projects, activeProject, setActiveProject } = useProjects();
   var { nodes, activeNodeId, setActiveNodeId } = useMesh();
   var [activeSessionId, setActiveSessionId] = useState<string | null>(null);

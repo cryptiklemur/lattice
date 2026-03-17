@@ -4,7 +4,19 @@ import { DAEMON_PID_FILE } from "@lattice/shared";
 import { getLatticeHome, loadConfig } from "./config";
 
 var args = process.argv.slice(2);
-var command = args[0] || "start";
+var command = "start";
+var portOverride: number | null = null;
+
+for (var i = 0; i < args.length; i++) {
+  if (args[i] === "--port" && i + 1 < args.length) {
+    portOverride = parseInt(args[i + 1], 10);
+    i++;
+  } else if (args[i].startsWith("--port=")) {
+    portOverride = parseInt(args[i].split("=")[1], 10);
+  } else if (!args[i].startsWith("-")) {
+    command = args[i];
+  }
+}
 
 function getPidPath(): string {
   return join(getLatticeHome(), DAEMON_PID_FILE);
@@ -78,7 +90,7 @@ async function runDaemon(): Promise<void> {
     removePid();
     process.exit(0);
   });
-  await startDaemon();
+  await startDaemon(portOverride);
 }
 
 async function runStart(): Promise<void> {
