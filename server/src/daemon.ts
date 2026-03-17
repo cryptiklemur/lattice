@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import type { ServerWebSocket } from "bun";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
@@ -8,6 +9,7 @@ import { startDiscovery } from "./mesh/discovery";
 import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessage } from "./mesh/connector";
 import { handleProxyRequest, handleProxyResponse } from "./mesh/proxy";
 import { verifyPassphrase, generateSessionToken, addSession, isValidSession } from "./auth/passphrase";
+import { ensureCerts } from "./tls";
 import type { ClientMessage, MeshMessage } from "@lattice/shared";
 import "./handlers/session";
 import "./handlers/chat";
@@ -173,9 +175,26 @@ export async function startDaemon(): Promise<void> {
 
   var clientDir = join(import.meta.dir, "../../client/dist");
 
+  var tlsOptions: { cert: Buffer; key: Buffer } | undefined;
+  if (config.tls) {
+    try {
+      var certs = ensureCerts();
+      tlsOptions = {
+        cert: readFileSync(certs.cert),
+        key: readFileSync(certs.key),
+      };
+      console.log("[lattice] TLS enabled");
+    } catch (err) {
+      console.error("[lattice] Failed to load TLS certs, falling back to HTTP:", err);
+    }
+  }
+
+  var protocol = tlsOptions ? "https" : "http";
+
   Bun.serve<WsData>({
     port: config.port,
     hostname: "0.0.0.0",
+    ...(tlsOptions ? { tls: tlsOptions } : {}),
 
     async fetch(req: Request, server: ReturnType<typeof Bun.serve>) {
       var url = new URL(req.url);
@@ -250,7 +269,7 @@ export async function startDaemon(): Promise<void> {
     },
   });
 
-  console.log(`[lattice] Listening on http://0.0.0.0:${config.port}`);
+  console.log(`[lattice] Listening on ${protocol}://0.0.0.0:${config.port}`);
 
   startDiscovery(identity.id, config.name, config.port);
 

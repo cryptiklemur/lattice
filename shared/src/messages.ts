@@ -3,9 +3,12 @@ import type {
   FileEntry,
   HistoryMessage,
   LatticeConfig,
+  LoopStatus,
   NodeInfo,
   ProjectInfo,
+  ScheduledTask,
   SessionSummary,
+  StickyNote,
 } from "./models.js";
 
 export interface SessionCreateMessage {
@@ -111,6 +114,63 @@ export interface MeshUnpairMessage {
   nodeId: string;
 }
 
+export interface LoopStartMessage {
+  type: "loop:start";
+  projectSlug: string;
+}
+
+export interface LoopStopMessage {
+  type: "loop:stop";
+  loopId: string;
+}
+
+export interface LoopStatusRequestMessage {
+  type: "loop:status";
+  loopId: string;
+}
+
+export interface SchedulerListMessage {
+  type: "scheduler:list";
+}
+
+export interface SchedulerCreateMessage {
+  type: "scheduler:create";
+  name: string;
+  prompt: string;
+  cron: string;
+  projectSlug: string;
+}
+
+export interface SchedulerDeleteMessage {
+  type: "scheduler:delete";
+  taskId: string;
+}
+
+export interface SchedulerToggleMessage {
+  type: "scheduler:toggle";
+  taskId: string;
+}
+
+export interface NotesListMessage {
+  type: "notes:list";
+}
+
+export interface NotesCreateMessage {
+  type: "notes:create";
+  content: string;
+}
+
+export interface NotesUpdateMessage {
+  type: "notes:update";
+  id: string;
+  content: string;
+}
+
+export interface NotesDeleteMessage {
+  type: "notes:delete";
+  id: string;
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
@@ -131,7 +191,18 @@ export type ClientMessage =
   | SettingsRestartMessage
   | MeshPairMessage
   | MeshGenerateInviteMessage
-  | MeshUnpairMessage;
+  | MeshUnpairMessage
+  | LoopStartMessage
+  | LoopStopMessage
+  | LoopStatusRequestMessage
+  | SchedulerListMessage
+  | SchedulerCreateMessage
+  | SchedulerDeleteMessage
+  | SchedulerToggleMessage
+  | NotesListMessage
+  | NotesCreateMessage
+  | NotesUpdateMessage
+  | NotesDeleteMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -261,6 +332,53 @@ export interface SettingsDataMessage {
   config: LatticeConfig;
 }
 
+export interface LoopStatusMessage {
+  type: "loop:status_update";
+  loop: LoopStatus;
+}
+
+export interface LoopStartedMessage {
+  type: "loop:started";
+  loop: LoopStatus;
+}
+
+export interface LoopDeltaMessage {
+  type: "loop:delta";
+  loopId: string;
+  iteration: number;
+  text: string;
+}
+
+export interface SchedulerTasksMessage {
+  type: "scheduler:tasks";
+  tasks: ScheduledTask[];
+}
+
+export interface SchedulerTaskCreatedMessage {
+  type: "scheduler:task_created";
+  task: ScheduledTask;
+}
+
+export interface NotesListResultMessage {
+  type: "notes:list_result";
+  notes: StickyNote[];
+}
+
+export interface NoteCreatedMessage {
+  type: "notes:created";
+  note: StickyNote;
+}
+
+export interface NoteUpdatedMessage {
+  type: "notes:updated";
+  note: StickyNote;
+}
+
+export interface NoteDeletedMessage {
+  type: "notes:deleted";
+  id: string;
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -284,7 +402,16 @@ export type ServerMessage =
   | MeshNodeOnlineMessage
   | MeshNodeOfflineMessage
   | ProjectsListMessage
-  | SettingsDataMessage;
+  | SettingsDataMessage
+  | LoopStatusMessage
+  | LoopStartedMessage
+  | LoopDeltaMessage
+  | SchedulerTasksMessage
+  | SchedulerTaskCreatedMessage
+  | NotesListResultMessage
+  | NoteCreatedMessage
+  | NoteUpdatedMessage
+  | NoteDeletedMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

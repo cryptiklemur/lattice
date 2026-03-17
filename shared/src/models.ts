@@ -83,3 +83,41 @@ export interface ThemeDefinition {
   variant: "dark" | "light";
   colors: Record<string, string>;
 }
+
+export interface StickyNote {
+  id: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ScheduledTask {
+  id: string;
+  name: string;
+  prompt: string;
+  cron: string;
+  enabled: boolean;
+  projectSlug: string;
+  createdAt: number;
+  updatedAt: number;
+  lastRunAt: number | null;
+  nextRunAt: number | null;
+}
+
+export interface LoopRun {
+  startedAt: number;
+  finishedAt: number;
+  result: string;
+  iterations: number;
+}
+
+export interface LoopStatus {
+  id: string;
+  projectSlug: string;
+  status: "idle" | "running" | "done" | "stopped" | "error";
+  iteration: number;
+  maxIterations: number;
+  judgeReason: string | null;
+  startedAt: number | null;
+  finishedAt: number | null;
+}
