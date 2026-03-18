@@ -26,7 +26,7 @@ export interface SessionSummary {
   title: string;
   createdAt: number;
   updatedAt: number;
-  messageCount: number;
+  messageCount?: number;
 }
 
 export interface FileEntry {
@@ -52,6 +52,9 @@ export interface HistoryMessage {
   args?: string;
   content?: string;
   timestamp: number;
+  title?: string;
+  decisionReason?: string;
+  permissionStatus?: "pending" | "allowed" | "denied" | "always_allowed";
 }
 
 export interface PeerInfo {
@@ -77,13 +80,6 @@ export interface LatticeConfig {
   }>;
 }
 
-export interface ThemeDefinition {
-  id: string;
-  name: string;
-  variant: "dark" | "light";
-  colors: Record<string, string>;
-}
-
 export interface StickyNote {
   id: string;
   content: string;
@@ -104,11 +100,10 @@ export interface ScheduledTask {
   nextRunAt: number | null;
 }
 
-export interface LoopRun {
-  startedAt: number;
-  finishedAt: number;
-  result: string;
-  iterations: number;
+export interface SkillInfo {
+  name: string;
+  description: string;
+  path: string;
 }
 
 export interface LoopStatus {
@@ -122,11 +117,3 @@ export interface LoopStatus {
   finishedAt: number | null;
 }
 
-export interface ImportableSession {
-  id: string;
-  title: string;
-  context: string;
-  createdAt: number;
-  messageCount: number;
-  alreadyImported: boolean;
-}
