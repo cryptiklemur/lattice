@@ -2,13 +2,13 @@ import type {
   Attachment,
   FileEntry,
   HistoryMessage,
-  ImportableSession,
   LatticeConfig,
   LoopStatus,
   NodeInfo,
   ProjectInfo,
   ScheduledTask,
   SessionSummary,
+  SkillInfo,
   StickyNote,
 } from "./models.js";
 
@@ -34,27 +34,25 @@ export interface SessionDeleteMessage {
   sessionId: string;
 }
 
-export interface SessionListImportableMessage {
-  type: "session:list_importable";
+export interface SessionListRequestMessage {
+  type: "session:list_request";
   projectSlug: string;
-}
-
-export interface SessionImportMessage {
-  type: "session:import";
-  projectSlug: string;
-  sessionId: string;
 }
 
 export interface ChatSendMessage {
   type: "chat:send";
   text: string;
   attachments?: Attachment[];
+  model?: string;
+  effort?: string;
 }
 
 export interface ChatPermissionResponseMessage {
   type: "chat:permission_response";
   requestId: string;
   allow: boolean;
+  alwaysAllow?: boolean;
+  alwaysAllowScope?: "session" | "project";
 }
 
 export interface ChatRewindMessage {
@@ -64,6 +62,11 @@ export interface ChatRewindMessage {
 
 export interface ChatCancelMessage {
   type: "chat:cancel";
+}
+
+export interface ChatSetPermissionModeMessage {
+  type: "chat:set_permission_mode";
+  mode: "default" | "acceptEdits" | "plan" | "dontAsk";
 }
 
 export interface FsListMessage {
@@ -183,13 +186,16 @@ export interface NotesDeleteMessage {
   id: string;
 }
 
+export interface SkillsListRequestMessage {
+  type: "skills:list_request";
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
   | SessionRenameMessage
   | SessionDeleteMessage
-  | SessionListImportableMessage
-  | SessionImportMessage
+  | SessionListRequestMessage
   | ChatSendMessage
   | ChatPermissionResponseMessage
   | ChatRewindMessage
@@ -216,7 +222,9 @@ export type ClientMessage =
   | NotesListMessage
   | NotesCreateMessage
   | NotesUpdateMessage
-  | NotesDeleteMessage;
+  | NotesDeleteMessage
+  | SkillsListRequestMessage
+  | ChatSetPermissionModeMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -231,7 +239,10 @@ export interface SessionCreatedMessage {
 
 export interface SessionHistoryMessage {
   type: "session:history";
+  projectSlug: string;
+  sessionId: string;
   messages: HistoryMessage[];
+  title?: string;
 }
 
 export interface ChatUserMessage {
@@ -274,6 +285,14 @@ export interface ChatPermissionRequestMessage {
   requestId: string;
   tool: string;
   args: string;
+  title?: string;
+  decisionReason?: string;
+}
+
+export interface ChatPermissionResolvedMessage {
+  type: "chat:permission_resolved";
+  requestId: string;
+  status: "allowed" | "denied" | "always_allowed";
 }
 
 export interface ChatStatusMessage {
@@ -282,6 +301,29 @@ export interface ChatStatusMessage {
   toolName?: string;
   elapsed?: number;
   summary?: string;
+}
+
+export interface ChatContextUsageMessage {
+  type: "chat:context_usage";
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  contextWindow: number;
+}
+
+export interface ContextBreakdownSegment {
+  label: string;
+  tokens: number;
+  id: string;
+  estimated: boolean;
+}
+
+export interface ChatContextBreakdownMessage {
+  type: "chat:context_breakdown";
+  segments: ContextBreakdownSegment[];
+  contextWindow: number;
+  autocompactAt: number;
 }
 
 export interface FsListResultMessage {
@@ -401,16 +443,14 @@ export interface NoteDeletedMessage {
   id: string;
 }
 
-export interface SessionImportableListMessage {
-  type: "session:importable_list";
-  projectSlug: string;
-  sessions: ImportableSession[];
+export interface SkillsListMessage {
+  type: "skills:list";
+  skills: SkillInfo[];
 }
 
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
-  | SessionImportableListMessage
   | SessionHistoryMessage
   | ChatUserMessage
   | ChatDeltaMessage
@@ -420,6 +460,8 @@ export type ServerMessage =
   | ChatErrorMessage
   | ChatPermissionRequestMessage
   | ChatStatusMessage
+  | ChatContextUsageMessage
+  | ChatContextBreakdownMessage
   | FsListResultMessage
   | FsReadResultMessage
   | FsChangedMessage
@@ -441,7 +483,9 @@ export type ServerMessage =
   | NotesListResultMessage
   | NoteCreatedMessage
   | NoteUpdatedMessage
-  | NoteDeletedMessage;
+  | NoteDeletedMessage
+  | SkillsListMessage
+  | ChatPermissionResolvedMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";
@@ -464,7 +508,24 @@ export interface MeshProxyResponseMessage {
   payload: ServerMessage;
 }
 
+export interface MeshSessionSyncMessage {
+  type: "mesh:session_sync";
+  projectSlug: string;
+  sessionId: string;
+  lines: string[];
+  offset: number;
+}
+
+export interface MeshSessionRequestMessage {
+  type: "mesh:session_request";
+  projectSlug: string;
+  sessionId: string;
+  fromOffset: number;
+}
+
 export type MeshMessage =
   | MeshHelloMessage
   | MeshProxyRequestMessage
-  | MeshProxyResponseMessage;
+  | MeshProxyResponseMessage
+  | MeshSessionSyncMessage
+  | MeshSessionRequestMessage;
