@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Wrench, TriangleAlert } from "lucide-react";
+import Markdown from "react-markdown";
+import { Wrench, TriangleAlert, ChevronDown, Check, X, Shield } from "lucide-react";
 import type { HistoryMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 
@@ -8,6 +9,7 @@ interface MessageProps {
 }
 
 function formatTime(timestamp: number): string {
+  if (!timestamp) return "";
   var d = new Date(timestamp);
   var h = d.getHours().toString().padStart(2, "0");
   var m = d.getMinutes().toString().padStart(2, "0");
@@ -16,35 +18,43 @@ function formatTime(timestamp: number): string {
 
 function UserMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
+  var time = formatTime(msg.timestamp);
   return (
-    <div className="chat chat-end px-4 py-1.5">
-      <div className="chat-bubble chat-bubble-primary text-sm leading-relaxed whitespace-pre-wrap break-words max-w-[75%]">
-        {msg.text}
+    <div className="chat chat-end px-5 py-1">
+      <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[70%] shadow-sm">
+        <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline">
+          <Markdown>{msg.text || ""}</Markdown>
+        </div>
       </div>
-      <div className="chat-footer opacity-50 text-xs mt-1">
-        {formatTime(msg.timestamp)}
-      </div>
+      {time && (
+        <div className="chat-footer text-[10px] text-base-content/30 mt-0.5">
+          {time}
+        </div>
+      )}
     </div>
   );
 }
 
 function AssistantMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
+  var time = formatTime(msg.timestamp);
   return (
-    <div className="px-5 py-1.5">
-      <div className="flex gap-3 items-start">
-        <div className="w-6 h-6 rounded-full bg-base-200 border border-base-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <div className="w-3 h-3 rounded-full bg-primary" />
-        </div>
-        <div className="flex-1 min-w-0 border-l-2 border-primary/40 pl-3">
-          <div className="text-[14px] text-base-content leading-relaxed whitespace-pre-wrap break-words">
-            {msg.text || ""}
-          </div>
-          <div className="text-[11px] text-base-content/40 mt-1">
-            {formatTime(msg.timestamp)}
-          </div>
+    <div className="chat chat-start px-5 py-1">
+      <div className="chat-image">
+        <div className="w-6 h-6 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center">
+          <div className="w-2.5 h-2.5 rounded-full bg-primary" />
         </div>
       </div>
+      <div className="chat-bubble bg-base-300/70 text-base-content text-[13px] leading-relaxed break-words max-w-[70%] shadow-sm border border-base-content/5">
+        <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-base-content prose-p:text-base-content prose-strong:text-base-content prose-code:text-base-content/70 prose-code:bg-base-100/50 prose-pre:bg-base-100 prose-pre:text-base-content/70 prose-a:text-primary prose-a:underline prose-li:text-base-content">
+          <Markdown>{msg.text || ""}</Markdown>
+        </div>
+      </div>
+      {time && (
+        <div className="chat-footer text-[10px] text-base-content/30 mt-0.5">
+          {time}
+        </div>
+      )}
     </div>
   );
 }
@@ -64,54 +74,59 @@ function ToolMessage(props: { message: HistoryMessage }) {
   }
 
   return (
-    <div className="pl-[52px] pr-5 py-1">
-      <div className={"collapse collapse-arrow rounded-md overflow-hidden text-[12px] bg-base-200 border border-base-300 " + (hasResult ? "border-l-2 border-l-base-300" : "border-l-2 border-l-primary")}>
-        <input
-          type="checkbox"
-          checked={expanded}
-          onChange={function () { setExpanded(function (v) { return !v; }); }}
-          className="peer"
-        />
-        <div className="collapse-title flex items-center gap-2.5 py-2 px-3 min-h-0 cursor-pointer">
-          <Wrench size={13} className="text-primary flex-shrink-0" />
-          <span className="font-mono font-semibold text-sm text-base-content flex-1 truncate">
+    <div className="ml-14 mr-5 py-0.5 max-w-[75%]">
+      <div
+        className={
+          "rounded-lg overflow-hidden text-[12px] border transition-colors duration-100 " +
+          (hasResult
+            ? "bg-base-200/50 border-base-content/8"
+            : "bg-base-200/70 border-primary/20")
+        }
+      >
+        <button
+          type="button"
+          onClick={function () { setExpanded(function (v) { return !v; }); }}
+          className="flex items-center gap-2 w-full py-1.5 px-2.5 hover:bg-base-content/5 transition-colors duration-100 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset rounded-lg"
+        >
+          <Wrench size={11} className={hasResult ? "text-base-content/30" : "text-primary/70"} />
+          <span className="font-mono font-medium text-[12px] text-base-content/70 flex-1 text-left truncate">
             {msg.name}
           </span>
           {hasResult ? (
-            <span className="text-xs text-base-content/40 bg-base-300 px-2 py-0.5 rounded-full mr-4">
-              done
-            </span>
+            <span className="text-[10px] text-base-content/30">done</span>
           ) : (
-            <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full mr-4">
-              running
-            </span>
+            <span className="text-[10px] text-primary/70">running</span>
           )}
-        </div>
+          <ChevronDown
+            size={11}
+            className={"text-base-content/30 transition-transform duration-150 " + (expanded ? "rotate-180" : "")}
+          />
+        </button>
 
-        <div className="collapse-content px-0 pt-0">
-          <div className="border-t border-base-300">
+        {expanded && (
+          <div className="border-t border-base-content/8">
             {parsedArgs && (
-              <div className="p-3">
-                <div className="text-xs text-base-content/40 mb-2 uppercase tracking-wider font-semibold">
-                  Arguments
+              <div className="px-2.5 py-2">
+                <div className="text-[10px] text-base-content/30 mb-1 uppercase tracking-wider font-semibold">
+                  Args
                 </div>
-                <pre className="font-mono text-xs text-base-content/60 whitespace-pre-wrap break-words m-0 leading-relaxed bg-base-300/50 rounded-lg p-2.5">
+                <pre className="font-mono text-[11px] text-base-content/50 whitespace-pre-wrap break-words m-0 leading-relaxed bg-base-100/50 rounded-md p-2">
                   {parsedArgs}
                 </pre>
               </div>
             )}
             {hasResult && (
-              <div className={"p-3" + (parsedArgs ? " border-t border-base-300" : "")}>
-                <div className="text-xs text-base-content/40 mb-2 uppercase tracking-wider font-semibold">
+              <div className={"px-2.5 py-2" + (parsedArgs ? " border-t border-base-content/8" : "")}>
+                <div className="text-[10px] text-base-content/30 mb-1 uppercase tracking-wider font-semibold">
                   Result
                 </div>
-                <pre className="font-mono text-xs text-base-content/60 whitespace-pre-wrap break-words m-0 leading-relaxed bg-base-300/50 rounded-lg p-2.5 max-h-[280px] overflow-y-auto">
+                <pre className="font-mono text-[11px] text-base-content/50 whitespace-pre-wrap break-words m-0 leading-relaxed bg-base-100/50 rounded-md p-2 max-h-[240px] overflow-y-auto">
                   {msg.content}
                 </pre>
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -120,7 +135,10 @@ function ToolMessage(props: { message: HistoryMessage }) {
 function PermissionMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
   var { send } = useWebSocket();
-  var [responded, setResponded] = useState<boolean>(false);
+  var [showScopeMenu, setShowScopeMenu] = useState<boolean>(false);
+  var [expanded, setExpanded] = useState<boolean>(false);
+
+  var isResolved = msg.permissionStatus && msg.permissionStatus !== "pending";
 
   var parsedArgs: string = msg.args || "";
   try {
@@ -131,49 +149,138 @@ function PermissionMessage(props: { message: HistoryMessage }) {
     parsedArgs = msg.args || "";
   }
 
-  function respond(allow: boolean) {
-    if (responded || !msg.toolId) {
+  function respond(allow: boolean, alwaysAllow?: boolean, alwaysAllowScope?: "session" | "project") {
+    if (isResolved || !msg.toolId) {
       return;
     }
-    setResponded(true);
-    send({ type: "chat:permission_response", requestId: msg.toolId, allow });
+    send({
+      type: "chat:permission_response",
+      requestId: msg.toolId,
+      allow: allow,
+      alwaysAllow: alwaysAllow,
+      alwaysAllowScope: alwaysAllowScope,
+    } as any);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (isResolved) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      respond(true);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      respond(false);
+    }
+  }
+
+  if (isResolved) {
+    var statusIcon = msg.permissionStatus === "denied"
+      ? <X size={12} className="text-error" />
+      : <Check size={12} className="text-success" />;
+    var statusText = msg.permissionStatus === "denied"
+      ? "Denied"
+      : msg.permissionStatus === "always_allowed"
+      ? "Always allowed"
+      : "Allowed";
+    var borderClass = msg.permissionStatus === "denied"
+      ? "border-error/15 bg-error/3"
+      : "border-success/15 bg-success/3";
+
+    return (
+      <div className="ml-14 mr-5 py-0.5 max-w-[75%]">
+        <div className={"rounded-lg text-[12px] border px-2.5 py-1.5 flex items-center gap-2 " + borderClass}>
+          {statusIcon}
+          <span className="text-base-content/35">{statusText}</span>
+          <code className="font-mono text-[11px] bg-base-300/40 px-1.5 py-0.5 rounded text-base-content/30">
+            {msg.name}
+          </code>
+          <span className="text-[10px] text-base-content/15 ml-auto">{formatTime(msg.timestamp)}</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="pl-[52px] pr-5 py-1">
-      <div className="border-l-2 border-warning bg-warning/10 rounded-r-md p-3 flex flex-col gap-2.5 text-[13px]">
-        <div className="flex items-center gap-2.5">
-          <TriangleAlert size={16} className="text-warning flex-shrink-0" />
-          <span className="font-semibold text-sm text-base-content">Permission required</span>
-          <code className="font-mono text-xs bg-base-300 px-2 py-0.5 rounded text-base-content/70">
+    <div className="ml-14 mr-5 py-1 max-w-[75%]" onKeyDown={handleKeyDown} tabIndex={0}>
+      <div className="border border-warning/30 bg-warning/5 rounded-lg p-3 flex flex-col gap-2 text-[13px]">
+        <div className="flex items-center gap-2">
+          <TriangleAlert size={14} className="text-warning flex-shrink-0" />
+          <span className="font-semibold text-[13px] text-base-content">Permission required</span>
+          <code className="font-mono text-[11px] bg-base-300/60 px-1.5 py-0.5 rounded text-base-content/60">
             {msg.name}
           </code>
+          {msg.title && (
+            <span className="text-[10px] text-base-content/25 ml-auto truncate max-w-[200px]">{msg.title}</span>
+          )}
         </div>
 
         {parsedArgs && (
-          <pre className="font-mono text-xs text-base-content/60 whitespace-pre-wrap break-words m-0 leading-relaxed bg-base-300/60 px-3 py-2.5 rounded-lg w-full">
-            {parsedArgs}
-          </pre>
+          <div>
+            <button
+              type="button"
+              onClick={function () { setExpanded(function (v) { return !v; }); }}
+              className="text-[10px] text-base-content/30 hover:text-base-content/50 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <ChevronDown size={10} className={"transition-transform duration-150 " + (expanded ? "rotate-180" : "")} />
+              args
+            </button>
+            {expanded && (
+              <pre className="font-mono text-[11px] text-base-content/50 whitespace-pre-wrap break-words m-0 mt-1 leading-relaxed bg-base-100/50 px-2.5 py-2 rounded-md w-full max-h-[160px] overflow-y-auto">
+                {parsedArgs}
+              </pre>
+            )}
+          </div>
         )}
 
-        {!responded ? (
-          <div className="flex gap-2">
+        <div className="flex gap-2 items-center relative">
+          <button
+            className="btn btn-warning btn-sm btn-outline"
+            onClick={function () { respond(true); }}
+          >
+            Allow
+          </button>
+          <div className="inline-flex">
             <button
-              className="btn btn-warning btn-sm"
-              onClick={function () { respond(true); }}
+              className="btn btn-ghost btn-sm text-warning/70 border border-warning/25 rounded-r-none border-r-0 text-[11px] px-2"
+              onClick={function () { respond(true, true, "session"); }}
             >
-              Allow
+              Always Allow
             </button>
             <button
-              className="btn btn-ghost btn-sm"
-              onClick={function () { respond(false); }}
+              className="btn btn-ghost btn-sm text-warning/70 border border-warning/25 rounded-l-none text-[11px] px-1"
+              onClick={function () { setShowScopeMenu(function (v) { return !v; }); }}
             >
-              Deny
+              <ChevronDown size={10} />
             </button>
           </div>
-        ) : (
-          <span className="text-xs text-base-content/40">Response sent</span>
-        )}
+          <button
+            className="btn btn-ghost btn-sm text-base-content/40"
+            onClick={function () { respond(false); }}
+          >
+            Deny
+          </button>
+          <span className="text-[10px] text-base-content/20 italic ml-auto">waiting for approval...</span>
+
+          {showScopeMenu && (
+            <div className="absolute top-full left-[88px] mt-1 z-50 bg-base-300 border border-warning/20 rounded-lg shadow-xl p-1 text-[12px] font-mono min-w-[180px]">
+              <button
+                className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded hover:bg-warning/10 text-left text-base-content/70 transition-colors"
+                onClick={function () { setShowScopeMenu(false); respond(true, true, "session"); }}
+              >
+                <Shield size={11} className="text-warning/60" />
+                This session only
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded hover:bg-warning/10 text-left text-base-content/70 transition-colors"
+                onClick={function () { setShowScopeMenu(false); respond(true, true, "project"); }}
+              >
+                <Shield size={11} className="text-warning/60" />
+                This project
+                <span className="text-[9px] text-base-content/20 ml-auto">.claude/settings.json</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
