@@ -1,10 +1,9 @@
-import type { ChatSendMessage, ClientMessage } from "@lattice/shared";
+import type { ChatSendMessage, ChatPermissionResponseMessage, ChatSetPermissionModeMessage, ClientMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
-import { findProjectSlugForSession } from "../project/session";
 import { loadConfig } from "../config";
-import { startChatStream } from "../project/sdk-bridge";
+import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream } from "../project/sdk-bridge";
 
 var activeSessionByClient = new Map<string, { projectSlug: string; sessionId: string }>();
 
@@ -46,18 +45,62 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
       clientId,
       cwd: project.path,
       env: Object.keys(env).length > 0 ? env : undefined,
+      model: sendMsg.model,
+      effort: sendMsg.effort as "low" | "medium" | "high" | "max" | undefined,
     });
 
     return;
   }
 
   if (message.type === "chat:cancel") {
-    // TODO: implement cancel via Query.interrupt()
+    sendTo(clientId, { type: "chat:error", message: "Cancel not yet implemented." });
     return;
   }
 
   if (message.type === "chat:permission_response") {
-    // TODO: implement interactive permission flow
+    var permMsg = message as ChatPermissionResponseMessage;
+    var pending = getPendingPermission(permMsg.requestId);
+    if (!pending) {
+      return;
+    }
+
+    var active = activeSessionByClient.get(clientId);
+
+    if (permMsg.allow) {
+      if (permMsg.alwaysAllow && permMsg.alwaysAllowScope === "session" && active) {
+        addAutoApprovedTool(active.sessionId, pending.toolName);
+      }
+
+      if (permMsg.alwaysAllow && permMsg.alwaysAllowScope === "project" && pending.suggestions) {
+        pending.resolve({ behavior: "allow", updatedPermissions: pending.suggestions, toolUseID: pending.toolUseID });
+      } else {
+        pending.resolve({ behavior: "allow", toolUseID: pending.toolUseID });
+      }
+
+      var resolvedStatus = permMsg.alwaysAllow ? "always_allowed" : "allowed";
+      sendTo(clientId, { type: "chat:permission_resolved", requestId: permMsg.requestId, status: resolvedStatus });
+    } else {
+      pending.resolve({ behavior: "deny", message: "User denied this operation.", toolUseID: pending.toolUseID });
+      sendTo(clientId, { type: "chat:permission_resolved", requestId: permMsg.requestId, status: "denied" });
+    }
+
+    deletePendingPermission(permMsg.requestId);
+    return;
+  }
+
+  if (message.type === "chat:set_permission_mode") {
+    var modeMsg = message as ChatSetPermissionModeMessage;
+    var activeSession = activeSessionByClient.get(clientId);
+    if (!activeSession) {
+      return;
+    }
+
+    var stream = getActiveStream(activeSession.sessionId);
+    if (stream) {
+      void stream.setPermissionMode(modeMsg.mode);
+    } else {
+      setSessionPermissionOverride(activeSession.sessionId, modeMsg.mode);
+    }
     return;
   }
 });
