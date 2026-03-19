@@ -196,19 +196,25 @@ export function startChatStream(options: ChatStreamOptions): void {
     return;
   }
 
-  var effectiveMode: PermissionMode = sessionPermissionOverrides.get(sessionId) || "acceptEdits";
-  sessionPermissionOverrides.delete(sessionId);
-
   var projectSettingsPath = join(cwd, ".claude", "settings.json");
   var savedAdditionalDirs: string[] = [];
+  var latticeDefaults: Record<string, unknown> = {};
   if (existsSync(projectSettingsPath)) {
     try {
       var projSettings = JSON.parse(readFileSync(projectSettingsPath, "utf-8"));
       if (projSettings.permissions && Array.isArray(projSettings.permissions.additionalDirectories)) {
         savedAdditionalDirs = projSettings.permissions.additionalDirectories;
       }
+      if (projSettings.lattice && typeof projSettings.lattice === "object") {
+        latticeDefaults = projSettings.lattice as Record<string, unknown>;
+      }
     } catch {}
   }
+
+  var effectiveMode: PermissionMode = sessionPermissionOverrides.get(sessionId)
+    || (latticeDefaults.defaultPermissionMode as PermissionMode | undefined)
+    || "acceptEdits";
+  sessionPermissionOverrides.delete(sessionId);
 
   var mcpServers: Record<string, unknown> = {};
   var claudeJsonPath = join(homedir(), ".claude.json");
@@ -217,6 +223,16 @@ export function startChatStream(options: ChatStreamOptions): void {
       var claudeJson = JSON.parse(readFileSync(claudeJsonPath, "utf-8"));
       if (claudeJson.mcpServers && typeof claudeJson.mcpServers === "object") {
         mcpServers = claudeJson.mcpServers;
+      }
+    } catch {}
+  }
+
+  var projectMcpPath = join(cwd, ".mcp.json");
+  if (existsSync(projectMcpPath)) {
+    try {
+      var projectMcpJson = JSON.parse(readFileSync(projectMcpPath, "utf-8"));
+      if (projectMcpJson.mcpServers && typeof projectMcpJson.mcpServers === "object") {
+        mcpServers = { ...mcpServers, ...projectMcpJson.mcpServers };
       }
     } catch {}
   }
@@ -314,8 +330,24 @@ export function startChatStream(options: ChatStreamOptions): void {
     queryOptions.model = model;
   }
 
+  if (!model || model === "default") {
+    if (latticeDefaults.defaultModel && typeof latticeDefaults.defaultModel === "string") {
+      queryOptions.model = latticeDefaults.defaultModel as string;
+    }
+  }
+
   if (effort) {
     queryOptions.effort = effort;
+  }
+
+  if (!effort) {
+    if (latticeDefaults.defaultEffort && typeof latticeDefaults.defaultEffort === "string") {
+      queryOptions.effort = latticeDefaults.defaultEffort as any;
+    }
+  }
+
+  if (latticeDefaults.thinking) {
+    (queryOptions as any).thinking = latticeDefaults.thinking;
   }
 
   if (env) {
