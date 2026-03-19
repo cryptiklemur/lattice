@@ -5,6 +5,7 @@ import { Sidebar } from "./components/sidebar/Sidebar";
 import { ChatView } from "./components/chat/ChatView";
 import { SetupWizard } from "./components/setup/SetupWizard";
 import { SettingsView } from "./components/settings/SettingsView";
+import { ProjectSettingsView } from "./components/project-settings/ProjectSettingsView";
 import { DashboardView } from "./components/dashboard/DashboardView";
 import { useSidebar } from "./hooks/useSidebar";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -319,7 +320,7 @@ function IndexPage() {
     return <SettingsView />;
   }
   if (sidebar.activeView.type === "project-settings") {
-    return <div className="flex-1 p-8 text-base-content">Project Settings</div>;
+    return <ProjectSettingsView />;
   }
   return <ChatView />;
 }
