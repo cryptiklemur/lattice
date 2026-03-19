@@ -9,6 +9,7 @@ import { ProjectEnvironment } from "./ProjectEnvironment";
 import { ProjectPermissions } from "./ProjectPermissions";
 import { ProjectSkills } from "./ProjectSkills";
 import { ProjectRules } from "./ProjectRules";
+import { ProjectMcp } from "./ProjectMcp";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   general: { title: "General" },
@@ -43,6 +44,14 @@ function renderSection(
 
   if (section === "skills") {
     return <ProjectSkills settings={settings} />;
+  }
+
+  if (section === "rules") {
+    return <ProjectRules settings={settings} updateSection={updateSection} />;
+  }
+
+  if (section === "mcp") {
+    return <ProjectMcp settings={settings} updateSection={updateSection} />;
   }
 
   return (
