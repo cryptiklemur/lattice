@@ -17,6 +17,7 @@ import { loadInterruptedSessions } from "./project/sdk-bridge";
 import "./handlers/fs";
 import "./handlers/terminal";
 import "./handlers/settings";
+import "./handlers/project-settings";
 import "./handlers/mesh";
 import "./handlers/loop";
 import "./handlers/scheduler";
