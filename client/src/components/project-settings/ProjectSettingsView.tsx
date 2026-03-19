@@ -6,6 +6,7 @@ import type { ProjectSettings } from "@lattice/shared";
 import { ProjectGeneral } from "./ProjectGeneral";
 import { ProjectClaude } from "./ProjectClaude";
 import { ProjectEnvironment } from "./ProjectEnvironment";
+import { ProjectPermissions } from "./ProjectPermissions";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   general: { title: "General" },
@@ -32,6 +33,10 @@ function renderSection(
 
   if (section === "environment") {
     return <ProjectEnvironment settings={settings} updateSection={updateSection} />;
+  }
+
+  if (section === "permissions") {
+    return <ProjectPermissions settings={settings} updateSection={updateSection} />;
   }
 
   return (
