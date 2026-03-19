@@ -71,8 +71,9 @@ export function ClaudeSettings() {
       </div>
 
       <div className="mb-5">
-        <div className="text-[12px] font-semibold text-base-content/60 mb-2">Default Model</div>
+        <label htmlFor="claude-default-model" className="block text-[12px] font-semibold text-base-content/60 mb-2">Default Model</label>
         <select
+          id="claude-default-model"
           value={model}
           onChange={function (e) { setModel(e.target.value); }}
           className="select select-bordered select-sm w-full bg-base-300 text-base-content text-[13px]"
@@ -87,7 +88,7 @@ export function ClaudeSettings() {
         </select>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6" role="radiogroup" aria-label="Default Effort">
         <div className="text-[12px] font-semibold text-base-content/60 mb-2">Default Effort</div>
         <div className="flex gap-2">
           {EFFORT_LEVELS.map(function (e) {
@@ -112,10 +113,11 @@ export function ClaudeSettings() {
 
       <div className="mb-5">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[12px] font-semibold text-base-content/60">Global CLAUDE.md</div>
+          <label htmlFor="claude-global-md" className="text-[12px] font-semibold text-base-content/60">Global CLAUDE.md</label>
           <div className="text-[11px] text-base-content/40">~/.claude/CLAUDE.md</div>
         </div>
         <textarea
+          id="claude-global-md"
           value={claudeMd}
           onChange={function (e) { setClaudeMd(e.target.value); }}
           placeholder={"# Global instructions for Claude\n\nAdd your global instructions here..."}
@@ -131,7 +133,7 @@ export function ClaudeSettings() {
           className={
             "btn btn-sm " +
             (saved ? "btn-success" : "btn-info") +
-            (saving ? " opacity-70 cursor-not-allowed" : "")
+            (saving ? " opacity-50 cursor-not-allowed" : "")
           }
         >
           {saving ? "Saving..." : saved ? "Saved" : "Save Changes"}

@@ -6,6 +6,39 @@ import "@xterm/xterm/css/xterm.css";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ServerMessage, TerminalCreatedMessage, TerminalOutputMessage } from "@lattice/shared";
 
+function getXtermTheme(): Record<string, string> {
+  var root = document.documentElement;
+  var cs = getComputedStyle(root);
+
+  function resolveVar(prop: string, fallback: string): string {
+    var val = cs.getPropertyValue(prop).trim();
+    return val || fallback;
+  }
+
+  return {
+    background: resolveVar("--base00", "#0d0d0d"),
+    foreground: resolveVar("--base05", "#d4d4d4"),
+    cursor: resolveVar("--base05", "#d4d4d4"),
+    selectionBackground: resolveVar("--base02", "#264f78"),
+    black: resolveVar("--base00", "#1e1e1e"),
+    red: resolveVar("--base08", "#f44747"),
+    green: resolveVar("--base0B", "#4ec9b0"),
+    yellow: resolveVar("--base0A", "#dcdcaa"),
+    blue: resolveVar("--base0D", "#569cd6"),
+    magenta: resolveVar("--base0E", "#c586c0"),
+    cyan: resolveVar("--base0C", "#9cdcfe"),
+    white: resolveVar("--base05", "#d4d4d4"),
+    brightBlack: resolveVar("--base03", "#808080"),
+    brightRed: resolveVar("--base08", "#f44747"),
+    brightGreen: resolveVar("--base0B", "#4ec9b0"),
+    brightYellow: resolveVar("--base0A", "#dcdcaa"),
+    brightBlue: resolveVar("--base0D", "#569cd6"),
+    brightMagenta: resolveVar("--base0E", "#c586c0"),
+    brightCyan: resolveVar("--base0C", "#9cdcfe"),
+    brightWhite: resolveVar("--base07", "#ffffff"),
+  };
+}
+
 export function Terminal() {
   var containerRef = useRef<HTMLDivElement | null>(null);
   var xtermRef = useRef<XTerm | null>(null);
@@ -21,30 +54,9 @@ export function Terminal() {
 
     var term = new XTerm({
       cursorBlink: true,
-      fontFamily: "JetBrains Mono, Fira Code, monospace",
+      fontFamily: getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || "JetBrains Mono, monospace",
       fontSize: 13,
-      theme: {
-        background: "#0d0d0d",
-        foreground: "#d4d4d4",
-        cursor: "#d4d4d4",
-        selectionBackground: "#264f78",
-        black: "#1e1e1e",
-        red: "#f44747",
-        green: "#4ec9b0",
-        yellow: "#dcdcaa",
-        blue: "#569cd6",
-        magenta: "#c586c0",
-        cyan: "#9cdcfe",
-        white: "#d4d4d4",
-        brightBlack: "#808080",
-        brightRed: "#f44747",
-        brightGreen: "#4ec9b0",
-        brightYellow: "#dcdcaa",
-        brightBlue: "#569cd6",
-        brightMagenta: "#c586c0",
-        brightCyan: "#9cdcfe",
-        brightWhite: "#ffffff",
-      },
+      theme: getXtermTheme(),
     });
 
     var fitAddon = new FitAddon();
@@ -110,13 +122,7 @@ export function Terminal() {
   return (
     <div
       ref={containerRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        minHeight: "200px",
-        overflow: "hidden",
-        backgroundColor: "#0d0d0d",
-      }}
+      className="w-full h-full min-h-[200px] overflow-hidden bg-base-100"
     />
   );
 }

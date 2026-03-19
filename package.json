@@ -1,16 +1,16 @@
 {
   "name": "@lattice/root",
-  "private": true,
   "version": "0.0.1",
-  "workspaces": [
-    "shared",
-    "server",
-    "client"
-  ],
+  "private": true,
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "build": "bun run --filter '*' build",
     "lint": "bun run --filter '*' lint",
     "typecheck": "bunx tsc --noEmit -p tsconfig.json"
-  }
+  },
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ]
 }

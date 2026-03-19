@@ -113,7 +113,7 @@ export function SetupWizard(props: SetupWizardProps) {
             className="fixed inset-0 pointer-events-none z-0"
             aria-hidden="true"
             style={{
-              backgroundImage: "linear-gradient(rgba(124,106,247,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(124,106,247,0.07) 1px, transparent 1px)",
+              backgroundImage: "linear-gradient(oklch(from var(--color-primary) l c h / 0.07) 1px, transparent 1px), linear-gradient(90deg, oklch(from var(--color-primary) l c h / 0.07) 1px, transparent 1px)",
               backgroundSize: "40px 40px",
               animation: "wizard-grid-shift 8s linear infinite",
             }}
@@ -161,7 +161,7 @@ export function SetupWizard(props: SetupWizardProps) {
                     key={i}
                     className="h-1.5 rounded-full transition-all duration-[250ms]"
                     style={{
-                      background: (isComplete || isActive) ? "var(--accent-primary)" : "var(--border-default)",
+                      background: (isComplete || isActive) ? "var(--color-primary)" : "var(--color-base-300)",
                       opacity: isActive ? 1 : isComplete ? 0.7 : 0.35,
                       width: isActive ? "24px" : "8px",
                     }}
@@ -272,10 +272,10 @@ export function SetupWizard(props: SetupWizardProps) {
 function TerminalPreview() {
   var [visible, setVisible] = useState(0);
   var lines = [
-    { prefix: "$ ", text: "lattice", color: "var(--text-primary)" },
-    { prefix: "", text: "  [lattice] Daemon started (PID 4821)", color: "var(--text-muted)" },
-    { prefix: "", text: "  [lattice] Listening on https://0.0.0.0:7654", color: "var(--accent-success)" },
-    { prefix: "", text: "  [discovery] Found 2 nodes on mesh", color: "var(--accent-primary)" },
+    { prefix: "$ ", text: "lattice", color: "var(--color-base-content)" },
+    { prefix: "", text: "  [lattice] Daemon started (PID 4821)", color: "oklch(from var(--color-base-content) l c h / 0.5)" },
+    { prefix: "", text: "  [lattice] Listening on https://0.0.0.0:7654", color: "var(--color-success)" },
+    { prefix: "", text: "  [discovery] Found 2 nodes on mesh", color: "var(--color-primary)" },
   ];
 
   useEffect(function () {
@@ -289,9 +289,9 @@ function TerminalPreview() {
   return (
     <div className="w-[380px] max-w-[calc(100vw-48px)] bg-base-200 border border-base-300 rounded-xl overflow-hidden shadow-2xl">
       <div className="flex items-center gap-1.5 px-3.5 py-2.5 bg-base-300 border-b border-base-300">
-        <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] opacity-80 flex-shrink-0" />
-        <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] opacity-80 flex-shrink-0" />
-        <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] opacity-80 flex-shrink-0" />
+        <span className="w-2.5 h-2.5 rounded-full bg-error opacity-80 flex-shrink-0" />
+        <span className="w-2.5 h-2.5 rounded-full bg-warning opacity-80 flex-shrink-0" />
+        <span className="w-2.5 h-2.5 rounded-full bg-success opacity-80 flex-shrink-0" />
         <span className="text-[11px] text-base-content/40 font-mono mx-auto tracking-[0.02em]">lattice — zsh</span>
       </div>
       <div className="px-4 py-3.5 flex flex-col gap-1 min-h-[96px]">
@@ -306,16 +306,16 @@ function TerminalPreview() {
                 color: line.color,
               }}
             >
-              {line.prefix && <span style={{ color: "var(--accent-primary)" }}>{line.prefix}</span>}
+              {line.prefix && <span style={{ color: "var(--color-primary)" }}>{line.prefix}</span>}
               <span>{line.text}</span>
             </div>
           );
         })}
         <div className="flex items-center gap-0.5 text-[12px] font-mono mt-0.5">
-          <span style={{ color: "var(--accent-primary)" }}>$ </span>
+          <span style={{ color: "var(--color-primary)" }}>$ </span>
           <span
             className="inline-block w-2 h-3.5 rounded-[1px] align-middle opacity-90"
-            style={{ background: "var(--accent-primary)", animation: "wizard-cursor-blink 1s step-end infinite" }}
+            style={{ background: "var(--color-primary)", animation: "wizard-cursor-blink 1s step-end infinite" }}
           />
         </div>
       </div>
@@ -333,7 +333,7 @@ function NameStep(props: NameStepProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center mb-3.5">
-        <Server size={22} color="var(--accent-primary)" />
+        <Server size={22} className="text-primary" />
       </div>
       <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
         Name this machine
@@ -380,7 +380,7 @@ function AppearanceStep(props: AppearanceStepProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center mb-3.5">
-        <Palette size={22} color="var(--accent-primary)" />
+        <Palette size={22} className="text-primary" />
       </div>
       <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
         Choose appearance
@@ -444,7 +444,7 @@ function AppearanceStep(props: AppearanceStepProps) {
               <span className="text-[10px] text-base-content/60 truncate px-1.5 pb-1">{entry.theme.name}</span>
               {isActive && (
                 <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
-                  <Check size={8} color="white" />
+                  <Check size={8} className="text-primary-content" />
                 </div>
               )}
             </button>
@@ -496,7 +496,7 @@ function SecurityStep(props: SecurityStepProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center mb-3.5">
-        <Lock size={22} color="var(--accent-primary)" />
+        <Lock size={22} className="text-primary" />
       </div>
       <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
         Set a passphrase
@@ -560,11 +560,11 @@ function SecurityStep(props: SecurityStepProps) {
 }
 
 function getPassphraseStrength(p: string) {
-  if (p.length === 0) return { pct: 0, label: "", color: "var(--text-muted)" };
-  if (p.length < 8) return { pct: 25, label: "Weak", color: "var(--accent-danger)" };
-  if (p.length < 14) return { pct: 55, label: "Fair", color: "var(--accent-warning)" };
-  if (p.length < 20) return { pct: 80, label: "Good", color: "var(--accent-primary)" };
-  return { pct: 100, label: "Strong", color: "var(--accent-success)" };
+  if (p.length === 0) return { pct: 0, label: "", color: "oklch(from var(--color-base-content) l c h / 0.5)" };
+  if (p.length < 8) return { pct: 25, label: "Weak", color: "var(--color-error)" };
+  if (p.length < 14) return { pct: 55, label: "Fair", color: "var(--color-warning)" };
+  if (p.length < 20) return { pct: 80, label: "Good", color: "var(--color-primary)" };
+  return { pct: 100, label: "Strong", color: "var(--color-success)" };
 }
 
 interface ProjectStepProps {
@@ -578,7 +578,7 @@ function ProjectStep(props: ProjectStepProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center mb-3.5">
-        <Folder size={22} color="var(--accent-primary)" />
+        <Folder size={22} className="text-primary" />
       </div>
       <h2 className="font-mono text-[22px] font-bold text-base-content tracking-tight mb-2 leading-tight">
         Add your first project
@@ -627,7 +627,7 @@ function DoneStep(props: DoneStepProps) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="wizard-check-pop mb-4">
-        <CheckCircle size={36} color="var(--accent-success)" strokeWidth={1.5} aria-hidden="true" />
+        <CheckCircle size={36} className="text-success" strokeWidth={1.5} aria-hidden="true" />
       </div>
       <h2 className="font-mono text-[26px] font-bold text-base-content tracking-tight mb-2">
         You're all set
@@ -715,7 +715,7 @@ var wizardCSS = `
   }
   .wizard-btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(124, 106, 247, 0.35);
+    box-shadow: 0 4px 16px oklch(from var(--color-primary) l c h / 0.35);
   }
   .wizard-btn-primary:active {
     transform: translateY(0);
@@ -726,9 +726,25 @@ var wizardCSS = `
   .wizard-btn-done:hover {
     filter: brightness(1.08);
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(74, 222, 128, 0.4);
+    box-shadow: 0 4px 20px oklch(from var(--color-success) l c h / 0.4);
   }
   .wizard-btn-done:active {
     transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wizard-fade-in,
+    .wizard-slide-in-right,
+    .wizard-slide-in-left,
+    .wizard-slide-out-left,
+    .wizard-slide-out-right,
+    .wizard-check-pop {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .wizard-btn-primary:hover,
+    .wizard-btn-done:hover {
+      transform: none !important;
+    }
   }
 `;

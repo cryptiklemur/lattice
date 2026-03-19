@@ -1,0 +1,125 @@
+import { useEffect, useRef, useState } from "react";
+import { Settings, Plug, Sparkles, Terminal, Sun, Moon, RefreshCw, Power } from "lucide-react";
+import { useSidebar } from "../../hooks/useSidebar";
+import { useTheme } from "../../hooks/useTheme";
+import { useWebSocket } from "../../hooks/useWebSocket";
+
+interface UserMenuProps {
+  anchorRef: React.RefObject<HTMLElement | null>;
+  onClose: () => void;
+}
+
+export function UserMenu(props: UserMenuProps) {
+  var menuRef = useRef<HTMLDivElement>(null);
+  var { openSettings } = useSidebar();
+  var { mode, toggleMode } = useTheme();
+  var ws = useWebSocket();
+  var [confirmingRestart, setConfirmingRestart] = useState(false);
+  var [confirmingShutdown, setConfirmingShutdown] = useState(false);
+
+  useEffect(function () {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        props.anchorRef.current &&
+        !props.anchorRef.current.contains(e.target as Node)
+      ) {
+        props.onClose();
+      }
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        props.onClose();
+      }
+    }
+    function handleScroll() {
+      props.onClose();
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    window.addEventListener("scroll", handleScroll, true);
+    return function () {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [props.onClose, props.anchorRef]);
+
+  var style: React.CSSProperties = {};
+  if (props.anchorRef.current) {
+    var rect = props.anchorRef.current.getBoundingClientRect();
+    style.bottom = window.innerHeight - rect.top + 4 + "px";
+    style.left = rect.left + "px";
+  }
+
+  function handleRestart() {
+    if (!confirmingRestart) {
+      setConfirmingRestart(true);
+      setConfirmingShutdown(false);
+      return;
+    }
+    ws.send({ type: "settings:restart" } as never);
+    props.onClose();
+  }
+
+  function handleShutdown() {
+    if (!confirmingShutdown) {
+      setConfirmingShutdown(true);
+      setConfirmingRestart(false);
+      return;
+    }
+    fetch("/api/shutdown", { method: "POST" });
+    props.onClose();
+  }
+
+  var itemClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-base-content/70 hover:bg-base-content/5 hover:text-base-content outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
+  var dangerClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-error hover:bg-error/10 outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
+
+  return (
+    <div
+      ref={menuRef}
+      role="menu"
+      aria-label="User menu"
+      className="fixed z-[9999] bg-base-300 border border-base-content/10 rounded-lg shadow-xl p-1 min-w-[180px]"
+      style={style}
+    >
+      <button role="menuitem" className={itemClass} onClick={function () { openSettings("appearance"); props.onClose(); }}>
+        <span className="opacity-60 flex-shrink-0"><Settings size={13} /></span>
+        Settings
+      </button>
+      <button role="menuitem" className={itemClass} onClick={function () { openSettings("mcp"); props.onClose(); }}>
+        <span className="opacity-60 flex-shrink-0"><Plug size={13} /></span>
+        MCP Servers
+      </button>
+      <button role="menuitem" className={itemClass} onClick={function () { openSettings("skills"); props.onClose(); }}>
+        <span className="opacity-60 flex-shrink-0"><Sparkles size={13} /></span>
+        Skills
+      </button>
+      <button role="menuitem" className={itemClass} onClick={function () { openSettings("environment"); props.onClose(); }}>
+        <span className="opacity-60 flex-shrink-0"><Terminal size={13} /></span>
+        Environment
+      </button>
+
+      <div className="h-px bg-base-content/8 my-1 mx-2" />
+
+      <button role="menuitem" className={itemClass} onClick={toggleMode}>
+        <span className="opacity-60 flex-shrink-0">
+          {mode === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+        </span>
+        {mode === "dark" ? "Switch to Light" : "Switch to Dark"}
+      </button>
+
+      <div className="h-px bg-base-content/8 my-1 mx-2" />
+
+      <button role="menuitem" className={dangerClass} onClick={handleRestart}>
+        <span className="opacity-60 flex-shrink-0"><RefreshCw size={13} /></span>
+        {confirmingRestart ? "Click again to restart" : "Restart"}
+      </button>
+      <button role="menuitem" className={dangerClass} onClick={handleShutdown}>
+        <span className="opacity-60 flex-shrink-0"><Power size={13} /></span>
+        {confirmingShutdown ? "Click again to shutdown" : "Shutdown"}
+      </button>
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { Terminal, Info, ArrowDown, Pencil, Copy, Check } from "lucide-react";
+import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
@@ -7,19 +7,24 @@ import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { setSessionTitle } from "../../stores/session";
 import { Message } from "./Message";
+import { ToolGroup } from "./ToolGroup";
 import { ChatInput } from "./ChatInput";
 import { ModelSelector } from "./ModelSelector";
 import { PermissionModeSelector } from "./PermissionModeSelector";
 import { StatusBar } from "./StatusBar";
+import { useSidebar } from "../../hooks/useSidebar";
 
 export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted } = useSession();
   var { activeProject } = useProjects();
+  var { toggleDrawer } = useSidebar();
   var ws = useWebSocket();
   var scrollParentRef = useRef<HTMLDivElement>(null);
   var prevLengthRef = useRef<number>(0);
   var isLiveChatRef = useRef<boolean>(false);
   var [isNearBottom, setIsNearBottom] = useState<boolean>(true);
+  var isNearBottomRef = useRef<boolean>(true);
+  var [isMobile, setIsMobile] = useState<boolean>(function () { return typeof window !== "undefined" && window.innerWidth < 640; });
   var [selectedModel, setSelectedModel] = useState<string>("default");
   var [selectedEffort, setSelectedEffort] = useState<string>("medium");
   var [showInfo, setShowInfo] = useState<boolean>(false);
@@ -30,6 +35,7 @@ export function ChatView() {
   var infoRef = useRef<HTMLButtonElement>(null);
   var infoPanelRef = useRef<HTMLDivElement>(null);
   var contextBarRef = useRef<HTMLButtonElement>(null);
+  var contextBarMobileRef = useRef<HTMLButtonElement>(null);
   var contextPanelRef = useRef<HTMLDivElement>(null);
   var renameInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,11 +44,22 @@ export function ChatView() {
     if (!el) return;
     var scrollEl = el;
     function handleScroll() {
-      var distanceFromBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
-      setIsNearBottom(distanceFromBottom < 200);
+      var near = (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight) < 200;
+      if (near !== isNearBottomRef.current) {
+        isNearBottomRef.current = near;
+        setIsNearBottom(near);
+      }
     }
     scrollEl.addEventListener("scroll", handleScroll, { passive: true });
     return function () { scrollEl.removeEventListener("scroll", handleScroll); };
+  }, []);
+
+  useEffect(function () {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 640);
+    }
+    window.addEventListener("resize", handleResize);
+    return function () { window.removeEventListener("resize", handleResize); };
   }, []);
 
   var virtualizer = useVirtualizer({
@@ -50,17 +67,25 @@ export function ChatView() {
     getScrollElement: function () {
       return scrollParentRef.current;
     },
-    estimateSize: function () {
-      return 80;
+    estimateSize: function (index) {
+      var msg = messages[index];
+      if (!msg) return 120;
+      if (msg.type === "tool_start") return 52;
+      if (msg.type === "user") return 100;
+      return 200;
     },
-    overscan: 15,
+    overscan: 30,
   });
 
   var scrollToBottom = useCallback(function () {
-    if (messages.length > 0) {
+    if (messages.length === 0) return;
+    if (isMobile) {
+      var el = scrollParentRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    } else {
       virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: "smooth" });
     }
-  }, [messages.length, virtualizer]);
+  }, [messages.length, virtualizer, isMobile]);
 
   useEffect(
     function () {
@@ -75,14 +100,24 @@ export function ChatView() {
 
       if (prevLen === 0 && delta > 1) {
         isLiveChatRef.current = false;
-        var count = messages.length;
-        var virt = virtualizer;
-        requestAnimationFrame(function () {
-          virt.scrollToIndex(count - 1, { align: "end" });
+        if (isMobile) {
+          requestAnimationFrame(function () {
+            var el = scrollParentRef.current;
+            if (el) el.scrollTop = el.scrollHeight;
+            requestAnimationFrame(function () {
+              if (el) el.scrollTop = el.scrollHeight;
+            });
+          });
+        } else {
+          var count = messages.length;
+          var virt = virtualizer;
           requestAnimationFrame(function () {
             virt.scrollToIndex(count - 1, { align: "end" });
+            requestAnimationFrame(function () {
+              virt.scrollToIndex(count - 1, { align: "end" });
+            });
           });
-        });
+        }
         return;
       }
 
@@ -118,12 +153,11 @@ export function ChatView() {
   useEffect(function () {
     if (!showContext) return;
     function handleClick(e: MouseEvent) {
-      if (
-        contextPanelRef.current && !contextPanelRef.current.contains(e.target as Node) &&
-        contextBarRef.current && !contextBarRef.current.contains(e.target as Node)
-      ) {
-        setShowContext(false);
-      }
+      var target = e.target as Node;
+      if (contextPanelRef.current && contextPanelRef.current.contains(target)) return;
+      if (contextBarRef.current && contextBarRef.current.contains(target)) return;
+      if (contextBarMobileRef.current && contextBarMobileRef.current.contains(target)) return;
+      setShowContext(false);
     }
     document.addEventListener("mousedown", handleClick);
     return function () { document.removeEventListener("mousedown", handleClick); };
@@ -214,80 +248,88 @@ export function ChatView() {
 
   return (
     <div className="flex flex-col h-full w-full bg-base-100 overflow-hidden relative">
-      <div className="navbar bg-base-100 border-b border-base-300 min-h-12 px-4 flex-shrink-0">
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          {isRenaming ? (
-            <input
-              ref={renameInputRef}
-              value={renameValue}
-              onChange={function (e) { setRenameValue(e.target.value); }}
-              onBlur={handleRenameCommit}
-              onKeyDown={handleRenameKeyDown}
-              className="input input-sm input-bordered text-sm font-semibold w-full max-w-[280px] bg-base-300 border-base-content/15"
-            />
-          ) : (
-            <>
-              <span className="text-sm font-semibold text-base-content truncate">
-                {activeSessionTitle || (activeSessionId ? "Session" : "New Session")}
-              </span>
-              {activeSessionId && (
-                <button
-                  onClick={handleRenameStart}
-                  aria-label="Rename session"
-                  className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content/70 transition-colors"
-                >
-                  <Pencil size={12} />
-                </button>
-              )}
-            </>
-          )}
-        </div>
-        <div className="flex gap-1.5 items-center relative">
-          {activeSessionId && (
+      <div className="bg-base-100 border-b border-base-300 flex-shrink-0 px-2 sm:px-4">
+        <div className="flex items-center min-h-10 sm:min-h-12 gap-1.5">
+          <button
+            className="btn btn-ghost btn-sm btn-square lg:hidden"
+            aria-label="Toggle sidebar"
+            onClick={toggleDrawer}
+          >
+            <Menu size={18} />
+          </button>
+          <div className="flex-1 min-w-0 flex items-center gap-1.5">
+            {isRenaming ? (
+              <input
+                ref={renameInputRef}
+                value={renameValue}
+                onChange={function (e) { setRenameValue(e.target.value); }}
+                onBlur={handleRenameCommit}
+                onKeyDown={handleRenameKeyDown}
+                className="input input-sm input-bordered text-sm font-semibold w-full max-w-[280px] bg-base-300 border-base-content/15"
+              />
+            ) : (
+              <>
+                <span className="text-sm font-semibold text-base-content truncate">
+                  {activeSessionTitle || (activeSessionId ? "Session" : "New Session")}
+                </span>
+                {activeSessionId && (
+                  <button
+                    onClick={handleRenameStart}
+                    aria-label="Rename session"
+                    className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content/70 transition-colors"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+          <div className="flex gap-1.5 items-center relative">
+            {activeSessionId && (
+              <button
+                ref={contextBarRef}
+                onClick={function () { setShowContext(!showContext); }}
+                aria-label="Context usage"
+                className={"hidden sm:flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors " + (showContext ? "bg-base-300" : "hover:bg-base-300/50")}
+              >
+                <div className="w-16 h-1.5 rounded-full bg-base-300 overflow-hidden relative">
+                  <div
+                    className={"h-full rounded-full transition-all duration-300 " + (isCritical ? "bg-error animate-pulse" : isApproachingCompact ? "bg-warning" : "bg-primary/60")}
+                    style={{ width: Math.max(contextPercent, 1) + "%" }}
+                  />
+                </div>
+                <span className={"text-[10px] font-mono tabular-nums " + (isCritical ? "text-error" : isApproachingCompact ? "text-warning" : "text-base-content/40")}>
+                  {contextPercent}%
+                </span>
+              </button>
+            )}
+            {activeSessionId && (
+              <button
+                ref={infoRef}
+                onClick={function () { setShowInfo(!showInfo); }}
+                aria-label="Session info"
+                className={"btn btn-ghost btn-sm btn-square transition-colors " + (showInfo ? "text-primary" : "text-base-content/50 hover:text-base-content/70")}
+              >
+                <Info size={15} />
+              </button>
+            )}
+            {!activeSessionId && (
+              <button
+                aria-label="Session info"
+                disabled
+                className="btn btn-ghost btn-sm btn-square text-base-content/30 opacity-40 cursor-not-allowed"
+              >
+                <Info size={15} />
+              </button>
+            )}
             <button
-              ref={contextBarRef}
-              onClick={function () { setShowContext(!showContext); }}
-              aria-label="Context usage"
-              className={"flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors " + (showContext ? "bg-base-300" : "hover:bg-base-300/50")}
-            >
-              <div className="w-16 h-1.5 rounded-full bg-base-300 overflow-hidden relative">
-                <div
-                  className={"h-full rounded-full transition-all duration-300 " + (isCritical ? "bg-error animate-pulse" : isApproachingCompact ? "bg-warning" : "bg-primary/60")}
-                  style={{ width: Math.max(contextPercent, 1) + "%" }}
-                />
-              </div>
-              <span className={"text-[10px] font-mono tabular-nums " + (isCritical ? "text-error" : isApproachingCompact ? "text-warning" : "text-base-content/40")}>
-                {contextPercent}%
-              </span>
-            </button>
-          )}
-          {activeSessionId && (
-            <button
-              ref={infoRef}
-              onClick={function () { setShowInfo(!showInfo); }}
-              aria-label="Session info"
-              className={"btn btn-ghost btn-sm btn-square transition-colors " + (showInfo ? "text-primary" : "text-base-content/50 hover:text-base-content/70")}
-            >
-              <Info size={15} />
-            </button>
-          )}
-          {!activeSessionId && (
-            <button
-              aria-label="Session info"
+              aria-label="Open terminal"
+              title="Coming soon"
               disabled
               className="btn btn-ghost btn-sm btn-square text-base-content/30 opacity-40 cursor-not-allowed"
             >
-              <Info size={15} />
+              <Terminal size={15} />
             </button>
-          )}
-          <button
-            aria-label="Open terminal"
-            title="Coming soon"
-            disabled
-            className="btn btn-ghost btn-sm btn-square text-base-content/30 opacity-40 cursor-not-allowed"
-          >
-            <Terminal size={15} />
-          </button>
 
           {showContext && activeSessionId && (
             <div
@@ -441,14 +483,51 @@ export function ChatView() {
               </div>
             </div>
           )}
+          </div>
         </div>
+        {activeSessionId && (
+          <button
+            ref={contextBarMobileRef}
+            onClick={function () { setShowContext(!showContext); }}
+            aria-label="Context usage"
+            className={"sm:hidden flex items-center gap-1.5 px-1.5 pb-1 rounded transition-colors w-full " + (showContext ? "bg-base-300" : "hover:bg-base-300/50")}
+          >
+            <div className="flex-1 h-1.5 rounded-full bg-base-300 overflow-hidden relative">
+              <div
+                className={"h-full rounded-full transition-all duration-300 " + (isCritical ? "bg-error animate-pulse" : isApproachingCompact ? "bg-warning" : "bg-primary/60")}
+                style={{ width: Math.max(contextPercent, 1) + "%" }}
+              />
+            </div>
+            <span className={"text-[10px] font-mono tabular-nums " + (isCritical ? "text-error" : isApproachingCompact ? "text-warning" : "text-base-content/40")}>
+              {contextPercent}%
+            </span>
+          </button>
+        )}
       </div>
 
       <div
         ref={scrollParentRef}
         className="flex-1 overflow-y-auto min-h-0 bg-lattice-grid"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {messages.length === 0 ? (
+        {messages.length === 0 && historyLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map(function (i) {
+                  return (
+                    <div
+                      key={i}
+                      className="w-2 h-2 rounded-full bg-primary/50"
+                      style={{ animation: "pulse 1.2s ease-in-out infinite", animationDelay: i * 0.2 + "s" }}
+                    />
+                  );
+                })}
+              </div>
+              <span className="text-[12px] text-base-content/30 font-mono">Loading session...</span>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex items-center justify-center p-10 h-full">
             <div className="text-center max-w-[360px]">
               <div className="text-primary mb-4 flex justify-center">
@@ -470,19 +549,103 @@ export function ChatView() {
               </p>
             </div>
           </div>
+        ) : isMobile ? (
+          <div className="pt-4">
+            {messages.map(function (msg, idx) {
+              if (msg.type === "tool_start") {
+                var groupStart = idx;
+                while (groupStart > 0 && messages[groupStart - 1].type === "tool_start") {
+                  groupStart--;
+                }
+                var groupEnd = idx;
+                while (groupEnd < messages.length - 1 && messages[groupEnd + 1].type === "tool_start") {
+                  groupEnd++;
+                }
+                var groupSize = groupEnd - groupStart + 1;
+                if (groupSize >= 2) {
+                  if (idx === groupStart) {
+                    var groupTools = messages.slice(groupStart, groupEnd + 1);
+                    return <ToolGroup key={idx} tools={groupTools} />;
+                  }
+                  return null;
+                }
+              }
+              var isLastAssistant = false;
+              if (msg.type === "assistant" && !isProcessing && lastResponseCost != null) {
+                var foundLater = false;
+                for (var li = idx + 1; li < messages.length; li++) {
+                  if (messages[li].type === "assistant") { foundLater = true; break; }
+                }
+                if (!foundLater) isLastAssistant = true;
+              }
+              return (
+                <Message
+                  key={idx}
+                  message={msg}
+                  responseCost={isLastAssistant ? lastResponseCost : undefined}
+                  responseDuration={isLastAssistant ? lastResponseDuration : undefined}
+                />
+              );
+            })}
+          </div>
         ) : (
           <div
             className="relative w-full"
             style={{ height: virtualizer.getTotalSize() + "px" }}
           >
             <div
-              className="absolute top-0 left-0 w-full"
+              className="absolute top-0 left-0 w-full will-change-transform"
               style={{
                 transform: "translateY(" + (virtualItems.length > 0 ? virtualItems[0].start : 0) + "px)",
               }}
             >
               {virtualItems.map(function (virtualItem) {
                 var msg = messages[virtualItem.index];
+                var idx = virtualItem.index;
+
+                if (msg.type === "tool_start") {
+                  var groupStart = idx;
+                  while (groupStart > 0 && messages[groupStart - 1].type === "tool_start") {
+                    groupStart--;
+                  }
+                  var groupEnd = idx;
+                  while (groupEnd < messages.length - 1 && messages[groupEnd + 1].type === "tool_start") {
+                    groupEnd++;
+                  }
+                  var groupSize = groupEnd - groupStart + 1;
+
+                  if (groupSize >= 2) {
+                    if (idx === groupStart) {
+                      var groupTools = messages.slice(groupStart, groupEnd + 1);
+                      return (
+                        <div
+                          key={virtualItem.key}
+                          data-index={virtualItem.index}
+                          ref={virtualizer.measureElement}
+                          className={virtualItem.index === 0 ? "pt-4" : ""}
+                        >
+                          <ToolGroup tools={groupTools} />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
+                        key={virtualItem.key}
+                        data-index={virtualItem.index}
+                        ref={virtualizer.measureElement}
+                      />
+                    );
+                  }
+                }
+
+                var isLastAssistant = false;
+                if (msg.type === "assistant" && !isProcessing && lastResponseCost != null) {
+                  var foundLater = false;
+                  for (var li = virtualItem.index + 1; li < messages.length; li++) {
+                    if (messages[li].type === "assistant") { foundLater = true; break; }
+                  }
+                  if (!foundLater) isLastAssistant = true;
+                }
                 return (
                   <div
                     key={virtualItem.key}
@@ -490,7 +653,11 @@ export function ChatView() {
                     ref={virtualizer.measureElement}
                     className={virtualItem.index === 0 ? "pt-4" : ""}
                   >
-                    <Message message={msg} />
+                    <Message
+                      message={msg}
+                      responseCost={isLastAssistant ? lastResponseCost : undefined}
+                      responseDuration={isLastAssistant ? lastResponseDuration : undefined}
+                    />
                   </div>
                 );
               })}
@@ -535,18 +702,25 @@ export function ChatView() {
 
       <StatusBar status={currentStatus} />
 
-      <div className="flex-shrink-0 border-t border-base-300 bg-base-200">
-        <ChatInput onSend={function (text) { sendMessage(text, selectedModel, selectedEffort); }} disabled={isProcessing || !activeSessionId} />
-        <div className="flex items-center justify-between px-5 pb-2.5 -mt-1">
-          <div className="text-[11px] text-base-content/25">
-            Enter to send &bull; Shift+Enter for newline
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-base-content/60">
-            <PermissionModeSelector />
-            <span className="text-base-content/20">|</span>
-            <ModelSelector onChange={function (state) { setSelectedModel(state.model); setSelectedEffort(state.effort); }} />
-          </div>
+      {wasInterrupted && !isProcessing && (
+        <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-warning/10 border-t border-warning/20">
+          <AlertTriangle size={13} className="text-warning flex-shrink-0" />
+          <span className="text-[12px] text-warning">Session was interrupted — send a message to continue</span>
         </div>
+      )}
+
+      <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
+        <ChatInput
+          onSend={function (text) { sendMessage(text, selectedModel, selectedEffort); }}
+          disabled={isProcessing || !activeSessionId}
+          toolbarContent={
+            <>
+              <PermissionModeSelector />
+              <span className="text-base-content/15 hidden sm:inline">·</span>
+              <ModelSelector onChange={function (state) { setSelectedModel(state.model); setSelectedEffort(state.effort); }} />
+            </>
+          }
+        />
       </div>
     </div>
   );

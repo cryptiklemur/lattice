@@ -1,0 +1,88 @@
+import { ArrowLeft, Clock, Palette, FileText, Terminal, Plug, Sparkles, Network } from "lucide-react";
+import { useSidebar } from "../../hooks/useSidebar";
+import type { SettingsSection } from "../../stores/sidebar";
+
+interface SettingsSidebarProps {
+  projectName: string;
+  onBack: () => void;
+}
+
+var SETTINGS_NAV = [
+  {
+    group: "GENERAL",
+    items: [
+      { id: "status" as SettingsSection, label: "Status", icon: <Clock size={14} /> },
+      { id: "appearance" as SettingsSection, label: "Appearance", icon: <Palette size={14} /> },
+      { id: "claude" as SettingsSection, label: "Claude Settings", icon: <FileText size={14} /> },
+      { id: "environment" as SettingsSection, label: "Environment", icon: <Terminal size={14} /> },
+    ],
+  },
+  {
+    group: "INTEGRATIONS",
+    items: [
+      { id: "mcp" as SettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
+      { id: "skills" as SettingsSection, label: "Skills", icon: <Sparkles size={14} /> },
+    ],
+  },
+  {
+    group: "MESH",
+    items: [
+      { id: "nodes" as SettingsSection, label: "Nodes", icon: <Network size={14} /> },
+    ],
+  },
+];
+
+export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
+  var { activeView, setSettingsSection } = useSidebar();
+  var activeSection = activeView.type === "settings" ? activeView.section : null;
+
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden bg-base-200">
+      <div className="px-4 py-3 border-b border-base-300 flex-shrink-0">
+        <span className="text-[13px] font-mono font-bold text-base-content">Settings</span>
+      </div>
+
+      <div className="flex flex-col flex-1 overflow-y-auto min-h-0 py-2">
+        {SETTINGS_NAV.map(function (group) {
+          return (
+            <div key={group.group} className="mb-2">
+              <div className="px-4 pt-3 pb-1">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-base-content/40">
+                  {group.group}
+                </span>
+              </div>
+              {group.items.map(function (item) {
+                var isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={function () { setSettingsSection(item.id); }}
+                    className={
+                      "w-full flex items-center gap-2.5 px-4 py-1.5 text-[13px] transition-colors duration-[100ms] text-left " +
+                      (isActive
+                        ? "bg-primary/20 text-base-content font-medium"
+                        : "text-base-content/55 hover:bg-base-content/5 hover:text-base-content")
+                    }
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-base-300 flex-shrink-0">
+        <button
+          onClick={onBack}
+          className="w-full flex items-center gap-2 px-4 py-3 text-[12px] text-base-content/50 hover:text-base-content transition-colors duration-[100ms]"
+        >
+          <ArrowLeft size={13} />
+          Back to {projectName}
+        </button>
+      </div>
+    </div>
+  );
+}

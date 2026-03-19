@@ -1,8 +1,10 @@
-import type { MeshMessage, MeshHelloMessage } from "@lattice/shared";
+import type { MeshMessage, MeshHelloMessage, MeshSessionSyncMessage, MeshSessionRequestMessage } from "@lattice/shared";
 import { loadPeers } from "./peers";
 import { loadOrCreateIdentity } from "../identity";
 import { loadConfig } from "../config";
 import { listProjects } from "../project/registry";
+import { getProjectBySlug } from "../project/registry";
+import { handleSessionSync, handleSessionRequest } from "./session-sync";
 
 interface PeerConnection {
   nodeId: string;
@@ -113,6 +115,14 @@ function openConnection(conn: PeerConnection, url: string): void {
 
       if (msg.type === "mesh:hello") {
         conn.projects = msg.projects;
+      } else if (msg.type === "mesh:session_sync") {
+        handleSessionSync(conn.nodeId, msg as MeshSessionSyncMessage);
+      } else if (msg.type === "mesh:session_request") {
+        var reqMsg = msg as MeshSessionRequestMessage;
+        var reqProject = getProjectBySlug(reqMsg.projectSlug);
+        if (reqProject) {
+          handleSessionRequest(conn.nodeId, reqMsg, reqProject.path);
+        }
       }
 
       for (var i = 0; i < messageCallbacks.length; i++) {

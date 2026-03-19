@@ -1,26 +1,34 @@
-import { useState } from "react";
-import { Sun, Moon, Settings as SettingsIcon } from "lucide-react";
+import { useRef } from "react";
+import { Sun, Moon } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
-import { Settings } from "../settings/Settings";
+import pkg from "../../../package.json";
 
 interface UserIslandProps {
   nodeName: string;
-  onSettingsClick: () => void;
+  onClick: () => void;
 }
 
 export function UserIsland(props: UserIslandProps) {
   var { mode, toggleMode } = useTheme();
-  var [settingsOpen, setSettingsOpen] = useState(false);
-
-  function handleSettingsClick() {
-    setSettingsOpen(true);
-    props.onSettingsClick();
-  }
+  var containerRef = useRef<HTMLDivElement>(null);
 
   var initial = props.nodeName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2.5">
+    <div
+      ref={containerRef}
+      role="group"
+      aria-label="User controls"
+      className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-base-300/30 transition-colors"
+      onClick={props.onClick}
+      onKeyDown={function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          props.onClick();
+        }
+      }}
+      tabIndex={0}
+    >
       <div className="avatar placeholder flex-shrink-0">
         <div className="w-7 h-7 rounded-full bg-primary text-primary-content text-[12px] font-bold flex items-center justify-center">
           <span>{initial}</span>
@@ -32,13 +40,13 @@ export function UserIsland(props: UserIslandProps) {
           {props.nodeName}
         </div>
         <div className="text-[11px] text-base-content/40">
-          v0.0.1
+          {"v" + pkg.version}
         </div>
       </div>
 
       <button
         aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        onClick={toggleMode}
+        onClick={function (e) { e.stopPropagation(); toggleMode(); }}
         className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content flex-shrink-0"
       >
         {mode === "dark" ? (
@@ -47,16 +55,6 @@ export function UserIsland(props: UserIslandProps) {
           <Moon size={14} />
         )}
       </button>
-
-      <button
-        aria-label="Settings"
-        onClick={handleSettingsClick}
-        className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content flex-shrink-0"
-      >
-        <SettingsIcon size={14} />
-      </button>
-
-      <Settings isOpen={settingsOpen} onClose={function () { setSettingsOpen(false); }} />
     </div>
   );
 }

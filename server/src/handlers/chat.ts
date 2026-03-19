@@ -3,7 +3,91 @@ import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
 import { loadConfig } from "../config";
-import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream } from "../project/sdk-bridge";
+import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream, buildPermissionRule } from "../project/sdk-bridge";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+function formatSdkRule(rule: { toolName: string; ruleContent?: string }): string {
+  if (!rule.ruleContent) return rule.toolName;
+  if (rule.toolName === "Bash") {
+    var firstWord = rule.ruleContent.split(/\s+/)[0].replace(/:.*$/, "");
+    if (firstWord === "curl" || firstWord === "wget") {
+      var urlMatch = rule.ruleContent.match(/https?:\/\/[^\s"']+/);
+      if (urlMatch) {
+        try {
+          var parsed = new URL(urlMatch[0]);
+          return rule.toolName + "(" + firstWord + ":" + parsed.hostname + ")";
+        } catch {}
+      }
+    }
+    return rule.toolName + "(" + firstWord + ":*)";
+  }
+  return rule.toolName + "(" + rule.ruleContent + ")";
+}
+
+function addProjectAllowRules(projectPath: string, suggestions: Array<{ type: string; rules?: Array<{ toolName: string; ruleContent?: string }>; directories?: string[]; behavior?: string }> | undefined, fallbackToolName: string, fallbackInput: Record<string, unknown>): void {
+  var claudeDir = join(projectPath, ".claude");
+  var settingsPath = join(claudeDir, "settings.json");
+
+  var settings: Record<string, unknown> = {};
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    } catch {
+      settings = {};
+    }
+  }
+
+  if (!settings.permissions) {
+    settings.permissions = {};
+  }
+  var permissions = settings.permissions as Record<string, unknown>;
+  if (!Array.isArray(permissions.allow)) {
+    permissions.allow = [];
+  }
+  if (!Array.isArray(permissions.additionalDirectories)) {
+    permissions.additionalDirectories = [];
+  }
+  var allowList = permissions.allow as string[];
+  var additionalDirs = permissions.additionalDirectories as string[];
+
+  if (suggestions && suggestions.length > 0) {
+    for (var si = 0; si < suggestions.length; si++) {
+      var suggestion = suggestions[si];
+      if (suggestion.type === "addRules" && suggestion.behavior === "allow" && suggestion.rules) {
+        for (var ri = 0; ri < suggestion.rules.length; ri++) {
+          var rule = formatSdkRule(suggestion.rules[ri]);
+          if (!allowList.includes(rule)) {
+            allowList.push(rule);
+          }
+          if (suggestion.rules[ri].ruleContent) {
+            var ruleDir = suggestion.rules[ri].ruleContent!.replace(/\/\*\*$/, "").replace(/^\//, "");
+            if (ruleDir.startsWith("/") && !additionalDirs.includes(ruleDir)) {
+              additionalDirs.push(ruleDir);
+            }
+          }
+        }
+      }
+      if (suggestion.type === "addDirectories" && suggestion.directories) {
+        for (var di = 0; di < suggestion.directories.length; di++) {
+          if (!additionalDirs.includes(suggestion.directories[di])) {
+            additionalDirs.push(suggestion.directories[di]);
+          }
+        }
+      }
+    }
+  } else {
+    var fallbackRule = buildPermissionRule(fallbackToolName, fallbackInput);
+    if (!allowList.includes(fallbackRule)) {
+      allowList.push(fallbackRule);
+    }
+  }
+
+  if (!existsSync(claudeDir)) {
+    mkdirSync(claudeDir, { recursive: true });
+  }
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+}
 
 var activeSessionByClient = new Map<string, { projectSlug: string; sessionId: string }>();
 
@@ -71,10 +155,14 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
         addAutoApprovedTool(active.sessionId, pending.toolName);
       }
 
-      if (permMsg.alwaysAllow && permMsg.alwaysAllowScope === "project" && pending.suggestions) {
-        pending.resolve({ behavior: "allow", updatedPermissions: pending.suggestions, toolUseID: pending.toolUseID });
+      if (permMsg.alwaysAllow && permMsg.alwaysAllowScope === "project" && active) {
+        var project = getProjectBySlug(active.projectSlug);
+        if (project) {
+          addProjectAllowRules(project.path, pending.suggestions as any, pending.toolName, pending.input);
+        }
+        pending.resolve({ behavior: "allow", updatedInput: pending.input, toolUseID: pending.toolUseID });
       } else {
-        pending.resolve({ behavior: "allow", toolUseID: pending.toolUseID });
+        pending.resolve({ behavior: "allow", updatedInput: pending.input, toolUseID: pending.toolUseID });
       }
 
       var resolvedStatus = permMsg.alwaysAllow ? "always_allowed" : "allowed";

@@ -4,6 +4,7 @@ import type { ClientMessage, ServerMessage } from "@lattice/shared";
 import { WebSocketContext, getWebSocketUrl } from "../hooks/useWebSocket";
 import type { WebSocketStatus } from "../hooks/useWebSocket";
 import { showToast } from "../components/ui/Toast";
+import { getSessionStore } from "../stores/session";
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -35,12 +36,20 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
         ws.close();
         return;
       }
-      console.log("[lattice] Connected");
       setStatus("connected");
       backoffRef.current = 1000;
       if (hasConnectedRef.current) {
         showToast("Reconnected to daemon", "info");
         ws.send(JSON.stringify({ type: "settings:get" }));
+
+        var sessionState = getSessionStore().state;
+        if (sessionState.activeProjectSlug && sessionState.activeSessionId) {
+          ws.send(JSON.stringify({
+            type: "session:activate",
+            projectSlug: sessionState.activeProjectSlug,
+            sessionId: sessionState.activeSessionId,
+          }));
+        }
       }
       hasConnectedRef.current = true;
     };
@@ -55,7 +64,6 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
           });
         }
       } catch {
-        console.warn("[lattice] Failed to parse message:", event.data);
       }
     };
 
@@ -63,7 +71,6 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       if (unmountedRef.current) {
         return;
       }
-      console.log("[lattice] Disconnected");
       setStatus("disconnected");
       wsRef.current = null;
       if (hasConnectedRef.current) {
@@ -82,7 +89,6 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       return;
     }
     var delay = backoffRef.current;
-    console.log("[lattice] Reconnecting in " + delay / 1000 + "s...");
     retryTimerRef.current = setTimeout(function () {
       backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF);
       connect();

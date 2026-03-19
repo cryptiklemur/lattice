@@ -46,7 +46,7 @@ function EditModal(props: EditModalProps) {
   var [content, setContent] = useState(initial);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Edit note">
       <div className="card bg-base-200 border border-base-300 w-[400px] max-w-[90vw] shadow-2xl">
         <div className="card-body p-5">
           <div className="text-[13px] font-semibold text-base-content mb-3">Edit Note</div>

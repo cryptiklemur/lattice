@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SessionSummary, SessionListMessage, SessionCreatedMessage } from "@lattice/shared";
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { markSessionHasUpdates, sessionHasUpdates, markSessionRead } from "../../stores/session";
 
 interface SessionGroup {
   label: string;
@@ -12,7 +13,9 @@ function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
   var todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   var todayMs = todayStart.getTime();
-  var yesterdayMs = todayMs - 86400000;
+  var yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  var yesterdayMs = yesterdayStart.getTime();
   var weekMs = todayMs - 6 * 86400000;
   var monthMs = todayMs - 29 * 86400000;
 
@@ -28,7 +31,7 @@ function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
     var ts = sessions[i].updatedAt;
     if (ts >= todayMs) {
       groups["Today"].push(sessions[i]);
-    } else if (ts >= yesterdayMs) {
+    } else if (ts >= yesterdayMs && ts < todayMs) {
       groups["Yesterday"].push(sessions[i]);
     } else if (ts >= weekMs) {
       groups["This Week"].push(sessions[i]);
@@ -49,6 +52,8 @@ function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
   return result;
 }
 
+var knownUpdatedAt = new Map<string, number>();
+
 interface ContextMenu {
   x: number;
   y: number;
@@ -59,6 +64,7 @@ interface SessionListProps {
   projectSlug: string | null;
   activeSessionId: string | null;
   onSessionActivate: (session: SessionSummary) => void;
+  onSessionDeactivate?: () => void;
   filter?: string;
 }
 
@@ -77,28 +83,59 @@ function formatDate(ts: number): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function SessionSkeleton() {
+  return (
+    <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="h-2 bg-base-content/10 rounded animate-pulse w-3/4" />
+      <div className="h-2 bg-base-content/10 rounded animate-pulse w-1/2" />
+      <div className="h-2 bg-base-content/10 rounded animate-pulse w-2/3" />
+    </div>
+  );
+}
+
 export function SessionList(props: SessionListProps) {
   var ws = useWebSocket();
   var [sessions, setSessions] = useState<SessionSummary[]>([]);
+  var [loading, setLoading] = useState<boolean>(false);
   var [renameId, setRenameId] = useState<string | null>(null);
   var [renameValue, setRenameValue] = useState<string>("");
   var [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  var [unreadTick, setUnreadTick] = useState<number>(0);
   var renameInputRef = useRef<HTMLInputElement | null>(null);
   var handleRef = useRef<(msg: ServerMessage) => void>(function () {});
+  var activeSessionIdRef = useRef<string | null>(props.activeSessionId);
+  activeSessionIdRef.current = props.activeSessionId;
 
   useEffect(function () {
     handleRef.current = function (msg: ServerMessage) {
       if (msg.type === "session:list") {
         var listMsg = msg as SessionListMessage;
         if (listMsg.projectSlug === props.projectSlug) {
-          setSessions(listMsg.sessions.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; }));
+          var sorted = listMsg.sessions.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+          var hadChanges = false;
+          for (var i = 0; i < sorted.length; i++) {
+            var s = sorted[i];
+            var prev = knownUpdatedAt.get(s.id);
+            if (prev !== undefined && s.updatedAt > prev && s.id !== activeSessionIdRef.current) {
+              markSessionHasUpdates(s.id);
+              hadChanges = true;
+            }
+            knownUpdatedAt.set(s.id, s.updatedAt);
+          }
+          setSessions(sorted);
+          setLoading(false);
+          if (hadChanges) {
+            setUnreadTick(function (t) { return t + 1; });
+          }
         }
       } else if (msg.type === "session:created") {
         var createdMsg = msg as SessionCreatedMessage;
         if (createdMsg.session.projectSlug === props.projectSlug) {
-          setSessions(function (prev) {
-            return [createdMsg.session, ...prev];
+          knownUpdatedAt.set(createdMsg.session.id, createdMsg.session.updatedAt);
+          setSessions(function (prev2) {
+            return [createdMsg.session, ...prev2];
           });
+          props.onSessionActivate(createdMsg.session);
         }
       }
     };
@@ -116,9 +153,20 @@ export function SessionList(props: SessionListProps) {
     };
   }, [ws]);
 
+  var sendRef = useRef(ws.send);
+  sendRef.current = ws.send;
+
   useEffect(function () {
     if (props.projectSlug && ws.status === "connected") {
       setSessions([]);
+      setLoading(true);
+      sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug });
+      var interval = setInterval(function () {
+        if (props.projectSlug) {
+          sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug });
+        }
+      }, 10000);
+      return function () { clearInterval(interval); };
     }
   }, [props.projectSlug, ws.status]);
 
@@ -146,8 +194,11 @@ export function SessionList(props: SessionListProps) {
     if (!props.projectSlug) {
       return;
     }
+    if (sessionHasUpdates(session.id)) {
+      markSessionRead(session.id, 0);
+      setUnreadTick(function (t) { return t + 1; });
+    }
     props.onSessionActivate(session);
-    ws.send({ type: "session:activate", projectSlug: props.projectSlug, sessionId: session.id });
   }
 
   function handleContextMenu(e: React.MouseEvent, session: SessionSummary) {
@@ -163,6 +214,12 @@ export function SessionList(props: SessionListProps) {
 
   function handleRenameCommit() {
     if (renameId && renameValue.trim()) {
+      var originalSession = sessions.find(function (s) { return s.id === renameId; });
+      if (originalSession && renameValue.trim() === originalSession.title) {
+        setRenameId(null);
+        setRenameValue("");
+        return;
+      }
       ws.send({ type: "session:rename", sessionId: renameId, title: renameValue.trim() });
       setSessions(function (prev) {
         return prev.map(function (s) {
@@ -189,12 +246,25 @@ export function SessionList(props: SessionListProps) {
     setSessions(function (prev) {
       return prev.filter(function (s) { return s.id !== session.id; });
     });
+    if (props.activeSessionId === session.id && props.onSessionDeactivate) {
+      props.onSessionDeactivate();
+    }
   }
 
   if (!props.projectSlug) {
     return (
       <div className="flex-1 flex items-start px-3 py-1.5">
         <span className="text-[13px] text-base-content/40 italic">Select a project</span>
+      </div>
+    );
+  }
+
+  if (loading && sessions.length === 0) {
+    return (
+      <div className="flex flex-col flex-1 overflow-hidden min-h-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5">
+          <SessionSkeleton />
+        </div>
       </div>
     );
   }
@@ -209,7 +279,7 @@ export function SessionList(props: SessionListProps) {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-      <div className="flex-1 overflow-y-auto py-0.5">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5">
         {grouped.length === 0 ? (
           <div className="px-3 py-2 text-sm text-base-content/40 italic">
             {props.filter ? "No matches" : "No sessions yet"}
@@ -221,53 +291,66 @@ export function SessionList(props: SessionListProps) {
                 <div className="text-[10px] uppercase tracking-widest text-base-content/30 px-3 pt-3 pb-1 select-none">
                   {group.label}
                 </div>
-                <ul className="menu menu-sm p-0 gap-0.5">
+                <div className="flex flex-col gap-0.5 overflow-hidden">
                   {group.sessions.map(function (session) {
                     var isActive = props.activeSessionId === session.id;
                     var isRenaming = renameId === session.id;
+                    var isUnread = !isActive && sessionHasUpdates(session.id);
                     return (
-                      <div
+                      <button
                         key={session.id}
+                        type="button"
+                        aria-label={"Session: " + session.title}
+                        aria-current={isActive ? "true" : undefined}
                         onClick={function () { handleActivate(session); }}
                         onContextMenu={function (e) { handleContextMenu(e, session); }}
                         className={
-                          "flex flex-col px-2.5 py-[5px] mx-1 rounded w-[calc(100%-8px)] cursor-pointer select-none transition-colors duration-[120ms] " +
-                          (isActive ? "bg-base-300" : "hover:bg-base-300/50")
+                          "flex flex-row items-start gap-2 px-2.5 py-[5px] mx-1 rounded w-[calc(100%-8px)] min-w-0 overflow-hidden cursor-pointer select-none transition-colors duration-[120ms] text-left focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none " +
+                          (isActive ? "bg-primary/20 text-base-content font-medium" : "hover:bg-base-300/50")
                         }
                       >
-                        {isRenaming ? (
-                          <input
-                            ref={renameInputRef}
-                            value={renameValue}
-                            onChange={function (e) { setRenameValue(e.target.value); }}
-                            onBlur={handleRenameCommit}
-                            onKeyDown={handleRenameKeyDown}
-                            onClick={function (e) { e.stopPropagation(); }}
-                            className="input input-xs input-bordered w-full text-[13px]"
-                          />
-                        ) : (
-                          <span
-                            className={
-                              "text-[13px] truncate leading-snug " +
-                              (isActive ? "font-semibold text-base-content" : "text-base-content/70")
-                            }
-                          >
-                            {session.title}
-                          </span>
+                        {isUnread && (
+                          <span className="shrink-0 mt-[7px] w-2 h-2 rounded-full bg-primary" />
                         )}
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] text-base-content/40">
-                            {formatDate(session.updatedAt)}
-                          </span>
-                          <span className="text-[11px] text-base-content/40">&middot;</span>
-                          <span className="text-[11px] text-base-content/40">
-                            {session.messageCount} msg{session.messageCount !== 1 ? "s" : ""}
-                          </span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          {isRenaming ? (
+                            <input
+                              ref={renameInputRef}
+                              value={renameValue}
+                              onChange={function (e) { setRenameValue(e.target.value); }}
+                              onBlur={handleRenameCommit}
+                              onKeyDown={handleRenameKeyDown}
+                              onClick={function (e) { e.stopPropagation(); }}
+                              className="input input-xs input-bordered w-full text-[13px]"
+                            />
+                          ) : (
+                            <span
+                              className={
+                                "text-[13px] truncate leading-snug " +
+                                (isActive ? "" : isUnread ? "text-base-content font-semibold" : "text-base-content/55")
+                              }
+                            >
+                              {session.title}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[11px] text-base-content/40">
+                              {formatDate(session.updatedAt)}
+                            </span>
+                            {session.messageCount != null && (
+                              <>
+                                <span className="text-[11px] text-base-content/40">&middot;</span>
+                                <span className="text-[11px] text-base-content/40">
+                                  {session.messageCount} msg{session.messageCount !== 1 ? "s" : ""}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
-                </ul>
+                </div>
               </div>
             );
           })
@@ -276,6 +359,8 @@ export function SessionList(props: SessionListProps) {
 
       {contextMenu !== null && (
         <div
+          role="menu"
+          aria-label="Session actions"
           onMouseDown={function (e) { e.stopPropagation(); }}
           className="fixed z-[9999] bg-base-200 border border-base-content/20 rounded-md shadow-xl p-1 min-w-[140px]"
           style={{ top: contextMenu.y, left: contextMenu.x }}

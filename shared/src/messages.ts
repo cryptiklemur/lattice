@@ -243,6 +243,7 @@ export interface SessionHistoryMessage {
   sessionId: string;
   messages: HistoryMessage[];
   title?: string;
+  interrupted?: boolean;
 }
 
 export interface ChatUserMessage {
@@ -287,6 +288,7 @@ export interface ChatPermissionRequestMessage {
   args: string;
   title?: string;
   decisionReason?: string;
+  permissionRule?: string;
 }
 
 export interface ChatPermissionResolvedMessage {

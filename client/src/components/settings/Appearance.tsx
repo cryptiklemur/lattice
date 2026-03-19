@@ -34,7 +34,7 @@ function ThemeCard({
     >
       {active && (
         <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-info flex items-center justify-center">
-          <Check size={8} color="white" strokeWidth={1.8} />
+          <Check size={8} className="text-info-content" strokeWidth={1.8} />
         </div>
       )}
 
@@ -84,7 +84,7 @@ function ThemeGroup({
       <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-3">
         {label}
       </div>
-      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))" }}>
         {entries.map(function (entry) {
           return (
             <ThemeCard

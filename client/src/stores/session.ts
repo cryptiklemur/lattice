@@ -32,6 +32,11 @@ export interface SessionState {
   contextUsage: ContextUsage | null;
   contextBreakdown: ContextBreakdown | null;
   pendingPermissionCount: number;
+  lastResponseCost: number | null;
+  lastResponseDuration: number | null;
+  lastReadIndex: number | null;
+  historyLoading: boolean;
+  wasInterrupted: boolean;
 }
 
 var sessionStore = new Store<SessionState>({
@@ -44,33 +49,111 @@ var sessionStore = new Store<SessionState>({
   contextUsage: null,
   contextBreakdown: null,
   pendingPermissionCount: 0,
+  lastResponseCost: null,
+  lastResponseDuration: null,
+  lastReadIndex: null,
+  historyLoading: false,
+  wasInterrupted: false,
 });
 
+var streamGeneration = 0;
+
+export function getStreamGeneration(): number {
+  return streamGeneration;
+}
+
+export function incrementStreamGeneration(): number {
+  streamGeneration++;
+  return streamGeneration;
+}
+
+var lastReadIndices = new Map<string, number>();
+var sessionsWithUpdates = new Set<string>();
+
+export function markSessionRead(sessionId: string, messageCount: number): void {
+  lastReadIndices.set(sessionId, messageCount);
+  sessionsWithUpdates.delete(sessionId);
+}
+
+export function getLastReadIndex(sessionId: string): number {
+  return lastReadIndices.get(sessionId) ?? -1;
+}
+
+export function markSessionHasUpdates(sessionId: string): void {
+  sessionsWithUpdates.add(sessionId);
+}
+
+export function sessionHasUpdates(sessionId: string): boolean {
+  return sessionsWithUpdates.has(sessionId);
+}
+
+export function setLastReadIndex(index: number): void {
+  sessionStore.setState(function (state) {
+    return { ...state, lastReadIndex: index };
+  });
+}
+
 var currentAssistantUuid: string | null = null;
+var currentAssistantIndex: number = -1;
 
 export function getSessionStore(): Store<SessionState> {
   return sessionStore;
 }
 
+export function mergeToolResults(messages: HistoryMessage[]): HistoryMessage[] {
+  var result: HistoryMessage[] = [];
+  var toolStartMap = new Map<string, number>();
+  for (var i = 0; i < messages.length; i++) {
+    var msg = messages[i];
+    if (msg.type === "tool_start" && msg.toolId) {
+      toolStartMap.set(msg.toolId, result.length);
+      result.push({ ...msg });
+    } else if (msg.type === "tool_result" && msg.toolId) {
+      var startIdx = toolStartMap.get(msg.toolId);
+      if (startIdx !== undefined) {
+        result[startIdx] = { ...result[startIdx], content: msg.content };
+      }
+    } else {
+      result.push(msg);
+    }
+  }
+  for (var j = 0; j < result.length; j++) {
+    if (result[j].type === "tool_start" && !result[j].content) {
+      result[j] = { ...result[j], content: "(no output)" };
+    }
+  }
+  return result;
+}
+
 export function setSessionMessages(messages: HistoryMessage[]): void {
+  currentAssistantIndex = -1;
+  var merged = mergeToolResults(messages);
   sessionStore.setState(function (state) {
-    return { ...state, messages: messages };
+    return { ...state, messages: merged };
   });
 }
 
 export function addSessionMessage(message: HistoryMessage): void {
   sessionStore.setState(function (state) {
-    return { ...state, messages: [...state.messages, message] };
+    var newMessages = [...state.messages, message];
+    if (message.type === "assistant" && message.uuid) {
+      currentAssistantIndex = newMessages.length - 1;
+    }
+    return { ...state, messages: newMessages };
   });
 }
 
 export function updateLastAssistantMessage(uuid: string, deltaText: string): void {
   sessionStore.setState(function (state) {
-    var idx = state.messages.findLastIndex(function (msg) {
-      return msg.uuid === uuid;
-    });
-    if (idx === -1) {
-      return state;
+    var idx = currentAssistantIndex;
+    if (idx === -1 || idx >= state.messages.length || state.messages[idx].uuid !== uuid) {
+      idx = state.messages.findLastIndex(function (msg) {
+        return msg.uuid === uuid;
+      });
+      if (idx === -1) {
+        return state;
+      }
+      currentAssistantIndex = idx;
     }
     var updated = state.messages.slice();
     updated[idx] = {
@@ -102,7 +185,12 @@ export function setIsProcessing(processing: boolean): void {
 }
 
 export function setActiveSession(projectSlug: string | null, sessionId: string | null, title?: string | null): void {
+  var prevSessionId = sessionStore.state.activeSessionId;
+  if (prevSessionId) {
+    markSessionRead(prevSessionId, sessionStore.state.messages.length);
+  }
   currentAssistantUuid = null;
+  incrementStreamGeneration();
   sessionStore.setState(function (state) {
     return {
       ...state,
@@ -115,6 +203,11 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       contextUsage: null,
       contextBreakdown: null,
       pendingPermissionCount: 0,
+      lastResponseCost: null,
+      lastResponseDuration: null,
+      lastReadIndex: null,
+      historyLoading: true,
+      wasInterrupted: false,
     };
   });
 }
@@ -149,7 +242,12 @@ export function setContextUsage(usage: ContextUsage): void {
 }
 
 export function clearSession(): void {
+  var prevSessionId = sessionStore.state.activeSessionId;
+  if (prevSessionId) {
+    markSessionRead(prevSessionId, sessionStore.state.messages.length);
+  }
   currentAssistantUuid = null;
+  currentAssistantIndex = -1;
   sessionStore.setState(function () {
     return {
       messages: [],
@@ -161,7 +259,24 @@ export function clearSession(): void {
       contextUsage: null,
       contextBreakdown: null,
       pendingPermissionCount: 0,
+      lastResponseCost: null,
+      lastResponseDuration: null,
+      lastReadIndex: null,
+      historyLoading: false,
+      wasInterrupted: false,
     };
+  });
+}
+
+export function setLastResponseStats(cost: number, duration: number): void {
+  sessionStore.setState(function (state) {
+    return { ...state, lastResponseCost: cost, lastResponseDuration: duration };
+  });
+}
+
+export function setWasInterrupted(interrupted: boolean): void {
+  sessionStore.setState(function (state) {
+    return { ...state, wasInterrupted: interrupted };
   });
 }
 
@@ -177,6 +292,9 @@ export function getCurrentAssistantUuid(): string | null {
 
 export function setCurrentAssistantUuid(uuid: string | null): void {
   currentAssistantUuid = uuid;
+  if (uuid === null) {
+    currentAssistantIndex = -1;
+  }
 }
 
 export function incrementPendingPermissions(): void {
@@ -194,7 +312,7 @@ export function updatePermissionStatus(requestId: string, status: string): void 
       return { ...state, pendingPermissionCount: Math.max(0, state.pendingPermissionCount - 1) };
     }
     var updated = state.messages.slice();
-    updated[idx] = { ...updated[idx], permissionStatus: status as any };
+    updated[idx] = { ...updated[idx], permissionStatus: status as HistoryMessage["permissionStatus"] };
     return {
       ...state,
       messages: updated,

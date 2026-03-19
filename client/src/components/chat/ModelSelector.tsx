@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 
 interface ModelSelectorState {
   model: string;
@@ -7,22 +6,17 @@ interface ModelSelectorState {
 }
 
 var MODEL_OPTIONS = [
-  { value: "default", label: "Default" },
-  { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
-  { value: "claude-opus-4", label: "Claude Opus 4" },
-  { value: "claude-sonnet-4-0", label: "Claude Sonnet 4" },
-  { value: "claude-3-7-sonnet-20250219", label: "Claude 3.7 Sonnet" },
-  { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
-  { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
-  { value: "claude-3-haiku-20240307", label: "Claude 3 Haiku" },
-  { value: "claude-opus-4-5", label: "Claude Opus 4.5" },
+  { value: "default", label: "Model: Default" },
+  { value: "opus", label: "Model: Opus" },
+  { value: "sonnet", label: "Model: Sonnet" },
+  { value: "haiku", label: "Model: Haiku" },
 ];
 
 var EFFORT_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "max", label: "Max" },
+  { value: "low", label: "Effort: Low" },
+  { value: "medium", label: "Effort: Medium" },
+  { value: "high", label: "Effort: High" },
+  { value: "max", label: "Effort: Max" },
 ];
 
 interface ModelSelectorProps {
@@ -50,42 +44,44 @@ export function ModelSelector(props: ModelSelectorProps) {
   }
 
   return (
-    <div className="flex items-center gap-1 text-[11px] text-base-content/60">
-      <div className="flex items-center">
-        <select
-          value={model}
-          onChange={handleModelChange}
-          title="Select model"
-          className="select select-ghost select-xs text-[11px] text-base-content/60 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
-        >
-          {MODEL_OPTIONS.map(function (opt) {
-            return (
-              <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
-                {opt.label}
-              </option>
-            );
-          })}
-        </select>
-        <ChevronDown size={10} className="text-base-content/30 pointer-events-none -ml-0.5" />
-      </div>
-      <span className="text-base-content/20">|</span>
-      <div className="flex items-center">
-        <select
-          value={effort}
-          onChange={handleEffortChange}
-          title="Select effort"
-          className="select select-ghost select-xs text-[11px] text-base-content/60 bg-transparent border-none outline-none focus:outline-none h-auto min-h-0 py-0 px-0.5 cursor-pointer appearance-none"
-        >
-          {EFFORT_OPTIONS.map(function (opt) {
-            return (
-              <option key={opt.value} value={opt.value} className="bg-base-200 text-base-content">
-                {opt.label}
-              </option>
-            );
-          })}
-        </select>
-        <ChevronDown size={10} className="text-base-content/30 pointer-events-none -ml-0.5" />
-      </div>
+    <div className="flex items-center gap-0.5 font-mono text-[10px]">
+      <select
+        value={model}
+        onChange={handleModelChange}
+        title="Select model"
+        aria-label="Model"
+        className={
+          "select select-xs select-ghost font-mono text-[10px] min-h-0 h-6 min-w-0 w-auto " +
+          (model === "default" ? "text-base-content/40" : "text-primary")
+        }
+      >
+        {MODEL_OPTIONS.map(function (opt) {
+          return (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          );
+        })}
+      </select>
+      <span className="text-base-content/20">·</span>
+      <select
+        value={effort}
+        onChange={handleEffortChange}
+        title="Select effort"
+        aria-label="Effort level"
+        className={
+          "select select-xs select-ghost font-mono text-[10px] min-h-0 h-6 min-w-0 w-auto " +
+          (effort === "medium" ? "text-base-content/40" : "text-primary")
+        }
+      >
+        {EFFORT_OPTIONS.map(function (opt) {
+          return (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          );
+        })}
+      </select>
     </div>
   );
 }

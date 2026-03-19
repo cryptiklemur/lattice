@@ -2,18 +2,20 @@ import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { sendTo } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
 import { resolveSkillContent } from "../handlers/skills";
 import { guessContextWindow } from "./session";
+import { getLatticeHome } from "../config";
 
 interface PendingPermission {
   resolve: (result: PermissionResult) => void;
   toolName: string;
   toolUseID: string;
+  input: Record<string, unknown>;
   suggestions: PermissionUpdate[] | undefined;
   clientId: string;
   sessionId: string;
@@ -52,6 +54,44 @@ export function getAvailableModels(): ModelEntry[] {
 }
 
 var activeStreams = new Map<string, Query>();
+var streamMetadata = new Map<string, { projectSlug: string; clientId: string; startedAt: number }>();
+var interruptedSessions = new Set<string>();
+
+function getStreamStatePath(): string {
+  return join(getLatticeHome(), "active-streams.json");
+}
+
+function persistStreamState(): void {
+  var entries: Record<string, { projectSlug: string; clientId: string; startedAt: number }> = {};
+  streamMetadata.forEach(function (meta, sessionId) {
+    entries[sessionId] = meta;
+  });
+  var dir = getLatticeHome();
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  writeFileSync(getStreamStatePath(), JSON.stringify(entries), "utf-8");
+}
+
+export function loadInterruptedSessions(): void {
+  var path = getStreamStatePath();
+  if (!existsSync(path)) return;
+  try {
+    var data = JSON.parse(readFileSync(path, "utf-8"));
+    for (var sessionId of Object.keys(data)) {
+      interruptedSessions.add(sessionId);
+    }
+  } catch {}
+  writeFileSync(path, "{}", "utf-8");
+}
+
+export function wasSessionInterrupted(sessionId: string): boolean {
+  return interruptedSessions.has(sessionId);
+}
+
+export function clearInterruptedFlag(sessionId: string): void {
+  interruptedSessions.delete(sessionId);
+}
 
 export function getPendingPermission(requestId: string): PendingPermission | undefined {
   return pendingPermissions.get(requestId);
@@ -78,6 +118,75 @@ export function getActiveStream(sessionId: string): Query | undefined {
   return activeStreams.get(sessionId);
 }
 
+export function matchesAllowRules(rules: string[], toolName: string, currentRule: string): boolean {
+  for (var i = 0; i < rules.length; i++) {
+    var rule = rules[i];
+    if (rule === toolName || rule === currentRule) return true;
+    var ruleMatch = rule.match(/^(\w+)\((.+)\)$/);
+    if (!ruleMatch) continue;
+    var ruleToolName = ruleMatch[1];
+    var rulePattern = ruleMatch[2];
+    if (ruleToolName !== toolName) continue;
+    var currentMatch = currentRule.match(/^\w+\((.+)\)$/);
+    if (!currentMatch) continue;
+    var currentContent = currentMatch[1];
+    if (rulePattern === "*") return true;
+    if (rulePattern.endsWith(":*")) {
+      var rulePrefix = rulePattern.slice(0, -1);
+      if (currentContent.startsWith(rulePrefix) || currentContent === rulePattern.slice(0, -2)) return true;
+    }
+    if (rulePattern.endsWith("**")) {
+      var dirPrefix = rulePattern.slice(0, -2);
+      if (currentContent.startsWith(dirPrefix)) return true;
+    }
+  }
+  return false;
+}
+
+export function buildPermissionRule(toolName: string, input: Record<string, unknown>): string {
+  if (toolName === "Bash") {
+    var command = input.command || input.cmd || "";
+    if (typeof command === "string" && command) {
+      var firstWord = command.split(/\s+/)[0];
+      if (firstWord === "curl" || firstWord === "wget") {
+        var urlMatch = command.match(/https?:\/\/[^\s"']+/);
+        if (urlMatch) {
+          try {
+            var parsed = new URL(urlMatch[0]);
+            return toolName + "(" + firstWord + ":" + parsed.hostname + ")";
+          } catch {}
+        }
+      }
+      return toolName + "(" + firstWord + ":*)";
+    }
+  }
+
+  if (toolName === "Read" || toolName === "Edit" || toolName === "Write") {
+    var filePath = input.file_path || input.path || "";
+    if (typeof filePath === "string" && filePath) {
+      var dirParts = filePath.split("/");
+      dirParts.pop();
+      var dir = dirParts.join("/");
+      if (dir) {
+        var prefix = dir.startsWith("/") ? "" : "/";
+        return toolName + "(" + prefix + dir + "/**)";
+      }
+    }
+  }
+
+  if (toolName === "WebFetch") {
+    var url = input.url || "";
+    if (typeof url === "string" && url) {
+      try {
+        var parsed = new URL(url);
+        return toolName + "(domain:" + parsed.hostname + ")";
+      } catch {}
+    }
+  }
+
+  return toolName;
+}
+
 export function startChatStream(options: ChatStreamOptions): void {
   var { projectSlug, sessionId, text, clientId, cwd, env, model, effort, isNewSession } = options;
   var startTime = Date.now();
@@ -87,29 +196,80 @@ export function startChatStream(options: ChatStreamOptions): void {
     return;
   }
 
-  var effectiveMode: PermissionMode = sessionPermissionOverrides.get(sessionId) || "default";
+  var effectiveMode: PermissionMode = sessionPermissionOverrides.get(sessionId) || "acceptEdits";
   sessionPermissionOverrides.delete(sessionId);
+
+  var projectSettingsPath = join(cwd, ".claude", "settings.json");
+  var savedAdditionalDirs: string[] = [];
+  if (existsSync(projectSettingsPath)) {
+    try {
+      var projSettings = JSON.parse(readFileSync(projectSettingsPath, "utf-8"));
+      if (projSettings.permissions && Array.isArray(projSettings.permissions.additionalDirectories)) {
+        savedAdditionalDirs = projSettings.permissions.additionalDirectories;
+      }
+    } catch {}
+  }
+
+  var mcpServers: Record<string, unknown> = {};
+  var claudeJsonPath = join(homedir(), ".claude.json");
+  if (existsSync(claudeJsonPath)) {
+    try {
+      var claudeJson = JSON.parse(readFileSync(claudeJsonPath, "utf-8"));
+      if (claudeJson.mcpServers && typeof claudeJson.mcpServers === "object") {
+        mcpServers = claudeJson.mcpServers;
+      }
+    } catch {}
+  }
 
   var queryOptions: Parameters<typeof query>[0]["options"] = {
     cwd,
     permissionMode: effectiveMode,
+    additionalDirectories: savedAdditionalDirs.length > 0 ? savedAdditionalDirs : undefined,
+    mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers as Record<string, any> : undefined,
   };
 
   queryOptions.canUseTool = function (toolName, input, options) {
     var approved = autoApprovedTools.get(sessionId);
     if (approved && approved.has(toolName)) {
-      return Promise.resolve({ behavior: "allow", toolUseID: options.toolUseID } as PermissionResult);
+      return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
+    }
+
+    if (toolName === "Read") {
+      var readPath = (input.file_path || input.path || "") as string;
+      if (readPath.startsWith("/tmp/") || readPath === "/tmp") {
+        return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
+      }
+    }
+
+    var allowRules: string[] = [];
+    if (existsSync(projectSettingsPath)) {
+      try {
+        var projSettingsForRules = JSON.parse(readFileSync(projectSettingsPath, "utf-8"));
+        if (projSettingsForRules.permissions && Array.isArray(projSettingsForRules.permissions.allow)) {
+          allowRules = projSettingsForRules.permissions.allow;
+        }
+      } catch {}
+    }
+
+    if (allowRules.length > 0) {
+      var currentRule = buildPermissionRule(toolName, input);
+      if (matchesAllowRules(allowRules, toolName, currentRule)) {
+        return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
+      }
     }
 
     var requestId = options.toolUseID;
+    var rule = buildPermissionRule(toolName, input);
+    var title = options.title || rule;
 
     sendTo(clientId, {
       type: "chat:permission_request",
       requestId: requestId,
       tool: toolName,
       args: JSON.stringify(input),
-      title: options.title,
+      title: title,
       decisionReason: options.decisionReason,
+      permissionRule: rule,
     });
 
     return new Promise<PermissionResult>(function (resolve) {
@@ -117,6 +277,7 @@ export function startChatStream(options: ChatStreamOptions): void {
         resolve: resolve,
         toolName: toolName,
         toolUseID: options.toolUseID,
+        input: input,
         suggestions: options.suggestions,
         clientId: clientId,
         sessionId: sessionId,
@@ -186,6 +347,8 @@ export function startChatStream(options: ChatStreamOptions): void {
 
   var stream = query({ prompt: prompt, options: queryOptions });
   activeStreams.set(sessionId, stream);
+  streamMetadata.set(sessionId, { projectSlug, clientId, startedAt: Date.now() });
+  persistStreamState();
 
   void (async function () {
     try {
@@ -198,6 +361,8 @@ export function startChatStream(options: ChatStreamOptions): void {
       sendTo(clientId, { type: "chat:error", message: errMsg });
     } finally {
       activeStreams.delete(sessionId);
+      streamMetadata.delete(sessionId);
+      persistStreamState();
 
       var toCleanup: string[] = [];
       pendingPermissions.forEach(function (entry, reqId) {
@@ -220,6 +385,19 @@ export function startChatStream(options: ChatStreamOptions): void {
   })();
 
   function processMessage(msg: SDKMessage): void {
+
+    if (msg.type === "system") {
+      var sysMsg = msg as { type: "system"; subtype?: string; mcp_servers?: { name: string; status: string }[]; tools?: string[] };
+      if (sysMsg.subtype === "init") {
+        console.log("[lattice] SDK init - MCP servers:", JSON.stringify(sysMsg.mcp_servers || []));
+        console.log("[lattice] SDK init - tools count:", (sysMsg.tools || []).length);
+        var mcpTools = (sysMsg.tools || []).filter(function (t) { return t.startsWith("mcp__"); });
+        if (mcpTools.length > 0) {
+          console.log("[lattice] SDK init - MCP tools:", mcpTools.join(", "));
+        }
+      }
+      return;
+    }
 
     if (msg.type === "assistant") {
       var assistantMsg = msg as { type: "assistant"; message: { content: unknown; model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } } };

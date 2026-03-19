@@ -5,6 +5,7 @@ import { DEFAULT_PORT, LATTICE_HOME_DIR } from "@lattice/shared";
 import type { LatticeConfig } from "@lattice/shared";
 
 var home = join(homedir(), LATTICE_HOME_DIR);
+var cachedConfig: LatticeConfig | null = null;
 
 export function getLatticeHome(): string {
   if (!existsSync(home)) {
@@ -18,17 +19,26 @@ export function getConfigPath(): string {
 }
 
 export function loadConfig(): LatticeConfig {
+  if (cachedConfig) {
+    return cachedConfig;
+  }
   var configPath = getConfigPath();
   if (!existsSync(configPath)) {
     return createDefaultConfig();
   }
   var raw = readFileSync(configPath, "utf-8");
-  return JSON.parse(raw) as LatticeConfig;
+  cachedConfig = JSON.parse(raw) as LatticeConfig;
+  return cachedConfig;
 }
 
 export function saveConfig(config: LatticeConfig): void {
   var configPath = getConfigPath();
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+  cachedConfig = config;
+}
+
+export function invalidateConfigCache(): void {
+  cachedConfig = null;
 }
 
 function createDefaultConfig(): LatticeConfig {

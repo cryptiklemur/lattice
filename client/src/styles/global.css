@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui";
+@plugin "@tailwindcss/typography";
 @plugin "daisyui/theme" {
   name: "lattice-dark";
   default: true;
@@ -36,7 +37,7 @@
 }
 
 :root {
-  --sidebar-width: 240px;
+  --sidebar-width: 260px;
   --node-rail-width: 52px;
 
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -73,22 +74,49 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(25% 0.02 280);
+  background: oklch(from var(--color-base-content) l c h / 0.15);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(40% 0.02 280);
+  background: oklch(from var(--color-base-content) l c h / 0.25);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(25% 0.02 280) transparent;
+  scrollbar-color: oklch(from var(--color-base-content) l c h / 0.15) transparent;
+}
+
+.prose pre {
+  border-radius: 0.5rem;
+  border: 1px solid oklch(from var(--color-base-content) l c h / 0.1);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 0.15em 0.3em;
+  border-radius: 0.25rem;
+  background: oklch(from var(--color-base-content) l c h / 0.08);
+}
+
+.prose pre code {
+  padding: 0;
+  background: transparent;
 }
 
 .bg-lattice-grid {
-  background-image: radial-gradient(circle, oklch(90% 0.02 280 / 0.05) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: transparent;
+}
+
+@media (min-width: 640px) {
+  .bg-lattice-grid {
+    background-image: radial-gradient(circle, oklch(90% 0.02 280 / 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
 }
 
 @keyframes pulse {
@@ -103,4 +131,37 @@ html, body {
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+@media (pointer: coarse) {
+  .btn-xs,
+  .btn-sm,
+  .select-xs,
+  .select-sm {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .select-xs,
+  .select-sm {
+    min-width: unset;
+  }
+}
+
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

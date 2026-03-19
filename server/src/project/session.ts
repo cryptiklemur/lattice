@@ -1,397 +1,432 @@
 import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
+  listSessions as sdkListSessions,
+  getSessionInfo,
+  getSessionMessages,
+  renameSession as sdkRenameSession,
+} from "@anthropic-ai/claude-agent-sdk";
+import type { SDKSessionInfo, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
+import { existsSync, unlinkSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import type { HistoryMessage, ImportableSession, SessionSummary } from "@lattice/shared";
-import { getLatticeHome, loadConfig } from "../config";
+import type { HistoryMessage, SessionSummary } from "@lattice/shared";
+import { loadConfig } from "../config";
 
-interface MetaLine {
-  type: "meta";
-  sessionId: string;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
+function getProjectPath(projectSlug: string): string | null {
+  var config = loadConfig();
+  var project = config.projects.find(function (p) { return p.slug === projectSlug; });
+  return project ? project.path : null;
 }
 
-export function getSessionsDir(projectSlug: string): string {
-  var dir = join(getLatticeHome(), "sessions", projectSlug);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+function projectPathToHash(projectPath: string): string {
+  return projectPath.replace(/\//g, "-");
+}
+
+function mapSDKSession(info: SDKSessionInfo, projectSlug: string): SessionSummary {
+  return {
+    id: info.sessionId,
+    projectSlug,
+    title: info.customTitle || info.summary || info.firstPrompt || "Untitled",
+    createdAt: info.createdAt || info.lastModified,
+    updatedAt: info.lastModified,
+  };
+}
+
+var LITELLM_PRICING_URL = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
+
+var pricingCache: Record<string, { input: number; output: number; cacheRead?: number; cacheCreation?: number }> = {};
+var pricingLoaded = false;
+
+var FALLBACK_PRICING: Record<string, { input: number; output: number }> = {
+  "claude-opus-4-6": { input: 15, output: 75 },
+  "claude-sonnet-4-6": { input: 3, output: 15 },
+  "claude-haiku-4-5": { input: 0.80, output: 4 },
+};
+
+function loadPricing(): void {
+  if (pricingLoaded) return;
+  pricingLoaded = true;
+  fetch(LITELLM_PRICING_URL).then(function (res) {
+    return res.json();
+  }).then(function (data: Record<string, Record<string, unknown>>) {
+    for (var key in data) {
+      if (!key.includes("claude")) continue;
+      var entry = data[key];
+      var inputCost = entry.input_cost_per_token as number | undefined;
+      var outputCost = entry.output_cost_per_token as number | undefined;
+      if (inputCost == null || outputCost == null) continue;
+      var modelId = key.replace("anthropic/", "").replace("claude-", "claude-");
+      pricingCache[modelId] = {
+        input: inputCost * 1000000,
+        output: outputCost * 1000000,
+        cacheRead: entry.cache_read_input_token_cost != null ? (entry.cache_read_input_token_cost as number) * 1000000 : undefined,
+        cacheCreation: entry.cache_creation_input_token_cost != null ? (entry.cache_creation_input_token_cost as number) * 1000000 : undefined,
+      };
+      pricingCache[key] = pricingCache[modelId];
+    }
+  }).catch(function () {});
+}
+
+loadPricing();
+
+function getPricing(model: string): { input: number; output: number; cacheRead?: number; cacheCreation?: number } {
+  if (pricingCache[model]) return pricingCache[model];
+  for (var key in pricingCache) {
+    if (key.includes(model) || model.includes(key)) return pricingCache[key];
   }
-  return dir;
+  var shortModel = model.replace("claude-", "").split("-")[0];
+  for (var key2 in pricingCache) {
+    if (key2.includes(shortModel)) return pricingCache[key2];
+  }
+  if (FALLBACK_PRICING[model]) {
+    return FALLBACK_PRICING[model];
+  }
+  return FALLBACK_PRICING["claude-sonnet-4-6"];
 }
 
-function getSessionPath(projectSlug: string, sessionId: string): string {
-  return join(getSessionsDir(projectSlug), `${sessionId}.jsonl`);
+function estimateCost(model: string, inputTokens: number, outputTokens: number, cacheRead: number, cacheCreation: number): number {
+  var pricing = getPricing(model);
+  var normalInput = inputTokens - cacheRead - cacheCreation;
+  var inputCost = (normalInput * pricing.input) / 1000000;
+  var cacheCost = pricing.cacheRead != null
+    ? (cacheRead * pricing.cacheRead) / 1000000
+    : (cacheRead * pricing.input * 0.1) / 1000000;
+  var cacheCreateCost = pricing.cacheCreation != null
+    ? (cacheCreation * pricing.cacheCreation) / 1000000
+    : (cacheCreation * pricing.input * 1.25) / 1000000;
+  var outputCost = (outputTokens * pricing.output) / 1000000;
+  return Math.max(0, inputCost + cacheCost + cacheCreateCost + outputCost);
 }
 
-export function createSession(projectSlug: string, title?: string): SessionSummary {
+function parseTimestamp(msg: SessionMessage): number {
+  var raw = (msg as unknown as { timestamp?: string }).timestamp;
+  if (raw) {
+    var parsed = new Date(raw).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function stripXmlTags(text: string): string {
+  return text.replace(/<[^>]+>/g, "").trim();
+}
+
+function isSystemContent(text: string): boolean {
+  return text.startsWith("<local-command-caveat>")
+    || text.startsWith("<system-reminder>")
+    || text.startsWith("<local-command-stdout>")
+    || text.startsWith("<command-name>")
+    || text.startsWith("<command-message>");
+}
+
+function extractUserText(content: unknown): string {
+  if (typeof content === "string") {
+    if (isSystemContent(content)) return "";
+    return stripXmlTags(content);
+  }
+  if (Array.isArray(content)) {
+    for (var i = 0; i < content.length; i++) {
+      var block = content[i] as { type?: string; text?: string };
+      if (block.type === "text" && typeof block.text === "string") {
+        if (isSystemContent(block.text)) continue;
+        var cleaned = stripXmlTags(block.text);
+        if (cleaned) return cleaned;
+      }
+    }
+  }
+  return "";
+}
+
+function convertSessionMessages(messages: SessionMessage[]): HistoryMessage[] {
+  var result: HistoryMessage[] = [];
+
+  for (var i = 0; i < messages.length; i++) {
+    var msg = messages[i];
+    var ts = parseTimestamp(msg);
+    var apiMsg = msg.message as { role?: string; content?: unknown };
+
+    if (msg.type === "user") {
+      if (Array.isArray(apiMsg.content)) {
+        var hadToolResult = false;
+        for (var j = 0; j < apiMsg.content.length; j++) {
+          var block = apiMsg.content[j] as { type?: string; text?: string; tool_use_id?: string; content?: unknown };
+          if (block.type === "tool_result" && block.tool_use_id) {
+            hadToolResult = true;
+            var resultContent = "";
+            if (typeof block.content === "string") {
+              resultContent = block.content;
+            } else if (Array.isArray(block.content)) {
+              var texts: string[] = [];
+              for (var ri = 0; ri < block.content.length; ri++) {
+                var rb = block.content[ri] as { type?: string; text?: string };
+                if (rb.type === "text" && rb.text) texts.push(rb.text);
+              }
+              resultContent = texts.join("\n");
+            } else {
+              resultContent = JSON.stringify(block.content ?? "");
+            }
+            result.push({
+              type: "tool_result",
+              toolId: block.tool_use_id,
+              content: resultContent,
+              timestamp: ts,
+            });
+          } else if (block.type === "text" && block.text) {
+            if (isSystemContent(block.text)) continue;
+            var cleaned = stripXmlTags(block.text);
+            if (cleaned) {
+              result.push({
+                type: "user",
+                uuid: msg.uuid,
+                text: cleaned,
+                timestamp: ts,
+              });
+            }
+          }
+        }
+      } else {
+        var text = extractUserText(apiMsg.content);
+        if (text) {
+          result.push({
+            type: "user",
+            uuid: msg.uuid,
+            text,
+            timestamp: ts,
+          });
+        }
+      }
+    } else if (msg.type === "assistant") {
+      var msgUsage = (apiMsg as Record<string, unknown>).usage as { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } | undefined;
+      var msgModel = ((apiMsg as Record<string, unknown>).model as string) || "";
+      var lastAssistantIdx = -1;
+      if (Array.isArray(apiMsg.content)) {
+        for (var k = 0; k < apiMsg.content.length; k++) {
+          var aBlock = apiMsg.content[k] as { type?: string; text?: string; id?: string; name?: string; input?: unknown };
+          if (aBlock.type === "text" && aBlock.text) {
+            lastAssistantIdx = result.length;
+            result.push({
+              type: "assistant",
+              uuid: msg.uuid + "-text-" + k,
+              text: aBlock.text,
+              timestamp: ts,
+            });
+          } else if (aBlock.type === "tool_use" && aBlock.id && aBlock.name) {
+            result.push({
+              type: "tool_start",
+              toolId: aBlock.id,
+              name: aBlock.name,
+              args: JSON.stringify(aBlock.input ?? {}),
+              timestamp: ts,
+            });
+          }
+        }
+        if (msgUsage && lastAssistantIdx >= 0) {
+          var inTok = msgUsage.input_tokens || 0;
+          var outTok = msgUsage.output_tokens || 0;
+          var cacheRead = msgUsage.cache_read_input_tokens || 0;
+          var cacheCreate = msgUsage.cache_creation_input_tokens || 0;
+          result[lastAssistantIdx].inputTokens = inTok;
+          result[lastAssistantIdx].outputTokens = outTok;
+          result[lastAssistantIdx].model = msgModel;
+          result[lastAssistantIdx].costEstimate = estimateCost(msgModel, inTok, outTok, cacheRead, cacheCreate);
+        }
+      } else {
+        var aText = typeof apiMsg.content === "string" ? apiMsg.content : "";
+        if (aText) {
+          lastAssistantIdx = result.length;
+          result.push({
+            type: "assistant",
+            uuid: msg.uuid,
+            text: aText,
+            timestamp: ts,
+          });
+          if (msgUsage) {
+            var inTok2 = msgUsage.input_tokens || 0;
+            var outTok2 = msgUsage.output_tokens || 0;
+            var cacheRead2 = msgUsage.cache_read_input_tokens || 0;
+            var cacheCreate2 = msgUsage.cache_creation_input_tokens || 0;
+            result[lastAssistantIdx].inputTokens = inTok2;
+            result[lastAssistantIdx].outputTokens = outTok2;
+            result[lastAssistantIdx].model = msgModel;
+            result[lastAssistantIdx].costEstimate = estimateCost(msgModel, inTok2, outTok2, cacheRead2, cacheCreate2);
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+export interface SessionUsageInfo {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  contextWindow: number;
+}
+
+var MODEL_CONTEXT_WINDOWS: Record<string, number> = {
+  "claude-opus-4-6": 1048576,
+  "claude-sonnet-4-6": 1048576,
+  "claude-sonnet-4-5-20250514": 1048576,
+  "claude-haiku-4-5-20251001": 1048576,
+  "claude-sonnet-4-20250514": 200000,
+  "claude-3-5-sonnet-20241022": 200000,
+  "claude-3-5-haiku-20241022": 200000,
+  "claude-3-opus-20240229": 200000,
+};
+
+export function guessContextWindow(model: string): number {
+  if (MODEL_CONTEXT_WINDOWS[model]) return MODEL_CONTEXT_WINDOWS[model];
+  if (model.includes("opus-4") || model.includes("sonnet-4")) return 1048576;
+  if (model.includes("haiku-4")) return 1048576;
+  return 200000;
+}
+
+export async function getSessionUsage(projectSlug: string, sessionId: string): Promise<SessionUsageInfo | null> {
+  var projectPath = getProjectPath(projectSlug);
+  if (!projectPath) return null;
+
+  var hash = projectPathToHash(projectPath);
+  var sessionFile = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+  if (!existsSync(sessionFile)) return null;
+
+  try {
+    var content = readFileSync(sessionFile, "utf-8");
+    var lines = content.trim().split("\n");
+
+    for (var i = lines.length - 1; i >= 0; i--) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      try {
+        var parsed = JSON.parse(line);
+        if (parsed.type === "assistant" && parsed.message && parsed.message.usage) {
+          var usage = parsed.message.usage;
+          var model = parsed.message.model || "";
+          return {
+            inputTokens: usage.input_tokens || 0,
+            outputTokens: usage.output_tokens || 0,
+            cacheReadTokens: usage.cache_read_input_tokens || 0,
+            cacheCreationTokens: usage.cache_creation_input_tokens || 0,
+            contextWindow: guessContextWindow(model),
+          };
+        }
+      } catch {}
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function listSessions(projectSlug: string): Promise<SessionSummary[]> {
+  var projectPath = getProjectPath(projectSlug);
+  if (!projectPath) {
+    return [];
+  }
+
+  try {
+    var sdkSessions = await sdkListSessions({ dir: projectPath });
+    var summaries = sdkSessions.map(function (s) {
+      return mapSDKSession(s, projectSlug);
+    });
+    summaries.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+    return summaries;
+  } catch (err) {
+    console.warn("[lattice] Failed to list SDK sessions:", err);
+    return [];
+  }
+}
+
+export async function getSessionTitle(projectSlug: string, sessionId: string): Promise<string> {
+  var projectPath = getProjectPath(projectSlug);
+  var options = projectPath ? { dir: projectPath } : undefined;
+  try {
+    var info = await getSessionInfo(sessionId, options);
+    if (info) {
+      return info.customTitle || info.summary || info.firstPrompt || "Untitled";
+    }
+  } catch {}
+  return "Untitled";
+}
+
+export async function loadSessionHistory(projectSlug: string, sessionId: string): Promise<HistoryMessage[]> {
+  var projectPath = getProjectPath(projectSlug);
+  var options = projectPath ? { dir: projectPath } : undefined;
+
+  try {
+    var messages = await getSessionMessages(sessionId, options);
+    return convertSessionMessages(messages);
+  } catch (err) {
+    console.warn("[lattice] Failed to load session history:", err);
+    return [];
+  }
+}
+
+export function createSession(projectSlug: string): SessionSummary {
   var sessionId = randomUUID();
   var now = Date.now();
-  var sessionTitle = title || `Session ${new Date(now).toLocaleString()}`;
-
-  var meta: MetaLine = {
-    type: "meta",
-    sessionId,
-    title: sessionTitle,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  var filePath = getSessionPath(projectSlug, sessionId);
-  writeFileSync(filePath, JSON.stringify(meta) + "\n", "utf-8");
-
   return {
     id: sessionId,
     projectSlug,
-    title: sessionTitle,
+    title: "Session " + new Date(now).toLocaleString(),
     createdAt: now,
     updatedAt: now,
-    messageCount: 0,
   };
 }
 
-export function listSessions(projectSlug: string): SessionSummary[] {
-  var dir = getSessionsDir(projectSlug);
-  var files = readdirSync(dir).filter(function (f) {
-    return f.endsWith(".jsonl");
-  });
-
-  var summaries: SessionSummary[] = [];
-
-  for (var file of files) {
-    var filePath = join(dir, file);
-    try {
-      var content = readFileSync(filePath, "utf-8");
-      var lines = content.split("\n").filter(function (l) {
-        return l.trim().length > 0;
-      });
-      if (lines.length === 0) {
-        continue;
-      }
-      var meta = JSON.parse(lines[0]) as MetaLine;
-      if (meta.type !== "meta") {
-        continue;
-      }
-      summaries.push({
-        id: meta.sessionId,
-        projectSlug,
-        title: meta.title,
-        createdAt: meta.createdAt,
-        updatedAt: meta.updatedAt,
-        messageCount: lines.length - 1,
-      });
-    } catch {
-      console.warn(`[lattice] Failed to parse session file: ${file}`);
-    }
-  }
-
-  summaries.sort(function (a, b) {
-    return b.updatedAt - a.updatedAt;
-  });
-
-  return summaries;
-}
-
-export function loadSessionHistory(projectSlug: string, sessionId: string): HistoryMessage[] {
-  var filePath = getSessionPath(projectSlug, sessionId);
-  if (!existsSync(filePath)) {
-    return [];
-  }
-
-  var content = readFileSync(filePath, "utf-8");
-  var lines = content.split("\n").filter(function (l) {
-    return l.trim().length > 0;
-  });
-
-  var messages: HistoryMessage[] = [];
-
-  for (var i = 1; i < lines.length; i++) {
-    try {
-      messages.push(JSON.parse(lines[i]) as HistoryMessage);
-    } catch {
-      console.warn(`[lattice] Failed to parse history line ${i} in session ${sessionId}`);
-    }
-  }
-
-  return messages;
-}
-
-export function appendToSession(projectSlug: string, sessionId: string, message: HistoryMessage): void {
-  var filePath = getSessionPath(projectSlug, sessionId);
-  if (!existsSync(filePath)) {
-    return;
-  }
-
-  appendFileSync(filePath, JSON.stringify(message) + "\n", "utf-8");
-
-  var content = readFileSync(filePath, "utf-8");
-  var lines = content.split("\n").filter(function (l) {
-    return l.trim().length > 0;
-  });
+export async function renameSession(projectSlug: string, sessionId: string, title: string): Promise<boolean> {
+  var projectPath = getProjectPath(projectSlug);
+  var options = projectPath ? { dir: projectPath } : undefined;
 
   try {
-    var meta = JSON.parse(lines[0]) as MetaLine;
-    meta.updatedAt = Date.now();
-    lines[0] = JSON.stringify(meta);
-    writeFileSync(filePath, lines.join("\n") + "\n", "utf-8");
-  } catch {
-    console.warn(`[lattice] Failed to update meta in session ${sessionId}`);
-  }
-}
-
-export function renameSession(projectSlug: string, sessionId: string, title: string): boolean {
-  var filePath = getSessionPath(projectSlug, sessionId);
-  if (!existsSync(filePath)) {
-    return false;
-  }
-
-  var content = readFileSync(filePath, "utf-8");
-  var lines = content.split("\n").filter(function (l) {
-    return l.trim().length > 0;
-  });
-
-  if (lines.length === 0) {
-    return false;
-  }
-
-  try {
-    var meta = JSON.parse(lines[0]) as MetaLine;
-    meta.title = title;
-    meta.updatedAt = Date.now();
-    lines[0] = JSON.stringify(meta);
-    writeFileSync(filePath, lines.join("\n") + "\n", "utf-8");
+    await sdkRenameSession(sessionId, title, options);
     return true;
-  } catch {
-    console.warn(`[lattice] Failed to rename session ${sessionId}`);
+  } catch (err) {
+    console.warn("[lattice] Failed to rename session:", err);
     return false;
   }
 }
 
-export function deleteSession(projectSlug: string, sessionId: string): boolean {
-  var filePath = getSessionPath(projectSlug, sessionId);
-  if (!existsSync(filePath)) {
+export async function deleteSession(projectSlug: string, sessionId: string): Promise<boolean> {
+  var projectPath = getProjectPath(projectSlug);
+  if (!projectPath) {
     return false;
   }
-  unlinkSync(filePath);
-  return true;
+
+  var hash = projectPathToHash(projectPath);
+  var sessionFile = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+
+  if (!existsSync(sessionFile)) {
+    return false;
+  }
+
+  try {
+    unlinkSync(sessionFile);
+    return true;
+  } catch (err) {
+    console.warn("[lattice] Failed to delete session:", err);
+    return false;
+  }
 }
 
-export function findProjectSlugForSession(sessionId: string): string | null {
-  var sessionsRoot = join(getLatticeHome(), "sessions");
-  if (!existsSync(sessionsRoot)) {
-    return null;
-  }
-  var projectDirs = readdirSync(sessionsRoot);
-  for (var projectSlug of projectDirs) {
-    var filePath = join(sessionsRoot, projectSlug, `${sessionId}.jsonl`);
-    if (existsSync(filePath)) {
-      return projectSlug;
+export async function findProjectSlugForSession(sessionId: string): Promise<string | null> {
+  try {
+    var info = await getSessionInfo(sessionId);
+    if (!info || !info.cwd) {
+      return null;
     }
-  }
-  return null;
-}
 
-export function listImportableSessions(projectSlug: string): ImportableSession[] {
-  var projectConfig = loadConfig().projects.find(function (p) { return p.slug === projectSlug; });
-  if (!projectConfig) {
-    return [];
-  }
-
-  var claudeDir = join(homedir(), ".claude", "projects");
-
-  if (!existsSync(claudeDir)) {
-    return [];
-  }
-
-  var projectDirs: string[] = [];
-  try {
-    projectDirs = readdirSync(claudeDir);
-  } catch {
-    return [];
-  }
-
-  var sessionsDir = getSessionsDir(projectSlug);
-  var existingSessionIds = new Set<string>();
-  try {
-    var existingFiles = readdirSync(sessionsDir);
-    for (var i = 0; i < existingFiles.length; i++) {
-      if (existingFiles[i].endsWith(".jsonl")) {
-        existingSessionIds.add(existingFiles[i].replace(".jsonl", ""));
+    var config = loadConfig();
+    for (var i = 0; i < config.projects.length; i++) {
+      if (info.cwd.startsWith(config.projects[i].path)) {
+        return config.projects[i].slug;
       }
     }
-  } catch {
-    // sessions dir may not exist yet
-  }
-
-  var results: ImportableSession[] = [];
-
-  for (var d = 0; d < projectDirs.length; d++) {
-    var hashDir = join(claudeDir, projectDirs[d]);
-    var sessDir = join(hashDir, "sessions");
-    if (!existsSync(sessDir)) {
-      continue;
-    }
-
-    var sessionFiles: string[] = [];
-    try {
-      sessionFiles = readdirSync(sessDir);
-    } catch {
-      continue;
-    }
-
-    for (var f = 0; f < sessionFiles.length; f++) {
-      var file = sessionFiles[f];
-      if (!file.endsWith(".jsonl") && !file.endsWith(".json")) {
-        continue;
-      }
-
-      var sessionId = file.replace(/\.(jsonl|json)$/, "");
-      var filePath = join(sessDir, file);
-
-      try {
-        var content = readFileSync(filePath, "utf-8");
-        var lines = content.trim().split("\n").filter(function (l) { return l.trim().length > 0; });
-        if (lines.length === 0) {
-          continue;
-        }
-
-        var title = "Session " + sessionId.slice(0, 8);
-        var context = "";
-        var messageCount = 0;
-        var createdAt = 0;
-
-        for (var li = 0; li < lines.length; li++) {
-          try {
-            var parsed = JSON.parse(lines[li]);
-            messageCount++;
-            if (li === 0 && parsed.timestamp) {
-              createdAt = parsed.timestamp;
-            }
-            if (!context && parsed.type === "user" && parsed.text) {
-              context = parsed.text.slice(0, 120);
-            }
-            if (parsed.type === "meta" && parsed.title) {
-              title = parsed.title;
-            }
-          } catch {
-            continue;
-          }
-        }
-
-        if (messageCount > 0) {
-          results.push({
-            id: sessionId,
-            title: title,
-            context: context || "(no preview available)",
-            createdAt: createdAt || Date.now(),
-            messageCount: messageCount,
-            alreadyImported: existingSessionIds.has(sessionId),
-          });
-        }
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  results.sort(function (a, b) { return b.createdAt - a.createdAt; });
-
-  return results;
-}
-
-export function importSession(projectSlug: string, claudeSessionId: string): SessionSummary | null {
-  var projectConfig = loadConfig().projects.find(function (p) { return p.slug === projectSlug; });
-  if (!projectConfig) {
     return null;
-  }
-
-  var claudeDir = join(homedir(), ".claude", "projects");
-
-  if (!existsSync(claudeDir)) {
-    return null;
-  }
-
-  var projectDirs: string[] = [];
-  try {
-    projectDirs = readdirSync(claudeDir);
   } catch {
     return null;
   }
-
-  var sourceFile: string | null = null;
-  for (var d = 0; d < projectDirs.length; d++) {
-    var candidate = join(claudeDir, projectDirs[d], "sessions", claudeSessionId + ".jsonl");
-    if (existsSync(candidate)) {
-      sourceFile = candidate;
-      break;
-    }
-    var candidateJson = join(claudeDir, projectDirs[d], "sessions", claudeSessionId + ".json");
-    if (existsSync(candidateJson)) {
-      sourceFile = candidateJson;
-      break;
-    }
-  }
-
-  if (!sourceFile) {
-    return null;
-  }
-
-  var content = readFileSync(sourceFile, "utf-8");
-  var lines = content.trim().split("\n").filter(function (l) { return l.trim().length > 0; });
-
-  var title = "Imported: " + claudeSessionId.slice(0, 8);
-  var messages: HistoryMessage[] = [];
-  var firstTimestamp = Date.now();
-
-  for (var i = 0; i < lines.length; i++) {
-    try {
-      var parsed = JSON.parse(lines[i]);
-      if (parsed.type === "meta" && parsed.title) {
-        title = parsed.title;
-        continue;
-      }
-      if (parsed.timestamp && i === 0) {
-        firstTimestamp = parsed.timestamp;
-      }
-      messages.push(parsed as HistoryMessage);
-    } catch {
-      continue;
-    }
-  }
-
-  var sessionsDir = getSessionsDir(projectSlug);
-  mkdirSync(sessionsDir, { recursive: true });
-
-  var sessionId = claudeSessionId;
-  var sessionFile = join(sessionsDir, sessionId + ".jsonl");
-
-  var meta = JSON.stringify({
-    type: "meta",
-    title: title,
-    createdAt: firstTimestamp,
-    updatedAt: Date.now(),
-  });
-  writeFileSync(sessionFile, meta + "\n");
-
-  for (var m = 0; m < messages.length; m++) {
-    appendFileSync(sessionFile, JSON.stringify(messages[m]) + "\n");
-  }
-
-  return {
-    id: sessionId,
-    projectSlug: projectSlug,
-    title: title,
-    createdAt: firstTimestamp,
-    updatedAt: Date.now(),
-    messageCount: messages.length,
-  };
 }

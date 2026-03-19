@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
 import type { ServerWebSocket } from "bun";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
@@ -13,6 +13,7 @@ import { ensureCerts } from "./tls";
 import type { ClientMessage, MeshMessage } from "@lattice/shared";
 import "./handlers/session";
 import "./handlers/chat";
+import { loadInterruptedSessions } from "./project/sdk-bridge";
 import "./handlers/fs";
 import "./handlers/terminal";
 import "./handlers/settings";
@@ -20,8 +21,10 @@ import "./handlers/mesh";
 import "./handlers/loop";
 import "./handlers/scheduler";
 import "./handlers/notes";
+import "./handlers/skills";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
+import { cleanupClientTerminals } from "./handlers/terminal";
 
 interface WsData {
   id: string;
@@ -231,6 +234,28 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         });
       }
 
+      if (url.pathname === "/api/file") {
+        var reqFilePath = url.searchParams.get("path");
+        if (!reqFilePath) {
+          return new Response("Missing path parameter", { status: 400 });
+        }
+        var resolved = resolve(reqFilePath);
+        if (!existsSync(resolved)) {
+          for (var pi = 0; pi < config.projects.length; pi++) {
+            var projectResolved = join(config.projects[pi].path, reqFilePath);
+            if (existsSync(projectResolved)) {
+              resolved = projectResolved;
+              break;
+            }
+          }
+        }
+        if (!existsSync(resolved)) {
+          return new Response("File not found", { status: 404 });
+        }
+        var reqFile = Bun.file(resolved);
+        return new Response(reqFile);
+      }
+
       if (url.pathname === "/ws") {
         var upgraded = server.upgrade(req, {
           data: { id: crypto.randomUUID() },
@@ -241,8 +266,8 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
 
-      var filePath = url.pathname === "/" ? "/index.html" : url.pathname;
-      var file = Bun.file(join(clientDir, filePath));
+      var staticPath = url.pathname === "/" ? "/index.html" : url.pathname;
+      var file = Bun.file(join(clientDir, staticPath));
       if (await file.exists()) {
         return new Response(file);
       }
@@ -271,6 +296,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       },
       close(ws: ServerWebSocket<WsData>) {
         removeClient(ws.data.id);
+        cleanupClientTerminals(ws.data.id);
         console.log(`[lattice] Client disconnected: ${ws.data.id}`);
       },
     },
@@ -285,6 +311,8 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   startScheduler();
 
   loadNotes();
+
+  loadInterruptedSessions();
 
   onPeerConnected(function (nodeId: string) {
     broadcast({ type: "mesh:node_online", nodeId: nodeId });

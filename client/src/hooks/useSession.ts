@@ -3,6 +3,7 @@ import { useStore } from "@tanstack/react-store";
 import type { HistoryMessage } from "@lattice/shared";
 import type {
   ChatDeltaMessage,
+  ChatSendMessage,
   ChatToolStartMessage,
   ChatToolResultMessage,
   ChatPermissionRequestMessage,
@@ -32,29 +33,30 @@ import {
   setCurrentAssistantUuid,
   incrementPendingPermissions,
   updatePermissionStatus,
+  setLastResponseStats,
+  getLastReadIndex,
+  setLastReadIndex,
+  markSessionRead,
+  getStreamGeneration,
+  mergeToolResults,
+  setWasInterrupted,
 } from "../stores/session";
 import type { SessionState } from "../stores/session";
 
 var subscriptionsActive = 0;
+var activeStreamGeneration = 0;
 
 export type { SessionState };
 
 export interface UseSessionReturn extends SessionState {
   sendMessage: (text: string, model?: string, effort?: string) => void;
   activateSession: (projectSlug: string, sessionId: string) => void;
+  lastReadIndex: number | null;
 }
 
 export function useSession(): UseSessionReturn {
   var store = getSessionStore();
-  var messages = useStore(store, function (s) { return s.messages; });
-  var isProcessingVal = useStore(store, function (s) { return s.isProcessing; });
-  var activeProjectSlug = useStore(store, function (s) { return s.activeProjectSlug; });
-  var activeSessionId = useStore(store, function (s) { return s.activeSessionId; });
-  var activeSessionTitle = useStore(store, function (s) { return s.activeSessionTitle; });
-  var currentStatus = useStore(store, function (s) { return s.currentStatus; });
-  var contextUsage = useStore(store, function (s) { return s.contextUsage; });
-  var contextBreakdown = useStore(store, function (s) { return s.contextBreakdown; });
-  var pendingPermissionCount = useStore(store, function (s) { return s.pendingPermissionCount; });
+  var state = useStore(store, function (s) { return s; });
   var { send, subscribe, unsubscribe } = useWebSocket();
   var sendRef = useRef(send);
   sendRef.current = send;
@@ -70,14 +72,15 @@ export function useSession(): UseSessionReturn {
     if (!currentSessionId || !text.trim()) {
       return;
     }
-    var msg: Record<string, unknown> = { type: "chat:send", text: text };
+    var msg = { type: "chat:send" as const, text: text } as ChatSendMessage & { model?: string; effort?: string };
     if (model && model !== "default") {
       msg.model = model;
     }
     if (effort) {
       msg.effort = effort;
     }
-    sendRef.current(msg as any);
+    activeStreamGeneration = getStreamGeneration();
+    sendRef.current(msg as ChatSendMessage);
     setIsProcessing(true);
   }
 
@@ -87,7 +90,12 @@ export function useSession(): UseSessionReturn {
       return function () { subscriptionsActive--; };
     }
 
+    function isStaleStream(): boolean {
+      return activeStreamGeneration !== getStreamGeneration();
+    }
+
     function handleUserMessage(msg: ServerMessage) {
+      if (isStaleStream()) return;
       var m = msg as ChatUserMessage;
       setCurrentAssistantUuid(null);
       addSessionMessage({
@@ -99,6 +107,7 @@ export function useSession(): UseSessionReturn {
     }
 
     function handleDelta(msg: ServerMessage) {
+      if (isStaleStream()) return;
       var m = msg as ChatDeltaMessage;
       var uuid = getCurrentAssistantUuid();
 
@@ -117,6 +126,7 @@ export function useSession(): UseSessionReturn {
     }
 
     function handleToolStart(msg: ServerMessage) {
+      if (isStaleStream()) return;
       var m = msg as ChatToolStartMessage;
       setCurrentAssistantUuid(null);
       addSessionMessage({
@@ -129,17 +139,26 @@ export function useSession(): UseSessionReturn {
     }
 
     function handleToolResult(msg: ServerMessage) {
+      if (isStaleStream()) return;
       var m = msg as ChatToolResultMessage;
       updateToolResult(m.toolId, m.content);
     }
 
-    function handleDone() {
+    function handleDone(msg: ServerMessage) {
+      if (isStaleStream()) return;
+      var m = msg as { type: string; cost: number; duration: number; sessionId?: string };
       setIsProcessing(false);
       setCurrentStatus(null);
       setCurrentAssistantUuid(null);
+      setLastResponseStats(m.cost || 0, m.duration || 0);
+      var activeId = getSessionStore().state.activeSessionId;
+      if (activeId) {
+        markSessionRead(activeId, getSessionStore().state.messages.length);
+      }
     }
 
     function handleError(msg: ServerMessage) {
+      if (isStaleStream()) return;
       var m = msg as { type: string; message?: string };
       setIsProcessing(false);
       setCurrentStatus(null);
@@ -148,13 +167,14 @@ export function useSession(): UseSessionReturn {
         addSessionMessage({
           type: "assistant",
           uuid: "error-" + Date.now(),
-          text: "⚠️ " + m.message,
+          text: "Error: " + m.message,
           timestamp: Date.now(),
         } as HistoryMessage);
       }
     }
 
     function handleStatus(msg: ServerMessage) {
+      if (isStaleStream()) return;
       var m = msg as ChatStatusMessage;
       setCurrentStatus({ phase: m.phase, toolName: m.toolName, elapsed: m.elapsed, summary: m.summary });
     }
@@ -189,6 +209,7 @@ export function useSession(): UseSessionReturn {
         args: m.args,
         title: m.title,
         decisionReason: m.decisionReason,
+        permissionRule: m.permissionRule,
         permissionStatus: "pending",
         timestamp: Date.now(),
       } as HistoryMessage);
@@ -202,18 +223,37 @@ export function useSession(): UseSessionReturn {
 
     function handleHistory(msg: ServerMessage) {
       var m = msg as SessionHistoryMessage;
-      setSessionMessages(m.messages);
-      setIsProcessing(false);
-      setCurrentStatus(null);
       setCurrentAssistantUuid(null);
       if (m.sessionId) {
-        setActiveSession(
-          m.projectSlug || getSessionStore().state.activeProjectSlug,
-          m.sessionId,
-          m.title
-        );
+        var projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
         setSidebarSessionId(m.sessionId);
+        activeStreamGeneration = getStreamGeneration();
+        getSessionStore().setState(function (state) {
+          return {
+            ...state,
+            activeProjectSlug: projectSlug,
+            activeSessionId: m.sessionId,
+            activeSessionTitle: m.title ?? null,
+            messages: mergeToolResults(m.messages),
+            isProcessing: false,
+            currentStatus: null,
+            pendingPermissionCount: 0,
+            lastResponseCost: null,
+            lastResponseDuration: null,
+            lastReadIndex: null,
+            historyLoading: false,
+            wasInterrupted: m.interrupted || false,
+          };
+        });
+        var storedIndex = getLastReadIndex(m.sessionId);
+        if (storedIndex >= 0 && storedIndex < m.messages.length) {
+          setLastReadIndex(storedIndex);
+        }
+        markSessionRead(m.sessionId, m.messages.length);
       } else {
+        setSessionMessages(m.messages);
+        setIsProcessing(false);
+        setCurrentStatus(null);
         if (m.projectSlug) {
           getSessionStore().setState(function (state) {
             return { ...state, activeProjectSlug: m.projectSlug };
@@ -257,16 +297,21 @@ export function useSession(): UseSessionReturn {
   }, [subscribe, unsubscribe]);
 
   return {
-    messages,
-    isProcessing: isProcessingVal,
-    activeProjectSlug,
-    activeSessionId,
-    activeSessionTitle,
+    messages: state.messages,
+    isProcessing: state.isProcessing,
+    activeProjectSlug: state.activeProjectSlug,
+    activeSessionId: state.activeSessionId,
+    activeSessionTitle: state.activeSessionTitle,
     sendMessage,
     activateSession,
-    currentStatus,
-    contextUsage,
-    contextBreakdown,
-    pendingPermissionCount,
+    currentStatus: state.currentStatus,
+    contextUsage: state.contextUsage,
+    contextBreakdown: state.contextBreakdown,
+    pendingPermissionCount: state.pendingPermissionCount,
+    lastResponseCost: state.lastResponseCost,
+    lastResponseDuration: state.lastResponseDuration,
+    lastReadIndex: state.lastReadIndex,
+    historyLoading: state.historyLoading,
+    wasInterrupted: state.wasInterrupted,
   };
 }

@@ -1,16 +1,20 @@
-import { useState, useEffect } from "react";
-import { Plus, Download, Search, FolderPlus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, ChevronDown, Search, LayoutDashboard } from "lucide-react";
+import { LatticeLogomark } from "../ui/LatticeLogomark";
 import type { SessionSummary } from "@lattice/shared";
 import { useProjects } from "../../hooks/useProjects";
 import { useMesh } from "../../hooks/useMesh";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { NodeRail } from "./NodeRail";
-import { ProjectList } from "./ProjectList";
+import { useSidebar } from "../../hooks/useSidebar";
+import { useSession } from "../../hooks/useSession";
+import { clearSession } from "../../stores/session";
+import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
-import { ImportPanel } from "./ImportPanel";
 import { UserIsland } from "./UserIsland";
-import { LatticeLogomark } from "../ui/LatticeLogomark";
+import { UserMenu } from "./UserMenu";
 import { SearchFilter } from "./SearchFilter";
+import { ProjectDropdown } from "./ProjectDropdown";
+import { SettingsSidebar } from "./SettingsSidebar";
 
 function SectionLabel({ label, actions }: { label: string; actions?: React.ReactNode }) {
   return (
@@ -28,36 +32,38 @@ function SectionLabel({ label, actions }: { label: string; actions?: React.React
 }
 
 export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
-  var { projects, activeProject, setActiveProject } = useProjects();
-  var { nodes, activeNodeId, setActiveNodeId } = useMesh();
+  var { projects, activeProject } = useProjects();
+  var { nodes } = useMesh();
   var ws = useWebSocket();
-  var [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  var [projectSearch, setProjectSearch] = useState<string>("");
-  var [projectSearchOpen, setProjectSearchOpen] = useState<boolean>(false);
+  var sidebar = useSidebar();
+  var session = useSession();
   var [sessionSearch, setSessionSearch] = useState<string>("");
   var [sessionSearchOpen, setSessionSearchOpen] = useState<boolean>(false);
-  var [importOpen, setImportOpen] = useState<boolean>(false);
+  var userIslandRef = useRef<HTMLElement | null>(null);
+  var projectHeaderRef = useRef<HTMLElement | null>(null);
+
+  var localNode = nodes.find(function (n) { return n.isLocal; });
+  var localNodeName = localNode ? localNode.name : "localhost";
+  var initialActivatedRef = useRef<boolean>(false);
 
   useEffect(function () {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSessionSearchOpen(function (prev) { return !prev; });
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return function () { document.removeEventListener("keydown", handleKeyDown); };
-  }, []);
+    if (initialActivatedRef.current) return;
+    if (!sidebar.activeProjectSlug || !sidebar.activeSessionId) return;
+    if (!activeProject) return;
+    initialActivatedRef.current = true;
+    session.activateSession(sidebar.activeProjectSlug, sidebar.activeSessionId);
+  }, [sidebar.activeProjectSlug, sidebar.activeSessionId, activeProject]);
 
-  function handleSessionActivate(session: SessionSummary) {
-    setActiveSessionId(session.id);
+  // Ctrl/Cmd+K is handled by the global CommandPalette
+
+  function handleSessionActivate(s: SessionSummary) {
+    if (activeProject) {
+      session.activateSession(activeProject.slug, s.id);
+    }
+    sidebar.closeMenus();
     if (onSessionSelect) {
       onSessionSelect();
     }
-  }
-
-  function handleAddProject() {
-    console.log("[lattice] Add project: not yet implemented");
   }
 
   function handleNewSession() {
@@ -67,112 +73,116 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
     ws.send({ type: "session:create", projectSlug: activeProject.slug });
   }
 
-  function handleSettingsClick() {
-    console.log("[lattice] Settings: not yet implemented");
-  }
-
-  var filteredProjects = activeNodeId
-    ? projects.filter(function (p) { return p.nodeId === activeNodeId; })
-    : projects;
-
   return (
-    <div className="flex flex-row h-full w-full overflow-hidden bg-base-200">
-      {nodes.length > 0 && (
-        <NodeRail
-          nodes={nodes}
-          activeNodeId={activeNodeId}
-          onSelectNode={setActiveNodeId}
-        />
-      )}
-
-      <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-        <div className="px-4 py-3 border-b border-base-300 flex-shrink-0 flex items-center gap-2">
-          <LatticeLogomark size={20} />
-          <span className="text-sm font-mono font-bold tracking-widest text-base-content/80 uppercase">
-            lattice
-          </span>
-        </div>
-
-        <div className="flex flex-col overflow-hidden min-h-0" style={{ flex: "0 0 auto", maxHeight: "40%" }}>
-          <SectionLabel
-            label="Projects"
-            actions={
+    <div className="flex flex-row h-full w-full overflow-hidden">
+      <ProjectRail
+        projects={projects}
+        nodes={nodes}
+        activeProjectSlug={sidebar.activeProjectSlug}
+        onSelectProject={sidebar.setActiveProjectSlug}
+        onUserAvatarClick={sidebar.toggleUserMenu}
+        onDashboardClick={sidebar.goToDashboard}
+        isDashboardActive={sidebar.activeView.type === "dashboard"}
+        localNodeName={localNodeName}
+        dimmed={sidebar.sidebarMode === "settings"}
+      />
+      <div className="flex flex-col flex-1 overflow-hidden min-h-0 bg-base-200 border-r border-base-300">
+        {sidebar.sidebarMode === "project" ? (
+          <>
+            {sidebar.activeView.type === "dashboard" ? (
               <>
-                <button onClick={function () { setProjectSearchOpen(function (v) { return !v; }); }} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="Search projects">
-                  <Search size={13} />
-                </button>
-                <button onClick={handleAddProject} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="Add project">
-                  <FolderPlus size={13} />
-                </button>
+                <div className="px-4 py-3 border-b border-base-300 flex-shrink-0 flex items-center gap-2">
+                  <LatticeLogomark size={18} />
+                  <span className="text-[13px] font-mono font-bold text-base-content/90">
+                    Lattice
+                  </span>
+                </div>
+                <div className="flex-1 overflow-auto px-4 py-3">
+                  <SectionLabel label="Projects" />
+                  <div className="text-[12px] text-base-content/40 px-4">
+                    Select a project from the rail to view sessions.
+                  </div>
+                </div>
               </>
-            }
-          />
-          {projectSearchOpen && (
-            <SearchFilter
-              value={projectSearch}
-              onChange={setProjectSearch}
-              onClose={function () { setProjectSearchOpen(false); setProjectSearch(""); }}
-              placeholder="Filter projects..."
-            />
-          )}
-          <ProjectList
-            projects={filteredProjects}
-            activeProject={activeProject}
-            onSelect={setActiveProject}
-            filter={projectSearch}
-          />
-        </div>
-
-        <div className="divider m-0 px-4 h-px bg-base-300 flex-shrink-0" />
-
-        <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-          <SectionLabel
-            label="Sessions"
-            actions={
+            ) : (
               <>
-                <button onClick={function () { setSessionSearchOpen(function (v) { return !v; }); }} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="Search sessions">
-                  <Search size={13} />
+                <button
+                  type="button"
+                  ref={function (el) { projectHeaderRef.current = el; }}
+                  onClick={sidebar.toggleProjectDropdown}
+                  aria-label="Switch project"
+                  aria-expanded={sidebar.projectDropdownOpen}
+                  className="w-full px-4 py-3 border-b border-base-300 flex-shrink-0 flex items-center justify-between cursor-pointer hover:bg-base-300/30 transition-colors text-left"
+                >
+                  <span className="text-[13px] font-mono font-bold text-base-content/90">
+                    {activeProject?.title ?? "No Project"}
+                  </span>
+                  <ChevronDown size={14} className="text-base-content/30" />
                 </button>
-                <button onClick={function () { setImportOpen(function (v) { return !v; }); }} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="Import sessions">
-                  <Download size={13} />
-                </button>
-                <button onClick={handleNewSession} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="New session">
-                  <Plus size={13} />
-                </button>
-              </>
-            }
-          />
-          {sessionSearchOpen && (
-            <SearchFilter
-              value={sessionSearch}
-              onChange={setSessionSearch}
-              onClose={function () { setSessionSearchOpen(false); setSessionSearch(""); }}
-              placeholder="Filter sessions..."
-            />
-          )}
-          <SessionList
-            projectSlug={activeProject?.slug ?? null}
-            activeSessionId={activeSessionId}
-            onSessionActivate={handleSessionActivate}
-            filter={sessionSearch}
-          />
-        </div>
 
-        {importOpen && activeProject && (
-          <ImportPanel
-            projectSlug={activeProject.slug}
-            onClose={function () { setImportOpen(false); }}
-            onImported={function () { setImportOpen(false); }}
+                <button
+                  type="button"
+                  onClick={function () { sidebar.goToDashboard(); }}
+                  className="flex items-center gap-2 mx-3 mt-2 px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                >
+                  <LayoutDashboard size={12} />
+                  <span className="font-mono tracking-wide">Dashboard</span>
+                </button>
+
+                <SectionLabel
+                  label="Sessions"
+                  actions={
+                    <>
+                      <button onClick={function () { setSessionSearchOpen(function (v) { return !v; }); }} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="Search sessions">
+                        <Search size={13} />
+                      </button>
+                      <button onClick={handleNewSession} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="New session">
+                        <Plus size={13} />
+                      </button>
+                    </>
+                  }
+                />
+                {sessionSearchOpen && (
+                  <SearchFilter
+                    value={sessionSearch}
+                    onChange={setSessionSearch}
+                    onClose={function () { setSessionSearchOpen(false); setSessionSearch(""); }}
+                    placeholder="Filter sessions..."
+                  />
+                )}
+                <SessionList
+                  projectSlug={activeProject?.slug ?? null}
+                  activeSessionId={session.activeSessionId}
+                  onSessionActivate={handleSessionActivate}
+                  onSessionDeactivate={clearSession}
+                  filter={sessionSearch}
+                />
+              </>
+            )}
+
+            <div className="divider m-0 h-px bg-base-300 flex-shrink-0" />
+
+            <div ref={function (el) { userIslandRef.current = el; }}>
+              <UserIsland nodeName={localNodeName} onClick={sidebar.toggleUserMenu} />
+            </div>
+          </>
+        ) : (
+          <SettingsSidebar
+            projectName={activeProject?.title ?? "Dashboard"}
+            onBack={sidebar.exitSettings}
           />
         )}
-
-        <div className="divider m-0 h-px bg-base-300 flex-shrink-0" />
-
-        <UserIsland
-          nodeName="localhost"
-          onSettingsClick={handleSettingsClick}
-        />
       </div>
+
+      {sidebar.userMenuOpen && (
+        <UserMenu anchorRef={userIslandRef} onClose={sidebar.closeMenus} />
+      )}
+      {sidebar.projectDropdownOpen && (
+        <ProjectDropdown
+          anchorRef={projectHeaderRef}
+          onClose={sidebar.closeMenus}
+        />
+      )}
     </div>
   );
 }

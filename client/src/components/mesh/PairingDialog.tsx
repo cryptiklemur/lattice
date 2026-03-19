@@ -113,11 +113,14 @@ export function PairingDialog(props: PairingDialogProps) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pair a node"
       className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 backdrop-blur-sm"
       onClick={props.onClose}
     >
       <div
-        className="w-[440px] rounded-xl border border-base-300 bg-base-200 overflow-hidden shadow-2xl"
+        className="w-[440px] max-w-[calc(100vw-24px)] rounded-xl border border-base-300 bg-base-200 overflow-hidden shadow-2xl"
         onClick={function (e) { e.stopPropagation(); }}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-300">

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import type { ReactNode } from "react";
+import { X, Info, AlertTriangle, AlertCircle } from "lucide-react";
 
 export interface ToastItem {
   id: string;
@@ -12,30 +12,47 @@ interface ToastProps {
   onDismiss: (id: string) => void;
 }
 
+var ICON_MAP = {
+  info: Info,
+  warning: AlertTriangle,
+  error: AlertCircle,
+};
+
+var ACCENT_MAP = {
+  info: "bg-primary",
+  warning: "bg-warning",
+  error: "bg-error",
+};
+
+var ICON_COLOR_MAP = {
+  info: "text-primary",
+  warning: "text-warning",
+  error: "text-error",
+};
+
 export function Toast(props: ToastProps) {
   if (props.items.length === 0) {
     return null;
   }
 
   return (
-    <div className="toast toast-top toast-end z-[9999]">
+    <div className="fixed top-3 right-3 z-[9999] flex flex-col gap-2 max-w-[340px]">
       {props.items.map(function (item) {
-        var alertClass =
-          item.type === "error"
-            ? "alert-error"
-            : item.type === "warning"
-            ? "alert-warning"
-            : "alert-info";
-
+        var Icon = ICON_MAP[item.type];
         return (
-          <div key={item.id} className={"alert " + alertClass + " flex items-center gap-3 pr-2 shadow-lg max-w-[360px] animate-[toast-in_0.18s_ease]"}>
-            <span className="flex-1 text-[13px] font-medium leading-snug">{item.message}</span>
+          <div
+            key={item.id}
+            className="flex items-start gap-2.5 bg-base-300 border border-base-content/10 rounded-lg shadow-xl px-3 py-2.5 animate-[toast-in_0.18s_ease]"
+          >
+            <div className={"w-0.5 self-stretch rounded-full flex-shrink-0 " + ACCENT_MAP[item.type]} />
+            <Icon size={14} className={"flex-shrink-0 mt-0.5 " + ICON_COLOR_MAP[item.type]} />
+            <span className="flex-1 text-[13px] text-base-content/80 leading-snug">{item.message}</span>
             <button
               onClick={function () { props.onDismiss(item.id); }}
               aria-label="Dismiss"
-              className="btn btn-ghost btn-xs btn-square opacity-70 hover:opacity-100"
+              className="flex-shrink-0 text-base-content/30 hover:text-base-content/60 transition-colors mt-0.5"
             >
-              &times;
+              <X size={13} />
             </button>
           </div>
         );

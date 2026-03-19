@@ -98,7 +98,7 @@ export function Environment() {
       </div>
 
       {entries.length > 0 && (
-        <div className="grid gap-1.5 mb-2.5" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
+        <div className="hidden sm:grid gap-1.5 mb-2.5" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
           <div className="text-[11px] text-base-content/40 font-semibold tracking-[0.06em] uppercase px-0.5">Key</div>
           <div className="text-[11px] text-base-content/40 font-semibold tracking-[0.06em] uppercase px-0.5">Value</div>
           <div className="w-7" />
@@ -110,7 +110,7 @@ export function Environment() {
           return (
             <div
               key={entry.id}
-              className="grid gap-1.5 items-center"
+              className="flex flex-col sm:grid gap-1.5 sm:items-center"
               style={{ gridTemplateColumns: "1fr 1fr auto" }}
             >
               <input
@@ -118,6 +118,7 @@ export function Environment() {
                 value={entry.key}
                 onChange={function (e) { handleKeyChange(entry.id, e.target.value); }}
                 placeholder="VARIABLE_NAME"
+                aria-label={"Variable name for row " + (entries.indexOf(entry) + 1)}
                 className="input input-bordered input-xs bg-base-300 text-base-content font-mono text-[12px] focus:border-info"
               />
               <input
@@ -125,6 +126,7 @@ export function Environment() {
                 value={entry.value}
                 onChange={function (e) { handleValueChange(entry.id, e.target.value); }}
                 placeholder="value"
+                aria-label={"Value for " + (entry.key || "row " + (entries.indexOf(entry) + 1))}
                 className="input input-bordered input-xs bg-base-300 text-base-content font-mono text-[12px] focus:border-info"
               />
               <button
@@ -155,7 +157,7 @@ export function Environment() {
           className={
             "btn btn-sm " +
             (saved ? "btn-success" : "btn-info") +
-            (saving ? " opacity-70 cursor-not-allowed" : "")
+            (saving ? " opacity-50 cursor-not-allowed" : "")
           }
         >
           {saving ? "Saving..." : saved ? "Saved" : "Save Changes"}

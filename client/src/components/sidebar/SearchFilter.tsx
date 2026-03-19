@@ -40,6 +40,7 @@ export function SearchFilter(props: SearchFilterProps) {
         {props.value.length > 0 && (
           <button
             onClick={function () { props.onChange(""); }}
+            aria-label="Clear search"
             className="text-base-content/30 hover:text-base-content flex-shrink-0"
           >
             <X size={11} />

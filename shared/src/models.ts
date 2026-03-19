@@ -55,6 +55,12 @@ export interface HistoryMessage {
   title?: string;
   decisionReason?: string;
   permissionStatus?: "pending" | "allowed" | "denied" | "always_allowed";
+  permissionRule?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  model?: string;
+  costEstimate?: number;
+  duration?: number;
 }
 
 export interface PeerInfo {

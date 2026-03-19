@@ -9,11 +9,11 @@ interface NodeStatus {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center py-2.5 border-b border-base-300 gap-4">
-      <div className="w-[120px] text-[12px] text-base-content/40 uppercase tracking-[0.06em] font-semibold flex-shrink-0">
+    <div className="flex flex-col sm:flex-row sm:items-center py-2.5 border-b border-base-300 gap-1 sm:gap-4">
+      <div className="sm:w-[120px] text-[12px] text-base-content/40 uppercase tracking-[0.06em] font-semibold flex-shrink-0">
         {label}
       </div>
-      <div className="text-[13px] text-base-content font-mono">
+      <div className="text-[13px] text-base-content font-mono break-all sm:break-normal">
         {value}
       </div>
     </div>
@@ -69,7 +69,7 @@ export function Status() {
         </div>
       )}
 
-      <div className="mt-6 p-3 px-3.5 bg-base-300 rounded-md border border-base-300 flex gap-6">
+      <div className="mt-6 p-3 px-3.5 bg-base-300 rounded-md border border-base-300 flex flex-wrap gap-4 sm:gap-6">
         <div>
           <div className="text-[11px] text-base-content/40 mb-1">Status</div>
           <div className="flex items-center gap-1.5 text-[13px] text-success">
