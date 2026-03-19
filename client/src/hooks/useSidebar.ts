@@ -5,6 +5,8 @@ import {
   setActiveSessionId,
   openSettings,
   setSettingsSection,
+  openProjectSettings,
+  setProjectSettingsSection,
   exitSettings,
   toggleUserMenu,
   toggleProjectDropdown,
@@ -13,13 +15,15 @@ import {
   toggleDrawer,
   closeDrawer,
 } from "../stores/sidebar";
-import type { SidebarState, SettingsSection } from "../stores/sidebar";
+import type { SidebarState, SettingsSection, ProjectSettingsSection } from "../stores/sidebar";
 
 export function useSidebar(): SidebarState & {
   setActiveProjectSlug: (slug: string | null) => void;
   setActiveSessionId: (sessionId: string | null) => void;
   openSettings: (section: SettingsSection) => void;
   setSettingsSection: (section: SettingsSection) => void;
+  openProjectSettings: (section: ProjectSettingsSection) => void;
+  setProjectSettingsSection: (section: ProjectSettingsSection) => void;
   exitSettings: () => void;
   toggleUserMenu: () => void;
   toggleProjectDropdown: () => void;
@@ -44,6 +48,8 @@ export function useSidebar(): SidebarState & {
     setActiveSessionId: setActiveSessionId,
     openSettings: openSettings,
     setSettingsSection: setSettingsSection,
+    openProjectSettings: openProjectSettings,
+    setProjectSettingsSection: setProjectSettingsSection,
     exitSettings: exitSettings,
     toggleUserMenu: toggleUserMenu,
     toggleProjectDropdown: toggleProjectDropdown,

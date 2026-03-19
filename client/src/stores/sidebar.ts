@@ -1,4 +1,7 @@
 import { Store } from "@tanstack/react-store";
+import type { ProjectSettingsSection } from "@lattice/shared";
+
+export type { ProjectSettingsSection };
 
 export type SettingsSection =
   | "status" | "appearance" | "claude" | "environment"
@@ -9,7 +12,8 @@ export type SidebarMode = "project" | "settings";
 export type ActiveView =
   | { type: "dashboard" }
   | { type: "chat" }
-  | { type: "settings"; section: SettingsSection };
+  | { type: "settings"; section: SettingsSection }
+  | { type: "project-settings"; section: ProjectSettingsSection };
 
 export interface SidebarState {
   activeProjectSlug: string | null;
@@ -24,23 +28,26 @@ export interface SidebarState {
 
 var SETTINGS_SECTIONS: SettingsSection[] = ["status", "appearance", "claude", "environment", "mcp", "skills", "nodes"];
 
-function parseInitialUrl(): { projectSlug: string | null; sessionId: string | null; settingsSection: SettingsSection | null } {
+function parseInitialUrl(): { projectSlug: string | null; sessionId: string | null; settingsSection: SettingsSection | null; projectSettingsSection: ProjectSettingsSection | null } {
   var path = window.location.pathname;
   var parts = path.split("/").filter(function (p) { return p.length > 0; });
   if (parts[0] === "settings") {
     var section = parts[1] as SettingsSection;
     if (section && SETTINGS_SECTIONS.indexOf(section) !== -1) {
-      return { projectSlug: null, sessionId: null, settingsSection: section };
+      return { projectSlug: null, sessionId: null, settingsSection: section, projectSettingsSection: null };
     }
-    return { projectSlug: null, sessionId: null, settingsSection: "status" };
+    return { projectSlug: null, sessionId: null, settingsSection: "status", projectSettingsSection: null };
+  }
+  if (parts.length >= 2 && parts[1] === "settings") {
+    return { projectSlug: parts[0], sessionId: null, settingsSection: null, projectSettingsSection: (parts[2] || "general") as ProjectSettingsSection };
   }
   if (parts.length >= 2) {
-    return { projectSlug: parts[0], sessionId: parts[1], settingsSection: null };
+    return { projectSlug: parts[0], sessionId: parts[1], settingsSection: null, projectSettingsSection: null };
   }
   if (parts.length === 1) {
-    return { projectSlug: parts[0], sessionId: null, settingsSection: null };
+    return { projectSlug: parts[0], sessionId: null, settingsSection: null, projectSettingsSection: null };
   }
-  return { projectSlug: null, sessionId: null, settingsSection: null };
+  return { projectSlug: null, sessionId: null, settingsSection: null, projectSettingsSection: null };
 }
 
 var initialUrl = parseInitialUrl();
@@ -48,9 +55,11 @@ var initialUrl = parseInitialUrl();
 var sidebarStore = new Store<SidebarState>({
   activeProjectSlug: initialUrl.settingsSection ? null : initialUrl.projectSlug,
   activeSessionId: initialUrl.settingsSection ? null : initialUrl.sessionId,
-  sidebarMode: initialUrl.settingsSection ? "settings" : "project",
+  sidebarMode: (initialUrl.settingsSection || initialUrl.projectSettingsSection) ? "settings" : "project",
   activeView: initialUrl.settingsSection
     ? { type: "settings", section: initialUrl.settingsSection }
+    : initialUrl.projectSettingsSection
+    ? { type: "project-settings", section: initialUrl.projectSettingsSection }
     : initialUrl.projectSlug
     ? { type: "chat" }
     : { type: "dashboard" },
@@ -130,6 +139,38 @@ export function setSettingsSection(section: SettingsSection): void {
   }
 }
 
+export function openProjectSettings(section: ProjectSettingsSection): void {
+  sidebarStore.setState(function (state) {
+    return {
+      ...state,
+      sidebarMode: "settings",
+      previousView: state.activeView.type !== "settings" && state.activeView.type !== "project-settings" ? state.activeView : state.previousView,
+      activeView: { type: "project-settings", section: section },
+      userMenuOpen: false,
+      projectDropdownOpen: false,
+    };
+  });
+  var state = sidebarStore.state;
+  var path = "/" + state.activeProjectSlug + "/settings/" + section;
+  if (window.location.pathname !== path) {
+    window.history.pushState(null, "", path);
+  }
+}
+
+export function setProjectSettingsSection(section: ProjectSettingsSection): void {
+  sidebarStore.setState(function (state) {
+    return {
+      ...state,
+      activeView: { type: "project-settings", section: section },
+    };
+  });
+  var state = sidebarStore.state;
+  var path = "/" + state.activeProjectSlug + "/settings/" + section;
+  if (window.location.pathname !== path) {
+    window.history.replaceState(null, "", path);
+  }
+}
+
 export function exitSettings(): void {
   var state = sidebarStore.state;
   var restored = state.previousView ?? { type: "chat" } as ActiveView;
@@ -141,7 +182,11 @@ export function exitSettings(): void {
       previousView: null,
     };
   });
-  pushUrl(state.activeProjectSlug, state.activeSessionId);
+  if (state.activeView.type === "project-settings") {
+    pushUrl(state.activeProjectSlug, null);
+  } else {
+    pushUrl(state.activeProjectSlug, state.activeSessionId);
+  }
 }
 
 export function goToDashboard(): void {
@@ -167,6 +212,17 @@ export function handlePopState(): void {
         ...state,
         sidebarMode: "settings",
         activeView: { type: "settings", section: url.settingsSection! },
+        userMenuOpen: false,
+        projectDropdownOpen: false,
+      };
+    });
+  } else if (url.projectSettingsSection) {
+    sidebarStore.setState(function (state) {
+      return {
+        ...state,
+        activeProjectSlug: url.projectSlug,
+        sidebarMode: "settings",
+        activeView: { type: "project-settings", section: url.projectSettingsSection! },
         userMenuOpen: false,
         projectDropdownOpen: false,
       };

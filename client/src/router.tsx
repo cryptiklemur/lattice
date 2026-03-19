@@ -318,6 +318,9 @@ function IndexPage() {
   if (sidebar.activeView.type === "settings") {
     return <SettingsView />;
   }
+  if (sidebar.activeView.type === "project-settings") {
+    return <div className="flex-1 p-8 text-base-content">Project Settings</div>;
+  }
   return <ChatView />;
 }
 
@@ -355,7 +358,19 @@ var settingsIndexRoute = createRoute({
   component: IndexPage,
 });
 
-var routeTree = rootRoute.addChildren([indexRoute, settingsIndexRoute, settingsRoute, projectRoute, sessionRoute]);
+var projectSettingsRoute = createRoute({
+  getParentRoute: function () { return rootRoute; },
+  path: "/$projectSlug/settings/$section",
+  component: IndexPage,
+});
+
+var projectSettingsIndexRoute = createRoute({
+  getParentRoute: function () { return rootRoute; },
+  path: "/$projectSlug/settings",
+  component: IndexPage,
+});
+
+var routeTree = rootRoute.addChildren([indexRoute, settingsIndexRoute, settingsRoute, projectSettingsIndexRoute, projectSettingsRoute, projectRoute, sessionRoute]);
 
 export var router = createRouter({ routeTree });
 
