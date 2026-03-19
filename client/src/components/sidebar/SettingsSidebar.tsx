@@ -1,6 +1,6 @@
-import { ArrowLeft, Clock, Palette, FileText, Terminal, Plug, Sparkles, Network } from "lucide-react";
+import { ArrowLeft, Clock, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield } from "lucide-react";
 import { useSidebar } from "../../hooks/useSidebar";
-import type { SettingsSection } from "../../stores/sidebar";
+import type { SettingsSection, ProjectSettingsSection } from "../../stores/sidebar";
 
 interface SettingsSidebarProps {
   projectName: string;
@@ -21,7 +21,7 @@ var SETTINGS_NAV = [
     group: "INTEGRATIONS",
     items: [
       { id: "mcp" as SettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
-      { id: "skills" as SettingsSection, label: "Skills", icon: <Sparkles size={14} /> },
+      { id: "skills" as SettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
     ],
   },
   {
@@ -32,18 +32,59 @@ var SETTINGS_NAV = [
   },
 ];
 
+var PROJECT_SETTINGS_NAV = [
+  {
+    group: "GENERAL",
+    items: [
+      { id: "general" as ProjectSettingsSection, label: "General", icon: <Settings size={14} /> },
+      { id: "claude" as ProjectSettingsSection, label: "Claude", icon: <FileText size={14} /> },
+      { id: "environment" as ProjectSettingsSection, label: "Environment", icon: <Terminal size={14} /> },
+    ],
+  },
+  {
+    group: "INTEGRATIONS",
+    items: [
+      { id: "mcp" as ProjectSettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
+      { id: "skills" as ProjectSettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
+    ],
+  },
+  {
+    group: "CONFIGURATION",
+    items: [
+      { id: "rules" as ProjectSettingsSection, label: "Rules", icon: <ScrollText size={14} /> },
+      { id: "permissions" as ProjectSettingsSection, label: "Permissions", icon: <Shield size={14} /> },
+    ],
+  },
+];
+
 export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
-  var { activeView, setSettingsSection } = useSidebar();
-  var activeSection = activeView.type === "settings" ? activeView.section : null;
+  var { activeView, setSettingsSection, setProjectSettingsSection } = useSidebar();
+  var isProjectSettings = activeView.type === "project-settings";
+  var activeSection = activeView.type === "settings"
+    ? activeView.section
+    : activeView.type === "project-settings"
+    ? activeView.section
+    : null;
+
+  var nav = isProjectSettings ? PROJECT_SETTINGS_NAV : SETTINGS_NAV;
+  var headerLabel = isProjectSettings ? "Project Settings" : "Settings";
+
+  function handleItemClick(id: string) {
+    if (isProjectSettings) {
+      setProjectSettingsSection(id as ProjectSettingsSection);
+    } else {
+      setSettingsSection(id as SettingsSection);
+    }
+  }
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-base-200">
       <div className="px-4 py-3 border-b border-base-300 flex-shrink-0">
-        <span className="text-[13px] font-mono font-bold text-base-content">Settings</span>
+        <span className="text-[13px] font-mono font-bold text-base-content">{headerLabel}</span>
       </div>
 
       <div className="flex flex-col flex-1 overflow-y-auto min-h-0 py-2">
-        {SETTINGS_NAV.map(function (group) {
+        {nav.map(function (group) {
           return (
             <div key={group.group} className="mb-2">
               <div className="px-4 pt-3 pb-1">
@@ -56,9 +97,9 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
                 return (
                   <button
                     key={item.id}
-                    onClick={function () { setSettingsSection(item.id); }}
+                    onClick={function () { handleItemClick(item.id); }}
                     className={
-                      "w-full flex items-center gap-2.5 px-4 py-1.5 text-[13px] transition-colors duration-[100ms] text-left " +
+                      "w-full flex items-center gap-2.5 px-4 py-2.5 sm:py-1.5 text-[13px] transition-colors duration-[100ms] text-left " +
                       (isActive
                         ? "bg-primary/20 text-base-content font-medium"
                         : "text-base-content/55 hover:bg-base-content/5 hover:text-base-content")
@@ -77,7 +118,7 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
       <div className="border-t border-base-300 flex-shrink-0">
         <button
           onClick={onBack}
-          className="w-full flex items-center gap-2 px-4 py-3 text-[12px] text-base-content/50 hover:text-base-content transition-colors duration-[100ms]"
+          className="w-full flex items-center gap-2 px-4 py-3.5 sm:py-3 text-[12px] text-base-content/50 hover:text-base-content transition-colors duration-[100ms]"
         >
           <ArrowLeft size={13} />
           Back to {projectName}
