@@ -30,6 +30,10 @@ function renderSection(
     return <ProjectClaude settings={settings} updateSection={updateSection} />;
   }
 
+  if (section === "environment") {
+    return <ProjectEnvironment settings={settings} updateSection={updateSection} />;
+  }
+
   return (
     <div className="py-2 text-[13px] text-base-content/40">
       {section} section coming soon.
