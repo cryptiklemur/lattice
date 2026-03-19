@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { SaveFooter } from "../ui/SaveFooter";
+import { useSaveState } from "../../hooks/useSaveState";
 import type { ProjectSettings, ThinkingConfig } from "@lattice/shared";
 
 var CLAUDE_MODELS = [
@@ -56,29 +58,27 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
   var [budgetTokens, setBudgetTokens] = useState<number>(
     settings.thinking?.type === "enabled" ? (settings.thinking.budgetTokens ?? 10000) : 10000,
   );
-  var [dirty, setDirty] = useState(false);
-  var [saving, setSaving] = useState(false);
   var [showGlobalMd, setShowGlobalMd] = useState(false);
+  var save = useSaveState();
 
   useEffect(function () {
-    setClaudeMd(settings.claudeMd ?? "");
-    setDefaultModel(settings.defaultModel);
-    setDefaultEffort(settings.defaultEffort);
-    setThinking(settings.thinking);
-    setPermissionMode(settings.permissionMode);
-    if (settings.thinking?.type === "enabled") {
-      setBudgetTokens(settings.thinking.budgetTokens ?? 10000);
+    if (save.saving) {
+      save.confirmSave();
+    } else {
+      setClaudeMd(settings.claudeMd ?? "");
+      setDefaultModel(settings.defaultModel);
+      setDefaultEffort(settings.defaultEffort);
+      setThinking(settings.thinking);
+      setPermissionMode(settings.permissionMode);
+      if (settings.thinking?.type === "enabled") {
+        setBudgetTokens(settings.thinking.budgetTokens ?? 10000);
+      }
+      save.resetFromServer();
     }
-    setDirty(false);
-    setSaving(false);
   }, [settings]);
 
-  function markDirty() {
-    setDirty(true);
-  }
-
   function handleSave() {
-    setSaving(true);
+    save.startSave();
     var thinkingValue: ThinkingConfig | undefined = thinking;
     if (thinkingValue?.type === "enabled") {
       thinkingValue = { type: "enabled", budgetTokens };
@@ -90,8 +90,6 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
       thinking: thinkingValue,
       permissionMode,
     });
-    setSaving(false);
-    setDirty(false);
   }
 
   var globalModel = settings.global.defaultModel || CLAUDE_MODELS[0].id;
@@ -106,7 +104,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
         <textarea
           id="project-claude-md"
           value={claudeMd}
-          onChange={function (e) { setClaudeMd(e.target.value); markDirty(); }}
+          onChange={function (e) { setClaudeMd(e.target.value); save.markDirty(); }}
           placeholder="# Project-specific instructions for Claude..."
           rows={10}
           className="w-full px-3 py-2.5 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[12px] font-mono leading-relaxed resize-y focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
@@ -141,7 +139,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           onChange={function (e) {
             var val = e.target.value || undefined;
             setDefaultModel(val);
-            markDirty();
+            save.markDirty();
           }}
           className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
         >
@@ -159,7 +157,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
         {defaultModel && (
           <button
             type="button"
-            onClick={function () { setDefaultModel(undefined); markDirty(); }}
+            onClick={function () { setDefaultModel(undefined); save.markDirty(); }}
             className="mt-1.5 text-[11px] text-primary/70 hover:text-primary transition-colors"
           >
             Clear override
@@ -173,7 +171,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           <button
             role="radio"
             aria-checked={defaultEffort === undefined}
-            onClick={function () { setDefaultEffort(undefined); markDirty(); }}
+            onClick={function () { setDefaultEffort(undefined); save.markDirty(); }}
             className={
               "flex-1 py-2.5 sm:py-1.5 rounded-lg border text-[12px] transition-colors duration-[120ms] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100 " +
               (defaultEffort === undefined
@@ -190,7 +188,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
                 key={e.id}
                 role="radio"
                 aria-checked={active}
-                onClick={function () { setDefaultEffort(e.id); markDirty(); }}
+                onClick={function () { setDefaultEffort(e.id); save.markDirty(); }}
                 className={
                   "flex-1 py-2.5 sm:py-1.5 rounded-lg border text-[12px] transition-colors duration-[120ms] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100 " +
                   (active
@@ -211,7 +209,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           <button
             role="radio"
             aria-checked={thinking === undefined}
-            onClick={function () { setThinking(undefined); markDirty(); }}
+            onClick={function () { setThinking(undefined); save.markDirty(); }}
             className={
               "flex-1 py-2.5 sm:py-1.5 rounded-lg border text-[12px] transition-colors duration-[120ms] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100 " +
               (thinking === undefined
@@ -233,7 +231,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
                     ? { type: "enabled", budgetTokens }
                     : { type: t.id as "adaptive" | "disabled" };
                   setThinking(cfg);
-                  markDirty();
+                  save.markDirty();
                 }}
                 className={
                   "flex-1 py-2.5 sm:py-1.5 rounded-lg border text-[12px] transition-colors duration-[120ms] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100 " +
@@ -263,7 +261,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
                 if (!isNaN(val)) {
                   setBudgetTokens(val);
                   setThinking({ type: "enabled", budgetTokens: val });
-                  markDirty();
+                  save.markDirty();
                 }
               }}
               className="w-48 h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] font-mono focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
@@ -284,7 +282,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
                 aria-checked={active}
                 onClick={function () {
                   setPermissionMode(p.id === "default" ? undefined : p.id);
-                  markDirty();
+                  save.markDirty();
                 }}
                 className={
                   "flex-1 py-2.5 sm:py-1.5 rounded-lg border text-[12px] transition-colors duration-[120ms] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100 " +
@@ -300,21 +298,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3">
-        {dirty && !saving && (
-          <div className="text-[11px] text-warning/70">Unsaved changes</div>
-        )}
-        <button
-          onClick={handleSave}
-          disabled={saving || !dirty}
-          className={
-            "btn btn-sm btn-primary" +
-            ((saving || !dirty) ? " opacity-50 cursor-not-allowed" : "")
-          }
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
+      <SaveFooter dirty={save.dirty} saving={save.saving} saveState={save.saveState} onSave={handleSave} />
     </div>
   );
 }

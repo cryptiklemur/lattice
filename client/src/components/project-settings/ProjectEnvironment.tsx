@@ -1,5 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, Plus, AlertTriangle } from "lucide-react";
+import { SaveFooter } from "../ui/SaveFooter";
+import { useSaveState } from "../../hooks/useSaveState";
+import { findDuplicateKeys } from "../../utils/findDuplicateKeys";
 import type { ProjectSettings } from "@lattice/shared";
 
 interface EnvEntry {
@@ -12,17 +15,20 @@ function genId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function findDuplicateKeys(entries: EnvEntry[]): Set<string> {
-  var seen = new Map<string, number>();
-  var dupes = new Set<string>();
-  for (var i = 0; i < entries.length; i++) {
-    var k = entries[i].key.trim();
-    if (!k) continue;
-    var count = (seen.get(k) || 0) + 1;
-    seen.set(k, count);
-    if (count > 1) dupes.add(k);
-  }
-  return dupes;
+function entriesToEnv(entries: EnvEntry[]): Record<string, string> {
+  var env: Record<string, string> = {};
+  entries.forEach(function (e) {
+    if (e.key.trim()) {
+      env[e.key.trim()] = e.value;
+    }
+  });
+  return env;
+}
+
+function envToEntries(env: Record<string, string>): EnvEntry[] {
+  return Object.entries(env).map(function ([k, v]) {
+    return { id: genId(), key: k, value: v };
+  });
 }
 
 export function ProjectEnvironment({
@@ -36,13 +42,18 @@ export function ProjectEnvironment({
   var globalEntries = Object.entries(globalEnv);
 
   var [entries, setEntries] = useState<EnvEntry[]>(function () {
-    return Object.entries(settings.env ?? {}).map(function ([k, v]) {
-      return { id: genId(), key: k, value: v };
-    });
+    return envToEntries(settings.env ?? {});
   });
-  var [dirty, setDirty] = useState(false);
-  var [saving, setSaving] = useState(false);
-  var [saveState, setSaveState] = useState<"idle" | "saved">("idle");
+  var save = useSaveState();
+
+  useEffect(function () {
+    if (save.saving) {
+      save.confirmSave();
+    } else {
+      setEntries(envToEntries(settings.env ?? {}));
+      save.resetFromServer();
+    }
+  }, [settings]);
 
   var globalKeySet = useMemo(function () {
     return new Set(Object.keys(globalEnv));
@@ -53,23 +64,18 @@ export function ProjectEnvironment({
   }, [entries]);
   var hasDuplicates = duplicateKeys.size > 0;
 
-  function markDirty() {
-    setDirty(true);
-    setSaveState("idle");
-  }
-
   function handleAddRow() {
     setEntries(function (prev) {
       return [...prev, { id: genId(), key: "", value: "" }];
     });
-    markDirty();
+    save.markDirty();
   }
 
   function handleDelete(id: string) {
     setEntries(function (prev) {
       return prev.filter(function (e) { return e.id !== id; });
     });
-    markDirty();
+    save.markDirty();
   }
 
   function handleKeyChange(id: string, key: string) {
@@ -78,7 +84,7 @@ export function ProjectEnvironment({
         return e.id === id ? { ...e, key } : e;
       });
     });
-    markDirty();
+    save.markDirty();
   }
 
   function handleValueChange(id: string, value: string) {
@@ -87,22 +93,12 @@ export function ProjectEnvironment({
         return e.id === id ? { ...e, value } : e;
       });
     });
-    markDirty();
+    save.markDirty();
   }
 
   function handleSave() {
-    var env: Record<string, string> = {};
-    entries.forEach(function (e) {
-      if (e.key.trim()) {
-        env[e.key.trim()] = e.value;
-      }
-    });
-    setSaving(true);
-    updateSection("environment", { env });
-    setSaving(false);
-    setSaveState("saved");
-    setDirty(false);
-    setTimeout(function () { setSaveState("idle"); }, 1800);
+    save.startSave();
+    updateSection("environment", { env: entriesToEnv(entries) });
   }
 
   var inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
@@ -110,7 +106,7 @@ export function ProjectEnvironment({
   return (
     <div className="py-2">
       <div className="mb-6">
-        <h2 className="text-[13px] font-mono font-semibold text-base-content/60 uppercase tracking-wider mb-3">
+        <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Global Variables
         </h2>
         {globalEntries.length === 0 && (
@@ -145,7 +141,7 @@ export function ProjectEnvironment({
       </div>
 
       <div>
-        <h2 className="text-[13px] font-mono font-semibold text-base-content/60 uppercase tracking-wider mb-3">
+        <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Project Variables
         </h2>
         <div className="flex flex-col gap-3 sm:gap-1.5 mb-3">
@@ -220,31 +216,19 @@ export function ProjectEnvironment({
 
         <button
           onClick={handleAddRow}
-          className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-lg border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
+          className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-xl border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
         >
           <Plus size={12} />
           Add Variable
         </button>
 
-        <div className="flex items-center justify-end gap-3">
-          {hasDuplicates && (
-            <div className="text-[11px] text-warning/70">Duplicate keys will be merged</div>
-          )}
-          {dirty && saveState === "idle" && !saving && !hasDuplicates && (
-            <div className="text-[11px] text-warning/70">Unsaved changes</div>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving || (!dirty && saveState !== "idle")}
-            className={
-              "btn btn-sm " +
-              (saveState === "saved" ? "btn-success" : "btn-primary") +
-              ((saving || !dirty) ? " opacity-50 cursor-not-allowed" : "")
-            }
-          >
-            {saving ? "Saving..." : saveState === "saved" ? "Saved" : "Save Changes"}
-          </button>
-        </div>
+        <SaveFooter
+          dirty={save.dirty}
+          saving={save.saving}
+          saveState={save.saveState}
+          onSave={handleSave}
+          extraStatus={hasDuplicates ? "Duplicate keys will be merged" : undefined}
+        />
       </div>
     </div>
   );

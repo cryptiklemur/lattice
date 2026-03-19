@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { SaveFooter } from "../ui/SaveFooter";
+import { useSaveState } from "../../hooks/useSaveState";
 import type { ProjectSettings } from "@lattice/shared";
 
 interface RuleEntry {
@@ -21,19 +23,23 @@ export function ProjectRules({
       return { filename: r.filename, content: r.content };
     });
   });
-  var [dirty, setDirty] = useState(false);
-  var [saving, setSaving] = useState(false);
-  var [saveState, setSaveState] = useState<"idle" | "saved">("idle");
   var [expandedGlobal, setExpandedGlobal] = useState<Set<number>>(new Set());
   var [expandedProject, setExpandedProject] = useState<Set<number>>(new Set());
   var [adding, setAdding] = useState(false);
   var [newFilename, setNewFilename] = useState("");
   var [newContent, setNewContent] = useState("");
+  var save = useSaveState();
 
-  function markDirty() {
-    setDirty(true);
-    setSaveState("idle");
-  }
+  useEffect(function () {
+    if (save.saving) {
+      save.confirmSave();
+    } else {
+      setRules((settings.rules ?? []).map(function (r) {
+        return { filename: r.filename, content: r.content };
+      }));
+      save.resetFromServer();
+    }
+  }, [settings]);
 
   function toggleGlobal(idx: number) {
     setExpandedGlobal(function (prev) {
@@ -65,7 +71,7 @@ export function ProjectRules({
         return i === idx ? { ...r, content } : r;
       });
     });
-    markDirty();
+    save.markDirty();
   }
 
   function handleDelete(idx: number) {
@@ -73,7 +79,7 @@ export function ProjectRules({
       return prev.filter(function (_, i) { return i !== idx; });
     });
     setExpandedProject(new Set());
-    markDirty();
+    save.markDirty();
   }
 
   function handleAdd() {
@@ -85,7 +91,7 @@ export function ProjectRules({
     setNewFilename("");
     setNewContent("");
     setAdding(false);
-    markDirty();
+    save.markDirty();
   }
 
   function handleCancelAdd() {
@@ -95,12 +101,8 @@ export function ProjectRules({
   }
 
   function handleSave() {
-    setSaving(true);
+    save.startSave();
     updateSection("rules", { rules });
-    setSaving(false);
-    setSaveState("saved");
-    setDirty(false);
-    setTimeout(function () { setSaveState("idle"); }, 1800);
   }
 
   function preview(content: string): string {
@@ -115,7 +117,7 @@ export function ProjectRules({
   return (
     <div className="py-2">
       <div className="mb-6">
-        <h2 className="text-[13px] font-mono font-semibold text-base-content/60 uppercase tracking-wider mb-3">
+        <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Global Rules
         </h2>
         {globalRules.length === 0 && (
@@ -162,7 +164,7 @@ export function ProjectRules({
       </div>
 
       <div>
-        <h2 className="text-[13px] font-mono font-semibold text-base-content/60 uppercase tracking-wider mb-3">
+        <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Project Rules
         </h2>
         {rules.length === 0 && !adding && (
@@ -176,28 +178,27 @@ export function ProjectRules({
               var isExpanded = expandedProject.has(idx);
               return (
                 <div key={rule.filename + "-" + idx} className="border border-base-content/15 rounded-xl overflow-hidden">
-                  <button
-                    onClick={function () { toggleProject(idx); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 bg-base-300 hover:bg-base-300/80 transition-colors duration-[120ms] cursor-pointer text-left"
-                  >
-                    {isExpanded
-                      ? <ChevronDown size={12} className="text-base-content/60 flex-shrink-0" />
-                      : <ChevronRight size={12} className="text-base-content/60 flex-shrink-0" />
-                    }
-                    <span className="font-mono text-[12px] text-base-content flex-1 truncate">
-                      {rule.filename}
-                    </span>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={function (e) { e.stopPropagation(); handleDelete(idx); }}
-                      onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); handleDelete(idx); } }}
-                      className="text-base-content/30 hover:text-error transition-colors duration-[120ms] cursor-pointer"
+                  <div className="w-full flex items-center gap-2 px-3 py-2 bg-base-300 text-left">
+                    <button
+                      onClick={function () { toggleProject(idx); }}
+                      className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:text-base-content/80 transition-colors"
+                    >
+                      {isExpanded
+                        ? <ChevronDown size={12} className="text-base-content/60 flex-shrink-0" />
+                        : <ChevronRight size={12} className="text-base-content/60 flex-shrink-0" />
+                      }
+                      <span className="font-mono text-[12px] text-base-content flex-1 truncate text-left">
+                        {rule.filename}
+                      </span>
+                    </button>
+                    <button
+                      onClick={function () { handleDelete(idx); }}
+                      className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error flex-shrink-0 focus-visible:ring-2 focus-visible:ring-primary"
                       aria-label={"Delete " + rule.filename}
                     >
                       <X size={14} />
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                   {!isExpanded && (
                     <div className="px-3 py-1.5 text-[11px] text-base-content/50 font-mono truncate">
                       {preview(rule.content)}
@@ -262,29 +263,14 @@ export function ProjectRules({
         {!adding && (
           <button
             onClick={function () { setAdding(true); }}
-            className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-lg border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
+            className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-xl border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
           >
             <Plus size={12} />
             Add Rule
           </button>
         )}
 
-        <div className="flex items-center justify-end gap-3">
-          {dirty && saveState === "idle" && !saving && (
-            <div className="text-[11px] text-warning/70">Unsaved changes</div>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving || (!dirty && saveState !== "idle")}
-            className={
-              "btn btn-sm " +
-              (saveState === "saved" ? "btn-success" : "btn-primary") +
-              ((saving || !dirty) ? " opacity-50 cursor-not-allowed" : "")
-            }
-          >
-            {saving ? "Saving..." : saveState === "saved" ? "Saved" : "Save Changes"}
-          </button>
-        </div>
+        <SaveFooter dirty={save.dirty} saving={save.saving} saveState={save.saveState} onSave={handleSave} />
       </div>
     </div>
   );
