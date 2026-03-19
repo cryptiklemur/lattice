@@ -7,6 +7,8 @@ import { ProjectGeneral } from "./ProjectGeneral";
 import { ProjectClaude } from "./ProjectClaude";
 import { ProjectEnvironment } from "./ProjectEnvironment";
 import { ProjectPermissions } from "./ProjectPermissions";
+import { ProjectSkills } from "./ProjectSkills";
+import { ProjectRules } from "./ProjectRules";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   general: { title: "General" },
@@ -37,6 +39,10 @@ function renderSection(
 
   if (section === "permissions") {
     return <ProjectPermissions settings={settings} updateSection={updateSection} />;
+  }
+
+  if (section === "skills") {
+    return <ProjectSkills settings={settings} />;
   }
 
   return (
