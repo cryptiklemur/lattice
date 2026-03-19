@@ -3,3 +3,8 @@ dist
 *.tsbuildinfo
 .env
 bun.lockb
+.superpowers
+.playwright-mcp
+.claude
+node_modules
+docs
