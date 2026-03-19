@@ -11,6 +11,7 @@ import type {
   SkillInfo,
   StickyNote,
 } from "./models.js";
+import type { ProjectSettings } from "./project-settings.js";
 
 export interface SessionCreateMessage {
   type: "session:create";
@@ -190,6 +191,30 @@ export interface SkillsListRequestMessage {
   type: "skills:list_request";
 }
 
+export interface ProjectSettingsGetMessage {
+  type: "project-settings:get";
+  projectSlug: string;
+}
+
+export interface ProjectSettingsUpdateMessage {
+  type: "project-settings:update";
+  projectSlug: string;
+  section: string;
+  settings: Record<string, unknown>;
+}
+
+export interface ProjectSettingsDataMessage {
+  type: "project-settings:data";
+  projectSlug: string;
+  settings: ProjectSettings;
+}
+
+export interface ProjectSettingsErrorMessage {
+  type: "project-settings:error";
+  projectSlug: string;
+  message: string;
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
@@ -224,7 +249,9 @@ export type ClientMessage =
   | NotesUpdateMessage
   | NotesDeleteMessage
   | SkillsListRequestMessage
-  | ChatSetPermissionModeMessage;
+  | ChatSetPermissionModeMessage
+  | ProjectSettingsGetMessage
+  | ProjectSettingsUpdateMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -487,7 +514,9 @@ export type ServerMessage =
   | NoteUpdatedMessage
   | NoteDeletedMessage
   | SkillsListMessage
-  | ChatPermissionResolvedMessage;
+  | ChatPermissionResolvedMessage
+  | ProjectSettingsDataMessage
+  | ProjectSettingsErrorMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

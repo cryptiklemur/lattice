@@ -1,3 +1,5 @@
+import type { ProjectIcon } from "./project-settings.js";
+
 export interface NodeInfo {
   id: string;
   name: string;
@@ -83,6 +85,7 @@ export interface LatticeConfig {
     slug: string;
     title: string;
     env: Record<string, string>;
+    icon?: ProjectIcon;
   }>;
 }
 
