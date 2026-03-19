@@ -3,6 +3,8 @@ import { useProjectSettings } from "../../hooks/useProjectSettings";
 import { Menu } from "lucide-react";
 import type { ProjectSettingsSection } from "../../stores/sidebar";
 import type { ProjectSettings } from "@lattice/shared";
+import { ProjectGeneral } from "./ProjectGeneral";
+import { ProjectClaude } from "./ProjectClaude";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   general: { title: "General" },
@@ -16,9 +18,13 @@ var SECTION_CONFIG: Record<string, { title: string }> = {
 
 function renderSection(
   section: ProjectSettingsSection,
-  _settings: ProjectSettings,
-  _updateSection: (section: string, data: Record<string, unknown>) => void,
+  settings: ProjectSettings,
+  updateSection: (section: string, data: Record<string, unknown>) => void,
 ) {
+  if (section === "general") {
+    return <ProjectGeneral settings={settings} updateSection={updateSection} />;
+  }
+
   return (
     <div className="py-2 text-[13px] text-base-content/40">
       {section} section coming soon.
