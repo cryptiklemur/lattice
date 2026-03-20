@@ -1,4 +1,4 @@
-import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield, Brain } from "lucide-react";
+import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield, Brain, MonitorCog } from "lucide-react";
 import { useSidebar } from "../../hooks/useSidebar";
 import type { SettingsSection, ProjectSettingsSection } from "../../stores/sidebar";
 
@@ -14,6 +14,7 @@ var SETTINGS_NAV = [
       { id: "appearance" as SettingsSection, label: "Appearance", icon: <Palette size={14} /> },
       { id: "claude" as SettingsSection, label: "Claude Settings", icon: <FileText size={14} /> },
       { id: "environment" as SettingsSection, label: "Environment", icon: <Terminal size={14} /> },
+      { id: "editor" as SettingsSection, label: "Editor", icon: <MonitorCog size={14} /> },
     ],
   },
   {

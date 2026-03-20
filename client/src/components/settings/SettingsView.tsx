@@ -6,6 +6,7 @@ import { Environment } from "./Environment";
 import { MeshStatus } from "./MeshStatus";
 import { GlobalMcp } from "./GlobalMcp";
 import { GlobalSkills } from "./GlobalSkills";
+import { Editor } from "./Editor";
 import type { SettingsSection } from "../../stores/sidebar";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
@@ -15,6 +16,7 @@ var SECTION_CONFIG: Record<string, { title: string }> = {
   mcp: { title: "MCP Servers" },
   skills: { title: "Skills" },
   nodes: { title: "Mesh Nodes" },
+  editor: { title: "Editor" },
 };
 
 function renderSection(section: SettingsSection) {
@@ -24,6 +26,7 @@ function renderSection(section: SettingsSection) {
   if (section === "mcp") return <GlobalMcp />;
   if (section === "skills") return <GlobalSkills />;
   if (section === "nodes") return <MeshStatus />;
+  if (section === "editor") return <Editor />;
   return null;
 }
 
