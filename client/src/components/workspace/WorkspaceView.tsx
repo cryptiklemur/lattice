@@ -29,10 +29,10 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
 
   return (
     <div
-      className={"flex flex-col h-full w-full overflow-hidden " + (isActive ? "ring-1 ring-primary/20" : "")}
+      className="flex flex-col h-full w-full overflow-hidden"
       onClick={onFocus}
     >
-      <TabBar paneId={pane.id} />
+      <TabBar paneId={pane.id} isActivePane={isActive} />
       <div className="flex-1 min-h-0 relative">
         {paneTabs.map(function (tab) {
           var Component = TAB_COMPONENTS[tab.type];

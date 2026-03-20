@@ -5,6 +5,7 @@ import type { Tab } from "../../stores/workspace";
 
 interface TabBarProps {
   paneId?: string;
+  isActivePane?: boolean;
 }
 
 interface ContextMenuState {
@@ -13,7 +14,7 @@ interface ContextMenuState {
   y: number;
 }
 
-export function TabBar({ paneId }: TabBarProps) {
+export function TabBar({ paneId, isActivePane }: TabBarProps) {
   var workspace = useWorkspace();
   var [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   var menuRef = useRef<HTMLDivElement>(null);
@@ -94,7 +95,7 @@ export function TabBar({ paneId }: TabBarProps) {
 
   return (
     <>
-      <div className="flex items-center h-9 bg-base-200 border-b border-base-content/15 overflow-x-auto flex-shrink-0">
+      <div className={"flex items-center h-9 bg-base-200 border-b border-base-content/15 overflow-x-auto flex-shrink-0" + (isActivePane ? " border-t-2 border-t-primary/40" : "")}>
         {paneTabs.map(function (tab) {
           var isActive = tab.id === activeTabId;
           return (
