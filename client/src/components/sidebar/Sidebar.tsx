@@ -9,6 +9,7 @@ import { useSidebar } from "../../hooks/useSidebar";
 import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
 import { openTab } from "../../stores/workspace";
+import { getSidebarStore } from "../../stores/sidebar";
 import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
 import { UserIsland } from "./UserIsland";
@@ -156,7 +157,15 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                       <button
                         key={item.type}
                         type="button"
-                        onClick={function () { openTab(item.type); }}
+                        onClick={function () {
+                          openTab(item.type);
+                          var state = getSidebarStore().state;
+                          if (state.activeView.type !== "chat") {
+                            getSidebarStore().setState(function (s) {
+                              return { ...s, activeView: { type: "chat" } };
+                            });
+                          }
+                        }}
                         className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
                       >
                         <item.icon size={12} />
