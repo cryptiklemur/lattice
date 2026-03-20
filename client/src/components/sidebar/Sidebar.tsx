@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Search, LayoutDashboard } from "lucide-react";
+import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import type { SessionSummary, ServerMessage, SettingsDataMessage } from "@lattice/shared";
 import { useProjects } from "../../hooks/useProjects";
@@ -8,6 +8,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
+import { openTab } from "../../stores/workspace";
 import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
 import { UserIsland } from "./UserIsland";
@@ -143,6 +144,27 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                   <LayoutDashboard size={12} />
                   <span className="font-mono tracking-wide">Dashboard</span>
                 </button>
+
+                <div className="flex flex-col gap-0.5 mx-3 mt-1">
+                  {[
+                    { type: "files" as const, icon: FolderOpen, label: "Files" },
+                    { type: "terminal" as const, icon: TerminalSquare, label: "Terminal" },
+                    { type: "notes" as const, icon: StickyNote, label: "Notes" },
+                    { type: "tasks" as const, icon: Calendar, label: "Tasks" },
+                  ].map(function (item) {
+                    return (
+                      <button
+                        key={item.type}
+                        type="button"
+                        onClick={function () { openTab(item.type); }}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                      >
+                        <item.icon size={12} />
+                        <span className="font-mono tracking-wide">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
                 <SectionLabel
                   label="Sessions"
