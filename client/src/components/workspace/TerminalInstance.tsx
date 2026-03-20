@@ -53,7 +53,6 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
   var searchAddonRef = useRef<SearchAddon | null>(null);
   var termIdRef = useRef<string | null>(null);
   var { activeProjectSlug } = useSidebar();
-  var createdRef = useRef(false);
   var { send, subscribe, unsubscribe } = useWebSocket();
 
   useEffect(function() {
@@ -82,11 +81,11 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
     fitAddonRef.current = fitAddon;
     searchAddonRef.current = searchAddon;
 
-    send({ type: "terminal:create", projectSlug: activeProjectSlug || undefined });
+    var waitingForCreate = true;
 
     function onCreated(msg: ServerMessage) {
-      if (createdRef.current) return;
-      createdRef.current = true;
+      if (!waitingForCreate) return;
+      waitingForCreate = false;
       var created = msg as TerminalCreatedMessage;
       termIdRef.current = created.termId;
     }
@@ -108,6 +107,8 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
     subscribe("terminal:created", onCreated);
     subscribe("terminal:output", onOutput);
     subscribe("terminal:exited", onExited);
+
+    send({ type: "terminal:create", projectSlug: activeProjectSlug || undefined });
 
     term.onData(function(data: string) {
       var termId = termIdRef.current;
