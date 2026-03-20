@@ -29,14 +29,21 @@ export function cleanupClientTerminals(clientId: string): void {
 
 registerHandler("terminal", function(clientId: string, message: ClientMessage) {
   if (message.type === "terminal:create") {
-    var _msg = message as TerminalCreateMessage;
+    var createMsg = message as TerminalCreateMessage;
     var cwd = homedir();
 
-    var active = getActiveSession(clientId);
-    if (active) {
-      var project = getProjectBySlug(active.projectSlug);
-      if (project) {
-        cwd = project.path;
+    if (createMsg.projectSlug) {
+      var slugProject = getProjectBySlug(createMsg.projectSlug);
+      if (slugProject) {
+        cwd = slugProject.path;
+      }
+    } else {
+      var active = getActiveSession(clientId);
+      if (active) {
+        var project = getProjectBySlug(active.projectSlug);
+        if (project) {
+          cwd = project.path;
+        }
       }
     }
 

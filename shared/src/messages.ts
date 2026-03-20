@@ -91,6 +91,7 @@ export interface FsWriteMessage {
 
 export interface TerminalCreateMessage {
   type: "terminal:create";
+  projectSlug?: string;
 }
 
 export interface TerminalInputMessage {

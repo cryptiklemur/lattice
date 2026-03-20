@@ -5,6 +5,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SearchAddon } from "@xterm/addon-search";
 import "@xterm/xterm/css/xterm.css";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { useSidebar } from "../../hooks/useSidebar";
 import type { ServerMessage, TerminalCreatedMessage, TerminalOutputMessage, TerminalExitedMessage } from "@lattice/shared";
 
 function getXtermTheme(): Record<string, string> {
@@ -51,6 +52,7 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
   var fitAddonRef = useRef<FitAddon | null>(null);
   var searchAddonRef = useRef<SearchAddon | null>(null);
   var termIdRef = useRef<string | null>(null);
+  var { activeProjectSlug } = useSidebar();
   var createdRef = useRef(false);
   var { send, subscribe, unsubscribe } = useWebSocket();
 
@@ -80,7 +82,7 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
     fitAddonRef.current = fitAddon;
     searchAddonRef.current = searchAddon;
 
-    send({ type: "terminal:create" });
+    send({ type: "terminal:create", projectSlug: activeProjectSlug || undefined });
 
     function onCreated(msg: ServerMessage) {
       if (createdRef.current) return;
