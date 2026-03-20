@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import { useSaveState } from "../../hooks/useSaveState";
+import { SaveFooter } from "../ui/SaveFooter";
 import type { ProjectSettings, McpServerConfig } from "@lattice/shared";
 
 type ServerType = "stdio" | "http" | "sse";
@@ -59,7 +61,7 @@ function formToConfig(form: FormState): McpServerConfig {
 function typeBadge(config: McpServerConfig) {
   var t = config.type === "http" ? "http" : config.type === "sse" ? "sse" : "stdio";
   return (
-    <span className="px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-mono bg-base-content/10 text-base-content/50">
+    <span className="px-1.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider font-mono bg-base-content/10 text-base-content/40 flex-shrink-0">
       {t}
     </span>
   );
@@ -67,10 +69,10 @@ function typeBadge(config: McpServerConfig) {
 
 function configSummary(config: McpServerConfig) {
   if (config.type === "http" || config.type === "sse") {
-    return <span className="font-mono text-[11px] text-base-content/40 truncate">{config.url}</span>;
+    return <div className="font-mono text-[11px] text-base-content/40 truncate">{config.url}</div>;
   }
   var cmd = config.command + ((config.args?.length ?? 0) > 0 ? " " + config.args!.join(" ") : "");
-  return <span className="font-mono text-[11px] text-base-content/40 truncate">{cmd}</span>;
+  return <div className="font-mono text-[11px] text-base-content/40 truncate">{cmd}</div>;
 }
 
 function ServerForm({
@@ -79,12 +81,14 @@ function ServerForm({
   onSave,
   onCancel,
   existingNames,
+  idPrefix,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
   onSave: () => void;
   onCancel: () => void;
   existingNames: Set<string>;
+  idPrefix: string;
 }) {
   var inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
   var nameConflict = form.name.trim() !== "" && existingNames.has(form.name.trim());
@@ -94,45 +98,47 @@ function ServerForm({
   return (
     <div className="border border-base-content/15 rounded-xl bg-base-300/40 p-4 flex flex-col gap-3">
       <div>
-        <label className="block text-[11px] text-base-content/50 mb-1">Server Name</label>
+        <label htmlFor={idPrefix + "-name"} className="block text-[11px] text-base-content/40 mb-1">Server Name</label>
         <input
+          id={idPrefix + "-name"}
           type="text"
           value={form.name}
           onChange={function (e) { setForm({ ...form, name: e.target.value }); }}
           placeholder="my-server"
-          className={inputClass + (nameConflict ? " !border-warning" : "")}
+          className={"w-full h-9 sm:h-7 px-3 bg-base-300 border rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms] " + (nameConflict ? "border-warning" : "border-base-content/15")}
         />
         {nameConflict && (
-          <div className="text-[10px] text-warning mt-0.5">Name already in use</div>
+          <div className="text-[10px] text-warning mt-0.5" role="alert">Name already in use</div>
         )}
       </div>
 
-      <div>
-        <label className="block text-[11px] text-base-content/50 mb-1.5">Type</label>
+      <fieldset>
+        <legend className="block text-[11px] text-base-content/40 mb-1.5">Type</legend>
         <div className="flex gap-3">
           {(["stdio", "http", "sse"] as ServerType[]).map(function (t) {
             return (
               <label key={t} className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="radio"
-                  name="server-type"
+                  name={idPrefix + "-type"}
                   value={t}
                   checked={form.serverType === t}
                   onChange={function () { setForm({ ...form, serverType: t }); }}
                   className="radio radio-xs radio-primary"
                 />
-                <span className="text-[12px] font-mono text-base-content/70 uppercase">{t}</span>
+                <span className="text-[12px] font-mono text-base-content uppercase">{t}</span>
               </label>
             );
           })}
         </div>
-      </div>
+      </fieldset>
 
       {form.serverType === "stdio" && (
         <>
           <div>
-            <label className="block text-[11px] text-base-content/50 mb-1">Command</label>
+            <label htmlFor={idPrefix + "-command"} className="block text-[11px] text-base-content/40 mb-1">Command</label>
             <input
+              id={idPrefix + "-command"}
               type="text"
               value={form.command}
               onChange={function (e) { setForm({ ...form, command: e.target.value }); }}
@@ -141,8 +147,9 @@ function ServerForm({
             />
           </div>
           <div>
-            <label className="block text-[11px] text-base-content/50 mb-1">Args (comma-separated)</label>
+            <label htmlFor={idPrefix + "-args"} className="block text-[11px] text-base-content/40 mb-1">Args (comma-separated)</label>
             <input
+              id={idPrefix + "-args"}
               type="text"
               value={form.args}
               onChange={function (e) { setForm({ ...form, args: e.target.value }); }}
@@ -151,8 +158,9 @@ function ServerForm({
             />
           </div>
           <div>
-            <label className="block text-[11px] text-base-content/50 mb-1">Environment (KEY=value, one per line)</label>
+            <label htmlFor={idPrefix + "-env"} className="block text-[11px] text-base-content/40 mb-1">Environment (KEY=value, one per line)</label>
             <textarea
+              id={idPrefix + "-env"}
               value={form.env}
               onChange={function (e) { setForm({ ...form, env: e.target.value }); }}
               placeholder={"API_KEY=abc123\nDEBUG=true"}
@@ -165,8 +173,9 @@ function ServerForm({
 
       {(form.serverType === "http" || form.serverType === "sse") && (
         <div>
-          <label className="block text-[11px] text-base-content/50 mb-1">URL</label>
+          <label htmlFor={idPrefix + "-url"} className="block text-[11px] text-base-content/40 mb-1">URL</label>
           <input
+            id={idPrefix + "-url"}
             type="text"
             value={form.url}
             onChange={function (e) { setForm({ ...form, url: e.target.value }); }}
@@ -201,21 +210,24 @@ export function ProjectMcp({
   var [servers, setServers] = useState<Record<string, McpServerConfig>>(function () {
     return { ...(settings.mcpServers ?? {}) };
   });
-  var [dirty, setDirty] = useState(false);
-  var [saving, setSaving] = useState(false);
-  var [saveState, setSaveState] = useState<"idle" | "saved">("idle");
+  var save = useSaveState();
 
   var [adding, setAdding] = useState(false);
   var [addForm, setAddForm] = useState<FormState>(emptyForm);
   var [editingName, setEditingName] = useState<string | null>(null);
   var [editForm, setEditForm] = useState<FormState>(emptyForm);
+  var [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  useEffect(function () {
+    if (save.saving) {
+      save.confirmSave();
+    } else {
+      setServers({ ...(settings.mcpServers ?? {}) });
+      save.resetFromServer();
+    }
+  }, [settings]);
 
   var projectEntries = Object.entries(servers);
-
-  function markDirty() {
-    setDirty(true);
-    setSaveState("idle");
-  }
 
   function handleAddSave() {
     var name = addForm.name.trim();
@@ -224,13 +236,14 @@ export function ProjectMcp({
     setServers(next);
     setAdding(false);
     setAddForm(emptyForm());
-    markDirty();
+    save.markDirty();
   }
 
   function handleEditStart(name: string) {
     setEditingName(name);
     setEditForm(formFromConfig(name, servers[name]));
     setAdding(false);
+    setConfirmDelete(null);
   }
 
   function handleEditSave() {
@@ -244,24 +257,25 @@ export function ProjectMcp({
     next[newName] = formToConfig(editForm);
     setServers(next);
     setEditingName(null);
-    markDirty();
+    save.markDirty();
   }
 
   function handleDelete(name: string) {
+    if (confirmDelete !== name) {
+      setConfirmDelete(name);
+      return;
+    }
     var next = { ...servers };
     delete next[name];
     setServers(next);
     if (editingName === name) setEditingName(null);
-    markDirty();
+    setConfirmDelete(null);
+    save.markDirty();
   }
 
   function handleSave() {
-    setSaving(true);
+    save.startSave();
     updateSection("mcp", { mcpServers: servers });
-    setSaving(false);
-    setSaveState("saved");
-    setDirty(false);
-    setTimeout(function () { setSaveState("idle"); }, 1800);
   }
 
   var existingNamesForAdd = new Set(Object.keys(servers));
@@ -272,7 +286,7 @@ export function ProjectMcp({
   return (
     <div className="py-2">
       <div className="mb-6">
-        <h2 className="text-[13px] font-mono font-semibold text-base-content/60 uppercase tracking-wider mb-3">
+        <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Global MCP Servers
         </h2>
         {globalEntries.length === 0 && (
@@ -288,10 +302,10 @@ export function ProjectMcp({
                   key={name}
                   className="flex items-center gap-3 px-3 py-2 rounded-xl bg-base-300/50 border border-base-content/10"
                 >
-                  <span className="font-mono text-[12px] text-base-content/40 font-semibold">{name}</span>
+                  <span className="font-mono text-[12px] text-base-content/40 font-semibold flex-shrink-0">{name}</span>
                   {typeBadge(config)}
                   <div className="flex-1 min-w-0">{configSummary(config)}</div>
-                  <span className="text-[10px] uppercase tracking-wider text-base-content/30">global</span>
+                  <span className="text-[10px] uppercase tracking-wider text-base-content/30 flex-shrink-0">global</span>
                 </div>
               );
             })}
@@ -300,7 +314,7 @@ export function ProjectMcp({
       </div>
 
       <div>
-        <h2 className="text-[13px] font-mono font-semibold text-base-content/60 uppercase tracking-wider mb-3">
+        <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Project MCP Servers
         </h2>
 
@@ -321,31 +335,52 @@ export function ProjectMcp({
                   onSave={handleEditSave}
                   onCancel={function () { setEditingName(null); }}
                   existingNames={existingNamesForEdit}
+                  idPrefix="mcp-edit"
                 />
               );
             }
+            var isConfirming = confirmDelete === name;
             return (
               <div
                 key={name}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl bg-base-300 border border-base-content/15"
               >
-                <span className="font-mono text-[12px] text-base-content font-semibold">{name}</span>
+                <span className="font-mono text-[12px] text-base-content font-semibold flex-shrink-0">{name}</span>
                 {typeBadge(config)}
                 <div className="flex-1 min-w-0">{configSummary(config)}</div>
-                <button
-                  onClick={function () { handleEditStart(name); }}
-                  aria-label={"Edit " + name}
-                  className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-primary"
-                >
-                  <Pencil size={12} />
-                </button>
-                <button
-                  onClick={function () { handleDelete(name); }}
-                  aria-label={"Delete " + name}
-                  className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error"
-                >
-                  <Trash2 size={12} />
-                </button>
+                {isConfirming ? (
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={function () { handleDelete(name); }}
+                      className="btn btn-error btn-xs"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={function () { setConfirmDelete(null); }}
+                      className="btn btn-ghost btn-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      onClick={function () { handleEditStart(name); }}
+                      aria-label={"Edit " + name}
+                      className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={function () { handleDelete(name); }}
+                      aria-label={"Delete " + name}
+                      className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -359,36 +394,22 @@ export function ProjectMcp({
               onSave={handleAddSave}
               onCancel={function () { setAdding(false); setAddForm(emptyForm()); }}
               existingNames={existingNamesForAdd}
+              idPrefix="mcp-add"
             />
           </div>
         )}
 
         {!adding && (
           <button
-            onClick={function () { setAdding(true); setEditingName(null); }}
-            className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-lg border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
+            onClick={function () { setAdding(true); setEditingName(null); setConfirmDelete(null); }}
+            className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-xl border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
           >
             <Plus size={12} />
             Add Server
           </button>
         )}
 
-        <div className="flex items-center justify-end gap-3">
-          {dirty && saveState === "idle" && !saving && (
-            <div className="text-[11px] text-warning/70">Unsaved changes</div>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className={
-              "btn btn-sm " +
-              (saveState === "saved" ? "btn-success" : "btn-primary") +
-              ((saving || !dirty) ? " opacity-50 cursor-not-allowed" : "")
-            }
-          >
-            {saving ? "Saving..." : saveState === "saved" ? "Saved" : "Save Changes"}
-          </button>
-        </div>
+        <SaveFooter dirty={save.dirty} saving={save.saving} saveState={save.saveState} onSave={handleSave} />
       </div>
     </div>
   );

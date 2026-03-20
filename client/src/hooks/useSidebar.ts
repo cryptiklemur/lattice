@@ -11,9 +11,12 @@ import {
   toggleUserMenu,
   toggleProjectDropdown,
   closeMenus,
+  goToProjectDashboard,
   goToDashboard,
   toggleDrawer,
   closeDrawer,
+  openNodeSettings,
+  closeNodeSettings,
 } from "../stores/sidebar";
 import type { SidebarState, SettingsSection, ProjectSettingsSection } from "../stores/sidebar";
 
@@ -28,9 +31,12 @@ export function useSidebar(): SidebarState & {
   toggleUserMenu: () => void;
   toggleProjectDropdown: () => void;
   closeMenus: () => void;
+  goToProjectDashboard: () => void;
   goToDashboard: () => void;
   toggleDrawer: () => void;
   closeDrawer: () => void;
+  openNodeSettings: () => void;
+  closeNodeSettings: () => void;
 } {
   var store = getSidebarStore();
   var state = useStore(store, function (s) { return s; });
@@ -54,8 +60,12 @@ export function useSidebar(): SidebarState & {
     toggleUserMenu: toggleUserMenu,
     toggleProjectDropdown: toggleProjectDropdown,
     closeMenus: closeMenus,
+    goToProjectDashboard: goToProjectDashboard,
     goToDashboard: goToDashboard,
     toggleDrawer: toggleDrawer,
     closeDrawer: closeDrawer,
+    openNodeSettings: openNodeSettings,
+    closeNodeSettings: closeNodeSettings,
+    nodeSettingsOpen: state.nodeSettingsOpen,
   };
 }

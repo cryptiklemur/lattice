@@ -1,28 +1,30 @@
 import { useState, useEffect } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { useSaveState } from "../../hooks/useSaveState";
+import { SaveFooter } from "../ui/SaveFooter";
 import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "@lattice/shared";
 
 var CLAUDE_MODELS = [
+  { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
   { id: "claude-opus-4-5", label: "Claude Opus 4.5" },
   { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
-  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
-  { id: "claude-opus-4", label: "Claude Opus 4" },
-  { id: "claude-sonnet-4", label: "Claude Sonnet 4" },
 ];
 
 var EFFORT_LEVELS = [
   { id: "low", label: "Low" },
   { id: "normal", label: "Normal" },
   { id: "high", label: "High" },
+  { id: "max", label: "Max" },
 ];
 
 export function ClaudeSettings() {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var [claudeMd, setClaudeMd] = useState("");
-  var [model, setModel] = useState("claude-sonnet-4-5");
+  var [model, setModel] = useState(CLAUDE_MODELS[0].id);
   var [effort, setEffort] = useState("normal");
-  var [saving, setSaving] = useState(false);
-  var [saved, setSaved] = useState(false);
+  var save = useSaveState();
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
@@ -31,14 +33,18 @@ export function ClaudeSettings() {
       }
       var data = msg as SettingsDataMessage;
       var cfg = data.config as unknown as Record<string, unknown>;
-      if (cfg.claudeMd) {
-        setClaudeMd(String(cfg.claudeMd));
-      }
-      if (cfg.defaultModel) {
-        setModel(String(cfg.defaultModel));
-      }
-      if (cfg.defaultEffort) {
-        setEffort(String(cfg.defaultEffort));
+
+      var newClaudeMd = cfg.claudeMd ? String(cfg.claudeMd) : "";
+      var newModel = cfg.defaultModel ? String(cfg.defaultModel) : CLAUDE_MODELS[0].id;
+      var newEffort = cfg.defaultEffort ? String(cfg.defaultEffort) : "normal";
+
+      if (save.saving) {
+        save.confirmSave();
+      } else {
+        setClaudeMd(newClaudeMd);
+        setModel(newModel);
+        setEffort(newEffort);
+        save.resetFromServer();
       }
     }
 
@@ -50,33 +56,39 @@ export function ClaudeSettings() {
     };
   }, []);
 
+  function handleModelChange(value: string) {
+    setModel(value);
+    save.markDirty();
+  }
+
+  function handleEffortChange(value: string) {
+    setEffort(value);
+    save.markDirty();
+  }
+
+  function handleClaudeMdChange(value: string) {
+    setClaudeMd(value);
+    save.markDirty();
+  }
+
   function handleSave() {
-    setSaving(true);
+    save.startSave();
     var updateMsg: SettingsUpdateMessage = {
       type: "settings:update",
       settings: { claudeMd, defaultModel: model, defaultEffort: effort } as SettingsUpdateMessage["settings"],
     };
     send(updateMsg);
-    setTimeout(function () {
-      setSaving(false);
-      setSaved(true);
-      setTimeout(function () { setSaved(false); }, 1800);
-    }, 400);
   }
 
   return (
     <div className="py-2">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
-        Claude Settings
-      </div>
-
       <div className="mb-5">
-        <label htmlFor="claude-default-model" className="block text-[12px] font-semibold text-base-content/60 mb-2">Default Model</label>
+        <label htmlFor="claude-default-model" className="block text-[12px] font-semibold text-base-content/40 mb-2">Default Model</label>
         <select
           id="claude-default-model"
           value={model}
-          onChange={function (e) { setModel(e.target.value); }}
-          className="select select-bordered select-sm w-full bg-base-300 text-base-content text-[13px]"
+          onChange={function (e) { handleModelChange(e.target.value); }}
+          className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
         >
           {CLAUDE_MODELS.map(function (m) {
             return (
@@ -89,19 +101,21 @@ export function ClaudeSettings() {
       </div>
 
       <div className="mb-6" role="radiogroup" aria-label="Default Effort">
-        <div className="text-[12px] font-semibold text-base-content/60 mb-2">Default Effort</div>
+        <div className="text-[12px] font-semibold text-base-content/40 mb-2">Default Effort</div>
         <div className="flex gap-2">
           {EFFORT_LEVELS.map(function (e) {
             var active = effort === e.id;
             return (
               <button
                 key={e.id}
-                onClick={function () { setEffort(e.id); }}
+                role="radio"
+                aria-checked={active}
+                onClick={function () { handleEffortChange(e.id); }}
                 className={
-                  "flex-1 py-1.5 rounded border text-[12px] transition-all duration-[120ms] cursor-pointer " +
+                  "flex-1 py-2.5 sm:py-1.5 rounded-lg border text-[12px] transition-colors duration-[120ms] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100 " +
                   (active
-                    ? "border-info bg-base-300 text-base-content font-semibold"
-                    : "border-base-300 bg-base-300 text-base-content/60 hover:border-base-content/30")
+                    ? "border-primary bg-base-300 text-base-content font-semibold"
+                    : "border-base-content/15 bg-base-300 text-base-content/40 hover:border-base-content/30 hover:text-base-content/60")
                 }
               >
                 {e.label}
@@ -113,32 +127,25 @@ export function ClaudeSettings() {
 
       <div className="mb-5">
         <div className="flex items-center justify-between mb-2">
-          <label htmlFor="claude-global-md" className="text-[12px] font-semibold text-base-content/60">Global CLAUDE.md</label>
-          <div className="text-[11px] text-base-content/40">~/.claude/CLAUDE.md</div>
+          <label htmlFor="claude-global-md" className="text-[12px] font-semibold text-base-content/40">Global CLAUDE.md</label>
+          <div className="text-[11px] text-base-content/30 font-mono">~/.claude/CLAUDE.md</div>
         </div>
         <textarea
           id="claude-global-md"
           value={claudeMd}
-          onChange={function (e) { setClaudeMd(e.target.value); }}
+          onChange={function (e) { handleClaudeMdChange(e.target.value); }}
           placeholder={"# Global instructions for Claude\n\nAdd your global instructions here..."}
           rows={14}
-          className="textarea textarea-bordered w-full bg-base-300 text-base-content text-[12px] font-mono leading-relaxed resize-y focus:border-info"
+          className="w-full px-3 py-2.5 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[12px] font-mono leading-relaxed resize-y focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
         />
       </div>
 
-      <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={
-            "btn btn-sm " +
-            (saved ? "btn-success" : "btn-info") +
-            (saving ? " opacity-50 cursor-not-allowed" : "")
-          }
-        >
-          {saving ? "Saving..." : saved ? "Saved" : "Save Changes"}
-        </button>
-      </div>
+      <SaveFooter
+        dirty={save.dirty}
+        saving={save.saving}
+        saveState={save.saveState}
+        onSave={handleSave}
+      />
     </div>
   );
 }

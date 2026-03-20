@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Plus, ChevronDown, Search, LayoutDashboard } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
-import type { SessionSummary } from "@lattice/shared";
+import type { SessionSummary, ServerMessage, SettingsDataMessage } from "@lattice/shared";
 import { useProjects } from "../../hooks/useProjects";
 import { useMesh } from "../../hooks/useMesh";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -43,7 +43,24 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
   var projectHeaderRef = useRef<HTMLElement | null>(null);
 
   var localNode = nodes.find(function (n) { return n.isLocal; });
-  var localNodeName = localNode ? localNode.name : "localhost";
+  var [configNodeName, setConfigNodeName] = useState("");
+
+  useEffect(function () {
+    function handleSettingsData(msg: ServerMessage) {
+      if (msg.type !== "settings:data") return;
+      var data = msg as SettingsDataMessage;
+      if (data.config.name) {
+        setConfigNodeName(data.config.name);
+      }
+    }
+    ws.subscribe("settings:data", handleSettingsData);
+    ws.send({ type: "settings:get" });
+    return function () {
+      ws.unsubscribe("settings:data", handleSettingsData);
+    };
+  }, []);
+
+  var localNodeName = localNode ? localNode.name : configNodeName;
   var initialActivatedRef = useRef<boolean>(false);
 
   useEffect(function () {
@@ -74,16 +91,14 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
   }
 
   return (
-    <div className="flex flex-row h-full w-full overflow-hidden">
+    <div className="flex flex-row h-full w-full overflow-hidden relative">
       <ProjectRail
         projects={projects}
         nodes={nodes}
         activeProjectSlug={sidebar.activeProjectSlug}
         onSelectProject={sidebar.setActiveProjectSlug}
-        onUserAvatarClick={sidebar.toggleUserMenu}
         onDashboardClick={sidebar.goToDashboard}
         isDashboardActive={sidebar.activeView.type === "dashboard"}
-        localNodeName={localNodeName}
         dimmed={sidebar.sidebarMode === "settings"}
       />
       <div className="flex flex-col flex-1 overflow-hidden min-h-0 bg-base-200 border-r border-base-300">
@@ -97,7 +112,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     Lattice
                   </span>
                 </div>
-                <div className="flex-1 overflow-auto px-4 py-3">
+                <div className="flex-1 overflow-auto px-4 py-3 pb-16">
                   <SectionLabel label="Projects" />
                   <div className="text-[12px] text-base-content/40 px-4">
                     Select a project from the rail to view sessions.
@@ -122,7 +137,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
 
                 <button
                   type="button"
-                  onClick={function () { sidebar.goToDashboard(); }}
+                  onClick={function () { sidebar.goToProjectDashboard(); }}
                   className="flex items-center gap-2 mx-3 mt-2 px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
                 >
                   <LayoutDashboard size={12} />
@@ -160,11 +175,6 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
               </>
             )}
 
-            <div className="divider m-0 h-px bg-base-300 flex-shrink-0" />
-
-            <div ref={function (el) { userIslandRef.current = el; }}>
-              <UserIsland nodeName={localNodeName} onClick={sidebar.toggleUserMenu} />
-            </div>
           </>
         ) : (
           <SettingsSidebar
@@ -174,8 +184,19 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
         )}
       </div>
 
+      <div
+        ref={function (el) { userIslandRef.current = el; }}
+        className="absolute bottom-2 left-2 right-2 z-10 bg-base-300 border border-base-content/15 rounded-xl shadow-lg"
+      >
+        <UserIsland nodeName={localNodeName} onClick={sidebar.toggleUserMenu} />
+      </div>
+
       {sidebar.userMenuOpen && (
-        <UserMenu anchorRef={userIslandRef} onClose={sidebar.closeMenus} />
+        <UserMenu
+          anchorRef={userIslandRef}
+          onClose={sidebar.closeMenus}
+          onOpenNodeSettings={sidebar.openNodeSettings}
+        />
       )}
       {sidebar.projectDropdownOpen && (
         <ProjectDropdown

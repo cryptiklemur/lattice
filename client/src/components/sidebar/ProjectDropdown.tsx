@@ -20,13 +20,13 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
 
   function handleSelect(id: string) {
     if (id === "project-settings") {
-      sidebar.openSettings("appearance");
+      sidebar.openProjectSettings("general");
     } else if (id === "mcp") {
-      sidebar.openSettings("mcp");
+      sidebar.openProjectSettings("mcp");
     } else if (id === "skills") {
-      sidebar.openSettings("skills");
+      sidebar.openProjectSettings("skills");
     } else if (id === "environment") {
-      sidebar.openSettings("environment");
+      sidebar.openProjectSettings("environment");
     }
     props.onClose();
   }

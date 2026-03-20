@@ -7,6 +7,8 @@ import { SetupWizard } from "./components/setup/SetupWizard";
 import { SettingsView } from "./components/settings/SettingsView";
 import { ProjectSettingsView } from "./components/project-settings/ProjectSettingsView";
 import { DashboardView } from "./components/dashboard/DashboardView";
+import { ProjectDashboardView } from "./components/dashboard/ProjectDashboardView";
+import { NodeSettingsModal } from "./components/sidebar/NodeSettingsModal";
 import { useSidebar } from "./hooks/useSidebar";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { exitSettings, getSidebarStore, handlePopState, closeDrawer } from "./stores/sidebar";
@@ -307,6 +309,10 @@ function RootLayout() {
           </div>
         </div>
       </div>
+      <NodeSettingsModal
+        isOpen={sidebar.nodeSettingsOpen}
+        onClose={sidebar.closeNodeSettings}
+      />
     </div>
   );
 }
@@ -321,6 +327,9 @@ function IndexPage() {
   }
   if (sidebar.activeView.type === "project-settings") {
     return <ProjectSettingsView />;
+  }
+  if (sidebar.activeView.type === "project-dashboard") {
+    return <ProjectDashboardView />;
   }
   return <ChatView />;
 }

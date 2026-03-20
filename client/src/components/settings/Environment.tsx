@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
-import { X, Plus } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, Plus, AlertTriangle } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { useSaveState } from "../../hooks/useSaveState";
+import { SaveFooter } from "../ui/SaveFooter";
+import { findDuplicateKeys } from "../../utils/findDuplicateKeys";
 import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
 
 interface EnvEntry {
@@ -16,8 +19,7 @@ function genId(): string {
 export function Environment() {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var [entries, setEntries] = useState<EnvEntry[]>([]);
-  var [saving, setSaving] = useState(false);
-  var [saved, setSaved] = useState(false);
+  var save = useSaveState();
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
@@ -26,10 +28,18 @@ export function Environment() {
       }
       var data = msg as SettingsDataMessage;
       var env = data.config.globalEnv ?? {};
+
+      if (save.saving) {
+        save.confirmSave();
+      }
+
       var rows = Object.entries(env).map(function ([k, v]) {
         return { id: genId(), key: k, value: v };
       });
       setEntries(rows);
+      if (!save.saving) {
+        save.resetFromServer();
+      }
     }
 
     subscribe("settings:data", handleMessage);
@@ -44,12 +54,14 @@ export function Environment() {
     setEntries(function (prev) {
       return [...prev, { id: genId(), key: "", value: "" }];
     });
+    save.markDirty();
   }
 
   function handleDelete(id: string) {
     setEntries(function (prev) {
       return prev.filter(function (e) { return e.id !== id; });
     });
+    save.markDirty();
   }
 
   function handleKeyChange(id: string, key: string) {
@@ -58,6 +70,7 @@ export function Environment() {
         return e.id === id ? { ...e, key } : e;
       });
     });
+    save.markDirty();
   }
 
   function handleValueChange(id: string, value: string) {
@@ -66,6 +79,7 @@ export function Environment() {
         return e.id === id ? { ...e, value } : e;
       });
     });
+    save.markDirty();
   }
 
   function handleSave() {
@@ -75,65 +89,74 @@ export function Environment() {
         env[e.key.trim()] = e.value;
       }
     });
-    setSaving(true);
+    save.startSave();
     send({
       type: "settings:update",
       settings: { globalEnv: env },
     });
-    setTimeout(function () {
-      setSaving(false);
-      setSaved(true);
-      setTimeout(function () { setSaved(false); }, 1800);
-    }, 400);
   }
+
+  var duplicateKeys = useMemo(function () { return findDuplicateKeys(entries); }, [entries]);
+  var hasDuplicates = duplicateKeys.size > 0;
 
   return (
     <div className="py-2">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
-        Environment Variables
-      </div>
-
-      <div className="text-[12px] text-base-content/40 mb-4 leading-relaxed">
-        Global environment variables passed to all Claude sessions.
-      </div>
-
-      {entries.length > 0 && (
-        <div className="hidden sm:grid gap-1.5 mb-2.5" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
-          <div className="text-[11px] text-base-content/40 font-semibold tracking-[0.06em] uppercase px-0.5">Key</div>
-          <div className="text-[11px] text-base-content/40 font-semibold tracking-[0.06em] uppercase px-0.5">Value</div>
-          <div className="w-7" />
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1.5 mb-3">
-        {entries.map(function (entry) {
+      <div className="flex flex-col gap-3 sm:gap-1.5 mb-3">
+        {entries.length === 0 && (
+          <div className="py-4 text-center text-[13px] text-base-content/30">
+            No environment variables configured.
+          </div>
+        )}
+        {entries.map(function (entry, idx) {
+          var isDupe = entry.key.trim() !== "" && duplicateKeys.has(entry.key.trim());
           return (
             <div
               key={entry.id}
-              className="flex flex-col sm:grid gap-1.5 sm:items-center"
-              style={{ gridTemplateColumns: "1fr 1fr auto" }}
+              className="flex flex-col sm:grid sm:grid-cols-[1fr_1fr_auto] gap-1.5 sm:items-center"
             >
-              <input
-                type="text"
-                value={entry.key}
-                onChange={function (e) { handleKeyChange(entry.id, e.target.value); }}
-                placeholder="VARIABLE_NAME"
-                aria-label={"Variable name for row " + (entries.indexOf(entry) + 1)}
-                className="input input-bordered input-xs bg-base-300 text-base-content font-mono text-[12px] focus:border-info"
-              />
-              <input
-                type="text"
-                value={entry.value}
-                onChange={function (e) { handleValueChange(entry.id, e.target.value); }}
-                placeholder="value"
-                aria-label={"Value for " + (entry.key || "row " + (entries.indexOf(entry) + 1))}
-                className="input input-bordered input-xs bg-base-300 text-base-content font-mono text-[12px] focus:border-info"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={entry.key}
+                  onChange={function (e) { handleKeyChange(entry.id, e.target.value); }}
+                  placeholder="VARIABLE_NAME"
+                  aria-label={"Variable name for row " + (idx + 1)}
+                  aria-invalid={isDupe}
+                  className={
+                    "w-full h-9 sm:h-7 px-3 bg-base-300 border rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms] " +
+                    (isDupe ? "border-warning" : "border-base-content/15")
+                  }
+                />
+                {isDupe && (
+                  <div className="flex items-center gap-1 mt-0.5 text-[10px] text-warning sm:absolute sm:-bottom-3.5 sm:left-0" role="alert">
+                    <AlertTriangle size={9} />
+                    Duplicate key
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1.5 items-center">
+                <input
+                  type="text"
+                  value={entry.value}
+                  onChange={function (e) { handleValueChange(entry.id, e.target.value); }}
+                  placeholder="value"
+                  aria-label={"Value for " + (entry.key || "row " + (idx + 1))}
+                  className="w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
+                />
+                <button
+                  onClick={function () { handleDelete(entry.id); }}
+                  aria-label={"Delete " + (entry.key || "row " + (idx + 1))}
+                  title="Delete"
+                  className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error w-9 h-9 flex-shrink-0 sm:hidden focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <X size={14} />
+                </button>
+              </div>
               <button
                 onClick={function () { handleDelete(entry.id); }}
-                aria-label="Delete row"
+                aria-label={"Delete " + (entry.key || "row " + (idx + 1))}
                 title="Delete"
-                className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error w-7 h-7"
+                className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error w-7 h-7 hidden sm:flex focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <X size={12} />
               </button>
@@ -144,25 +167,19 @@ export function Environment() {
 
       <button
         onClick={handleAddRow}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer"
+        className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-xl border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
       >
         <Plus size={12} />
         Add Variable
       </button>
 
-      <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={
-            "btn btn-sm " +
-            (saved ? "btn-success" : "btn-info") +
-            (saving ? " opacity-50 cursor-not-allowed" : "")
-          }
-        >
-          {saving ? "Saving..." : saved ? "Saved" : "Save Changes"}
-        </button>
-      </div>
+      <SaveFooter
+        dirty={save.dirty}
+        saving={save.saving}
+        saveState={save.saveState}
+        onSave={handleSave}
+        extraStatus={hasDuplicates ? "Duplicate keys will be merged" : undefined}
+      />
     </div>
   );
 }

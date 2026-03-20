@@ -7,19 +7,19 @@ import { Environment } from "./Environment";
 import { MeshStatus } from "./MeshStatus";
 import type { SettingsSection } from "../../stores/sidebar";
 
-var SECTION_CONFIG: Record<string, { title: string; subtitle: string }> = {
-  status: { title: "Status", subtitle: "System health and connection status" },
-  appearance: { title: "Appearance", subtitle: "Theme and visual preferences" },
-  claude: { title: "Claude Settings", subtitle: "API configuration and model preferences" },
-  environment: { title: "Environment", subtitle: "Environment variables and configuration" },
-  mcp: { title: "MCP Servers", subtitle: "Manage Model Context Protocol server connections" },
-  skills: { title: "Skills", subtitle: "Manage Claude skills and capabilities" },
-  nodes: { title: "Mesh Nodes", subtitle: "Connected machines and network status" },
+var SECTION_CONFIG: Record<string, { title: string }> = {
+  status: { title: "Status" },
+  appearance: { title: "Appearance" },
+  claude: { title: "Claude Settings" },
+  environment: { title: "Environment" },
+  mcp: { title: "MCP Servers" },
+  skills: { title: "Skills" },
+  nodes: { title: "Mesh Nodes" },
 };
 
 function McpPlaceholder() {
   return (
-    <div className="text-base-content/40 text-sm">
+    <div className="text-[13px] text-base-content/40 py-2">
       MCP server management coming soon.
     </div>
   );
@@ -27,7 +27,7 @@ function McpPlaceholder() {
 
 function SkillsPlaceholder() {
   return (
-    <div className="text-base-content/40 text-sm">
+    <div className="text-[13px] text-base-content/40 py-2">
       Skills management coming soon.
     </div>
   );
@@ -55,20 +55,17 @@ export function SettingsView() {
   var config = SECTION_CONFIG[section];
 
   return (
-    <div className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6">
+    <div className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">
       {config && (
-        <div className="mb-6 flex items-start gap-3">
+        <div className="mb-6 flex items-center gap-3">
           <button
-            className="btn btn-ghost btn-sm btn-square lg:hidden mt-0.5"
+            className="btn btn-ghost btn-sm btn-square lg:hidden"
             aria-label="Toggle sidebar"
             onClick={toggleDrawer}
           >
             <Menu size={18} />
           </button>
-          <div>
-          <div className="text-lg font-mono font-bold text-base-content">{config.title}</div>
-          <div className="text-xs text-base-content/40 mt-1">{config.subtitle}</div>
-          </div>
+          <h1 className="text-lg font-mono font-bold text-base-content">{config.title}</h1>
         </div>
       )}
       {renderSection(section)}

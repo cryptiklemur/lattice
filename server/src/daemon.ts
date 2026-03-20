@@ -4,7 +4,8 @@ import type { ServerWebSocket } from "bun";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
 import { addClient, removeClient, routeMessage } from "./ws/server";
-import { broadcast } from "./ws/broadcast";
+import { broadcast, sendTo } from "./ws/broadcast";
+import { buildNodesMessage } from "./handlers/mesh";
 import { startDiscovery } from "./mesh/discovery";
 import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessage } from "./mesh/connector";
 import { handleProxyRequest, handleProxyResponse } from "./mesh/proxy";
@@ -285,6 +286,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       open(ws: ServerWebSocket<WsData>) {
         addClient(ws);
         console.log(`[lattice] Client connected: ${ws.data.id}`);
+        sendTo(ws.data.id, { type: "mesh:nodes", nodes: buildNodesMessage() });
       },
       message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
         var text = typeof message === "string" ? message : message.toString();

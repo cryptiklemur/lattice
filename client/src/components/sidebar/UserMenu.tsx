@@ -1,18 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings, Plug, Sparkles, Terminal, Sun, Moon, RefreshCw, Power } from "lucide-react";
-import { useSidebar } from "../../hooks/useSidebar";
-import { useTheme } from "../../hooks/useTheme";
+import { Settings, RefreshCw, Power } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 
 interface UserMenuProps {
   anchorRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
+  onOpenNodeSettings: () => void;
 }
 
 export function UserMenu(props: UserMenuProps) {
   var menuRef = useRef<HTMLDivElement>(null);
-  var { openSettings } = useSidebar();
-  var { mode, toggleMode } = useTheme();
   var ws = useWebSocket();
   var [confirmingRestart, setConfirmingRestart] = useState(false);
   var [confirmingShutdown, setConfirmingShutdown] = useState(false);
@@ -80,34 +77,13 @@ export function UserMenu(props: UserMenuProps) {
     <div
       ref={menuRef}
       role="menu"
-      aria-label="User menu"
+      aria-label="Node menu"
       className="fixed z-[9999] bg-base-300 border border-base-content/10 rounded-lg shadow-xl p-1 min-w-[180px]"
       style={style}
     >
-      <button role="menuitem" className={itemClass} onClick={function () { openSettings("appearance"); props.onClose(); }}>
+      <button role="menuitem" className={itemClass} onClick={function () { props.onOpenNodeSettings(); props.onClose(); }}>
         <span className="opacity-60 flex-shrink-0"><Settings size={13} /></span>
-        Settings
-      </button>
-      <button role="menuitem" className={itemClass} onClick={function () { openSettings("mcp"); props.onClose(); }}>
-        <span className="opacity-60 flex-shrink-0"><Plug size={13} /></span>
-        MCP Servers
-      </button>
-      <button role="menuitem" className={itemClass} onClick={function () { openSettings("skills"); props.onClose(); }}>
-        <span className="opacity-60 flex-shrink-0"><Sparkles size={13} /></span>
-        Skills
-      </button>
-      <button role="menuitem" className={itemClass} onClick={function () { openSettings("environment"); props.onClose(); }}>
-        <span className="opacity-60 flex-shrink-0"><Terminal size={13} /></span>
-        Environment
-      </button>
-
-      <div className="h-px bg-base-content/8 my-1 mx-2" />
-
-      <button role="menuitem" className={itemClass} onClick={toggleMode}>
-        <span className="opacity-60 flex-shrink-0">
-          {mode === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-        </span>
-        {mode === "dark" ? "Switch to Light" : "Switch to Dark"}
+        Node Settings
       </button>
 
       <div className="h-px bg-base-content/8 my-1 mx-2" />

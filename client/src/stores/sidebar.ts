@@ -11,6 +11,7 @@ export type SidebarMode = "project" | "settings";
 
 export type ActiveView =
   | { type: "dashboard" }
+  | { type: "project-dashboard" }
   | { type: "chat" }
   | { type: "settings"; section: SettingsSection }
   | { type: "project-settings"; section: ProjectSettingsSection };
@@ -24,6 +25,7 @@ export interface SidebarState {
   userMenuOpen: boolean;
   projectDropdownOpen: boolean;
   drawerOpen: boolean;
+  nodeSettingsOpen: boolean;
 }
 
 var SETTINGS_SECTIONS: SettingsSection[] = ["status", "appearance", "claude", "environment", "mcp", "skills", "nodes"];
@@ -61,12 +63,13 @@ var sidebarStore = new Store<SidebarState>({
     : initialUrl.projectSettingsSection
     ? { type: "project-settings", section: initialUrl.projectSettingsSection }
     : initialUrl.projectSlug
-    ? { type: "chat" }
+    ? (initialUrl.sessionId ? { type: "chat" } : { type: "project-dashboard" })
     : { type: "dashboard" },
   previousView: null,
   userMenuOpen: false,
   projectDropdownOpen: false,
   drawerOpen: false,
+  nodeSettingsOpen: false,
 });
 
 function pushUrl(projectSlug: string | null, sessionId: string | null): void {
@@ -93,7 +96,7 @@ export function setActiveProjectSlug(slug: string | null): void {
       activeProjectSlug: slug,
       activeSessionId: null,
       sidebarMode: "project",
-      activeView: slug ? { type: "chat" } : { type: "dashboard" },
+      activeView: slug ? { type: "project-dashboard" } : { type: "dashboard" },
       userMenuOpen: false,
       projectDropdownOpen: false,
     };
@@ -104,7 +107,11 @@ export function setActiveProjectSlug(slug: string | null): void {
 export function setActiveSessionId(sessionId: string | null): void {
   var state = sidebarStore.state;
   sidebarStore.setState(function (s) {
-    return { ...s, activeSessionId: sessionId };
+    return {
+      ...s,
+      activeSessionId: sessionId,
+      activeView: sessionId ? { type: "chat" } : s.activeView,
+    };
   });
   pushUrl(state.activeProjectSlug, sessionId);
 }
@@ -189,6 +196,21 @@ export function exitSettings(): void {
   }
 }
 
+export function goToProjectDashboard(): void {
+  sidebarStore.setState(function (state) {
+    return {
+      ...state,
+      activeSessionId: null,
+      sidebarMode: "project",
+      activeView: { type: "project-dashboard" },
+      userMenuOpen: false,
+      projectDropdownOpen: false,
+    };
+  });
+  var state = sidebarStore.state;
+  pushUrl(state.activeProjectSlug, null);
+}
+
 export function goToDashboard(): void {
   sidebarStore.setState(function (state) {
     return {
@@ -234,7 +256,9 @@ export function handlePopState(): void {
         activeProjectSlug: url.projectSlug,
         activeSessionId: url.sessionId,
         sidebarMode: "project",
-        activeView: url.projectSlug ? { type: "chat" } : { type: "dashboard" },
+        activeView: url.projectSlug
+          ? (url.sessionId ? { type: "chat" } : { type: "project-dashboard" })
+          : { type: "dashboard" },
         userMenuOpen: false,
         projectDropdownOpen: false,
       };
@@ -281,5 +305,17 @@ export function toggleDrawer(): void {
 export function closeDrawer(): void {
   sidebarStore.setState(function (state) {
     return { ...state, drawerOpen: false };
+  });
+}
+
+export function openNodeSettings(): void {
+  sidebarStore.setState(function (state) {
+    return { ...state, nodeSettingsOpen: true, userMenuOpen: false };
+  });
+}
+
+export function closeNodeSettings(): void {
+  sidebarStore.setState(function (state) {
+    return { ...state, nodeSettingsOpen: false };
   });
 }

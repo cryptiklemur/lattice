@@ -4,11 +4,33 @@ import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig, saveConfig } from "../config";
 import { addProject } from "../project/registry";
 import type { LatticeConfig } from "@lattice/shared";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
+
+function loadGlobalClaudeMd(): string {
+  var mdPath = join(homedir(), ".claude", "CLAUDE.md");
+  if (existsSync(mdPath)) {
+    try {
+      return readFileSync(mdPath, "utf-8");
+    } catch {}
+  }
+  return "";
+}
+
+function saveGlobalClaudeMd(content: string): void {
+  var claudeDir = join(homedir(), ".claude");
+  if (!existsSync(claudeDir)) {
+    mkdirSync(claudeDir, { recursive: true });
+  }
+  writeFileSync(join(claudeDir, "CLAUDE.md"), content, "utf-8");
+}
 
 registerHandler("settings", function (clientId: string, message: ClientMessage) {
   if (message.type === "settings:get") {
     var config = loadConfig();
-    sendTo(clientId, { type: "settings:data", config });
+    var configWithClaudeMd = { ...config, claudeMd: loadGlobalClaudeMd() };
+    sendTo(clientId, { type: "settings:data", config: configWithClaudeMd });
     sendTo(clientId, {
       type: "projects:list",
       projects: config.projects.map(function (p) {
@@ -22,7 +44,13 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     var updateMsg = message as SettingsUpdateMessage;
     var current = loadConfig();
 
-    var incomingProjects = (updateMsg.settings as any).projects as Array<{ path: string; slug?: string; title: string; env?: Record<string, string> }> | undefined;
+    var incoming = updateMsg.settings as Record<string, unknown>;
+    if (typeof incoming.claudeMd === "string") {
+      saveGlobalClaudeMd(incoming.claudeMd);
+      delete incoming.claudeMd;
+    }
+
+    var incomingProjects = incoming.projects as Array<{ path: string; slug?: string; title: string; env?: Record<string, string> }> | undefined;
     if (incomingProjects && incomingProjects.length > 0) {
       for (var i = 0; i < incomingProjects.length; i++) {
         var proj = incomingProjects[i];
@@ -33,15 +61,16 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     var refreshed = loadConfig();
     var updated: LatticeConfig = {
       ...refreshed,
-      ...(updateMsg.settings as Partial<LatticeConfig>),
+      ...(incoming as Partial<LatticeConfig>),
       globalEnv: {
         ...refreshed.globalEnv,
-        ...(updateMsg.settings.globalEnv ?? {}),
+        ...((incoming.globalEnv as Record<string, string>) ?? {}),
       },
       projects: refreshed.projects,
     };
     saveConfig(updated);
-    sendTo(clientId, { type: "settings:data", config: updated });
+    var updatedWithClaudeMd = { ...updated, claudeMd: loadGlobalClaudeMd() };
+    sendTo(clientId, { type: "settings:data", config: updatedWithClaudeMd });
     broadcast({
       type: "projects:list",
       projects: updated.projects.map(function (p) {

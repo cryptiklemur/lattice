@@ -7,7 +7,7 @@ import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairi
 import { addPeer, removePeer, loadPeers } from "../mesh/peers";
 import type { PeerInfo } from "@lattice/shared";
 
-function buildNodesMessage(): NodeInfo[] {
+export function buildNodesMessage(): NodeInfo[] {
   var peers = loadPeers();
   var config = loadConfig();
   var identity = loadOrCreateIdentity();

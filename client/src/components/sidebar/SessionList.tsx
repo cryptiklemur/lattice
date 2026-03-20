@@ -262,7 +262,7 @@ export function SessionList(props: SessionListProps) {
   if (loading && sessions.length === 0) {
     return (
       <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5 pb-16">
           <SessionSkeleton />
         </div>
       </div>
@@ -279,7 +279,7 @@ export function SessionList(props: SessionListProps) {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5 pb-16">
         {grouped.length === 0 ? (
           <div className="px-3 py-2 text-sm text-base-content/40 italic">
             {props.filter ? "No matches" : "No sessions yet"}

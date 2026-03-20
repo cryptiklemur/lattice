@@ -1,60 +1,56 @@
+import { memo, useMemo, useCallback } from "react";
 import { useTheme } from "../../hooks/useTheme";
 import { Sun, Moon, Check } from "lucide-react";
 import type { ThemeEntry } from "../../themes/index";
 
-function Swatch({ color }: { color: string }) {
-  return (
-    <div
-      className="w-[10px] h-[10px] rounded-sm flex-shrink-0"
-      style={{ background: "#" + color }}
-    />
-  );
-}
+var SWATCH_KEYS = [
+  "base00", "base01", "base02", "base03",
+  "base04", "base05", "base06", "base07",
+  "base08", "base09", "base0A", "base0B",
+  "base0C", "base0D", "base0E", "base0F",
+] as const;
 
-function ThemeCard({
+var ThemeCard = memo(function ThemeCard({
   entry,
   active,
   onSelect,
 }: {
   entry: ThemeEntry;
   active: boolean;
-  onSelect: () => void;
+  onSelect: (id: string) => void;
 }) {
   var t = entry.theme;
 
+  function handleClick() {
+    onSelect(entry.id);
+  }
+
   return (
     <button
-      onClick={onSelect}
+      onClick={handleClick}
       className={
-        "flex flex-col gap-2 p-2.5 px-3 rounded-md border cursor-pointer text-left transition-all duration-[120ms] relative " +
+        "flex flex-col gap-2 p-3 sm:p-2.5 px-3 rounded-lg border cursor-pointer text-left transition-colors duration-[120ms] relative focus-visible:ring-2 focus-visible:ring-primary " +
         (active
-          ? "border-info bg-base-300"
-          : "border-base-300 bg-base-300 hover:border-base-content/30 hover:bg-base-content/5")
+          ? "border-primary bg-base-300 shadow-sm"
+          : "border-base-content/15 bg-base-300 hover:border-base-content/30")
       }
     >
       {active && (
-        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-info flex items-center justify-center">
-          <Check size={8} className="text-info-content" strokeWidth={1.8} />
+        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
+          <Check size={8} className="text-primary-content" strokeWidth={1.8} />
         </div>
       )}
 
       <div className="flex gap-[3px] flex-wrap w-[80px]">
-        <Swatch color={t.base00} />
-        <Swatch color={t.base01} />
-        <Swatch color={t.base02} />
-        <Swatch color={t.base03} />
-        <Swatch color={t.base04} />
-        <Swatch color={t.base05} />
-        <Swatch color={t.base06} />
-        <Swatch color={t.base07} />
-        <Swatch color={t.base08} />
-        <Swatch color={t.base09} />
-        <Swatch color={t.base0A} />
-        <Swatch color={t.base0B} />
-        <Swatch color={t.base0C} />
-        <Swatch color={t.base0D} />
-        <Swatch color={t.base0E} />
-        <Swatch color={t.base0F} />
+        {SWATCH_KEYS.map(function (key) {
+          return (
+            <div
+              key={key}
+              className="w-[10px] h-[10px] rounded-sm flex-shrink-0 ring-1 ring-base-content/10"
+              style={{ background: "#" + t[key] }}
+            />
+          );
+        })}
       </div>
 
       <div className="text-[12px] font-medium text-base-content">
@@ -62,7 +58,7 @@ function ThemeCard({
       </div>
     </button>
   );
-}
+});
 
 function ThemeGroup({
   label,
@@ -81,17 +77,17 @@ function ThemeGroup({
 
   return (
     <div className="mb-6">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-3">
+      <div className="text-[11px] font-mono font-bold tracking-[0.1em] uppercase text-base-content/40 mb-3">
         {label}
       </div>
-      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))" }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
         {entries.map(function (entry) {
           return (
             <ThemeCard
               key={entry.id}
               entry={entry}
               active={entry.id === currentThemeId}
-              onSelect={function () { onSelect(entry.id); }}
+              onSelect={onSelect}
             />
           );
         })}
@@ -103,23 +99,22 @@ function ThemeGroup({
 export function Appearance() {
   var { mode, currentThemeId, toggleMode, setTheme, themes } = useTheme();
 
-  var darkThemes = themes.filter(function (e) { return e.theme.variant === "dark"; });
-  var lightThemes = themes.filter(function (e) { return e.theme.variant === "light"; });
+  var darkThemes = useMemo(function () {
+    return themes.filter(function (e) { return e.theme.variant === "dark"; });
+  }, [themes]);
+
+  var lightThemes = useMemo(function () {
+    return themes.filter(function (e) { return e.theme.variant === "light"; });
+  }, [themes]);
+
+  var handleThemeSelect = useCallback(function (id: string) {
+    setTheme(id);
+  }, [setTheme]);
 
   return (
     <div className="py-2">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
-        Appearance
-      </div>
-
-      <div className="flex items-center justify-between mb-6 p-3 px-3.5 bg-base-300 rounded-md border border-base-300">
-        <div>
-          <div className="text-[13px] font-medium text-base-content">Color Mode</div>
-          <div className="text-[12px] text-base-content/40 mt-0.5">
-            Currently: {mode === "dark" ? "Dark" : "Light"}
-          </div>
-        </div>
-
+      <div className="flex items-center justify-between mb-6">
+        <div className="text-[12px] font-semibold text-base-content/40">Color Mode</div>
         <button
           onClick={toggleMode}
           className="btn btn-ghost btn-sm border border-base-content/20"
@@ -142,14 +137,14 @@ export function Appearance() {
         label="Dark Themes"
         entries={darkThemes}
         currentThemeId={currentThemeId}
-        onSelect={setTheme}
+        onSelect={handleThemeSelect}
       />
 
       <ThemeGroup
         label="Light Themes"
         entries={lightThemes}
         currentThemeId={currentThemeId}
-        onSelect={setTheme}
+        onSelect={handleThemeSelect}
       />
     </div>
   );

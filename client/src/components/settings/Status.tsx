@@ -3,17 +3,13 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
 import type { LatticeConfig } from "@lattice/shared";
 
-interface NodeStatus {
-  config: LatticeConfig | null;
-}
-
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center py-2.5 border-b border-base-300 gap-1 sm:gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center py-2.5 border-b border-base-content/15 last:border-b-0 gap-1 sm:gap-4">
       <div className="sm:w-[120px] text-[12px] text-base-content/40 uppercase tracking-[0.06em] font-semibold flex-shrink-0">
         {label}
       </div>
-      <div className="text-[13px] text-base-content font-mono break-all sm:break-normal">
+      <div className={"text-[13px] font-mono break-words " + (valueClass || "text-base-content")}>
         {value}
       </div>
     </div>
@@ -22,7 +18,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export function Status() {
   var { send, subscribe, unsubscribe } = useWebSocket();
-  var [status, setStatus] = useState<NodeStatus>({ config: null });
+  var [config, setConfig] = useState<LatticeConfig | null>(null);
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
@@ -30,12 +26,7 @@ export function Status() {
         return;
       }
       var data = msg as SettingsDataMessage;
-      setStatus(function (prev) {
-        return {
-          ...prev,
-          config: data.config,
-        };
-      });
+      setConfig(data.config);
     }
 
     subscribe("settings:data", handleMessage);
@@ -46,18 +37,12 @@ export function Status() {
     };
   }, []);
 
-  var config = status.config;
-
   return (
     <div className="py-2">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
-        Node Status
-      </div>
-
       {config ? (
         <div>
+          <Row label="Status" value="Online" valueClass="text-success" />
           <Row label="Node Name" value={config.name} />
-          <Row label="Version" value="v0.0.1" />
           <Row label="Port" value={String(config.port)} />
           <Row label="Debug" value={config.debug ? "enabled" : "disabled"} />
           <Row label="TLS" value={config.tls ? "enabled" : "disabled"} />
@@ -65,24 +50,9 @@ export function Status() {
         </div>
       ) : (
         <div className="text-[13px] text-base-content/40 py-4">
-          Loading node status...
+          Loading...
         </div>
       )}
-
-      <div className="mt-6 p-3 px-3.5 bg-base-300 rounded-md border border-base-300 flex flex-wrap gap-4 sm:gap-6">
-        <div>
-          <div className="text-[11px] text-base-content/40 mb-1">Status</div>
-          <div className="flex items-center gap-1.5 text-[13px] text-success">
-            <div className="w-[7px] h-[7px] rounded-full bg-success" />
-            Online
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[11px] text-base-content/40 mb-1">Runtime</div>
-          <div className="text-[13px] text-base-content font-mono">Bun</div>
-        </div>
-      </div>
     </div>
   );
 }

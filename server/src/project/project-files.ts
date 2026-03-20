@@ -3,7 +3,7 @@ import { join, basename } from "node:path";
 import { homedir } from "node:os";
 
 export function readProjectClaudeMd(projectPath: string): string {
-  var filePath = join(projectPath, ".claude", "CLAUDE.md");
+  var filePath = join(projectPath, "CLAUDE.md");
   if (!existsSync(filePath)) return "";
   try {
     return readFileSync(filePath, "utf-8");
@@ -13,9 +13,7 @@ export function readProjectClaudeMd(projectPath: string): string {
 }
 
 export function writeProjectClaudeMd(projectPath: string, content: string): void {
-  var dir = join(projectPath, ".claude");
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "CLAUDE.md"), content, "utf-8");
+  writeFileSync(join(projectPath, "CLAUDE.md"), content, "utf-8");
 }
 
 export function readProjectClaudeSettings(projectPath: string): Record<string, unknown> {

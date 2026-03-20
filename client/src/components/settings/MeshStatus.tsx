@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, CircleDot, Circle } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { PairingDialog } from "../mesh/PairingDialog";
@@ -23,13 +23,12 @@ function NodeRow(props: NodeRowProps) {
   }
 
   return (
-    <div className="flex items-center gap-3 p-2.5 px-3.5 rounded border border-base-300 bg-base-300 mb-2">
-      <div
-        className={
-          "w-2 h-2 rounded-full flex-shrink-0 " +
-          (props.node.online ? "bg-success" : "bg-base-content/30")
-        }
-      />
+    <div className="flex items-center gap-3 p-3 sm:p-2.5 px-3.5 rounded-lg border border-base-content/15 bg-base-300 mb-2">
+      {props.node.online ? (
+        <CircleDot size={10} className="text-success flex-shrink-0" aria-label="Online" />
+      ) : (
+        <Circle size={10} className="text-base-content/30 flex-shrink-0" aria-label="Offline" />
+      )}
 
       <div className="flex-1 min-w-0">
         <div className="text-[13px] font-medium text-base-content truncate">
@@ -93,12 +92,8 @@ export function MeshStatus() {
 
   return (
     <div className="py-2">
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-base-content/40 mb-4">
-        Mesh
-      </div>
-
       <div className="mb-5">
-        <div className="text-[12px] font-semibold text-base-content/40 mb-2 tracking-[0.04em]">
+        <div className="text-[12px] font-semibold text-base-content/40 mb-2 tracking-[0.06em]">
           This Node
         </div>
         {localNode ? (
@@ -112,12 +107,12 @@ export function MeshStatus() {
 
       <div className="mb-5">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[12px] font-semibold text-base-content/40 tracking-[0.04em]">
+          <div className="text-[12px] font-semibold text-base-content/40 tracking-[0.06em]">
             Paired Nodes
           </div>
           <button
             onClick={function () { setPairingOpen(true); }}
-            className="btn btn-primary btn-xs gap-1"
+            className="btn btn-primary btn-sm sm:btn-xs gap-1"
           >
             <Plus size={10} />
             Pair New Node
@@ -125,7 +120,7 @@ export function MeshStatus() {
         </div>
 
         {remoteNodes.length === 0 ? (
-          <div className="p-4 rounded border border-dashed border-base-300 text-center text-[12px] text-base-content/40 italic">
+          <div className="p-4 rounded-lg border border-dashed border-base-content/15 text-center text-[12px] text-base-content/40 italic">
             No paired nodes yet.
           </div>
         ) : (

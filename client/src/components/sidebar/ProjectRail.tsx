@@ -131,10 +131,8 @@ interface ProjectRailProps {
   nodes: NodeInfo[];
   activeProjectSlug: string | null;
   onSelectProject: (slug: string) => void;
-  onUserAvatarClick: () => void;
   onDashboardClick: () => void;
   isDashboardActive: boolean;
-  localNodeName: string;
   dimmed?: boolean;
 }
 
@@ -185,12 +183,10 @@ export function ProjectRail(props: ProjectRailProps) {
     setContextMenu({ visible: true, x: e.clientX, y: e.clientY, slug: slug });
   }
 
-  var userInitial = props.localNodeName ? props.localNodeName[0].toUpperCase() : "?";
-
   return (
     <div
       className={
-        "w-16 flex-shrink-0 flex flex-col items-center pt-3 pb-3 gap-2 bg-base-100 border-r border-base-300 overflow-y-auto overflow-x-hidden scrollbar-hidden " +
+        "w-16 flex-shrink-0 flex flex-col items-center pt-3 pb-16 gap-2 bg-base-100 border-r border-base-300 overflow-y-auto overflow-x-hidden scrollbar-hidden " +
         (props.dimmed ? "opacity-60" : "")
       }
     >
@@ -244,14 +240,6 @@ export function ProjectRail(props: ProjectRailProps) {
 
       <div className="flex-1" />
 
-      <button
-        onClick={props.onUserAvatarClick}
-        className="w-[42px] h-[42px] flex items-center justify-center rounded-full bg-base-200 text-base-content/70 text-sm font-bold hover:bg-base-300 transition-colors duration-[120ms] flex-shrink-0 cursor-pointer"
-        title={props.localNodeName}
-      >
-        {userInitial}
-      </button>
-
       {contextMenu.visible && (
         <div
           ref={menuRef}
@@ -265,8 +253,11 @@ export function ProjectRail(props: ProjectRailProps) {
             role="menuitem"
             className="w-full text-left px-3 py-1.5 text-sm text-base-content hover:bg-base-content/10 transition-colors"
             onClick={function () {
+              if (contextMenu.slug) {
+                sidebar.setActiveProjectSlug(contextMenu.slug);
+                sidebar.openProjectSettings("general");
+              }
               setContextMenu(function (prev) { return { ...prev, visible: false }; });
-              sidebar.openSettings("status");
             }}
           >
             Project Settings

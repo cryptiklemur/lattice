@@ -83,7 +83,7 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
         <span className="text-[13px] font-mono font-bold text-base-content">{headerLabel}</span>
       </div>
 
-      <div className="flex flex-col flex-1 overflow-y-auto min-h-0 py-2">
+      <div className="flex flex-col flex-1 overflow-y-auto min-h-0 py-2 pb-16">
         {nav.map(function (group) {
           return (
             <div key={group.group} className="mb-2">

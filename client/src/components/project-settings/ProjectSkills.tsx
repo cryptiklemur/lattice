@@ -42,7 +42,7 @@ export function ProjectSkills({ settings }: ProjectSkillsProps) {
     <div className="py-2 space-y-6">
       {globalSkills.length > 0 && (
         <div>
-          <div className="text-[12px] font-semibold text-base-content/40 mb-2 font-mono">Global Skills</div>
+          <div className="text-[12px] font-semibold text-base-content/40 mb-2">Global Skills</div>
           <div className="space-y-2">
             {globalSkills.map(function (skill) {
               return <SkillItem key={skill.path} skill={skill} badge="global" />;
@@ -52,7 +52,7 @@ export function ProjectSkills({ settings }: ProjectSkillsProps) {
       )}
       {projectSkills.length > 0 && (
         <div>
-          <div className="text-[12px] font-semibold text-base-content/40 mb-2 font-mono">Project Skills</div>
+          <div className="text-[12px] font-semibold text-base-content/40 mb-2">Project Skills</div>
           <div className="space-y-2">
             {projectSkills.map(function (skill) {
               return <SkillItem key={skill.path} skill={skill} />;

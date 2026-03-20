@@ -56,10 +56,10 @@ function buildProjectSettings(projectSlug: string): ProjectSettings | { error: s
     path: project.path,
     icon: (project as Record<string, unknown>).icon as ProjectSettings["icon"],
     claudeMd,
-    defaultModel: (lattice.defaultModel as string) ?? "",
-    defaultEffort: (lattice.defaultEffort as string) ?? "",
+    defaultModel: (lattice.defaultModel as string) || undefined,
+    defaultEffort: (lattice.defaultEffort as string) || undefined,
     thinking: lattice.thinking as ProjectSettings["thinking"],
-    permissionMode: (lattice.defaultPermissionMode as string) ?? "",
+    permissionMode: (lattice.defaultPermissionMode as string) || undefined,
     permissions: {
       allow: Array.isArray(permissions.allow) ? permissions.allow : [],
       deny: Array.isArray(permissions.deny) ? permissions.deny : [],

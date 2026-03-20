@@ -3,7 +3,7 @@ import { useWebSocket } from "./useWebSocket";
 import type { ServerMessage, ProjectSettings, ProjectSettingsDataMessage, ProjectSettingsErrorMessage } from "@lattice/shared";
 
 export function useProjectSettings(projectSlug: string | null) {
-  var { send, subscribe, unsubscribe } = useWebSocket();
+  var { status, send, subscribe, unsubscribe } = useWebSocket();
   var [settings, setSettings] = useState<ProjectSettings | null>(null);
   var [loading, setLoading] = useState(true);
   var [error, setError] = useState<string | null>(null);
@@ -30,14 +30,17 @@ export function useProjectSettings(projectSlug: string | null) {
 
     subscribe("project-settings:data", handleData);
     subscribe("project-settings:error", handleError);
-    setLoading(true);
-    send({ type: "project-settings:get", projectSlug: projectSlug });
+
+    if (status === "connected") {
+      setLoading(true);
+      send({ type: "project-settings:get", projectSlug: projectSlug });
+    }
 
     return function () {
       unsubscribe("project-settings:data", handleData);
       unsubscribe("project-settings:error", handleError);
     };
-  }, [projectSlug]);
+  }, [projectSlug, status]);
 
   function updateSection(section: string, data: Record<string, unknown>) {
     if (!projectSlug) return;
