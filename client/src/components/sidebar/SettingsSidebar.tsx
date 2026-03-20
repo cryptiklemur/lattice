@@ -1,4 +1,4 @@
-import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield } from "lucide-react";
+import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield, Brain } from "lucide-react";
 import { useSidebar } from "../../hooks/useSidebar";
 import type { SettingsSection, ProjectSettingsSection } from "../../stores/sidebar";
 
@@ -52,6 +52,7 @@ var PROJECT_SETTINGS_NAV = [
     items: [
       { id: "rules" as ProjectSettingsSection, label: "Rules", icon: <ScrollText size={14} /> },
       { id: "permissions" as ProjectSettingsSection, label: "Permissions", icon: <Shield size={14} /> },
+      { id: "memory" as ProjectSettingsSection, label: "Memory", icon: <Brain size={14} /> },
     ],
   },
 ];
