@@ -1,0 +1,32 @@
+{
+  "branches": [
+    "main",
+    {
+      "name": "alpha",
+      "prerelease": true
+    }
+  ],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "angular"
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "angular"
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "."
+      }
+    ],
+    [
+      "@semantic-release/github"
+    ]
+  ]
+}

@@ -1,7 +1,30 @@
 {
-  "name": "@lattice/root",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@cryptiklemur/lattice",
+  "version": "0.0.0",
+  "description": "Multi-machine agentic dashboard for Claude Code. Monitor sessions, manage MCP servers and skills, orchestrate across mesh-networked nodes.",
+  "license": "MIT",
+  "author": "Aaron Scherer <me@aaronscherer.me>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cryptiklemur/lattice.git"
+  },
+  "homepage": "https://github.com/cryptiklemur/lattice",
+  "bugs": {
+    "url": "https://github.com/cryptiklemur/lattice/issues"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "dashboard",
+    "mcp",
+    "agentic",
+    "ai",
+    "mesh",
+    "lattice"
+  ],
+  "bin": {
+    "lattice": "./server/src/index.ts"
+  },
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "build": "bun run --filter '*' build",
@@ -12,5 +35,12 @@
     "shared",
     "server",
     "client"
-  ]
+  ],
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^12.0.6",
+    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "semantic-release": "^25.0.3"
+  }
 }
