@@ -3,10 +3,8 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { TabBar } from "./TabBar";
 import { ChatView } from "../chat/ChatView";
 import { TerminalView } from "./TerminalView";
+import { FileBrowser } from "./FileBrowser";
 
-function FilesPlaceholder() {
-  return <div className="flex-1 flex items-center justify-center text-base-content/40 text-[13px]">File Browser (coming soon)</div>;
-}
 function NotesPlaceholder() {
   return <div className="flex-1 flex items-center justify-center text-base-content/40 text-[13px]">Notes (coming soon)</div>;
 }
@@ -16,7 +14,7 @@ function TasksPlaceholder() {
 
 var TAB_COMPONENTS: Record<string, () => React.JSX.Element> = {
   chat: ChatView,
-  files: FilesPlaceholder,
+  files: FileBrowser,
   terminal: TerminalView,
   notes: NotesPlaceholder,
   tasks: TasksPlaceholder,

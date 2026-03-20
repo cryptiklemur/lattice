@@ -87,6 +87,10 @@ export interface LatticeConfig {
     env: Record<string, string>;
     icon?: ProjectIcon;
   }>;
+  editor?: {
+    type: "vscode" | "vscode-insiders" | "cursor" | "webstorm" | "intellij" | "pycharm" | "goland" | "notepad++" | "sublime" | "custom";
+    customCommand?: string;
+  };
 }
 
 export interface StickyNote {

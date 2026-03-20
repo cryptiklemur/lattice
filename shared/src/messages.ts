@@ -256,6 +256,12 @@ export interface BrowseSuggestionsMessage {
   type: "browse:suggestions";
 }
 
+export interface EditorOpenMessage {
+  type: "editor:open";
+  path: string;
+  line?: number;
+}
+
 export interface ProjectSettingsGetMessage {
   type: "project-settings:get";
   projectSlug: string;
@@ -328,7 +334,8 @@ export type ClientMessage =
   | MemoryViewMessage
   | MemorySaveMessage
   | MemoryDeleteMessage
-  | BrowseSuggestionsMessage;
+  | BrowseSuggestionsMessage
+  | EditorOpenMessage;
 
 export interface SessionListMessage {
   type: "session:list";
