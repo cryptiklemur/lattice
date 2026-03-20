@@ -109,6 +109,20 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           rows={10}
           className="w-full px-3 py-2.5 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[12px] font-mono leading-relaxed resize-y focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
         />
+        {(function () {
+          var lineCount = claudeMd ? claudeMd.split("\n").length : 0;
+          var overLimit = lineCount > 200;
+          return (
+            <div className="flex items-center justify-between mt-1.5">
+              <div className={"text-[11px] " + (overLimit ? "text-warning" : "text-base-content/25")}>
+                {lineCount} line{lineCount !== 1 ? "s" : ""}{overLimit ? " — consider moving content to rules or imports" : ""}
+              </div>
+              {overLimit && (
+                <div className="text-[10px] text-warning/70">soft limit: 200 lines</div>
+              )}
+            </div>
+          );
+        })()}
         <button
           type="button"
           onClick={function () { setShowGlobalMd(!showGlobalMd); }}
