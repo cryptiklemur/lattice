@@ -6,6 +6,7 @@ import { listDirectory, readFile, writeFile } from "../project/file-browser";
 import { readdirSync, existsSync, readFileSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import { homedir } from "node:os";
+import { loadConfig } from "../config";
 
 var activeProjectByClient = new Map<string, string>();
 
@@ -199,6 +200,44 @@ registerHandler("browse", function (clientId: string, message: ClientMessage) {
     } catch {
       sendTo(clientId, { type: "browse:list_result", path: resolvedPath, homedir: home, entries: [] });
     }
+    return;
+  }
+
+  if (message.type === "browse:suggestions") {
+    var claudeProjectsDir = join(homedir(), ".claude", "projects");
+    var config = loadConfig();
+    var existingPaths = new Set(config.projects.map(function (p) { return p.path; }));
+    var suggestions: Array<{ path: string; name: string; hasClaudeMd: boolean }> = [];
+
+    if (existsSync(claudeProjectsDir)) {
+      try {
+        var hashDirs = readdirSync(claudeProjectsDir);
+        for (var i = 0; i < hashDirs.length; i++) {
+          var hashDir = hashDirs[i];
+          var candidatePath = "/" + hashDir.slice(1).replace(/-/g, "/");
+
+          if (!existsSync(candidatePath)) continue;
+          if (existingPaths.has(candidatePath)) continue;
+
+          try {
+            var stat = statSync(candidatePath);
+            if (!stat.isDirectory()) continue;
+          } catch { continue; }
+
+          var hasClaudeMd = existsSync(join(candidatePath, "CLAUDE.md"));
+          var name = candidatePath.split("/").pop() || hashDir;
+
+          suggestions.push({
+            path: candidatePath,
+            name: name,
+            hasClaudeMd: hasClaudeMd,
+          });
+        }
+      } catch {}
+    }
+
+    suggestions.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    sendTo(clientId, { type: "browse:suggestions_result", suggestions: suggestions });
     return;
   }
 });
