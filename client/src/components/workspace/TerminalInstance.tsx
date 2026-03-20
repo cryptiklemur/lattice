@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SearchAddon } from "@xterm/addon-search";
 import "@xterm/xterm/css/xterm.css";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import type { ServerMessage, TerminalCreatedMessage, TerminalOutputMessage } from "@lattice/shared";
+import type { ServerMessage, TerminalCreatedMessage, TerminalOutputMessage, TerminalExitedMessage } from "@lattice/shared";
 
 function getXtermTheme(): Record<string, string> {
   var root = document.documentElement;
@@ -39,13 +40,19 @@ function getXtermTheme(): Record<string, string> {
   };
 }
 
-export function Terminal() {
+interface TerminalInstanceProps {
+  instanceId: string;
+  visible: boolean;
+}
+
+export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps) {
   var containerRef = useRef<HTMLDivElement | null>(null);
   var xtermRef = useRef<XTerm | null>(null);
   var fitAddonRef = useRef<FitAddon | null>(null);
+  var searchAddonRef = useRef<SearchAddon | null>(null);
   var termIdRef = useRef<string | null>(null);
+  var createdRef = useRef(false);
   var { send, subscribe, unsubscribe } = useWebSocket();
-  var [ready, setReady] = useState(false);
 
   useEffect(function() {
     if (!containerRef.current) {
@@ -61,20 +68,25 @@ export function Terminal() {
 
     var fitAddon = new FitAddon();
     var webLinksAddon = new WebLinksAddon();
+    var searchAddon = new SearchAddon();
+
     term.loadAddon(fitAddon);
     term.loadAddon(webLinksAddon);
+    term.loadAddon(searchAddon);
     term.open(containerRef.current);
     fitAddon.fit();
 
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
+    searchAddonRef.current = searchAddon;
 
     send({ type: "terminal:create" });
 
     function onCreated(msg: ServerMessage) {
+      if (createdRef.current) return;
+      createdRef.current = true;
       var created = msg as TerminalCreatedMessage;
       termIdRef.current = created.termId;
-      setReady(true);
     }
 
     function onOutput(msg: ServerMessage) {
@@ -84,8 +96,16 @@ export function Terminal() {
       }
     }
 
+    function onExited(msg: ServerMessage) {
+      var exited = msg as TerminalExitedMessage;
+      if (xtermRef.current && exited.termId === termIdRef.current) {
+        xtermRef.current.write("\r\n\x1b[31m[process exited]\x1b[0m\r\n");
+      }
+    }
+
     subscribe("terminal:created", onCreated);
     subscribe("terminal:output", onOutput);
+    subscribe("terminal:exited", onExited);
 
     term.onData(function(data: string) {
       var termId = termIdRef.current;
@@ -112,17 +132,37 @@ export function Terminal() {
     return function() {
       unsubscribe("terminal:created", onCreated);
       unsubscribe("terminal:output", onOutput);
+      unsubscribe("terminal:exited", onExited);
       resizeObserver.disconnect();
       term.dispose();
       xtermRef.current = null;
       fitAddonRef.current = null;
+      searchAddonRef.current = null;
     };
   }, []);
+
+  useEffect(function() {
+    if (visible && fitAddonRef.current) {
+      var timer = setTimeout(function() {
+        if (fitAddonRef.current) {
+          fitAddonRef.current.fit();
+          var termId = termIdRef.current;
+          var dim = fitAddonRef.current.proposeDimensions();
+          if (termId && dim) {
+            send({ type: "terminal:resize", termId: termId, cols: dim.cols, rows: dim.rows });
+          }
+        }
+      }, 50);
+      return function() { clearTimeout(timer); };
+    }
+  }, [visible]);
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-full min-h-[200px] overflow-hidden bg-base-100"
+      className="w-full h-full overflow-hidden bg-base-100"
+      style={{ display: visible ? "block" : "none" }}
+      data-instance-id={instanceId}
     />
   );
 }
