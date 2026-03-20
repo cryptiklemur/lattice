@@ -18,6 +18,7 @@ function LoadingScreen() {
   var ws = useWebSocket();
   var [dataReceived, setDataReceived] = useState(false);
   var [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  var [initialLoadDone, setInitialLoadDone] = useState(false);
   var canvasRef = useRef<HTMLCanvasElement>(null);
   var frameRef = useRef<number>(0);
 
@@ -37,16 +38,19 @@ function LoadingScreen() {
     return function () { ws.unsubscribe("projects:list", handleProjects); };
   }, [ws]);
 
-  var ready = dataReceived && minTimeElapsed;
-  var [visible, setVisible] = useState(true);
+  var initialReady = dataReceived && minTimeElapsed;
+  var isDisconnected = initialLoadDone && ws.status !== "connected";
+  var ready = initialReady && !isDisconnected;
+  var visible = !initialReady || isDisconnected;
 
   useEffect(function () {
-    if (!ready) return;
-    var timer = setTimeout(function () {
-      setVisible(false);
-    }, 300);
-    return function () { clearTimeout(timer); };
-  }, [ready]);
+    if (initialReady && !initialLoadDone) {
+      var timer = setTimeout(function () {
+        setInitialLoadDone(true);
+      }, 300);
+      return function () { clearTimeout(timer); };
+    }
+  }, [initialReady, initialLoadDone]);
 
   useEffect(function () {
     var canvas = canvasRef.current;
@@ -228,17 +232,20 @@ function LoadingScreen() {
     };
   }, []);
 
-  if (!visible) {
+  if (!visible && initialReady) {
     return null;
   }
 
-  var statusText = ws.status === "connecting" ? "Connecting..."
-    : ws.status === "disconnected" ? "Reconnecting..."
+  var statusText = isDisconnected
+    ? "Reconnecting..."
+    : ws.status === "connecting" ? "Connecting..."
     : "Loading projects...";
+
+  var bgClass = isDisconnected ? "bg-base-100/90" : "bg-base-100";
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-base-100"
+      className={"fixed inset-0 z-[9999] flex flex-col items-center justify-center " + bgClass}
       style={{ opacity: ready ? 0 : 1, transition: "opacity 300ms ease-out", pointerEvents: ready ? "none" : "auto" }}
     >
       <div className="flex flex-col items-center gap-7">
