@@ -7,6 +7,9 @@ import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";
 
 function getMemoryDir(projectSlug: string): string | null {
+  if (projectSlug === "__global__") {
+    return join(homedir(), ".claude", "memory");
+  }
   var config = loadConfig();
   var project = config.projects.find(function (p) { return p.slug === projectSlug; });
   if (!project) return null;

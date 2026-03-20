@@ -11,9 +11,11 @@ import { ProjectSkills } from "./ProjectSkills";
 import { ProjectRules } from "./ProjectRules";
 import { ProjectMcp } from "./ProjectMcp";
 import { ProjectMemory } from "./ProjectMemory";
+import { ProjectNotifications } from "./ProjectNotifications";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   general: { title: "General" },
+  notifications: { title: "Notifications" },
   claude: { title: "Claude" },
   environment: { title: "Environment" },
   mcp: { title: "MCP Servers" },
@@ -59,6 +61,10 @@ function renderSection(
 
   if (section === "memory") {
     return <ProjectMemory projectSlug={projectSlug} />;
+  }
+
+  if (section === "notifications") {
+    return <ProjectNotifications projectSlug={projectSlug} />;
   }
 
   return (

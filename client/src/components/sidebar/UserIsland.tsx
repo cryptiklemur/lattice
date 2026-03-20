@@ -51,18 +51,18 @@ export function UserIsland(props: UserIslandProps) {
           </button>
         )}
         <button
-          aria-label="Global settings"
-          onClick={function () { sidebar.openSettings("appearance"); }}
-          className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors"
-        >
-          <Settings size={14} />
-        </button>
-        <button
           aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           onClick={function (e) { e.stopPropagation(); toggleMode(); }}
           className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors"
         >
           {mode === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+        <button
+          aria-label="Global settings"
+          onClick={function () { sidebar.openSettings("appearance"); }}
+          className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors"
+        >
+          <Settings size={14} />
         </button>
       </div>
     </div>

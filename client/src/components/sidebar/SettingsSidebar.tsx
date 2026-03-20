@@ -1,4 +1,4 @@
-import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield, Brain, MonitorCog } from "lucide-react";
+import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield, Brain, MonitorCog, Bell } from "lucide-react";
 import { useSidebar } from "../../hooks/useSidebar";
 import type { SettingsSection, ProjectSettingsSection } from "../../stores/sidebar";
 
@@ -12,9 +12,17 @@ var SETTINGS_NAV = [
     group: "GENERAL",
     items: [
       { id: "appearance" as SettingsSection, label: "Appearance", icon: <Palette size={14} /> },
+      { id: "notifications" as SettingsSection, label: "Notifications", icon: <Bell size={14} /> },
       { id: "claude" as SettingsSection, label: "Claude Settings", icon: <FileText size={14} /> },
       { id: "environment" as SettingsSection, label: "Environment", icon: <Terminal size={14} /> },
       { id: "editor" as SettingsSection, label: "Editor", icon: <MonitorCog size={14} /> },
+    ],
+  },
+  {
+    group: "CONFIGURATION",
+    items: [
+      { id: "rules" as SettingsSection, label: "Rules", icon: <ScrollText size={14} /> },
+      { id: "memory" as SettingsSection, label: "Memory", icon: <Brain size={14} /> },
     ],
   },
   {
@@ -37,6 +45,7 @@ var PROJECT_SETTINGS_NAV = [
     group: "GENERAL",
     items: [
       { id: "general" as ProjectSettingsSection, label: "General", icon: <Settings size={14} /> },
+      { id: "notifications" as ProjectSettingsSection, label: "Notifications", icon: <Bell size={14} /> },
       { id: "claude" as ProjectSettingsSection, label: "Claude", icon: <FileText size={14} /> },
       { id: "environment" as ProjectSettingsSection, label: "Environment", icon: <Terminal size={14} /> },
     ],

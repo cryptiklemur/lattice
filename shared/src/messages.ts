@@ -528,6 +528,7 @@ export interface SettingsDataMessage {
   config: LatticeConfig;
   mcpServers?: Record<string, McpServerConfig>;
   globalSkills?: SkillInfo[];
+  globalRules?: Array<{ filename: string; content: string }>;
 }
 
 export interface LoopStatusMessage {

@@ -7,7 +7,7 @@ import type { LatticeConfig } from "@lattice/shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills } from "../project/project-files";
+import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills, readGlobalRules } from "../project/project-files";
 import { loadOrCreateIdentity } from "../identity";
 
 function loadGlobalClaudeMd(): string {
@@ -38,6 +38,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       config: configWithClaudeMd,
       mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
       globalSkills: readGlobalSkills(),
+      globalRules: readGlobalRules(),
     });
     sendTo(clientId, {
       type: "projects:list",
@@ -93,6 +94,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       config: updatedWithClaudeMd,
       mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
       globalSkills: readGlobalSkills(),
+      globalRules: readGlobalRules(),
     });
     var updatedIdentity = loadOrCreateIdentity();
     broadcast({

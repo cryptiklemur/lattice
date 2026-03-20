@@ -5,7 +5,8 @@ export type { ProjectSettingsSection };
 
 export type SettingsSection =
   | "appearance" | "claude" | "environment"
-  | "mcp" | "skills" | "nodes" | "editor";
+  | "mcp" | "skills" | "nodes" | "editor"
+  | "rules" | "memory" | "notifications";
 
 export type SidebarMode = "project" | "settings";
 
@@ -30,7 +31,7 @@ export interface SidebarState {
   confirmRemoveSlug: string | null;
 }
 
-var SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes", "editor"];
+var SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes", "editor", "rules", "memory", "notifications"];
 
 function parseInitialUrl(): { projectSlug: string | null; sessionId: string | null; settingsSection: SettingsSection | null; projectSettingsSection: ProjectSettingsSection | null } {
   var path = window.location.pathname;

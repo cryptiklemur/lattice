@@ -7,26 +7,35 @@ import { MeshStatus } from "./MeshStatus";
 import { GlobalMcp } from "./GlobalMcp";
 import { GlobalSkills } from "./GlobalSkills";
 import { Editor } from "./Editor";
+import { GlobalRules } from "./GlobalRules";
+import { GlobalMemory } from "./GlobalMemory";
+import { Notifications } from "./Notifications";
 import type { SettingsSection } from "../../stores/sidebar";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   appearance: { title: "Appearance" },
+  notifications: { title: "Notifications" },
   claude: { title: "Claude Settings" },
   environment: { title: "Environment" },
   mcp: { title: "MCP Servers" },
   skills: { title: "Skills" },
   nodes: { title: "Mesh Nodes" },
   editor: { title: "Editor" },
+  rules: { title: "Rules" },
+  memory: { title: "Memory" },
 };
 
 function renderSection(section: SettingsSection) {
   if (section === "appearance") return <Appearance />;
+  if (section === "notifications") return <Notifications />;
   if (section === "claude") return <ClaudeSettings />;
   if (section === "environment") return <Environment />;
   if (section === "mcp") return <GlobalMcp />;
   if (section === "skills") return <GlobalSkills />;
   if (section === "nodes") return <MeshStatus />;
   if (section === "editor") return <Editor />;
+  if (section === "rules") return <GlobalRules />;
+  if (section === "memory") return <GlobalMemory />;
   return null;
 }
 

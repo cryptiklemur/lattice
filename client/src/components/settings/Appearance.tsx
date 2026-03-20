@@ -1,6 +1,5 @@
 import { memo, useMemo, useCallback } from "react";
 import { useTheme } from "../../hooks/useTheme";
-import { useNotificationPreference } from "../../hooks/useNotifications";
 import { Sun, Moon, Check } from "lucide-react";
 import type { ThemeEntry } from "../../themes/index";
 
@@ -99,7 +98,6 @@ function ThemeGroup({
 
 export function Appearance() {
   var { mode, currentThemeId, toggleMode, setTheme, themes } = useTheme();
-  var notifPref = useNotificationPreference();
 
   var darkThemes = useMemo(function () {
     return themes.filter(function (e) { return e.theme.variant === "dark"; });
@@ -149,28 +147,6 @@ export function Appearance() {
         onSelect={handleThemeSelect}
       />
 
-      <div className="mb-5 mt-6">
-        <div className="text-[11px] font-semibold tracking-[0.06em] uppercase text-base-content/40 mb-3">
-          Notifications
-        </div>
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <div className="text-[13px] text-base-content">Browser notifications</div>
-            <div className="text-[11px] text-base-content/30 mt-0.5">
-              {notifPref.permission === "denied"
-                ? "Blocked by browser — update in browser settings"
-                : "Get notified about responses, node changes, and connection events"}
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            className="toggle toggle-sm toggle-primary"
-            checked={notifPref.enabled}
-            onChange={notifPref.toggle}
-            disabled={notifPref.permission === "denied"}
-          />
-        </div>
-      </div>
     </div>
   );
 }
