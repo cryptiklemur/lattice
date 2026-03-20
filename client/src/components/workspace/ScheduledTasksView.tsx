@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Calendar } from "lucide-react";
 import type { ScheduledTask, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSession } from "../../hooks/useSession";
@@ -75,9 +76,12 @@ export function ScheduledTasksView() {
 
       <div className="flex-1 overflow-auto p-3">
         {filtered.length === 0 ? (
-          <div className="text-base-content/40 text-[13px] text-center mt-10">
-            <div>No scheduled tasks for this project.</div>
-            <div className="text-[11px] text-base-content/30 mt-1">Tasks run Claude prompts on a cron schedule. Click "New Task" to create one.</div>
+          <div className="flex flex-col items-center justify-center text-center mt-16 gap-3">
+            <Calendar size={28} className="text-base-content/15" />
+            <div>
+              <div className="text-[13px] text-base-content/40">No scheduled tasks for this project</div>
+              <div className="text-[11px] text-base-content/30 mt-1">Automate Claude prompts on a cron schedule. Click "New Task" to create one.</div>
+            </div>
           </div>
         ) : (
           <div className="space-y-2">

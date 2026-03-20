@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FileCode, FileX } from "lucide-react";
 import type { FsListResultMessage, FsReadResultMessage, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
@@ -123,8 +124,9 @@ export function FileBrowser() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {!selectedPath && (
-          <div className="h-full flex items-center justify-center text-base-content/40 text-[13px]">
-            Select a file to view its contents
+          <div className="h-full flex flex-col items-center justify-center gap-3">
+            <FileCode size={28} className="text-base-content/15" />
+            <div className="text-base-content/40 text-[13px]">Select a file from the tree to view its contents</div>
           </div>
         )}
 
@@ -143,8 +145,10 @@ export function FileBrowser() {
         )}
 
         {selectedPath && !loadingContent && fileContent === null && (
-          <div className="h-full flex items-center justify-center text-base-content/40 text-[13px]">
-            Cannot display this file (binary or too large)
+          <div className="h-full flex flex-col items-center justify-center gap-3">
+            <FileX size={28} className="text-base-content/15" />
+            <div className="text-base-content/40 text-[13px]">Cannot display this file</div>
+            <div className="text-base-content/30 text-[11px]">Binary files and files over 512KB are not shown</div>
           </div>
         )}
       </div>

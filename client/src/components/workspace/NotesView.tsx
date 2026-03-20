@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { StickyNote as StickyNoteIcon } from "lucide-react";
 import type { StickyNote, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSession } from "../../hooks/useSession";
@@ -70,8 +71,12 @@ export function NotesView() {
 
       <div className="flex-1 overflow-auto p-3">
         {notes.length === 0 ? (
-          <div className="text-base-content/40 text-[13px] text-center mt-10">
-            No notes yet. Create one to get started.
+          <div className="flex flex-col items-center justify-center text-center mt-16 gap-3">
+            <StickyNoteIcon size={28} className="text-base-content/15" />
+            <div>
+              <div className="text-[13px] text-base-content/40">No notes for this project</div>
+              <div className="text-[11px] text-base-content/30 mt-1">Quick-capture ideas, reminders, or context. Click "New Note" to start.</div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
