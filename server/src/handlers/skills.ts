@@ -7,6 +7,9 @@ import type { SkillInfo } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";
+import { readGlobalMcpServers, readGlobalSkills } from "../project/project-files";
+
+var searchCache = new Map<string, { skills: Array<{ id: string; skillId: string; name: string; source: string; installs: number }>; count: number; time: number }>();
 
 var skillsCache: SkillInfo[] | null = null;
 var lastScanTime: number = 0;
@@ -221,6 +224,83 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
   if (message.type === "skills:list_request") {
     var skills = getSkills();
     sendTo(clientId, { type: "skills:list", skills: skills });
+    return;
+  }
+
+  if (message.type === "skills:search") {
+    var searchMsg = message as { type: "skills:search"; query: string };
+    var query = searchMsg.query.trim();
+    if (!query) {
+      sendTo(clientId, { type: "skills:search_results", query: query, skills: [], count: 0 });
+      return;
+    }
+
+    var cacheKey = "search:" + query;
+    var cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.time < 60000) {
+      sendTo(clientId, { type: "skills:search_results", query: query, skills: cached.skills, count: cached.count });
+      return;
+    }
+
+    void fetch("https://skills.sh/api/search?q=" + encodeURIComponent(query))
+      .then(function (res) { return res.json(); })
+      .then(function (data: { skills?: Array<{ id: string; skillId: string; name: string; source: string; installs: number }>; count?: number }) {
+        var skills = (data.skills ?? []).map(function (s) {
+          return { id: s.id, skillId: s.skillId, name: s.name, source: s.source, installs: s.installs };
+        });
+        var count = data.count ?? skills.length;
+        searchCache.set(cacheKey, { skills: skills, count: count, time: Date.now() });
+        sendTo(clientId, { type: "skills:search_results", query: query, skills: skills, count: count });
+      })
+      .catch(function () {
+        sendTo(clientId, { type: "skills:search_results", query: query, skills: [], count: 0, error: "Search unavailable" });
+      });
+    return;
+  }
+
+  if (message.type === "skills:install") {
+    var installMsg = message as { type: "skills:install"; source: string; scope: "global" | "project"; projectSlug?: string };
+    var cwd = homedir();
+    if (installMsg.scope === "project" && installMsg.projectSlug) {
+      var installConfig = loadConfig();
+      var installProject = installConfig.projects.find(function (p) { return p.slug === installMsg.projectSlug; });
+      if (installProject) {
+        cwd = installProject.path;
+      }
+    }
+
+    try {
+      var proc = Bun.spawn(["npx", "skillsadd", installMsg.source], {
+        cwd: cwd,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      var timeout = setTimeout(function () {
+        proc.kill();
+      }, 60000);
+
+      void proc.exited.then(function (code) {
+        clearTimeout(timeout);
+        skillsCache = null;
+        if (code === 0) {
+          sendTo(clientId, { type: "skills:install_result", success: true, message: "Installed successfully" });
+        } else {
+          sendTo(clientId, { type: "skills:install_result", success: false, message: "Install failed (exit code " + code + ")" });
+        }
+        if (installMsg.scope === "global") {
+          var globalConfig = loadConfig();
+          sendTo(clientId, {
+            type: "settings:data",
+            config: globalConfig,
+            mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+            globalSkills: readGlobalSkills(),
+          });
+        }
+      });
+    } catch (err) {
+      sendTo(clientId, { type: "skills:install_result", success: false, message: "Failed to start install: " + String(err) });
+    }
     return;
   }
 });
