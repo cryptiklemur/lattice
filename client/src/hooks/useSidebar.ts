@@ -17,6 +17,7 @@ import {
   closeDrawer,
   openNodeSettings,
   closeNodeSettings,
+  navigateToSession,
 } from "../stores/sidebar";
 import type { SidebarState, SettingsSection, ProjectSettingsSection } from "../stores/sidebar";
 
@@ -37,6 +38,7 @@ export function useSidebar(): SidebarState & {
   closeDrawer: () => void;
   openNodeSettings: () => void;
   closeNodeSettings: () => void;
+  navigateToSession: (projectSlug: string, sessionId: string) => void;
 } {
   var store = getSidebarStore();
   var state = useStore(store, function (s) { return s; });
@@ -64,6 +66,7 @@ export function useSidebar(): SidebarState & {
     goToDashboard: goToDashboard,
     toggleDrawer: toggleDrawer,
     closeDrawer: closeDrawer,
+    navigateToSession: navigateToSession,
     openNodeSettings: openNodeSettings,
     closeNodeSettings: closeNodeSettings,
     nodeSettingsOpen: state.nodeSettingsOpen,

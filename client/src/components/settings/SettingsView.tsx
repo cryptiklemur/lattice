@@ -1,6 +1,5 @@
 import { useSidebar } from "../../hooks/useSidebar";
 import { Menu } from "lucide-react";
-import { Status } from "./Status";
 import { Appearance } from "./Appearance";
 import { ClaudeSettings } from "./ClaudeSettings";
 import { Environment } from "./Environment";
@@ -8,7 +7,6 @@ import { MeshStatus } from "./MeshStatus";
 import type { SettingsSection } from "../../stores/sidebar";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
-  status: { title: "Status" },
   appearance: { title: "Appearance" },
   claude: { title: "Claude Settings" },
   environment: { title: "Environment" },
@@ -34,7 +32,6 @@ function SkillsPlaceholder() {
 }
 
 function renderSection(section: SettingsSection) {
-  if (section === "status") return <Status />;
   if (section === "appearance") return <Appearance />;
   if (section === "claude") return <ClaudeSettings />;
   if (section === "environment") return <Environment />;

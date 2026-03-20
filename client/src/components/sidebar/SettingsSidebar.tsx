@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield } from "lucide-react";
+import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield } from "lucide-react";
 import { useSidebar } from "../../hooks/useSidebar";
 import type { SettingsSection, ProjectSettingsSection } from "../../stores/sidebar";
 
@@ -11,7 +11,6 @@ var SETTINGS_NAV = [
   {
     group: "GENERAL",
     items: [
-      { id: "status" as SettingsSection, label: "Status", icon: <Clock size={14} /> },
       { id: "appearance" as SettingsSection, label: "Appearance", icon: <Palette size={14} /> },
       { id: "claude" as SettingsSection, label: "Claude Settings", icon: <FileText size={14} /> },
       { id: "environment" as SettingsSection, label: "Environment", icon: <Terminal size={14} /> },

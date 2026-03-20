@@ -41,7 +41,7 @@ export function UserIsland(props: UserIslandProps) {
       <div className="flex items-center gap-0.5 flex-shrink-0">
         <button
           aria-label="Global settings"
-          onClick={function () { sidebar.openSettings("status"); }}
+          onClick={function () { sidebar.openSettings("appearance"); }}
           className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors"
         >
           <Settings size={14} />

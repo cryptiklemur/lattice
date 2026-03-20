@@ -4,7 +4,7 @@ import type { ProjectSettingsSection } from "@lattice/shared";
 export type { ProjectSettingsSection };
 
 export type SettingsSection =
-  | "status" | "appearance" | "claude" | "environment"
+  | "appearance" | "claude" | "environment"
   | "mcp" | "skills" | "nodes";
 
 export type SidebarMode = "project" | "settings";
@@ -28,7 +28,7 @@ export interface SidebarState {
   nodeSettingsOpen: boolean;
 }
 
-var SETTINGS_SECTIONS: SettingsSection[] = ["status", "appearance", "claude", "environment", "mcp", "skills", "nodes"];
+var SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes"];
 
 function parseInitialUrl(): { projectSlug: string | null; sessionId: string | null; settingsSection: SettingsSection | null; projectSettingsSection: ProjectSettingsSection | null } {
   var path = window.location.pathname;
@@ -38,7 +38,7 @@ function parseInitialUrl(): { projectSlug: string | null; sessionId: string | nu
     if (section && SETTINGS_SECTIONS.indexOf(section) !== -1) {
       return { projectSlug: null, sessionId: null, settingsSection: section, projectSettingsSection: null };
     }
-    return { projectSlug: null, sessionId: null, settingsSection: "status", projectSettingsSection: null };
+    return { projectSlug: null, sessionId: null, settingsSection: "appearance", projectSettingsSection: null };
   }
   if (parts.length >= 2 && parts[1] === "settings") {
     return { projectSlug: parts[0], sessionId: null, settingsSection: null, projectSettingsSection: (parts[2] || "general") as ProjectSettingsSection };
@@ -114,6 +114,21 @@ export function setActiveSessionId(sessionId: string | null): void {
     };
   });
   pushUrl(state.activeProjectSlug, sessionId);
+}
+
+export function navigateToSession(projectSlug: string, sessionId: string): void {
+  sidebarStore.setState(function (state) {
+    return {
+      ...state,
+      activeProjectSlug: projectSlug,
+      activeSessionId: sessionId,
+      sidebarMode: "project",
+      activeView: { type: "chat" },
+      userMenuOpen: false,
+      projectDropdownOpen: false,
+    };
+  });
+  pushUrl(projectSlug, sessionId);
 }
 
 export function openSettings(section: SettingsSection): void {

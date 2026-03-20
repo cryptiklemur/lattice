@@ -106,7 +106,6 @@ export function CommandPalette() {
 
     // Settings sections
     var settingsSections: Array<{ id: SettingsSection; label: string; keywords: string }> = [
-      { id: "status", label: "Status", keywords: "health connection" },
       { id: "appearance", label: "Appearance", keywords: "theme visual colors" },
       { id: "claude", label: "Claude Settings", keywords: "api model key" },
       { id: "environment", label: "Environment", keywords: "env variables config" },
