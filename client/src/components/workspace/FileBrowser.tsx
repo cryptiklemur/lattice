@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileCode, FileX } from "lucide-react";
+import { ArrowLeft, FileCode, FileX } from "lucide-react";
 import type { FsListResultMessage, FsReadResultMessage, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
@@ -16,6 +16,7 @@ export function FileBrowser() {
   var [selectedPath, setSelectedPath] = useState<string | null>(null);
   var [fileContent, setFileContent] = useState<string | null>(null);
   var [loadingContent, setLoadingContent] = useState(false);
+  var [mobileShowViewer, setMobileShowViewer] = useState(false);
   var nodesRef = useRef<TreeNode[]>([]);
 
   nodesRef.current = rootNodes;
@@ -101,6 +102,7 @@ export function FileBrowser() {
     setSelectedPath(path);
     setFileContent(null);
     setLoadingContent(true);
+    setMobileShowViewer(true);
     send({ type: "fs:read", path: path, projectSlug: activeProjectSlug || undefined });
   }
 
@@ -110,7 +112,7 @@ export function FileBrowser() {
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-base-100">
-      <div className="w-[220px] flex-shrink-0 border-r border-base-content/15 overflow-y-auto p-2">
+      <div className={"w-full sm:w-[220px] sm:flex-shrink-0 sm:border-r sm:border-base-content/15 overflow-y-auto p-2" + (mobileShowViewer ? " hidden sm:block" : " block")}>
         <div className="text-[11px] font-semibold tracking-[0.06em] uppercase text-base-content/40 px-2 pb-2 pt-1">
           Files
         </div>
@@ -122,7 +124,17 @@ export function FileBrowser() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={"flex-1 flex-col overflow-hidden" + (mobileShowViewer ? " flex" : " hidden sm:flex")}>
+        {selectedPath && (
+          <button
+            className="sm:hidden flex items-center gap-1 px-2 py-1.5 text-[12px] text-base-content/60 hover:text-base-content border-b border-base-content/15"
+            onClick={function () { setMobileShowViewer(false); }}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to files</span>
+          </button>
+        )}
+
         {!selectedPath && (
           <div className="h-full flex flex-col items-center justify-center gap-3">
             <FileCode size={28} className="text-base-content/15" />

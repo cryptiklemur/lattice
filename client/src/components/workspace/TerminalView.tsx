@@ -70,7 +70,7 @@ export function TerminalView() {
               <span>{tab.label}</span>
               {tabs.length > 1 && (
                 <button
-                  className="ml-1 rounded hover:bg-base-300 p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                  className="ml-1 rounded hover:bg-base-300 p-1 sm:p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
                   aria-label={"Close " + tab.label}
                   onClick={function(e) {
                     e.stopPropagation();
@@ -84,7 +84,7 @@ export function TerminalView() {
           );
         })}
         <button
-          className="flex items-center justify-center w-8 h-full text-base-content/50 hover:text-base-content hover:bg-base-100/50 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+          className="flex items-center justify-center w-10 sm:w-8 h-full text-base-content/50 hover:text-base-content hover:bg-base-100/50 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
           aria-label="New terminal"
           onClick={addTab}
           title="New terminal"

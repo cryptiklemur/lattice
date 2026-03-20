@@ -125,7 +125,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
                     e.stopPropagation();
                     handleCloseTab(tab.id);
                   }}
-                  className="ml-1 p-0.5 rounded hover:bg-base-content/15 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                  className="ml-1 p-1 sm:p-0.5 rounded hover:bg-base-content/15 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
                 >
                   <X size={11} />
                 </button>
