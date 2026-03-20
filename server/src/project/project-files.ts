@@ -198,6 +198,23 @@ function collectPermissions(obj: Record<string, unknown>, allow: Set<string>, de
   }
 }
 
+function parseFrontmatter(content: string): { name: string; description: string } {
+  var match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return { name: "", description: "" };
+  var yaml = match[1];
+  var name = "";
+  var desc = "";
+  var lines = yaml.split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var nameMatch = line.match(/^name:\s*(.+)/);
+    if (nameMatch) name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
+    var descMatch = line.match(/^description:\s*(.+)/);
+    if (descMatch) desc = descMatch[1].trim().replace(/^["']|["']$/g, "");
+  }
+  return { name, description: desc };
+}
+
 function scanSkillsDir(dir: string): Array<{ name: string; description: string; path: string }> {
   if (!existsSync(dir)) return [];
   var results: Array<{ name: string; description: string; path: string }> = [];
@@ -212,8 +229,10 @@ function scanSkillsDir(dir: string): Array<{ name: string; description: string; 
             if (subFile.toUpperCase().startsWith("SKILL")) {
               var skillPath = join(entryPath, subFile);
               var content = readFileSync(skillPath, "utf-8");
-              var description = firstNonEmptyLine(content);
-              results.push({ name: entry.name, description, path: skillPath });
+              var meta = parseFrontmatter(content);
+              var skillName = meta.name || entry.name;
+              var description = meta.description || firstNonEmptyLine(content.replace(/^---[\s\S]*?---\s*/, ""));
+              results.push({ name: skillName, description, path: skillPath });
               break;
             }
           }
@@ -223,8 +242,9 @@ function scanSkillsDir(dir: string): Array<{ name: string; description: string; 
       } else if (entry.name.toUpperCase().startsWith("SKILL")) {
         try {
           var content = readFileSync(entryPath, "utf-8");
-          var description = firstNonEmptyLine(content);
-          var name = entry.name.replace(/\.[^.]+$/, "");
+          var meta = parseFrontmatter(content);
+          var name = meta.name || entry.name.replace(/\.[^.]+$/, "");
+          var description = meta.description || firstNonEmptyLine(content.replace(/^---[\s\S]*?---\s*/, ""));
           results.push({ name, description, path: entryPath });
         } catch {
           // skip unreadable files

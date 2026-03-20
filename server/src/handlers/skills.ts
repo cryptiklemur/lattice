@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync, existsSync, lstatSync, realpathSync, statSync } from "node:fs";
-import { join, sep } from "node:path";
+import { readdirSync, readFileSync, existsSync, lstatSync, realpathSync, statSync, rmSync } from "node:fs";
+import { join, sep, dirname } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import type { ClientMessage } from "@lattice/shared";
@@ -300,6 +300,80 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
       });
     } catch (err) {
       sendTo(clientId, { type: "skills:install_result", success: false, message: "Failed to start install: " + String(err) });
+    }
+    return;
+  }
+
+  if (message.type === "skills:view") {
+    var viewMsg = message as { type: "skills:view"; path: string };
+    try {
+      if (!existsSync(viewMsg.path)) {
+        sendTo(clientId, { type: "skills:view_result", path: viewMsg.path, content: "File not found." });
+        return;
+      }
+      var viewContent = readFileSync(viewMsg.path, "utf-8");
+      sendTo(clientId, { type: "skills:view_result", path: viewMsg.path, content: viewContent });
+    } catch {
+      sendTo(clientId, { type: "skills:view_result", path: viewMsg.path, content: "Failed to read file." });
+    }
+    return;
+  }
+
+  if (message.type === "skills:delete") {
+    var deleteMsg = message as { type: "skills:delete"; path: string };
+    try {
+      var skillDir = dirname(deleteMsg.path);
+      if (!existsSync(deleteMsg.path)) {
+        sendTo(clientId, { type: "skills:delete_result", success: false, message: "Skill not found." });
+        return;
+      }
+      rmSync(skillDir, { recursive: true, force: true });
+      skillsCache = null;
+      sendTo(clientId, { type: "skills:delete_result", success: true, message: "Skill deleted." });
+      var delConfig = loadConfig();
+      sendTo(clientId, {
+        type: "settings:data",
+        config: delConfig,
+        mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+        globalSkills: readGlobalSkills(),
+      });
+    } catch (err) {
+      sendTo(clientId, { type: "skills:delete_result", success: false, message: "Failed to delete: " + String(err) });
+    }
+    return;
+  }
+
+  if (message.type === "skills:update") {
+    var updateMsg = message as { type: "skills:update"; source: string };
+    try {
+      var updateProc = Bun.spawn(["npx", "skillsadd", updateMsg.source], {
+        cwd: homedir(),
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      var updateTimeout = setTimeout(function () {
+        updateProc.kill();
+      }, 60000);
+
+      void updateProc.exited.then(function (code) {
+        clearTimeout(updateTimeout);
+        skillsCache = null;
+        if (code === 0) {
+          sendTo(clientId, { type: "skills:install_result", success: true, message: "Updated successfully" });
+        } else {
+          sendTo(clientId, { type: "skills:install_result", success: false, message: "Update failed (exit code " + code + ")" });
+        }
+        var updConfig = loadConfig();
+        sendTo(clientId, {
+          type: "settings:data",
+          config: updConfig,
+          mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+          globalSkills: readGlobalSkills(),
+        });
+      });
+    } catch (err) {
+      sendTo(clientId, { type: "skills:install_result", success: false, message: "Failed to start update: " + String(err) });
     }
     return;
   }
