@@ -28,6 +28,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   var [highlightIndex, setHighlightIndex] = useState(-1);
   var [error, setError] = useState<string | null>(null);
   var [adding, setAdding] = useState(false);
+  var [suggestions, setSuggestions] = useState<Array<{ path: string; name: string; hasClaudeMd: boolean }>>([]);
   var [homedir, setHomedir] = useState("");
   var debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   var inputRef = useRef<HTMLInputElement>(null);
@@ -45,9 +46,11 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     setDropdownOpen(false);
     setError(null);
     setAdding(false);
+    setSuggestions([]);
     addingRef.current = false;
 
     send({ type: "browse:list", path: "~" } as any);
+    send({ type: "browse:suggestions" } as any);
 
     function handleBrowseResult(msg: ServerMessage) {
       if (msg.type !== "browse:list_result") return;
@@ -60,6 +63,12 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
       }
     }
 
+    function handleSuggestions(msg: ServerMessage) {
+      if (msg.type !== "browse:suggestions_result") return;
+      var data = msg as { type: "browse:suggestions_result"; suggestions: Array<{ path: string; name: string; hasClaudeMd: boolean }> };
+      setSuggestions(data.suggestions);
+    }
+
     function handleProjectsList(msg: ServerMessage) {
       if (msg.type !== "projects:list") return;
       if (addingRef.current) {
@@ -70,10 +79,12 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     }
 
     subscribe("browse:list_result", handleBrowseResult);
+    subscribe("browse:suggestions_result", handleSuggestions);
     subscribe("projects:list", handleProjectsList);
 
     return function () {
       unsubscribe("browse:list_result", handleBrowseResult);
+      unsubscribe("browse:suggestions_result", handleSuggestions);
       unsubscribe("projects:list", handleProjectsList);
     };
   }, [isOpen]);
@@ -342,6 +353,37 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
               )}
             </div>
             <div className="text-[10px] text-base-content/25 mt-1">Type a path or click directories to navigate</div>
+
+            {!path.trim() && suggestions.length > 0 && !dropdownOpen && (
+              <div className="mt-2">
+                <div className="text-[11px] font-semibold text-base-content/30 mb-1.5">Projects Claude has worked in</div>
+                <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                  {suggestions.map(function (s) {
+                    return (
+                      <button
+                        key={s.path}
+                        onClick={function () {
+                          setPath(s.path + "/");
+                          if (!titleManuallySet) setTitle(s.name);
+                          setSuggestions([]);
+                          send({ type: "browse:list", path: s.path } as any);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12px] font-mono text-base-content/50 hover:bg-base-content/5 hover:text-base-content rounded-lg transition-colors duration-[80ms]"
+                      >
+                        <FolderOpen size={12} className="text-base-content/25 flex-shrink-0" />
+                        <span className="flex-1 truncate">{s.path}</span>
+                        {s.hasClaudeMd && (
+                          <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-md bg-primary/15 text-primary/70 flex-shrink-0">
+                            <FileText size={8} />
+                            CLAUDE.md
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
