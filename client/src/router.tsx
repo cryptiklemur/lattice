@@ -319,6 +319,27 @@ function RootLayout() {
   var [setupComplete, setSetupComplete] = useState(function () {
     return localStorage.getItem("lattice-setup-complete") === "1";
   });
+  var ws = useWebSocket();
+  var checkedServerRef = useRef(false);
+
+  useEffect(function () {
+    if (setupComplete || checkedServerRef.current) return;
+    if (ws.status !== "connected") return;
+
+    function handleSettingsData(msg: { type: string; config?: { setupComplete?: boolean } }) {
+      if (msg.type !== "settings:data") return;
+      checkedServerRef.current = true;
+      if (msg.config && msg.config.setupComplete) {
+        localStorage.setItem("lattice-setup-complete", "1");
+        setSetupComplete(true);
+      }
+    }
+    ws.subscribe("settings:data", handleSettingsData as any);
+    ws.send({ type: "settings:get" });
+    return function () {
+      ws.unsubscribe("settings:data", handleSettingsData as any);
+    };
+  }, [ws.status, setupComplete]);
 
   var sidebar = useSidebar();
 

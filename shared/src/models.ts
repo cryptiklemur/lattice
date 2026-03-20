@@ -91,6 +91,7 @@ export interface LatticeConfig {
     type: "vscode" | "vscode-insiders" | "cursor" | "webstorm" | "intellij" | "pycharm" | "goland" | "notepad++" | "sublime" | "custom";
     customCommand?: string;
   };
+  setupComplete?: boolean;
 }
 
 export interface StickyNote {
