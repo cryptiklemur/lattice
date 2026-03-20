@@ -44,7 +44,7 @@ export function TerminalView() {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      <div role="tablist" className="flex items-center h-8 bg-base-200 border-b border-base-300 flex-shrink-0 overflow-x-auto">
+      <div role="tablist" className="flex items-center h-8 bg-base-200 border-b border-base-content/15 flex-shrink-0 overflow-x-auto">
         {tabs.map(function(tab) {
           var isActive = tab.id === activeId;
           return (
@@ -54,7 +54,7 @@ export function TerminalView() {
               role="tab"
               aria-selected={isActive}
               className={[
-                "flex items-center gap-1 px-3 h-full text-[12px] cursor-pointer select-none border-r border-base-300 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200",
+                "flex items-center gap-1 px-3 h-full text-[12px] cursor-pointer select-none border-r border-base-content/15 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200",
                 isActive
                   ? "bg-base-100 text-base-content"
                   : "text-base-content/50 hover:text-base-content hover:bg-base-100/50",

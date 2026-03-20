@@ -78,12 +78,13 @@ export function Editor() {
   return (
     <div className="py-2">
       <div className="mb-5">
-        <label htmlFor="editor-ide-type" className="block text-[12px] font-semibold text-base-content/40 mb-2">IDE</label>
+        <label htmlFor="editor-ide-type" className="block text-[12px] font-semibold text-base-content/40 mb-1">IDE</label>
+        <p className="text-[11px] text-base-content/30 mb-2">Choose your preferred editor for opening files from Lattice.</p>
         <select
           id="editor-ide-type"
           value={ideType}
           onChange={function (e) { handleTypeChange(e.target.value); }}
-          className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
+          className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
         >
           {IDE_OPTIONS.map(function (opt) {
             return (
@@ -104,7 +105,7 @@ export function Editor() {
             value={customCommand}
             onChange={function (e) { handleCustomCommandChange(e.target.value); }}
             placeholder="code -g {file}:{line}"
-            className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
+            className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
           />
         </div>
       )}

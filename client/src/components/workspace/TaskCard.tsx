@@ -63,7 +63,7 @@ export function TaskCard(props: TaskCardProps) {
   }
 
   return (
-    <div className="bg-base-200 border border-base-300 rounded-lg overflow-hidden">
+    <div className="bg-base-200 border border-base-content/15 rounded-lg overflow-hidden">
       <div
         tabIndex={0}
         role="button"
@@ -82,11 +82,11 @@ export function TaskCard(props: TaskCardProps) {
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`text-[13px] font-medium truncate ${task.enabled ? "text-base-content" : "text-base-content/50"}`}>
+            <span className={`text-[13px] font-medium truncate ${task.enabled ? "text-base-content" : "text-base-content/40"}`}>
               {task.name}
             </span>
           </div>
-          <div className="text-[11px] text-base-content/50 truncate mt-0.5">
+          <div className="text-[11px] text-base-content/40 truncate mt-0.5">
             {humanCron(task.cron)}
           </div>
         </div>
@@ -101,7 +101,7 @@ export function TaskCard(props: TaskCardProps) {
       </div>
 
       {expanded && (
-        <div className="px-3 pb-3 border-t border-base-300 bg-base-100/50">
+        <div className="px-3 pb-3 border-t border-base-content/15 bg-base-100/50">
           <div className="pt-2.5 space-y-2">
             <div>
               <span className="text-[11px] text-base-content/40 uppercase tracking-wider">Prompt</span>
@@ -122,7 +122,7 @@ export function TaskCard(props: TaskCardProps) {
             <div className="flex items-center gap-1.5 pt-1">
               <button
                 onClick={handleEdit}
-                className="btn btn-ghost btn-xs border border-base-300 text-base-content/60 gap-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/70 gap-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               >
                 <Pencil className="!size-3" />
                 Edit
@@ -132,14 +132,14 @@ export function TaskCard(props: TaskCardProps) {
                   <button onClick={handleDelete} className="btn btn-error btn-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
                     Confirm Delete
                   </button>
-                  <button onClick={handleCancelDelete} className="btn btn-ghost btn-xs border border-base-300 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
+                  <button onClick={handleCancelDelete} className="btn btn-ghost btn-xs border border-base-content/15 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
                     Cancel
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={handleDelete}
-                  className="btn btn-ghost btn-xs border border-base-300 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                  className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
                   aria-label="Delete task"
                 >
                   <Trash2 className="!size-3" />

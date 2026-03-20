@@ -63,7 +63,7 @@ export function ScheduledTasksView() {
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-base-300">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-base-content/15">
         <span className="text-[13px] font-semibold text-base-content">Scheduled Tasks</span>
         <button
           onClick={function () { setEditingTask(null); }}
@@ -75,7 +75,7 @@ export function ScheduledTasksView() {
 
       <div className="flex-1 overflow-auto p-3">
         {filtered.length === 0 ? (
-          <div className="text-base-content/50 text-[13px] text-center mt-10">
+          <div className="text-base-content/40 text-[13px] text-center mt-10">
             No scheduled tasks yet. Create one to get started.
           </div>
         ) : (

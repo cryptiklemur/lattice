@@ -109,7 +109,7 @@ export function FileBrowser() {
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-base-100">
-      <div className="w-[220px] flex-shrink-0 border-r border-base-300 overflow-y-auto p-2">
+      <div className="w-[220px] flex-shrink-0 border-r border-base-content/15 overflow-y-auto p-2">
         <div className="text-[11px] font-semibold tracking-[0.06em] uppercase text-base-content/40 px-2 pb-2 pt-1">
           Files
         </div>

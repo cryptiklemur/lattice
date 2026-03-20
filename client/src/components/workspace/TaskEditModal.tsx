@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import cronstrue from "cronstrue";
 import type { ScheduledTask } from "@lattice/shared";
 
@@ -39,11 +40,11 @@ export function TaskEditModal(props: TaskEditModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-300/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={handleBackdrop}
     >
-      <div className="bg-base-100 border border-base-300 rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-base-300">
+      <div className="bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15">
           <span className="text-[14px] font-semibold text-base-content">
             {task ? "Edit Task" : "New Scheduled Task"}
           </span>
@@ -51,16 +52,16 @@ export function TaskEditModal(props: TaskEditModalProps) {
             onClick={onClose}
             className="btn btn-ghost btn-xs btn-square text-base-content/50"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[12px] text-base-content/60 uppercase tracking-wider">Name</label>
+            <label className="text-[12px] font-semibold text-base-content/40 uppercase tracking-wider">Name</label>
             <input
               type="text"
-              className="input input-bordered w-full text-[13px] bg-base-200"
+              className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
               placeholder="Daily standup summary"
               value={name}
               onChange={function (e) { setName(e.target.value); }}
@@ -69,9 +70,9 @@ export function TaskEditModal(props: TaskEditModalProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[12px] text-base-content/60 uppercase tracking-wider">Prompt</label>
+            <label className="text-[12px] font-semibold text-base-content/40 uppercase tracking-wider">Prompt</label>
             <textarea
-              className="textarea textarea-bordered w-full text-[13px] bg-base-200 min-h-[96px] resize-y leading-relaxed"
+              className="w-full px-3 py-2.5 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] min-h-[96px] resize-y leading-relaxed focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
               placeholder="Summarize yesterday's work and create a plan for today..."
               value={prompt}
               onChange={function (e) { setPrompt(e.target.value); }}
@@ -79,10 +80,10 @@ export function TaskEditModal(props: TaskEditModalProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[12px] text-base-content/60 uppercase tracking-wider">Cron Expression</label>
+            <label className="text-[12px] font-semibold text-base-content/40 uppercase tracking-wider">Cron Expression</label>
             <input
               type="text"
-              className={`input input-bordered w-full text-[13px] font-mono bg-base-200 ${cron.trim() && !cronValid ? "input-error" : ""}`}
+              className={`w-full h-9 px-3 bg-base-300 border rounded-xl text-base-content text-[13px] font-mono focus:border-primary focus-visible:outline-none transition-colors duration-[120ms] ${cron.trim() && !cronValid ? "border-error" : "border-base-content/15"}`}
               placeholder="0 9 * * 1-5"
               value={cron}
               onChange={function (e) { setCron(e.target.value); }}
@@ -102,7 +103,7 @@ export function TaskEditModal(props: TaskEditModalProps) {
             >
               {task ? "Save Changes" : "Create Task"}
             </button>
-            <button type="button" onClick={onClose} className="btn btn-ghost btn-sm border border-base-300">
+            <button type="button" onClick={onClose} className="btn btn-ghost btn-sm border border-base-content/15">
               Cancel
             </button>
           </div>

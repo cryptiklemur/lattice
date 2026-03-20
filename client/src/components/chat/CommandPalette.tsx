@@ -76,7 +76,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       <div
         role="listbox"
         aria-label="Slash commands"
-        className="absolute left-0 right-0 bottom-[calc(100%+6px)] rounded-lg border border-base-content/10 bg-base-300 shadow-lg z-50"
+        className="absolute left-0 right-0 bottom-[calc(100%+6px)] rounded-lg border border-base-content/15 bg-base-300 shadow-lg z-50"
       >
         <div className="px-3.5 py-3 text-[12px] text-base-content/40 text-center font-mono">
           No matching commands
@@ -154,7 +154,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     <div
       role="listbox"
       aria-label="Slash commands"
-      className="absolute left-0 right-0 bottom-[calc(100%+6px)] max-h-[320px] overflow-y-auto rounded-lg border border-base-content/10 bg-base-300 shadow-lg z-50"
+      className="absolute left-0 right-0 bottom-[calc(100%+6px)] max-h-[320px] overflow-y-auto rounded-lg border border-base-content/15 bg-base-300 shadow-lg z-50"
     >
       {elements}
     </div>

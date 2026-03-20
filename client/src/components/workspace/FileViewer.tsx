@@ -80,7 +80,7 @@ export function FileViewer(props: FileViewerProps) {
       if (cancelled) return;
       return shiki.codeToHtml(content, {
         lang: language === "text" ? "text" : language,
-        theme: "vitesse-dark",
+        theme: "css-variables",
       });
     }).then(function (html) {
       if (cancelled || !html) return;
@@ -111,7 +111,7 @@ export function FileViewer(props: FileViewerProps) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="h-9 flex-shrink-0 flex items-center gap-2 px-4 border-b border-base-300 bg-base-200">
+      <div className="h-9 flex-shrink-0 flex items-center gap-2 px-4 border-b border-base-content/15 bg-base-200">
         <FileCode size={13} className="text-base-content/40 flex-shrink-0" />
         <span className="text-[12px] font-mono text-base-content/60 truncate">{filename}</span>
         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-base-300 text-base-content/40 uppercase flex-shrink-0">
@@ -152,12 +152,25 @@ export function FileViewer(props: FileViewerProps) {
 
       <div className="flex-1 overflow-auto">
         {isMd && showRendered ? (
-          <div className="prose prose-sm prose-invert max-w-none p-4">
+          <div className="prose prose-sm max-w-none p-4">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         ) : highlightedHtml ? (
           <div
             className="p-4 text-[13px] leading-relaxed [&_pre]:!bg-transparent [&_pre]:!m-0 [&_pre]:!p-0 [&_code]:!bg-transparent"
+            style={{
+              "--shiki-foreground": "var(--base05)",
+              "--shiki-background": "transparent",
+              "--shiki-token-constant": "var(--base09)",
+              "--shiki-token-string": "var(--base0B)",
+              "--shiki-token-comment": "var(--base03)",
+              "--shiki-token-keyword": "var(--base0E)",
+              "--shiki-token-parameter": "var(--base08)",
+              "--shiki-token-function": "var(--base0D)",
+              "--shiki-token-string-expression": "var(--base0B)",
+              "--shiki-token-punctuation": "var(--base05)",
+              "--shiki-token-link": "var(--base0D)",
+            } as React.CSSProperties}
             dangerouslySetInnerHTML={{ __html: highlightedHtml }}
           />
         ) : (

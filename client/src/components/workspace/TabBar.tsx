@@ -94,7 +94,7 @@ export function TabBar({ paneId }: TabBarProps) {
 
   return (
     <>
-      <div className="flex items-center h-9 bg-base-200 border-b border-base-300 overflow-x-auto flex-shrink-0">
+      <div className="flex items-center h-9 bg-base-200 border-b border-base-content/15 overflow-x-auto flex-shrink-0">
         {paneTabs.map(function (tab) {
           var isActive = tab.id === activeTabId;
           return (
@@ -103,7 +103,7 @@ export function TabBar({ paneId }: TabBarProps) {
               onClick={function () { handleTabClick(tab.id); }}
               onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
               className={
-                "flex items-center gap-1.5 px-3 h-full text-[12px] font-mono border-r border-base-300 transition-colors whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 " +
+                "flex items-center gap-1.5 px-3 h-full text-[12px] font-mono border-r border-base-content/15 transition-colors whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 " +
                 (isActive
                   ? "bg-base-100 text-base-content border-b-2 border-b-primary"
                   : "text-base-content/50 hover:text-base-content/80 hover:bg-base-300/30")
@@ -117,7 +117,7 @@ export function TabBar({ paneId }: TabBarProps) {
                     e.stopPropagation();
                     handleCloseTab(tab.id);
                   }}
-                  className="ml-1 p-0.5 rounded hover:bg-base-content/10 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                  className="ml-1 p-0.5 rounded hover:bg-base-content/15 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
                 >
                   <X size={11} />
                 </button>
@@ -129,19 +129,19 @@ export function TabBar({ paneId }: TabBarProps) {
       {contextMenu && (
         <div
           ref={menuRef}
-          className="fixed z-50 bg-base-300 border border-base-content/10 rounded shadow-lg py-1 min-w-[160px]"
+          className="fixed z-50 bg-base-300 border border-base-content/15 rounded-lg shadow-lg py-1 min-w-[160px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <button
             onClick={function () { handleSplit("horizontal"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/10 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
           >
             <Columns2 size={14} />
             Split Right
           </button>
           <button
             onClick={function () { handleSplit("vertical"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/10 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
           >
             <Rows2 size={14} />
             Split Down

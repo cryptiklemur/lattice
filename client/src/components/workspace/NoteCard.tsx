@@ -51,7 +51,7 @@ export function NoteCard(props: NoteCardProps) {
 
   return (
     <div
-      className="card bg-base-200 border border-base-300 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+      className="card bg-base-200 border border-base-content/15 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
       tabIndex={editing ? undefined : 0}
       role={editing ? undefined : "button"}
       onClick={editing ? undefined : handleClick}
@@ -90,7 +90,7 @@ export function NoteCard(props: NoteCardProps) {
               </button>
               <button
                 onClick={function (e) { e.stopPropagation(); setConfirming(false); }}
-                className="btn btn-ghost btn-xs border border-base-300 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                className="btn btn-ghost btn-xs border border-base-content/15 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               >
                 Cancel
               </button>
@@ -98,7 +98,7 @@ export function NoteCard(props: NoteCardProps) {
           ) : (
             <button
               onClick={function (e) { e.stopPropagation(); setConfirming(true); }}
-              className="btn btn-ghost btn-xs border border-base-300 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+              className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               aria-label="Delete note"
             >
               <Trash2 className="!size-3" />
