@@ -26,6 +26,7 @@ export interface SidebarState {
   projectDropdownOpen: boolean;
   drawerOpen: boolean;
   nodeSettingsOpen: boolean;
+  addProjectOpen: boolean;
 }
 
 var SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes"];
@@ -70,6 +71,7 @@ var sidebarStore = new Store<SidebarState>({
   projectDropdownOpen: false,
   drawerOpen: false,
   nodeSettingsOpen: false,
+  addProjectOpen: false,
 });
 
 function pushUrl(projectSlug: string | null, sessionId: string | null): void {
@@ -332,5 +334,17 @@ export function openNodeSettings(): void {
 export function closeNodeSettings(): void {
   sidebarStore.setState(function (state) {
     return { ...state, nodeSettingsOpen: false };
+  });
+}
+
+export function openAddProject(): void {
+  sidebarStore.setState(function (state) {
+    return { ...state, addProjectOpen: true };
+  });
+}
+
+export function closeAddProject(): void {
+  sidebarStore.setState(function (state) {
+    return { ...state, addProjectOpen: false };
   });
 }

@@ -9,6 +9,7 @@ import { ProjectSettingsView } from "./components/project-settings/ProjectSettin
 import { DashboardView } from "./components/dashboard/DashboardView";
 import { ProjectDashboardView } from "./components/dashboard/ProjectDashboardView";
 import { NodeSettingsModal } from "./components/sidebar/NodeSettingsModal";
+import { AddProjectModal } from "./components/sidebar/AddProjectModal";
 import { useSidebar } from "./hooks/useSidebar";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { exitSettings, getSidebarStore, handlePopState, closeDrawer } from "./stores/sidebar";
@@ -312,6 +313,10 @@ function RootLayout() {
       <NodeSettingsModal
         isOpen={sidebar.nodeSettingsOpen}
         onClose={sidebar.closeNodeSettings}
+      />
+      <AddProjectModal
+        isOpen={sidebar.addProjectOpen}
+        onClose={sidebar.closeAddProject}
       />
     </div>
   );

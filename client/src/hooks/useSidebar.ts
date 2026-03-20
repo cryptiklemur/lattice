@@ -18,6 +18,8 @@ import {
   openNodeSettings,
   closeNodeSettings,
   navigateToSession,
+  openAddProject,
+  closeAddProject,
 } from "../stores/sidebar";
 import type { SidebarState, SettingsSection, ProjectSettingsSection } from "../stores/sidebar";
 
@@ -39,6 +41,9 @@ export function useSidebar(): SidebarState & {
   openNodeSettings: () => void;
   closeNodeSettings: () => void;
   navigateToSession: (projectSlug: string, sessionId: string) => void;
+  openAddProject: () => void;
+  closeAddProject: () => void;
+  addProjectOpen: boolean;
 } {
   var store = getSidebarStore();
   var state = useStore(store, function (s) { return s; });
@@ -70,5 +75,8 @@ export function useSidebar(): SidebarState & {
     openNodeSettings: openNodeSettings,
     closeNodeSettings: closeNodeSettings,
     nodeSettingsOpen: state.nodeSettingsOpen,
+    openAddProject: openAddProject,
+    closeAddProject: closeAddProject,
+    addProjectOpen: state.addProjectOpen,
   };
 }
