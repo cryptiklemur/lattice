@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @plugin "daisyui";
 @plugin "@tailwindcss/typography";
+
+@layer base {
+  button:not(:disabled),
+  a[href],
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
 @plugin "daisyui/theme" {
   name: "lattice-dark";
   default: true;
