@@ -32,6 +32,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   var inputRef = useRef<HTMLInputElement>(null);
   var dropdownRef = useRef<HTMLDivElement>(null);
   var inputFocusedRef = useRef(false);
+  var addingRef = useRef(false);
 
   useEffect(function () {
     if (!isOpen) return;
@@ -43,6 +44,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     setDropdownOpen(false);
     setError(null);
     setAdding(false);
+    addingRef.current = false;
 
     send({ type: "browse:list", path: "~" } as any);
 
@@ -58,7 +60,8 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
 
     function handleProjectsList(msg: ServerMessage) {
       if (msg.type !== "projects:list") return;
-      if (adding) {
+      if (addingRef.current) {
+        addingRef.current = false;
         setAdding(false);
         onClose();
       }
@@ -197,6 +200,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     var finalTitle = title.trim() || resolved.split("/").pop() || "Untitled";
 
     setAdding(true);
+    addingRef.current = true;
     send({
       type: "settings:update",
       settings: {
