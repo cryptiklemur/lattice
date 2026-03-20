@@ -316,30 +316,22 @@ function RemoveProjectConfirm() {
 }
 
 function RootLayout() {
-  var [setupComplete, setSetupComplete] = useState(function () {
-    return localStorage.getItem("lattice-setup-complete") === "1";
-  });
+  var [setupComplete, setSetupComplete] = useState<boolean | null>(null);
   var ws = useWebSocket();
-  var checkedServerRef = useRef(false);
 
   useEffect(function () {
-    if (setupComplete || checkedServerRef.current) return;
-    if (ws.status !== "connected") return;
-
     function handleSettingsData(msg: { type: string; config?: { setupComplete?: boolean } }) {
       if (msg.type !== "settings:data") return;
-      checkedServerRef.current = true;
-      if (msg.config && msg.config.setupComplete) {
-        localStorage.setItem("lattice-setup-complete", "1");
-        setSetupComplete(true);
-      }
+      setSetupComplete(msg.config?.setupComplete === true);
     }
     ws.subscribe("settings:data", handleSettingsData as any);
-    ws.send({ type: "settings:get" });
+    if (ws.status === "connected") {
+      ws.send({ type: "settings:get" });
+    }
     return function () {
       ws.unsubscribe("settings:data", handleSettingsData as any);
     };
-  }, [ws.status, setupComplete]);
+  }, [ws.status]);
 
   var sidebar = useSidebar();
 
@@ -359,6 +351,10 @@ function RootLayout() {
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
+
+  if (setupComplete === null) {
+    return <LoadingScreen />;
+  }
 
   if (!setupComplete) {
     return (

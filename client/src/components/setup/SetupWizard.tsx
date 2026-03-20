@@ -96,7 +96,6 @@ export function SetupWizard(props: SetupWizardProps) {
 
   function handleDone() {
     ws.send({ type: "settings:update", settings: { setupComplete: true } });
-    localStorage.setItem("lattice-setup-complete", "1");
     props.onComplete();
   }
 
