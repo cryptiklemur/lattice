@@ -25,6 +25,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   var [title, setTitle] = useState("");
   var [titleManuallySet, setTitleManuallySet] = useState(false);
   var [dropdownOpen, setDropdownOpen] = useState(false);
+  var [highlightIndex, setHighlightIndex] = useState(-1);
   var [error, setError] = useState<string | null>(null);
   var [adding, setAdding] = useState(false);
   var [homedir, setHomedir] = useState("");
@@ -53,6 +54,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
       var data = msg as { type: "browse:list_result"; path: string; homedir: string; entries: BrowseEntry[] };
       setEntries(data.entries);
       setHomedir(data.homedir);
+      setHighlightIndex(-1);
       if (inputFocusedRef.current && data.entries.length > 0) {
         setDropdownOpen(true);
       }
@@ -192,6 +194,57 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     return null;
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    var filtered = getFilteredEntries();
+    if (!dropdownOpen || filtered.length === 0) {
+      if (e.key === "Enter" && canAdd) {
+        e.preventDefault();
+        handleAdd();
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIndex(function (prev) {
+        var next = prev + 1;
+        if (next >= filtered.length) next = 0;
+        scrollHighlightIntoView(next);
+        return next;
+      });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex(function (prev) {
+        var next = prev - 1;
+        if (next < 0) next = filtered.length - 1;
+        scrollHighlightIntoView(next);
+        return next;
+      });
+    } else if (e.key === "Tab" || e.key === "Enter") {
+      if (highlightIndex >= 0 && highlightIndex < filtered.length) {
+        e.preventDefault();
+        handleSelectEntry(filtered[highlightIndex]);
+        setHighlightIndex(-1);
+      } else if (e.key === "Enter" && canAdd) {
+        e.preventDefault();
+        handleAdd();
+      }
+    } else if (e.key === "Escape") {
+      setDropdownOpen(false);
+      setHighlightIndex(-1);
+    }
+  }
+
+  function scrollHighlightIntoView(index: number) {
+    if (!dropdownRef.current) return;
+    var items = dropdownRef.current.children;
+    if (items[index]) {
+      (items[index] as HTMLElement).scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  var canAdd = isValidPath() && !adding;
+
   function handleAdd() {
     var trimmed = path.trim();
     if (!trimmed || adding) return;
@@ -213,7 +266,6 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
 
   var filtered = getFilteredEntries();
   var validation = getValidationMessage();
-  var canAdd = isValidPath() && !adding;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
@@ -241,9 +293,10 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
                 id="project-path"
                 type="text"
                 value={path}
-                onChange={function (e) { setPath(e.target.value); setDropdownOpen(true); setError(null); }}
+                onChange={function (e) { setPath(e.target.value); setDropdownOpen(true); setHighlightIndex(-1); setError(null); }}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
+                onKeyDown={handleKeyDown}
                 placeholder="~/projects/my-app"
                 autoFocus
                 className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
@@ -254,13 +307,20 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
                   ref={dropdownRef}
                   className="absolute top-full left-0 right-0 mt-1 z-50 bg-base-200 border border-base-content/15 rounded-xl shadow-lg max-h-48 overflow-y-auto"
                 >
-                  {filtered.map(function (entry) {
+                  {filtered.map(function (entry, idx) {
+                    var isHighlighted = idx === highlightIndex;
                     return (
                       <button
                         key={entry.path}
                         onMouseDown={function (e) { e.preventDefault(); }}
-                        onClick={function () { handleSelectEntry(entry); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-[12px] font-mono text-base-content/60 hover:bg-base-content/5 hover:text-base-content transition-colors duration-[80ms]"
+                        onClick={function () { handleSelectEntry(entry); setHighlightIndex(-1); }}
+                        onMouseEnter={function () { setHighlightIndex(idx); }}
+                        className={
+                          "w-full flex items-center gap-2 px-3 py-2 text-left text-[12px] font-mono transition-colors duration-[80ms] " +
+                          (isHighlighted
+                            ? "bg-base-content/10 text-base-content"
+                            : "text-base-content/60 hover:bg-base-content/5 hover:text-base-content")
+                        }
                       >
                         <FolderOpen size={12} className="text-base-content/25 flex-shrink-0" />
                         <span className="flex-1 truncate">{entry.name}/</span>
