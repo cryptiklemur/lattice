@@ -115,6 +115,14 @@ export interface SkillInfo {
   path: string;
 }
 
+export interface MarketplaceSkill {
+  id: string;
+  skillId: string;
+  name: string;
+  source: string;
+  installs: number;
+}
+
 export interface LoopStatus {
   id: string;
   projectSlug: string;

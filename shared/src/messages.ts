@@ -4,6 +4,7 @@ import type {
   HistoryMessage,
   LatticeConfig,
   LoopStatus,
+  MarketplaceSkill,
   NodeInfo,
   ProjectInfo,
   ScheduledTask,
@@ -11,7 +12,7 @@ import type {
   SkillInfo,
   StickyNote,
 } from "./models.js";
-import type { ProjectSettings } from "./project-settings.js";
+import type { McpServerConfig, ProjectSettings } from "./project-settings.js";
 
 export interface SessionCreateMessage {
   type: "session:create";
@@ -191,6 +192,22 @@ export interface SkillsListRequestMessage {
   type: "skills:list_request";
 }
 
+export interface SessionListAllRequestMessage {
+  type: "session:list_all_request";
+}
+
+export interface SkillsSearchMessage {
+  type: "skills:search";
+  query: string;
+}
+
+export interface SkillsInstallMessage {
+  type: "skills:install";
+  source: string;
+  scope: "global" | "project";
+  projectSlug?: string;
+}
+
 export interface ProjectSettingsGetMessage {
   type: "project-settings:get";
   projectSlug: string;
@@ -251,7 +268,10 @@ export type ClientMessage =
   | SkillsListRequestMessage
   | ChatSetPermissionModeMessage
   | ProjectSettingsGetMessage
-  | ProjectSettingsUpdateMessage;
+  | ProjectSettingsUpdateMessage
+  | SessionListAllRequestMessage
+  | SkillsSearchMessage
+  | SkillsInstallMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -423,6 +443,8 @@ export interface ProjectsListMessage {
 export interface SettingsDataMessage {
   type: "settings:data";
   config: LatticeConfig;
+  mcpServers?: Record<string, McpServerConfig>;
+  globalSkills?: SkillInfo[];
 }
 
 export interface LoopStatusMessage {
@@ -477,6 +499,25 @@ export interface SkillsListMessage {
   skills: SkillInfo[];
 }
 
+export interface SessionListAllMessage {
+  type: "session:list_all";
+  sessions: SessionSummary[];
+}
+
+export interface SkillsSearchResultsMessage {
+  type: "skills:search_results";
+  query: string;
+  skills: MarketplaceSkill[];
+  count: number;
+  error?: string;
+}
+
+export interface SkillsInstallResultMessage {
+  type: "skills:install_result";
+  success: boolean;
+  message?: string;
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -516,7 +557,10 @@ export type ServerMessage =
   | SkillsListMessage
   | ChatPermissionResolvedMessage
   | ProjectSettingsDataMessage
-  | ProjectSettingsErrorMessage;
+  | ProjectSettingsErrorMessage
+  | SessionListAllMessage
+  | SkillsSearchResultsMessage
+  | SkillsInstallResultMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";
