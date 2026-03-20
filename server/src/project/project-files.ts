@@ -158,7 +158,18 @@ export function writeGlobalMcpServers(servers: Record<string, unknown>): void {
 }
 
 export function readGlobalSkills(): Array<{ name: string; description: string; path: string }> {
-  return scanSkillsDir(join(homedir(), ".claude", "skills"));
+  var results: Array<{ name: string; description: string; path: string }> = [];
+  var dirs = [
+    join(homedir(), ".claude", "skills"),
+    join(homedir(), ".agents", "skills"),
+  ];
+  for (var dir of dirs) {
+    var skills = scanSkillsDir(dir);
+    for (var skill of skills) {
+      results.push(skill);
+    }
+  }
+  return results;
 }
 
 function readJsonFile(filePath: string): Record<string, unknown> {
