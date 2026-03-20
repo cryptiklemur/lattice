@@ -98,12 +98,21 @@ export function TabBar({ paneId }: TabBarProps) {
         {paneTabs.map(function (tab) {
           var isActive = tab.id === activeTabId;
           return (
-            <button
+            <div
               key={tab.id}
+              role="tab"
+              tabIndex={0}
+              aria-selected={isActive}
               onClick={function () { handleTabClick(tab.id); }}
+              onKeyDown={function (e) {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleTabClick(tab.id);
+                }
+              }}
               onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
               className={
-                "flex items-center gap-1.5 px-3 h-full text-[12px] font-mono border-r border-base-content/15 transition-colors whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 " +
+                "flex items-center gap-1.5 px-3 h-full text-[12px] font-mono border-r border-base-content/15 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 " +
                 (isActive
                   ? "bg-base-100 text-base-content border-b-2 border-b-primary"
                   : "text-base-content/50 hover:text-base-content/80 hover:bg-base-300/30")
@@ -122,7 +131,7 @@ export function TabBar({ paneId }: TabBarProps) {
                   <X size={11} />
                 </button>
               )}
-            </button>
+            </div>
           );
         })}
       </div>

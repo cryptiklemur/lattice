@@ -1,6 +1,41 @@
 import { useEffect, useRef, useState } from "react";
 import { Copy, Check, ExternalLink, FileCode, Eye } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import type { HighlighterCore } from "shiki";
+
+var highlighterPromise: Promise<HighlighterCore> | null = null;
+var loadedLanguages = new Set<string>();
+
+function getHighlighter(): Promise<HighlighterCore> {
+  if (!highlighterPromise) {
+    highlighterPromise = import("shiki").then(function (shiki) {
+      return shiki.createHighlighter({
+        themes: ["css-variables"],
+        langs: [],
+      });
+    });
+  }
+  return highlighterPromise;
+}
+
+async function highlightCode(code: string, lang: string): Promise<string> {
+  var highlighter = await getHighlighter();
+  var resolvedLang = lang === "text" ? "text" : lang;
+
+  if (resolvedLang !== "text" && !loadedLanguages.has(resolvedLang)) {
+    try {
+      await highlighter.loadLanguage(resolvedLang as any);
+      loadedLanguages.add(resolvedLang);
+    } catch {
+      resolvedLang = "text";
+    }
+  }
+
+  return highlighter.codeToHtml(code, {
+    lang: resolvedLang,
+    theme: "css-variables",
+  });
+}
 
 var EXT_TO_LANG: Record<string, string> = {
   ts: "typescript",
@@ -76,14 +111,8 @@ export function FileViewer(props: FileViewerProps) {
     if (isMd && showRendered) return;
 
     var cancelled = false;
-    import("shiki").then(function (shiki) {
+    highlightCode(content, language).then(function (html) {
       if (cancelled) return;
-      return shiki.codeToHtml(content, {
-        lang: language === "text" ? "text" : language,
-        theme: "css-variables",
-      });
-    }).then(function (html) {
-      if (cancelled || !html) return;
       setHighlightedHtml(html);
     }).catch(function () {
       // fallback to plain text
