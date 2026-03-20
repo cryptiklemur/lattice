@@ -146,6 +146,7 @@ export function ProjectRail(props: ProjectRailProps) {
     y: 0,
     slug: null,
   });
+  var [confirmRemoveSlug, setConfirmRemoveSlug] = useState<string | null>(null);
   var menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(
@@ -278,20 +279,54 @@ export function ProjectRail(props: ProjectRailProps) {
             role="menuitem"
             className="w-full text-left px-3 py-1.5 text-sm text-error hover:bg-error/10 transition-colors"
             onClick={function () {
-              if (contextMenu.slug) {
-                ws.send({
-                  type: "settings:update",
-                  settings: { removeProject: contextMenu.slug },
-                } as any);
-                if (sidebar.activeProjectSlug === contextMenu.slug) {
-                  sidebar.goToDashboard();
-                }
-              }
+              var slug = contextMenu.slug;
               setContextMenu(function (prev) { return { ...prev, visible: false }; });
+              if (slug) {
+                setConfirmRemoveSlug(slug);
+              }
             }}
           >
             Remove Project
           </button>
+        </div>
+      )}
+
+      {confirmRemoveSlug && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={function () { setConfirmRemoveSlug(null); }} />
+          <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="px-5 py-4 border-b border-base-content/15">
+              <h2 className="text-[15px] font-mono font-bold text-base-content">Remove Project</h2>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-[13px] text-base-content/60">
+                Remove <span className="font-semibold text-base-content">{groups.find(function (g) { return g.slug === confirmRemoveSlug; })?.title || confirmRemoveSlug}</span> from Lattice? This won't delete any files on disk.
+              </p>
+            </div>
+            <div className="px-5 py-3 border-t border-base-content/15 flex justify-end gap-2">
+              <button
+                onClick={function () { setConfirmRemoveSlug(null); }}
+                className="btn btn-ghost btn-sm text-[12px]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={function () {
+                  ws.send({
+                    type: "settings:update",
+                    settings: { removeProject: confirmRemoveSlug },
+                  } as any);
+                  if (sidebar.activeProjectSlug === confirmRemoveSlug) {
+                    sidebar.goToDashboard();
+                  }
+                  setConfirmRemoveSlug(null);
+                }}
+                className="btn btn-error btn-sm text-[12px]"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
