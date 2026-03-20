@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FsListResultMessage, FsReadResultMessage, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { useSidebar } from "../../hooks/useSidebar";
 import { FileTree, buildNodes } from "./FileTree";
 import { FileViewer } from "./FileViewer";
 import type { TreeNode } from "./FileTree";
 
 export function FileBrowser() {
   var { send, subscribe, unsubscribe } = useWebSocket();
+  var { activeProjectSlug } = useSidebar();
+  var projectSlugRef = useRef<string | null>(null);
+  projectSlugRef.current = activeProjectSlug;
   var [rootNodes, setRootNodes] = useState<TreeNode[]>([]);
   var [selectedPath, setSelectedPath] = useState<string | null>(null);
   var [fileContent, setFileContent] = useState<string | null>(null);
@@ -53,7 +57,7 @@ export function FileBrowser() {
   var handleFsChanged = useCallback(function (msg: ServerMessage) {
     var changedPath = (msg as { path: string }).path;
     if (changedPath === selectedPathRef.current) {
-      send({ type: "fs:read", path: changedPath });
+      send({ type: "fs:read", path: changedPath, projectSlug: projectSlugRef.current || undefined });
     }
   }, [send]);
 
@@ -62,7 +66,7 @@ export function FileBrowser() {
     subscribe("fs:read_result", handleReadResult);
     subscribe("fs:changed", handleFsChanged);
 
-    send({ type: "fs:list", path: "." });
+    send({ type: "fs:list", path: ".", projectSlug: projectSlugRef.current || undefined });
 
     return function () {
       unsubscribe("fs:list_result", handleListResult);
@@ -76,7 +80,7 @@ export function FileBrowser() {
       return nodes.map(function (node) {
         if (node.entry.path === path) {
           if (!node.expanded && !node.children) {
-            send({ type: "fs:list", path });
+            send({ type: "fs:list", path: path, projectSlug: projectSlugRef.current || undefined });
             return Object.assign({}, node, { expanded: true });
           }
           return Object.assign({}, node, { expanded: !node.expanded });
@@ -96,7 +100,7 @@ export function FileBrowser() {
     setSelectedPath(path);
     setFileContent(null);
     setLoadingContent(true);
-    send({ type: "fs:read", path });
+    send({ type: "fs:read", path: path, projectSlug: activeProjectSlug || undefined });
   }
 
   function handleOpenInIDE(path: string, line?: number) {

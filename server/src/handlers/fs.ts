@@ -21,7 +21,11 @@ export function clearActiveProject(clientId: string): void {
 registerHandler("fs", function (clientId: string, message: ClientMessage) {
   if (message.type === "fs:list") {
     var listMsg = message as FsListMessage;
-    var projectSlug = activeProjectByClient.get(clientId);
+    var projectSlug = activeProjectByClient.get(clientId) || listMsg.projectSlug;
+    if (listMsg.projectSlug) {
+      setActiveProject(clientId, listMsg.projectSlug);
+      projectSlug = listMsg.projectSlug;
+    }
     if (!projectSlug) {
       sendTo(clientId, { type: "chat:error", message: "No active project for fs:list" });
       return;
@@ -40,7 +44,11 @@ registerHandler("fs", function (clientId: string, message: ClientMessage) {
 
   if (message.type === "fs:read") {
     var readMsg = message as FsReadMessage;
-    var projectSlugRead = activeProjectByClient.get(clientId);
+    var projectSlugRead = activeProjectByClient.get(clientId) || readMsg.projectSlug;
+    if (readMsg.projectSlug) {
+      setActiveProject(clientId, readMsg.projectSlug);
+      projectSlugRead = readMsg.projectSlug;
+    }
     if (!projectSlugRead) {
       sendTo(clientId, { type: "chat:error", message: "No active project for fs:read" });
       return;

@@ -74,11 +74,13 @@ export interface ChatSetPermissionModeMessage {
 export interface FsListMessage {
   type: "fs:list";
   path: string;
+  projectSlug?: string;
 }
 
 export interface FsReadMessage {
   type: "fs:read";
   path: string;
+  projectSlug?: string;
 }
 
 export interface FsWriteMessage {
