@@ -1,5 +1,7 @@
 import React from "react";
+import { WifiOff } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { useOnline } from "../../hooks/useOnline";
 import { TabBar } from "./TabBar";
 import { SplitPane } from "./SplitPane";
 import { ChatView } from "../chat/ChatView";
@@ -23,6 +25,7 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
   isActive: boolean;
   onFocus: () => void;
 }) {
+  var online = useOnline();
   var paneTabs = pane.tabIds.map(function (id) {
     return tabs.find(function (t) { return t.id === id; });
   }).filter(function (t): t is Tab { return t != null; });
@@ -33,6 +36,12 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
       onClick={onFocus}
     >
       <TabBar paneId={pane.id} isActivePane={isActive} />
+      {!online && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-warning/10 border-b border-warning/20 flex-shrink-0">
+          <WifiOff size={13} className="text-warning flex-shrink-0" />
+          <span className="text-[12px] text-warning">Disconnected — viewing only</span>
+        </div>
+      )}
       <div className="flex-1 min-h-0 relative">
         {paneTabs.map(function (tab) {
           var Component = TAB_COMPONENTS[tab.type];
@@ -55,12 +64,19 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
 
 export function WorkspaceView() {
   var { tabs, panes, activePaneId, splitDirection, splitRatio, setSplitRatio, setActivePaneId } = useWorkspace();
+  var online = useOnline();
 
   if (!splitDirection || panes.length < 2) {
     var singlePane = panes[0];
     return (
       <div className="flex flex-col h-full w-full overflow-hidden">
         <TabBar paneId={singlePane?.id} />
+        {!online && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-warning/10 border-b border-warning/20 flex-shrink-0">
+            <WifiOff size={13} className="text-warning flex-shrink-0" />
+            <span className="text-[12px] text-warning">Disconnected — viewing only</span>
+          </div>
+        )}
         <div className="flex-1 min-h-0 relative">
           {tabs.map(function (tab) {
             var Component = TAB_COMPONENTS[tab.type];
