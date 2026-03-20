@@ -8,6 +8,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills } from "../project/project-files";
+import { loadOrCreateIdentity } from "../identity";
 
 function loadGlobalClaudeMd(): string {
   var mdPath = join(homedir(), ".claude", "CLAUDE.md");
@@ -30,6 +31,7 @@ function saveGlobalClaudeMd(content: string): void {
 registerHandler("settings", function (clientId: string, message: ClientMessage) {
   if (message.type === "settings:get") {
     var config = loadConfig();
+    var identity = loadOrCreateIdentity();
     var configWithClaudeMd = { ...config, claudeMd: loadGlobalClaudeMd() };
     sendTo(clientId, {
       type: "settings:data",
@@ -40,7 +42,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     sendTo(clientId, {
       type: "projects:list",
       projects: config.projects.map(function (p) {
-        return { slug: p.slug, path: p.path, title: p.title, nodeId: "local", nodeName: config.name, isRemote: false };
+        return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id, nodeName: config.name, isRemote: false };
       }),
     });
     return;
@@ -87,10 +89,11 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
       globalSkills: readGlobalSkills(),
     });
+    var updatedIdentity = loadOrCreateIdentity();
     broadcast({
       type: "projects:list",
       projects: updated.projects.map(function (p) {
-        return { slug: p.slug, path: p.path, title: p.title, nodeId: "local", nodeName: updated.name, isRemote: false };
+        return { slug: p.slug, path: p.path, title: p.title, nodeId: updatedIdentity.id, nodeName: updated.name, isRemote: false };
       }),
     });
     return;
