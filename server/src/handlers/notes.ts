@@ -1,5 +1,6 @@
 import type {
   ClientMessage,
+  NotesListMessage,
   NotesCreateMessage,
   NotesUpdateMessage,
   NotesDeleteMessage,
@@ -10,13 +11,14 @@ import { listNotes, createNote, updateNote, deleteNote } from "../features/stick
 
 registerHandler("notes", function (clientId: string, message: ClientMessage) {
   if (message.type === "notes:list") {
-    sendTo(clientId, { type: "notes:list_result", notes: listNotes() });
+    var listMsg = message as NotesListMessage;
+    sendTo(clientId, { type: "notes:list_result", notes: listNotes(listMsg.projectSlug) });
     return;
   }
 
   if (message.type === "notes:create") {
     var createMsg = message as NotesCreateMessage;
-    var note = createNote(createMsg.content);
+    var note = createNote(createMsg.content, createMsg.projectSlug);
     broadcast({ type: "notes:created", note });
     return;
   }

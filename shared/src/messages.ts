@@ -170,11 +170,13 @@ export interface SchedulerToggleMessage {
 
 export interface NotesListMessage {
   type: "notes:list";
+  projectSlug?: string;
 }
 
 export interface NotesCreateMessage {
   type: "notes:create";
   content: string;
+  projectSlug?: string;
 }
 
 export interface NotesUpdateMessage {

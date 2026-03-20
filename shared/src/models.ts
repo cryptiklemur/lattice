@@ -98,6 +98,7 @@ export interface StickyNote {
   content: string;
   createdAt: number;
   updatedAt: number;
+  projectSlug?: string;
 }
 
 export interface ScheduledTask {

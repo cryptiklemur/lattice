@@ -61,17 +61,19 @@ function saveNotes(): void {
   }
 }
 
-export function listNotes(): StickyNote[] {
-  return notes.slice();
+export function listNotes(projectSlug?: string): StickyNote[] {
+  if (!projectSlug) return notes.slice();
+  return notes.filter(function (n) { return n.projectSlug === projectSlug; });
 }
 
-export function createNote(content: string): StickyNote {
+export function createNote(content: string, projectSlug?: string): StickyNote {
   var now = Date.now();
   var note: StickyNote = {
     id: "note_" + now + "_" + randomBytes(3).toString("hex"),
     content,
     createdAt: now,
     updatedAt: now,
+    projectSlug,
   };
   notes.push(note);
   saveNotes();

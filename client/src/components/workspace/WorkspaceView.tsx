@@ -4,10 +4,8 @@ import { TabBar } from "./TabBar";
 import { ChatView } from "../chat/ChatView";
 import { TerminalView } from "./TerminalView";
 import { FileBrowser } from "./FileBrowser";
+import { NotesView } from "./NotesView";
 
-function NotesPlaceholder() {
-  return <div className="flex-1 flex items-center justify-center text-base-content/40 text-[13px]">Notes (coming soon)</div>;
-}
 function TasksPlaceholder() {
   return <div className="flex-1 flex items-center justify-center text-base-content/40 text-[13px]">Scheduled Tasks (coming soon)</div>;
 }
@@ -16,7 +14,7 @@ var TAB_COMPONENTS: Record<string, () => React.JSX.Element> = {
   chat: ChatView,
   files: FileBrowser,
   terminal: TerminalView,
-  notes: NotesPlaceholder,
+  notes: NotesView,
   tasks: TasksPlaceholder,
 };
 
