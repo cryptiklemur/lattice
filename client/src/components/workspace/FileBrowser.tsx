@@ -57,17 +57,12 @@ export function FileBrowser() {
     }
   }, [send]);
 
-  var initialLoadRef = useRef(false);
-
   useEffect(function () {
     subscribe("fs:list_result", handleListResult);
     subscribe("fs:read_result", handleReadResult);
     subscribe("fs:changed", handleFsChanged);
 
-    if (!initialLoadRef.current) {
-      initialLoadRef.current = true;
-      send({ type: "fs:list", path: "." });
-    }
+    send({ type: "fs:list", path: "." });
 
     return function () {
       unsubscribe("fs:list_result", handleListResult);
