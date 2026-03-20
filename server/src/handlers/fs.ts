@@ -3,6 +3,9 @@ import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
 import { listDirectory, readFile, writeFile } from "../project/file-browser";
+import { readdirSync, existsSync, readFileSync, statSync } from "node:fs";
+import { join, basename } from "node:path";
+import { homedir } from "node:os";
 
 var activeProjectByClient = new Map<string, string>();
 
@@ -79,6 +82,123 @@ registerHandler("fs", function (clientId: string, message: ClientMessage) {
     }
 
     broadcast({ type: "fs:changed", path: writeMsg.path });
+    return;
+  }
+});
+
+function resolvePath(path: string): string {
+  if (!path || path === "~") return homedir();
+  if (path.startsWith("~/")) return join(homedir(), path.slice(2));
+  return path;
+}
+
+function detectProjectName(dirPath: string): string | null {
+  try {
+    var pkgPath = join(dirPath, "package.json");
+    if (existsSync(pkgPath)) {
+      var pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+      if (pkg.name) return pkg.name;
+    }
+  } catch {}
+
+  try {
+    var cargoPath = join(dirPath, "Cargo.toml");
+    if (existsSync(cargoPath)) {
+      var cargo = readFileSync(cargoPath, "utf-8");
+      var cargoMatch = cargo.match(/\[package\][\s\S]*?name\s*=\s*"([^"]+)"/);
+      if (cargoMatch) return cargoMatch[1];
+    }
+  } catch {}
+
+  try {
+    var composerPath = join(dirPath, "composer.json");
+    if (existsSync(composerPath)) {
+      var composer = JSON.parse(readFileSync(composerPath, "utf-8"));
+      if (composer.name) return composer.name;
+    }
+  } catch {}
+
+  try {
+    var pyprojectPath = join(dirPath, "pyproject.toml");
+    if (existsSync(pyprojectPath)) {
+      var pyproject = readFileSync(pyprojectPath, "utf-8");
+      var pyMatch = pyproject.match(/\[project\][\s\S]*?name\s*=\s*"([^"]+)"/);
+      if (pyMatch) return pyMatch[1];
+    }
+  } catch {}
+
+  try {
+    var goModPath = join(dirPath, "go.mod");
+    if (existsSync(goModPath)) {
+      var goMod = readFileSync(goModPath, "utf-8");
+      var goMatch = goMod.match(/^module\s+(\S+)/m);
+      if (goMatch) {
+        var parts = goMatch[1].split("/");
+        return parts[parts.length - 1];
+      }
+    }
+  } catch {}
+
+  try {
+    var entries = readdirSync(dirPath);
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].endsWith(".sln") || entries[i].endsWith(".csproj")) {
+        return entries[i].replace(/\.[^.]+$/, "");
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
+registerHandler("browse", function (clientId: string, message: ClientMessage) {
+  if (message.type === "browse:list") {
+    var browseMsg = message as { type: "browse:list"; path: string };
+    var resolvedPath = resolvePath(browseMsg.path);
+    var home = homedir();
+
+    if (!existsSync(resolvedPath)) {
+      sendTo(clientId, { type: "browse:list_result", path: resolvedPath, homedir: home, entries: [] });
+      return;
+    }
+
+    try {
+      var stat = statSync(resolvedPath);
+      if (!stat.isDirectory()) {
+        sendTo(clientId, { type: "browse:list_result", path: resolvedPath, homedir: home, entries: [] });
+        return;
+      }
+    } catch {
+      sendTo(clientId, { type: "browse:list_result", path: resolvedPath, homedir: home, entries: [] });
+      return;
+    }
+
+    try {
+      var dirEntries = readdirSync(resolvedPath, { withFileTypes: true });
+      var results: Array<{ name: string; path: string; hasClaudeMd: boolean; projectName: string | null }> = [];
+
+      for (var i = 0; i < dirEntries.length; i++) {
+        var entry = dirEntries[i];
+        if (!entry.isDirectory()) continue;
+
+        var entryPath = join(resolvedPath, entry.name);
+        var hasClaudeMd = existsSync(join(entryPath, "CLAUDE.md"));
+        var projectName = detectProjectName(entryPath);
+
+        results.push({
+          name: entry.name,
+          path: entryPath,
+          hasClaudeMd: hasClaudeMd,
+          projectName: projectName,
+        });
+      }
+
+      results.sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+      sendTo(clientId, { type: "browse:list_result", path: resolvedPath, homedir: home, entries: results });
+    } catch {
+      sendTo(clientId, { type: "browse:list_result", path: resolvedPath, homedir: home, entries: [] });
+    }
     return;
   }
 });

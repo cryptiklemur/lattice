@@ -4,6 +4,7 @@ import type { ProjectInfo, NodeInfo } from "@lattice/shared";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
+import { AddProjectModal } from "./AddProjectModal";
 
 function getProjectInitials(title: string): string {
   var words = title.trim().split(/[\s\-_]+/);
@@ -140,6 +141,7 @@ export function ProjectRail(props: ProjectRailProps) {
   var ws = useWebSocket();
   var sidebar = useSidebar();
   var groups = groupProjectsBySlug(props.projects, props.nodes);
+  var [addProjectOpen, setAddProjectOpen] = useState(false);
   var [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
     x: 0,
@@ -230,13 +232,17 @@ export function ProjectRail(props: ProjectRailProps) {
       )}
 
       <button
-        onClick={function () {}}
-        className="w-[42px] h-[42px] flex items-center justify-center rounded-full border-2 border-dashed border-base-content/25 text-base-content/20 transition-colors duration-[120ms] flex-shrink-0 cursor-not-allowed opacity-60"
-        title="Add project (coming soon)"
-        disabled
+        onClick={function () { setAddProjectOpen(true); }}
+        className="w-[42px] h-[42px] flex items-center justify-center rounded-full border-2 border-dashed border-base-content/25 text-base-content/20 hover:border-base-content/40 hover:text-base-content/40 transition-colors duration-[120ms] flex-shrink-0 cursor-pointer"
+        title="Add project"
       >
         <Plus size={18} />
       </button>
+
+      <AddProjectModal
+        isOpen={addProjectOpen}
+        onClose={function () { setAddProjectOpen(false); }}
+      />
 
       <div className="flex-1" />
 

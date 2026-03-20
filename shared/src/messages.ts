@@ -223,6 +223,11 @@ export interface SkillsUpdateMessage {
   source: string;
 }
 
+export interface BrowseListMessage {
+  type: "browse:list";
+  path: string;
+}
+
 export interface ProjectSettingsGetMessage {
   type: "project-settings:get";
   projectSlug: string;
@@ -289,7 +294,8 @@ export type ClientMessage =
   | SkillsInstallMessage
   | SkillsViewMessage
   | SkillsDeleteMessage
-  | SkillsUpdateMessage;
+  | SkillsUpdateMessage
+  | BrowseListMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -548,6 +554,18 @@ export interface SkillsDeleteResultMessage {
   message?: string;
 }
 
+export interface BrowseListResultMessage {
+  type: "browse:list_result";
+  path: string;
+  homedir: string;
+  entries: Array<{
+    name: string;
+    path: string;
+    hasClaudeMd: boolean;
+    projectName: string | null;
+  }>;
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -592,7 +610,8 @@ export type ServerMessage =
   | SkillsSearchResultsMessage
   | SkillsInstallResultMessage
   | SkillsViewResultMessage
-  | SkillsDeleteResultMessage;
+  | SkillsDeleteResultMessage
+  | BrowseListResultMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";
