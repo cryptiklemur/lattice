@@ -57,8 +57,6 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     activeTabId = workspace.activeTabId;
   }
 
-  if (paneTabs.length <= 1 && workspace.panes.length <= 1) return null;
-
   function handleTabClick(tabId: string) {
     if (paneId) {
       workspace.setPaneActiveTab(paneId, tabId);
