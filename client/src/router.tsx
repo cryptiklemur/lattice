@@ -2,7 +2,7 @@ import { createRouter, createRootRoute, createRoute, createMemoryHistory } from 
 import { Outlet } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "./components/sidebar/Sidebar";
-import { ChatView } from "./components/chat/ChatView";
+import { WorkspaceView } from "./components/workspace/WorkspaceView";
 import { SetupWizard } from "./components/setup/SetupWizard";
 import { SettingsView } from "./components/settings/SettingsView";
 import { ProjectSettingsView } from "./components/project-settings/ProjectSettingsView";
@@ -393,7 +393,7 @@ function IndexPage() {
   if (sidebar.activeView.type === "project-dashboard") {
     return <ProjectDashboardView />;
   }
-  return <ChatView />;
+  return <WorkspaceView />;
 }
 
 var rootRoute = createRootRoute({
