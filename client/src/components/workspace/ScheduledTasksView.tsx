@@ -3,12 +3,14 @@ import { Calendar } from "lucide-react";
 import type { ScheduledTask, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSession } from "../../hooks/useSession";
+import { useOnline } from "../../hooks/useOnline";
 import { TaskCard } from "./TaskCard";
 import { TaskEditModal } from "./TaskEditModal";
 
 export function ScheduledTasksView() {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var { activeProjectSlug } = useSession();
+  var online = useOnline();
   var [tasks, setTasks] = useState<ScheduledTask[]>([]);
   var [editingTask, setEditingTask] = useState<ScheduledTask | null | undefined>(undefined);
 
@@ -68,6 +70,7 @@ export function ScheduledTasksView() {
         <span className="text-[13px] font-semibold text-base-content">Scheduled Tasks</span>
         <button
           onClick={function () { setEditingTask(null); }}
+          disabled={!online}
           className="btn btn-primary btn-xs"
         >
           New Task
@@ -93,6 +96,7 @@ export function ScheduledTasksView() {
                   onToggle={handleToggle}
                   onEdit={function (t) { setEditingTask(t); }}
                   onDelete={handleDelete}
+                  disabled={!online}
                 />
               );
             })}

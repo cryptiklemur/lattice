@@ -6,16 +6,18 @@ interface NoteCardProps {
   note: StickyNote;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
+  disabled?: boolean;
 }
 
 export function NoteCard(props: NoteCardProps) {
-  var { note, onUpdate, onDelete } = props;
+  var { note, onUpdate, onDelete, disabled } = props;
   var [editing, setEditing] = useState(!note.content);
   var [draft, setDraft] = useState(note.content);
   var [confirming, setConfirming] = useState(false);
   var originalRef = useRef(note.content);
 
   function handleClick() {
+    if (disabled) return;
     if (!editing) {
       originalRef.current = note.content;
       setDraft(note.content);
@@ -103,6 +105,7 @@ export function NoteCard(props: NoteCardProps) {
           ) : (
             <button
               onClick={function (e) { e.stopPropagation(); setConfirming(true); }}
+              disabled={disabled}
               className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               aria-label="Delete note"
             >

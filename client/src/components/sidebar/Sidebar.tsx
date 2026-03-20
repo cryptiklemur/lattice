@@ -8,6 +8,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
+import { useOnline } from "../../hooks/useOnline";
 import { openTab } from "../../stores/workspace";
 import { getSidebarStore } from "../../stores/sidebar";
 import { ProjectRail } from "./ProjectRail";
@@ -37,6 +38,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
   var { projects, activeProject } = useProjects();
   var { nodes } = useMesh();
   var ws = useWebSocket();
+  var online = useOnline();
   var sidebar = useSidebar();
   var session = useSession();
   var [sessionSearch, setSessionSearch] = useState<string>("");
@@ -182,7 +184,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                       <button onClick={function () { setSessionSearchOpen(function (v) { return !v; }); }} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="Search sessions">
                         <Search size={13} />
                       </button>
-                      <button onClick={handleNewSession} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="New session">
+                      <button onClick={handleNewSession} disabled={!online} className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content" aria-label="New session">
                         <Plus size={13} />
                       </button>
                     </>

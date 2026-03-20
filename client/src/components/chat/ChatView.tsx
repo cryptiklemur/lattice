@@ -15,11 +15,13 @@ import { ModelSelector } from "./ModelSelector";
 import { PermissionModeSelector } from "./PermissionModeSelector";
 import { StatusBar } from "./StatusBar";
 import { useSidebar } from "../../hooks/useSidebar";
+import { useOnline } from "../../hooks/useOnline";
 
 export function ChatView() {
   var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
+  var online = useOnline();
   var ws = useWebSocket();
   var scrollParentRef = useRef<HTMLDivElement>(null);
   var prevLengthRef = useRef<number>(0);
@@ -814,7 +816,7 @@ export function ChatView() {
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
         <ChatInput
           onSend={handleSend}
-          disabled={isProcessing || !activeSessionId}
+          disabled={isProcessing || !activeSessionId || !online}
           toolbarContent={
             <>
               <PermissionModeSelector />

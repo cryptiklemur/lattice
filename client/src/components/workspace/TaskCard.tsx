@@ -8,6 +8,7 @@ interface TaskCardProps {
   onToggle: (taskId: string) => void;
   onEdit: (task: ScheduledTask) => void;
   onDelete: (taskId: string) => void;
+  disabled?: boolean;
 }
 
 function formatTime(ms: number | null): string {
@@ -29,7 +30,7 @@ function humanCron(expr: string): string {
 }
 
 export function TaskCard(props: TaskCardProps) {
-  var { task, onToggle, onEdit, onDelete } = props;
+  var { task, onToggle, onEdit, onDelete, disabled } = props;
   var [expanded, setExpanded] = useState(false);
   var [confirming, setConfirming] = useState(false);
 
@@ -90,11 +91,12 @@ export function TaskCard(props: TaskCardProps) {
             {humanCron(task.cron)}
           </div>
         </div>
-        <label className="swap flex-shrink-0" onClick={handleToggle}>
+        <label className="swap flex-shrink-0" onClick={disabled ? undefined : handleToggle}>
           <input
             type="checkbox"
             className="toggle toggle-primary toggle-xs"
             checked={task.enabled}
+            disabled={disabled}
             onChange={function () {}}
           />
         </label>
@@ -119,33 +121,35 @@ export function TaskCard(props: TaskCardProps) {
                 <p className="text-[12px] text-base-content/70 mt-0.5">{formatTime(task.nextRunAt)}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 pt-1">
-              <button
-                onClick={handleEdit}
-                className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/70 gap-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
-              >
-                <Pencil className="!size-3" />
-                Edit
-              </button>
-              {confirming ? (
-                <div className="flex gap-1.5">
-                  <button onClick={handleDelete} className="btn btn-error btn-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
-                    Confirm Delete
-                  </button>
-                  <button onClick={handleCancelDelete} className="btn btn-ghost btn-xs border border-base-content/15 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
-                    Cancel
-                  </button>
-                </div>
-              ) : (
+            {!disabled && (
+              <div className="flex items-center gap-1.5 pt-1">
                 <button
-                  onClick={handleDelete}
-                  className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
-                  aria-label="Delete task"
+                  onClick={handleEdit}
+                  className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/70 gap-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
                 >
-                  <Trash2 className="!size-3" />
+                  <Pencil className="!size-3" />
+                  Edit
                 </button>
-              )}
-            </div>
+                {confirming ? (
+                  <div className="flex gap-1.5">
+                    <button onClick={handleDelete} className="btn btn-error btn-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
+                      Confirm Delete
+                    </button>
+                    <button onClick={handleCancelDelete} className="btn btn-ghost btn-xs border border-base-content/15 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleDelete}
+                    className="btn btn-ghost btn-xs border border-base-content/15 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                    aria-label="Delete task"
+                  >
+                    <Trash2 className="!size-3" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

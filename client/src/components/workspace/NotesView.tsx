@@ -3,11 +3,13 @@ import { StickyNote as StickyNoteIcon } from "lucide-react";
 import type { StickyNote, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSession } from "../../hooks/useSession";
+import { useOnline } from "../../hooks/useOnline";
 import { NoteCard } from "./NoteCard";
 
 export function NotesView() {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var { activeProjectSlug } = useSession();
+  var online = useOnline();
   var [notes, setNotes] = useState<StickyNote[]>([]);
 
   var handleMessage = useCallback(function (msg: ServerMessage) {
@@ -63,6 +65,7 @@ export function NotesView() {
         <span className="text-[13px] font-semibold text-base-content">Notes</span>
         <button
           onClick={handleCreate}
+          disabled={!online}
           className="btn btn-primary btn-xs"
         >
           New Note
@@ -87,6 +90,7 @@ export function NotesView() {
                   note={note}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
+                  disabled={!online}
                 />
               );
             })}
