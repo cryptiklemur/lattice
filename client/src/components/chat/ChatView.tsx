@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle } from "lucide-react";
+import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
@@ -17,7 +17,7 @@ import { StatusBar } from "./StatusBar";
 import { useSidebar } from "../../hooks/useSidebar";
 
 export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
   var ws = useWebSocket();
@@ -796,6 +796,18 @@ export function ChatView() {
         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-warning/10 border-t border-warning/20">
           <AlertTriangle size={13} className="text-warning flex-shrink-0" />
           <span className="text-[12px] text-warning">Session was interrupted — send a message to continue</span>
+        </div>
+      )}
+
+      {promptSuggestion && !isProcessing && (
+        <div className="flex-shrink-0 px-2 sm:px-4 pt-2">
+          <button
+            onClick={function () { if (promptSuggestion) handleSend(promptSuggestion); }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-[12px] text-primary/80 hover:bg-primary/15 hover:text-primary transition-colors max-w-full"
+          >
+            <Zap size={12} className="flex-shrink-0" />
+            <span className="truncate">{promptSuggestion}</span>
+          </button>
         </div>
       )}
 

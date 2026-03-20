@@ -12,6 +12,7 @@ import type {
   ChatStatusMessage,
   ChatContextUsageMessage,
   ChatContextBreakdownMessage,
+  ChatPromptSuggestionMessage,
   SessionHistoryMessage,
   ServerMessage,
 } from "@lattice/shared";
@@ -40,6 +41,7 @@ import {
   getStreamGeneration,
   mergeToolResults,
   setWasInterrupted,
+  setPromptSuggestion,
 } from "../stores/session";
 import type { SessionState } from "../stores/session";
 
@@ -80,6 +82,7 @@ export function useSession(): UseSessionReturn {
       msg.effort = effort;
     }
     activeStreamGeneration = getStreamGeneration();
+    setPromptSuggestion(null);
     sendRef.current(msg as ChatSendMessage);
     setIsProcessing(true);
   }
@@ -266,6 +269,11 @@ export function useSession(): UseSessionReturn {
       setSessionMessages(m.messages);
     }
 
+    function handlePromptSuggestion(msg: ServerMessage) {
+      var m = msg as ChatPromptSuggestionMessage;
+      setPromptSuggestion(m.suggestion);
+    }
+
     subscribe("chat:user_message", handleUserMessage);
     subscribe("chat:delta", handleDelta);
     subscribe("chat:tool_start", handleToolStart);
@@ -278,6 +286,7 @@ export function useSession(): UseSessionReturn {
     subscribe("chat:context_usage", handleContextUsage);
     subscribe("chat:context_breakdown", handleContextBreakdown);
     subscribe("session:history", handleHistory);
+    subscribe("chat:prompt_suggestion", handlePromptSuggestion);
 
     return function () {
       subscriptionsActive--;
@@ -293,6 +302,7 @@ export function useSession(): UseSessionReturn {
       unsubscribe("chat:context_usage", handleContextUsage);
       unsubscribe("chat:context_breakdown", handleContextBreakdown);
       unsubscribe("session:history", handleHistory);
+      unsubscribe("chat:prompt_suggestion", handlePromptSuggestion);
     };
   }, [subscribe, unsubscribe]);
 
@@ -313,5 +323,6 @@ export function useSession(): UseSessionReturn {
     lastReadIndex: state.lastReadIndex,
     historyLoading: state.historyLoading,
     wasInterrupted: state.wasInterrupted,
+    promptSuggestion: state.promptSuggestion,
   };
 }

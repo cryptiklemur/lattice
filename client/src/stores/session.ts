@@ -37,6 +37,7 @@ export interface SessionState {
   lastReadIndex: number | null;
   historyLoading: boolean;
   wasInterrupted: boolean;
+  promptSuggestion: string | null;
 }
 
 var sessionStore = new Store<SessionState>({
@@ -54,6 +55,7 @@ var sessionStore = new Store<SessionState>({
   lastReadIndex: null,
   historyLoading: false,
   wasInterrupted: false,
+  promptSuggestion: null,
 });
 
 var streamGeneration = 0;
@@ -208,6 +210,7 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       lastReadIndex: null,
       historyLoading: true,
       wasInterrupted: false,
+      promptSuggestion: null,
     };
   });
 }
@@ -264,6 +267,7 @@ export function clearSession(): void {
       lastReadIndex: null,
       historyLoading: false,
       wasInterrupted: false,
+      promptSuggestion: null,
     };
   });
 }
@@ -277,6 +281,12 @@ export function setLastResponseStats(cost: number, duration: number): void {
 export function setWasInterrupted(interrupted: boolean): void {
   sessionStore.setState(function (state) {
     return { ...state, wasInterrupted: interrupted };
+  });
+}
+
+export function setPromptSuggestion(suggestion: string | null): void {
+  sessionStore.setState(function (state) {
+    return { ...state, promptSuggestion: suggestion };
   });
 }
 

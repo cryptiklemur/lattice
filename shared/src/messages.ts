@@ -401,6 +401,11 @@ export interface ChatDoneMessage {
   duration: number;
 }
 
+export interface ChatPromptSuggestionMessage {
+  type: "chat:prompt_suggestion";
+  suggestion: string;
+}
+
 export interface ChatErrorMessage {
   type: "chat:error";
   message: string;
@@ -672,6 +677,7 @@ export type ServerMessage =
   | ChatToolStartMessage
   | ChatToolResultMessage
   | ChatDoneMessage
+  | ChatPromptSuggestionMessage
   | ChatErrorMessage
   | ChatPermissionRequestMessage
   | ChatStatusMessage

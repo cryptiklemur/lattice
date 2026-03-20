@@ -240,6 +240,7 @@ export function startChatStream(options: ChatStreamOptions): void {
   var queryOptions: Parameters<typeof query>[0]["options"] = {
     cwd,
     permissionMode: effectiveMode,
+    promptSuggestions: true,
     additionalDirectories: savedAdditionalDirs.length > 0 ? savedAdditionalDirs : undefined,
     mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers as Record<string, any> : undefined,
   };
@@ -529,6 +530,14 @@ export function startChatStream(options: ChatStreamOptions): void {
             });
           }
         }
+      }
+      return;
+    }
+
+    if (msg.type === "prompt_suggestion") {
+      var suggestion = (msg as { type: string; suggestion: string }).suggestion;
+      if (suggestion) {
+        sendTo(clientId, { type: "chat:prompt_suggestion", suggestion: suggestion });
       }
       return;
     }
