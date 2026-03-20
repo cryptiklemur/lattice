@@ -101,6 +101,13 @@ html, body {
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.prose {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .prose code {

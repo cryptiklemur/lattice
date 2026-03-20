@@ -599,7 +599,7 @@ export function ChatView() {
 
       <div
         ref={scrollParentRef}
-        className="flex-1 overflow-y-auto min-h-0 bg-lattice-grid"
+        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 bg-lattice-grid"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {messages.length === 0 && historyLoading ? (
