@@ -8,6 +8,7 @@ import type {
 } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
+import { loadConfig } from "../config";
 import {
   createSession,
   deleteSession,
@@ -31,6 +32,27 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         type: "session:list",
         projectSlug: listReqMsg.projectSlug,
         sessions,
+      });
+    });
+    return;
+  }
+
+  if (message.type === "session:list_all_request") {
+    var config = loadConfig();
+    var allPromises = config.projects.map(function (p) {
+      return listSessions(p.slug);
+    });
+    void Promise.all(allPromises).then(function (results) {
+      var merged: typeof results[0] = [];
+      for (var i = 0; i < results.length; i++) {
+        for (var j = 0; j < results[i].length; j++) {
+          merged.push(results[i][j]);
+        }
+      }
+      merged.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+      sendTo(clientId, {
+        type: "session:list_all",
+        sessions: merged.slice(0, 20),
       });
     });
     return;
