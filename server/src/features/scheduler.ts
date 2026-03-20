@@ -245,6 +245,29 @@ export function createTask(data: {
   return task;
 }
 
+export function updateTask(taskId: string, data: { name?: string; prompt?: string; cron?: string }): ScheduledTask | null {
+  var task: ScheduledTask | null = null;
+  for (var i = 0; i < tasks.length; i++) {
+    if (tasks[i].id === taskId) {
+      task = tasks[i];
+      break;
+    }
+  }
+  if (!task) return null;
+
+  if (data.cron && data.cron !== task.cron) {
+    var parsed = parseCron(data.cron);
+    if (!parsed) return null;
+    task.cron = data.cron;
+    task.nextRunAt = task.enabled ? nextRunTime(data.cron) : null;
+  }
+  if (data.name !== undefined) task.name = data.name;
+  if (data.prompt !== undefined) task.prompt = data.prompt;
+  task.updatedAt = Date.now();
+  saveSchedules();
+  return task;
+}
+
 export function deleteTask(taskId: string): boolean {
   var idx = -1;
   for (var i = 0; i < tasks.length; i++) {

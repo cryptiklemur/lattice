@@ -3,10 +3,11 @@ import type {
   SchedulerCreateMessage,
   SchedulerDeleteMessage,
   SchedulerToggleMessage,
+  SchedulerUpdateMessage,
 } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
-import { listTasks, createTask, deleteTask, toggleTask } from "../features/scheduler";
+import { listTasks, createTask, deleteTask, toggleTask, updateTask } from "../features/scheduler";
 
 registerHandler("scheduler", function (clientId: string, message: ClientMessage) {
   if (message.type === "scheduler:list") {
@@ -41,6 +42,22 @@ registerHandler("scheduler", function (clientId: string, message: ClientMessage)
   if (message.type === "scheduler:toggle") {
     var toggleMsg = message as SchedulerToggleMessage;
     toggleTask(toggleMsg.taskId);
+    sendTo(clientId, { type: "scheduler:tasks", tasks: listTasks() });
+    return;
+  }
+
+  if (message.type === "scheduler:update") {
+    var updateMsg = message as SchedulerUpdateMessage;
+    var updated = updateTask(updateMsg.taskId, {
+      name: updateMsg.name,
+      prompt: updateMsg.prompt,
+      cron: updateMsg.cron,
+    });
+    if (!updated) {
+      sendTo(clientId, { type: "chat:error", message: "Failed to update task" });
+      return;
+    }
+    sendTo(clientId, { type: "scheduler:task_updated", task: updated });
     sendTo(clientId, { type: "scheduler:tasks", tasks: listTasks() });
     return;
   }

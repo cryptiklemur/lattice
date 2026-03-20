@@ -168,6 +168,14 @@ export interface SchedulerToggleMessage {
   taskId: string;
 }
 
+export interface SchedulerUpdateMessage {
+  type: "scheduler:update";
+  taskId: string;
+  name?: string;
+  prompt?: string;
+  cron?: string;
+}
+
 export interface NotesListMessage {
   type: "notes:list";
   projectSlug?: string;
@@ -317,6 +325,7 @@ export type ClientMessage =
   | SchedulerCreateMessage
   | SchedulerDeleteMessage
   | SchedulerToggleMessage
+  | SchedulerUpdateMessage
   | NotesListMessage
   | NotesCreateMessage
   | NotesUpdateMessage
@@ -540,6 +549,11 @@ export interface SchedulerTaskCreatedMessage {
   task: ScheduledTask;
 }
 
+export interface SchedulerTaskUpdatedMessage {
+  type: "scheduler:task_updated";
+  task: ScheduledTask;
+}
+
 export interface NotesListResultMessage {
   type: "notes:list_result";
   notes: StickyNote[];
@@ -678,6 +692,7 @@ export type ServerMessage =
   | LoopDeltaMessage
   | SchedulerTasksMessage
   | SchedulerTaskCreatedMessage
+  | SchedulerTaskUpdatedMessage
   | NotesListResultMessage
   | NoteCreatedMessage
   | NoteUpdatedMessage
