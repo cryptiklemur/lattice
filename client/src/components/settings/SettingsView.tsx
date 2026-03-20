@@ -5,6 +5,7 @@ import { ClaudeSettings } from "./ClaudeSettings";
 import { Environment } from "./Environment";
 import { MeshStatus } from "./MeshStatus";
 import { GlobalMcp } from "./GlobalMcp";
+import { GlobalSkills } from "./GlobalSkills";
 import type { SettingsSection } from "../../stores/sidebar";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
@@ -16,20 +17,12 @@ var SECTION_CONFIG: Record<string, { title: string }> = {
   nodes: { title: "Mesh Nodes" },
 };
 
-function SkillsPlaceholder() {
-  return (
-    <div className="text-[13px] text-base-content/40 py-2">
-      Skills management coming soon.
-    </div>
-  );
-}
-
 function renderSection(section: SettingsSection) {
   if (section === "appearance") return <Appearance />;
   if (section === "claude") return <ClaudeSettings />;
   if (section === "environment") return <Environment />;
   if (section === "mcp") return <GlobalMcp />;
-  if (section === "skills") return <SkillsPlaceholder />;
+  if (section === "skills") return <GlobalSkills />;
   if (section === "nodes") return <MeshStatus />;
   return null;
 }
