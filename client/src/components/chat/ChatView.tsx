@@ -6,6 +6,8 @@ import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { setSessionTitle } from "../../stores/session";
+import { openSettings, openProjectSettings } from "../../stores/sidebar";
+import { builtinCommands } from "../../commands";
 import { Message } from "./Message";
 import { ToolGroup } from "./ToolGroup";
 import { ChatInput } from "./ChatInput";
@@ -243,6 +245,94 @@ export function ChatView() {
     : activeSessionId
     ? "claude --resume " + activeSessionId
     : "";
+
+  function handleClientCommand(name: string, args: string): boolean {
+    switch (name) {
+      case "clear":
+      case "reset":
+      case "new":
+        if (activeProject?.slug) {
+          ws.send({ type: "session:create", projectSlug: activeProject.slug });
+        }
+        return true;
+      case "copy": {
+        var lastAssistant = [...messages].reverse().find(function (m) { return m.type === "assistant"; });
+        if (lastAssistant?.text) {
+          navigator.clipboard.writeText(lastAssistant.text);
+        }
+        return true;
+      }
+      case "export": {
+        var lines = messages.map(function (m) {
+          var role = m.type === "user" ? "User" : m.type === "assistant" ? "Assistant" : m.type;
+          return role + ": " + (m.text || m.content || "");
+        });
+        var blob = new Blob([lines.join("\n\n")], { type: "text/plain" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = (activeSessionTitle || "conversation") + ".txt";
+        a.click();
+        URL.revokeObjectURL(url);
+        return true;
+      }
+      case "rename": {
+        if (args && activeSessionId) {
+          ws.send({ type: "session:rename", sessionId: activeSessionId, title: args });
+          setSessionTitle(args);
+        } else {
+          handleRenameStart();
+        }
+        return true;
+      }
+      case "theme":
+        openSettings("appearance");
+        return true;
+      case "config":
+      case "settings":
+        openSettings("appearance");
+        return true;
+      case "permissions":
+      case "allowed-tools":
+        if (activeProject?.slug) openProjectSettings("permissions");
+        return true;
+      case "memory":
+        if (activeProject?.slug) openProjectSettings("memory");
+        return true;
+      case "skills":
+        if (activeProject?.slug) openProjectSettings("skills");
+        return true;
+      case "plan":
+        ws.send({ type: "chat:set_permission_mode", mode: "plan" });
+        return true;
+      case "cost":
+      case "context":
+        setShowInfo(true);
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  function handleSend(text: string) {
+    if (text.startsWith("/")) {
+      var parts = text.split(/\s+/);
+      var cmdName = parts[0].slice(1).toLowerCase();
+      var cmdArgs = parts.slice(1).join(" ");
+
+      var isBuiltin = false;
+      for (var i = 0; i < builtinCommands.length; i++) {
+        var cmd = builtinCommands[i];
+        if (cmd.name === cmdName || (cmd.aliases && cmd.aliases.indexOf(cmdName) !== -1)) {
+          isBuiltin = true;
+          break;
+        }
+      }
+
+      if (isBuiltin && handleClientCommand(cmdName, cmdArgs)) return;
+    }
+    sendMessage(text, selectedModel, selectedEffort);
+  }
 
   var virtualItems = virtualizer.getVirtualItems();
 
@@ -711,7 +801,7 @@ export function ChatView() {
 
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
         <ChatInput
-          onSend={function (text) { sendMessage(text, selectedModel, selectedEffort); }}
+          onSend={handleSend}
           disabled={isProcessing || !activeSessionId}
           toolbarContent={
             <>

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from "react";
 import { SendHorizontal, Settings } from "lucide-react";
 import { useSkills } from "../../hooks/useSkills";
+import { CommandPalette, getFilteredItems } from "./CommandPalette";
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -26,15 +27,12 @@ export function ChatInput(props: ChatInputProps) {
   var [showMobileSettings, setShowMobileSettings] = useState(false);
   var modKey = useMemo(getModKey, []);
 
-  var filtered = useMemo(function () {
-    if (slashQuery === null) return [];
-    var q = slashQuery.toLowerCase();
-    return skills.filter(function (s) {
-      return s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q);
-    });
+  var itemCount = useMemo(function () {
+    if (slashQuery === null) return 0;
+    return getFilteredItems(slashQuery, skills).length;
   }, [slashQuery, skills]);
 
-  var isOpen = slashQuery !== null && filtered.length > 0;
+  var isOpen = slashQuery !== null && itemCount > 0;
 
   useEffect(function () {
     setSelectedIndex(0);
@@ -71,30 +69,42 @@ export function ChatInput(props: ChatInputProps) {
     }
   }
 
-  function selectSkill(name: string) {
+  function selectItem(item: { name: string; args?: string; category: string; handler: string }) {
     var el = textareaRef.current;
     if (!el) return;
-    el.value = "/" + name + " ";
-    el.focus();
-    setSlashQuery(null);
+
+    var hasArgs = !!item.args;
+    var isSkill = item.category === "skill";
+
+    if (hasArgs || isSkill) {
+      el.value = "/" + item.name + " ";
+      el.focus();
+      setSlashQuery(null);
+    } else {
+      props.onSend("/" + item.name);
+      el.value = "";
+      el.style.height = "auto";
+      setSlashQuery(null);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (isOpen) {
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex(function (i) { return i > 0 ? i - 1 : filtered.length - 1; });
+        setSelectedIndex(function (i) { return i > 0 ? i - 1 : itemCount - 1; });
         return;
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex(function (i) { return i < filtered.length - 1 ? i + 1 : 0; });
+        setSelectedIndex(function (i) { return i < itemCount - 1 ? i + 1 : 0; });
         return;
       }
       if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
         e.preventDefault();
-        if (filtered[selectedIndex]) {
-          selectSkill(filtered[selectedIndex].name);
+        var items = getFilteredItems(slashQuery!, skills);
+        if (items[selectedIndex]) {
+          selectItem(items[selectedIndex]);
         }
         return;
       }
@@ -135,36 +145,14 @@ export function ChatInput(props: ChatInputProps) {
   return (
     <div className="relative">
       {isOpen && (
-        <div
-          ref={popupRef}
-          role="listbox"
-          aria-label="Slash commands"
-          className="absolute left-0 right-0 bottom-[calc(100%+6px)] max-h-[320px] overflow-y-auto rounded-lg border border-base-content/10 bg-base-300 shadow-lg z-50"
-        >
-          {filtered.map(function (skill, i) {
-            return (
-              <button
-                key={skill.name}
-                data-active={i === selectedIndex}
-                onMouseDown={function (e) {
-                  e.preventDefault();
-                  selectSkill(skill.name);
-                }}
-                onMouseEnter={function () { setSelectedIndex(i); }}
-                className={
-                  "flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors " +
-                  (i === selectedIndex ? "bg-primary/10" : "hover:bg-base-content/5")
-                }
-              >
-                <span className="font-mono text-[12px] text-primary/90 whitespace-nowrap flex-shrink-0">
-                  /{skill.name}
-                </span>
-                <span className="text-[11px] text-base-content/40 truncate min-w-0">
-                  {skill.description}
-                </span>
-              </button>
-            );
-          })}
+        <div ref={popupRef}>
+          <CommandPalette
+            query={slashQuery!}
+            skills={skills}
+            selectedIndex={selectedIndex}
+            onSelect={selectItem}
+            onHover={setSelectedIndex}
+          />
         </div>
       )}
 
