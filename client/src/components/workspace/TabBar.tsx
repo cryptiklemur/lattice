@@ -18,6 +18,29 @@ export function TabBar({ paneId }: TabBarProps) {
   var [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   var menuRef = useRef<HTMLDivElement>(null);
 
+  useEffect(function () {
+    if (!contextMenu) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    }
+
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setContextMenu(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return function () {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [contextMenu]);
+
   var paneTabs: Tab[];
   var activeTabId: string;
 
@@ -50,10 +73,10 @@ export function TabBar({ paneId }: TabBarProps) {
   function handleContextMenu(e: React.MouseEvent, tabId: string) {
     e.preventDefault();
     if (workspace.panes.length >= 2) return;
-    var pane = paneId
+    var contextPane = paneId
       ? workspace.panes.find(function (p) { return p.id === paneId; })
       : workspace.panes[0];
-    if (!pane || pane.tabIds.length < 2) return;
+    if (!contextPane || contextPane.tabIds.length < 2) return;
     setContextMenu({ tabId, x: e.clientX, y: e.clientY });
   }
 
@@ -62,29 +85,6 @@ export function TabBar({ paneId }: TabBarProps) {
     workspace.splitPane(contextMenu.tabId, direction);
     setContextMenu(null);
   }
-
-  useEffect(function () {
-    if (!contextMenu) return;
-
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setContextMenu(null);
-      }
-    }
-
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setContextMenu(null);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return function () {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [contextMenu]);
 
   return (
     <>

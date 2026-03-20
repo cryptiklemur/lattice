@@ -47,19 +47,27 @@ export function FileBrowser() {
     setLoadingContent(false);
   }, []);
 
+  var selectedPathRef = useRef<string | null>(null);
+  selectedPathRef.current = selectedPath;
+
   var handleFsChanged = useCallback(function (msg: ServerMessage) {
     var changedPath = (msg as { path: string }).path;
-    if (changedPath === selectedPath) {
+    if (changedPath === selectedPathRef.current) {
       send({ type: "fs:read", path: changedPath });
     }
-  }, [selectedPath, send]);
+  }, [send]);
+
+  var initialLoadRef = useRef(false);
 
   useEffect(function () {
     subscribe("fs:list_result", handleListResult);
     subscribe("fs:read_result", handleReadResult);
     subscribe("fs:changed", handleFsChanged);
 
-    send({ type: "fs:list", path: "." });
+    if (!initialLoadRef.current) {
+      initialLoadRef.current = true;
+      send({ type: "fs:list", path: "." });
+    }
 
     return function () {
       unsubscribe("fs:list_result", handleListResult);
