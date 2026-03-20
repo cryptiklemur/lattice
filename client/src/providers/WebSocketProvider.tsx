@@ -6,7 +6,6 @@ import type { WebSocketStatus } from "../hooks/useWebSocket";
 import { showToast } from "../components/ui/Toast";
 import { getSessionStore } from "../stores/session";
 import { sendNotification } from "../hooks/useNotifications";
-import { useIdleDetection } from "../hooks/useIdleDetection";
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -16,9 +15,6 @@ var MAX_BACKOFF = 30000;
 
 export function WebSocketProvider(props: WebSocketProviderProps) {
   var [status, setStatus] = useState<WebSocketStatus>("connecting");
-  var isIdle = useIdleDetection();
-  var isIdleRef = useRef(false);
-  isIdleRef.current = isIdle;
   var wsRef = useRef<WebSocket | null>(null);
   var backoffRef = useRef<number>(1000);
   var retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,7 +60,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       try {
         var msg = JSON.parse(event.data as string) as ServerMessage;
 
-        if (msg.type === "chat:done" && isIdleRef.current) {
+        if (msg.type === "chat:done" && document.hidden) {
           var sessionState = getSessionStore().state;
           var sessionTitle = sessionState.activeSessionTitle || "Session";
           sendNotification("Claude responded", sessionTitle, "chat-done");

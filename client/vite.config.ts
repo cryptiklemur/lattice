@@ -15,7 +15,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/ws/, /^\/api/],
         runtimeCaching: [
           {
-            urlPattern: /\.(?:js|css|woff2)$/,
+            urlPattern: /^https?:\/\/.*\.(?:js|css|woff2)$/,
             handler: "CacheFirst",
             options: {
               cacheName: "static-assets",
@@ -23,7 +23,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /\.(?:svg|png|jpg|jpeg|gif|webp)$/,
+            urlPattern: /^https?:\/\/.*\.(?:svg|png|jpg|jpeg|gif|webp)$/,
             handler: "CacheFirst",
             options: {
               cacheName: "images",
