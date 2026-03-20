@@ -24,12 +24,14 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   var [entries, setEntries] = useState<BrowseEntry[]>([]);
   var [title, setTitle] = useState("");
   var [titleManuallySet, setTitleManuallySet] = useState(false);
-  var [showDropdown, setShowDropdown] = useState(false);
+  var [dropdownOpen, setDropdownOpen] = useState(false);
   var [error, setError] = useState<string | null>(null);
   var [adding, setAdding] = useState(false);
   var [homedir, setHomedir] = useState("");
   var debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   var inputRef = useRef<HTMLInputElement>(null);
+  var dropdownRef = useRef<HTMLDivElement>(null);
+  var inputFocusedRef = useRef(false);
 
   useEffect(function () {
     if (!isOpen) return;
@@ -38,7 +40,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     setEntries([]);
     setTitle("");
     setTitleManuallySet(false);
-    setShowDropdown(false);
+    setDropdownOpen(false);
     setError(null);
     setAdding(false);
 
@@ -49,7 +51,9 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
       var data = msg as { type: "browse:list_result"; path: string; homedir: string; entries: BrowseEntry[] };
       setEntries(data.entries);
       setHomedir(data.homedir);
-      setShowDropdown(data.entries.length > 0);
+      if (inputFocusedRef.current && data.entries.length > 0) {
+        setDropdownOpen(true);
+      }
     }
 
     function handleProjectsList(msg: ServerMessage) {
@@ -66,6 +70,26 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     return function () {
       unsubscribe("browse:list_result", handleBrowseResult);
       unsubscribe("projects:list", handleProjectsList);
+    };
+  }, [isOpen]);
+
+  useEffect(function () {
+    if (!isOpen) return;
+
+    function handleMouseDown(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    return function () {
+      document.removeEventListener("mousedown", handleMouseDown);
     };
   }, [isOpen]);
 
@@ -98,7 +122,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   function handleSelectEntry(entry: BrowseEntry) {
     var newPath = entry.path + "/";
     setPath(newPath);
-    setShowDropdown(true);
+    setDropdownOpen(false);
     setError(null);
 
     if (!titleManuallySet) {
@@ -119,6 +143,17 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   function handleTitleChange(value: string) {
     setTitle(value);
     setTitleManuallySet(value.length > 0);
+  }
+
+  function handleInputFocus() {
+    inputFocusedRef.current = true;
+    if (getFilteredEntries().length > 0) {
+      setDropdownOpen(true);
+    }
+  }
+
+  function handleInputBlur() {
+    inputFocusedRef.current = false;
   }
 
   function getFilteredEntries(): BrowseEntry[] {
@@ -150,8 +185,6 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     var resolved = resolvePath(trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed);
     var alreadyAdded = projects.some(function (p) { return p.path === resolved; });
     if (alreadyAdded) return { type: "error", text: "Already added as a project" };
-
-    if (trimmed.endsWith("/") && entries.length === 0) return null;
 
     return null;
   }
@@ -204,19 +237,24 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
                 id="project-path"
                 type="text"
                 value={path}
-                onChange={function (e) { setPath(e.target.value); setShowDropdown(true); setError(null); }}
-                onFocus={function () { setShowDropdown(true); }}
+                onChange={function (e) { setPath(e.target.value); setDropdownOpen(true); setError(null); }}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
                 placeholder="~/projects/my-app"
                 autoFocus
                 className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
               />
 
-              {showDropdown && filtered.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-base-200 border border-base-content/15 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              {dropdownOpen && filtered.length > 0 && (
+                <div
+                  ref={dropdownRef}
+                  className="absolute top-full left-0 right-0 mt-1 z-50 bg-base-200 border border-base-content/15 rounded-xl shadow-lg max-h-48 overflow-y-auto"
+                >
                   {filtered.map(function (entry) {
                     return (
                       <button
                         key={entry.path}
+                        onMouseDown={function (e) { e.preventDefault(); }}
                         onClick={function () { handleSelectEntry(entry); }}
                         className="w-full flex items-center gap-2 px-3 py-2 text-left text-[12px] font-mono text-base-content/60 hover:bg-base-content/5 hover:text-base-content transition-colors duration-[80ms]"
                       >
