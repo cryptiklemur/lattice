@@ -199,14 +199,14 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
           </div>
         )}
 
-        {grouped ? (
-          Object.keys(grouped).map(function (nodeName) {
+        {grouped !== null ? (
+          Object.keys(grouped!).map(function (nodeName) {
             return (
               <div key={nodeName}>
                 <div className="px-2.5 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-base-content/25">
                   {nodeName}
                 </div>
-                {grouped[nodeName].map(function (project) {
+                {(grouped![nodeName] || []).map(function (project) {
                   return renderProject(project);
                 })}
               </div>

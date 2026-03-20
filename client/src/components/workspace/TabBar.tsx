@@ -93,7 +93,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
 
   return (
     <>
-      <div className={"flex items-center h-9 bg-base-200 border-b border-base-content/15 overflow-x-auto flex-shrink-0" + (isActivePane ? " border-t-2 border-t-primary/40" : "")}>
+      <div className={"flex items-center py-3 bg-base-200 border-b border-base-content/15 overflow-x-auto flex-shrink-0" + (isActivePane ? " border-t-2 border-t-primary/40" : "")}>
         {paneTabs.map(function (tab) {
           var isActive = tab.id === activeTabId;
           return (
