@@ -228,6 +228,34 @@ export interface BrowseListMessage {
   path: string;
 }
 
+export interface MemoryListMessage {
+  type: "memory:list";
+  projectSlug: string;
+}
+
+export interface MemoryViewMessage {
+  type: "memory:view";
+  projectSlug: string;
+  filename: string;
+}
+
+export interface MemorySaveMessage {
+  type: "memory:save";
+  projectSlug: string;
+  filename: string;
+  content: string;
+}
+
+export interface MemoryDeleteMessage {
+  type: "memory:delete";
+  projectSlug: string;
+  filename: string;
+}
+
+export interface BrowseSuggestionsMessage {
+  type: "browse:suggestions";
+}
+
 export interface ProjectSettingsGetMessage {
   type: "project-settings:get";
   projectSlug: string;
@@ -295,7 +323,12 @@ export type ClientMessage =
   | SkillsViewMessage
   | SkillsDeleteMessage
   | SkillsUpdateMessage
-  | BrowseListMessage;
+  | BrowseListMessage
+  | MemoryListMessage
+  | MemoryViewMessage
+  | MemorySaveMessage
+  | MemoryDeleteMessage
+  | BrowseSuggestionsMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -566,6 +599,44 @@ export interface BrowseListResultMessage {
   }>;
 }
 
+export interface MemoryListResultMessage {
+  type: "memory:list_result";
+  projectSlug: string;
+  memories: Array<{
+    filename: string;
+    name: string;
+    description: string;
+    type: string;
+  }>;
+}
+
+export interface MemoryViewResultMessage {
+  type: "memory:view_result";
+  filename: string;
+  content: string;
+}
+
+export interface MemorySaveResultMessage {
+  type: "memory:save_result";
+  success: boolean;
+  message?: string;
+}
+
+export interface MemoryDeleteResultMessage {
+  type: "memory:delete_result";
+  success: boolean;
+  message?: string;
+}
+
+export interface BrowseSuggestionsResultMessage {
+  type: "browse:suggestions_result";
+  suggestions: Array<{
+    path: string;
+    name: string;
+    hasClaudeMd: boolean;
+  }>;
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -611,7 +682,12 @@ export type ServerMessage =
   | SkillsInstallResultMessage
   | SkillsViewResultMessage
   | SkillsDeleteResultMessage
-  | BrowseListResultMessage;
+  | BrowseListResultMessage
+  | MemoryListResultMessage
+  | MemoryViewResultMessage
+  | MemorySaveResultMessage
+  | MemoryDeleteResultMessage
+  | BrowseSuggestionsResultMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

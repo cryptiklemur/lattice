@@ -15,7 +15,7 @@ export type McpServerConfig =
   | { type: "sse"; url: string; headers?: Record<string, string> };
 
 export type ProjectSettingsSection =
-  | "general" | "claude" | "environment" | "mcp" | "skills" | "rules" | "permissions";
+  | "general" | "claude" | "environment" | "mcp" | "skills" | "rules" | "permissions" | "memory";
 
 export interface ProjectSettings {
   title: string;
