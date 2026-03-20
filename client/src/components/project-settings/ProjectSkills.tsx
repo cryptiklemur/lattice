@@ -1,71 +1,91 @@
-import type { ProjectSettings } from "@lattice/shared";
+import { useState, useEffect } from "react";
+import { useWebSocket } from "../../hooks/useWebSocket";
 import { SkillMarketplace } from "../settings/SkillMarketplace";
+import { SkillItem, SkillViewModal } from "../settings/skill-shared";
+import type { ProjectSettings, ServerMessage } from "@lattice/shared";
 
 interface ProjectSkillsProps {
   settings: ProjectSettings;
   projectSlug?: string;
 }
 
-function SkillItem({ skill, badge }: { skill: { name: string; description: string; path: string }; badge?: string }) {
-  return (
-    <div className="flex items-start gap-3 px-3 py-2.5 bg-base-300 border border-base-content/15 rounded-xl">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] font-bold text-base-content truncate">{skill.name}</span>
-          {badge && (
-            <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-base-content/8 text-base-content/40">
-              {badge}
-            </span>
-          )}
-        </div>
-        {skill.description && (
-          <div className="text-[12px] text-base-content/40 mt-0.5">{skill.description}</div>
-        )}
-        <div className="text-[11px] font-mono text-base-content/30 mt-0.5 truncate">{skill.path}</div>
-      </div>
-    </div>
-  );
-}
-
 export function ProjectSkills({ settings, projectSlug }: ProjectSkillsProps) {
+  var { send, subscribe, unsubscribe } = useWebSocket();
   var globalSkills = settings.global.skills;
   var projectSkills = settings.skills;
   var hasAny = globalSkills.length > 0 || projectSkills.length > 0;
+  var [viewContent, setViewContent] = useState<{ path: string; content: string } | null>(null);
 
-  if (!hasAny) {
-    return (
-      <div className="py-2 space-y-6">
-        <div className="py-12 text-center text-[13px] text-base-content/40">
-          No skills found.
-        </div>
-        <SkillMarketplace defaultScope="project" defaultProjectSlug={projectSlug} />
-      </div>
-    );
+  useEffect(function () {
+    function handleViewResult(msg: ServerMessage) {
+      if (msg.type !== "skills:view_result") return;
+      var data = msg as { type: "skills:view_result"; path: string; content: string };
+      setViewContent({ path: data.path, content: data.content });
+    }
+
+    subscribe("skills:view_result", handleViewResult);
+
+    return function () {
+      unsubscribe("skills:view_result", handleViewResult);
+    };
+  }, []);
+
+  function handleView(path: string) {
+    send({ type: "skills:view", path: path } as any);
   }
 
   return (
     <div className="py-2 space-y-6">
+      {!hasAny && (
+        <div className="py-12 text-center text-[13px] text-base-content/40">
+          No skills found.
+        </div>
+      )}
+
       {globalSkills.length > 0 && (
         <div>
           <div className="text-[12px] font-semibold text-base-content/40 mb-2">Global Skills</div>
           <div className="space-y-2">
             {globalSkills.map(function (skill) {
-              return <SkillItem key={skill.path} skill={skill} badge="global" />;
+              return (
+                <SkillItem
+                  key={skill.path}
+                  skill={skill}
+                  badge="global"
+                  onClick={function () { handleView(skill.path); }}
+                />
+              );
             })}
           </div>
         </div>
       )}
+
       {projectSkills.length > 0 && (
         <div>
           <div className="text-[12px] font-semibold text-base-content/40 mb-2">Project Skills</div>
           <div className="space-y-2">
             {projectSkills.map(function (skill) {
-              return <SkillItem key={skill.path} skill={skill} />;
+              return (
+                <SkillItem
+                  key={skill.path}
+                  skill={skill}
+                  onClick={function () { handleView(skill.path); }}
+                />
+              );
             })}
           </div>
         </div>
       )}
+
       <SkillMarketplace defaultScope="project" defaultProjectSlug={projectSlug} />
+
+      {viewContent && (
+        <SkillViewModal
+          path={viewContent.path}
+          content={viewContent.content}
+          onClose={function () { setViewContent(null); }}
+        />
+      )}
     </div>
   );
 }
