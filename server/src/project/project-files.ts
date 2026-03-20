@@ -145,6 +145,18 @@ export function readGlobalMcpServers(): Record<string, unknown> {
   }
 }
 
+export function writeGlobalMcpServers(servers: Record<string, unknown>): void {
+  var filePath = join(homedir(), ".claude.json");
+  var existing: Record<string, unknown> = {};
+  if (existsSync(filePath)) {
+    try {
+      existing = JSON.parse(readFileSync(filePath, "utf-8"));
+    } catch {}
+  }
+  existing.mcpServers = servers;
+  writeFileSync(filePath, JSON.stringify(existing, null, 2) + "\n", "utf-8");
+}
+
 export function readGlobalSkills(): Array<{ name: string; description: string; path: string }> {
   return scanSkillsDir(join(homedir(), ".claude", "skills"));
 }

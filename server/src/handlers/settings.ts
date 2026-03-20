@@ -7,6 +7,7 @@ import type { LatticeConfig } from "@lattice/shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills } from "../project/project-files";
 
 function loadGlobalClaudeMd(): string {
   var mdPath = join(homedir(), ".claude", "CLAUDE.md");
@@ -30,7 +31,12 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
   if (message.type === "settings:get") {
     var config = loadConfig();
     var configWithClaudeMd = { ...config, claudeMd: loadGlobalClaudeMd() };
-    sendTo(clientId, { type: "settings:data", config: configWithClaudeMd });
+    sendTo(clientId, {
+      type: "settings:data",
+      config: configWithClaudeMd,
+      mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+      globalSkills: readGlobalSkills(),
+    });
     sendTo(clientId, {
       type: "projects:list",
       projects: config.projects.map(function (p) {
@@ -48,6 +54,11 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     if (typeof incoming.claudeMd === "string") {
       saveGlobalClaudeMd(incoming.claudeMd);
       delete incoming.claudeMd;
+    }
+
+    if (incoming.mcpServers != null) {
+      writeGlobalMcpServers(incoming.mcpServers as Record<string, unknown>);
+      delete incoming.mcpServers;
     }
 
     var incomingProjects = incoming.projects as Array<{ path: string; slug?: string; title: string; env?: Record<string, string> }> | undefined;
@@ -70,7 +81,12 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     };
     saveConfig(updated);
     var updatedWithClaudeMd = { ...updated, claudeMd: loadGlobalClaudeMd() };
-    sendTo(clientId, { type: "settings:data", config: updatedWithClaudeMd });
+    sendTo(clientId, {
+      type: "settings:data",
+      config: updatedWithClaudeMd,
+      mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+      globalSkills: readGlobalSkills(),
+    });
     broadcast({
       type: "projects:list",
       projects: updated.projects.map(function (p) {
