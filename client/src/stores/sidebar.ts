@@ -27,6 +27,7 @@ export interface SidebarState {
   drawerOpen: boolean;
   nodeSettingsOpen: boolean;
   addProjectOpen: boolean;
+  confirmRemoveSlug: string | null;
 }
 
 var SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes"];
@@ -72,6 +73,7 @@ var sidebarStore = new Store<SidebarState>({
   drawerOpen: false,
   nodeSettingsOpen: false,
   addProjectOpen: false,
+  confirmRemoveSlug: null,
 });
 
 function pushUrl(projectSlug: string | null, sessionId: string | null): void {
@@ -346,5 +348,17 @@ export function openAddProject(): void {
 export function closeAddProject(): void {
   sidebarStore.setState(function (state) {
     return { ...state, addProjectOpen: false };
+  });
+}
+
+export function openConfirmRemove(slug: string): void {
+  sidebarStore.setState(function (state) {
+    return { ...state, confirmRemoveSlug: slug };
+  });
+}
+
+export function closeConfirmRemove(): void {
+  sidebarStore.setState(function (state) {
+    return { ...state, confirmRemoveSlug: null };
   });
 }

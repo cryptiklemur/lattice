@@ -20,6 +20,8 @@ import {
   navigateToSession,
   openAddProject,
   closeAddProject,
+  openConfirmRemove,
+  closeConfirmRemove,
 } from "../stores/sidebar";
 import type { SidebarState, SettingsSection, ProjectSettingsSection } from "../stores/sidebar";
 
@@ -44,6 +46,9 @@ export function useSidebar(): SidebarState & {
   openAddProject: () => void;
   closeAddProject: () => void;
   addProjectOpen: boolean;
+  openConfirmRemove: (slug: string) => void;
+  closeConfirmRemove: () => void;
+  confirmRemoveSlug: string | null;
 } {
   var store = getSidebarStore();
   var state = useStore(store, function (s) { return s; });
@@ -78,5 +83,8 @@ export function useSidebar(): SidebarState & {
     openAddProject: openAddProject,
     closeAddProject: closeAddProject,
     addProjectOpen: state.addProjectOpen,
+    openConfirmRemove: openConfirmRemove,
+    closeConfirmRemove: closeConfirmRemove,
+    confirmRemoveSlug: state.confirmRemoveSlug,
   };
 }

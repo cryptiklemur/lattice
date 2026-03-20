@@ -252,6 +252,62 @@ function LoadingScreen() {
   );
 }
 
+function RemoveProjectConfirm() {
+  var sidebar = useSidebar();
+  var ws = useWebSocket();
+  var slug = sidebar.confirmRemoveSlug;
+
+  if (!slug) return null;
+
+  var projects = (function () {
+    try {
+      var store = getSidebarStore();
+      return store.state;
+    } catch {
+      return null;
+    }
+  })();
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={sidebar.closeConfirmRemove} />
+      <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div className="px-5 py-4 border-b border-base-content/15">
+          <h2 className="text-[15px] font-mono font-bold text-base-content">Remove Project</h2>
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-[13px] text-base-content/60">
+            Remove <span className="font-semibold text-base-content">{slug}</span> from Lattice? This won't delete any files on disk.
+          </p>
+        </div>
+        <div className="px-5 py-3 border-t border-base-content/15 flex justify-end gap-2">
+          <button
+            onClick={sidebar.closeConfirmRemove}
+            className="btn btn-ghost btn-sm text-[12px]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={function () {
+              ws.send({
+                type: "settings:update",
+                settings: { removeProject: slug },
+              } as any);
+              if (sidebar.activeProjectSlug === slug) {
+                sidebar.goToDashboard();
+              }
+              sidebar.closeConfirmRemove();
+            }}
+            className="btn btn-error btn-sm text-[12px]"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RootLayout() {
   var [setupComplete, setSetupComplete] = useState(function () {
     return localStorage.getItem("lattice-setup-complete") === "1";
@@ -318,6 +374,7 @@ function RootLayout() {
         isOpen={sidebar.addProjectOpen}
         onClose={sidebar.closeAddProject}
       />
+      <RemoveProjectConfirm />
     </div>
   );
 }
