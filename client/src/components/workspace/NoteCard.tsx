@@ -10,7 +10,7 @@ interface NoteCardProps {
 
 export function NoteCard(props: NoteCardProps) {
   var { note, onUpdate, onDelete } = props;
-  var [editing, setEditing] = useState(false);
+  var [editing, setEditing] = useState(!note.content);
   var [draft, setDraft] = useState(note.content);
   var [confirming, setConfirming] = useState(false);
   var originalRef = useRef(note.content);
@@ -71,11 +71,16 @@ export function NoteCard(props: NoteCardProps) {
             onChange={function (e) { setDraft(e.target.value); }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            placeholder="Type your note..."
             className="textarea textarea-bordered w-full min-h-[80px] bg-base-300 text-base-content text-[13px] resize-y leading-relaxed"
           />
         ) : (
-          <div className="text-[13px] text-base-content whitespace-pre-wrap break-words leading-relaxed min-h-12">
-            {note.content}
+          <div className="text-[13px] whitespace-pre-wrap break-words leading-relaxed min-h-12">
+            {note.content ? (
+              <span className="text-base-content">{note.content}</span>
+            ) : (
+              <span className="text-base-content/30 italic">Click to add a note...</span>
+            )}
           </div>
         )}
         <div className="flex items-center justify-between mt-2">
@@ -86,7 +91,7 @@ export function NoteCard(props: NoteCardProps) {
                 onClick={function (e) { e.stopPropagation(); onDelete(note.id); }}
                 className="btn btn-error btn-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               >
-                Confirm
+                Delete
               </button>
               <button
                 onClick={function (e) { e.stopPropagation(); setConfirming(false); }}

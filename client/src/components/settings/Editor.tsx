@@ -98,7 +98,8 @@ export function Editor() {
 
       {ideType === "custom" && (
         <div className="mb-5">
-          <label htmlFor="editor-custom-command" className="block text-[12px] font-semibold text-base-content/40 mb-2">Custom Command</label>
+          <label htmlFor="editor-custom-command" className="block text-[12px] font-semibold text-base-content/40 mb-1">Custom Command</label>
+          <p className="text-[11px] text-base-content/30 mb-2">Use {"{file}"} for the file path and {"{line}"} for the line number.</p>
           <input
             id="editor-custom-command"
             type="text"

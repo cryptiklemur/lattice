@@ -45,7 +45,7 @@ export function NotesView() {
   }, [send, subscribe, unsubscribe, handleMessage, activeProjectSlug]);
 
   function handleCreate() {
-    send({ type: "notes:create", content: "New note", projectSlug: activeProjectSlug ?? undefined });
+    send({ type: "notes:create", content: "", projectSlug: activeProjectSlug ?? undefined });
   }
 
   function handleUpdate(id: string, content: string) {

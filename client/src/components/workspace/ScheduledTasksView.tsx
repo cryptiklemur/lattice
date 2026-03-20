@@ -76,7 +76,8 @@ export function ScheduledTasksView() {
       <div className="flex-1 overflow-auto p-3">
         {filtered.length === 0 ? (
           <div className="text-base-content/40 text-[13px] text-center mt-10">
-            No scheduled tasks yet. Create one to get started.
+            <div>No scheduled tasks for this project.</div>
+            <div className="text-[11px] text-base-content/30 mt-1">Tasks run Claude prompts on a cron schedule. Click "New Task" to create one.</div>
           </div>
         ) : (
           <div className="space-y-2">

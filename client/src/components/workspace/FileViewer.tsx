@@ -98,8 +98,10 @@ export function FileViewer(props: FileViewerProps) {
   var { path, content, onOpenInIDE } = props;
   var [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
   var [copied, setCopied] = useState(false);
+  var [opened, setOpened] = useState(false);
   var [showRendered, setShowRendered] = useState(true);
   var copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  var openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   var language = getLanguage(path);
   var lineCount = content.split("\n").length;
@@ -136,6 +138,13 @@ export function FileViewer(props: FileViewerProps) {
 
   function handleOpenIDE() {
     onOpenInIDE(path);
+    setOpened(true);
+    if (openTimeoutRef.current) {
+      clearTimeout(openTimeoutRef.current);
+    }
+    openTimeoutRef.current = setTimeout(function () {
+      setOpened(false);
+    }, 2000);
   }
 
   return (
@@ -175,7 +184,7 @@ export function FileViewer(props: FileViewerProps) {
           className="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content"
           title="Open in editor"
         >
-          <ExternalLink size={13} />
+          {opened ? <Check size={13} className="text-success" /> : <ExternalLink size={13} />}
         </button>
       </div>
 
