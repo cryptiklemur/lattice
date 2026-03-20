@@ -24,6 +24,7 @@ import "./handlers/loop";
 import "./handlers/scheduler";
 import "./handlers/notes";
 import "./handlers/skills";
+import "./handlers/memory";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
 import { cleanupClientTerminals } from "./handlers/terminal";
