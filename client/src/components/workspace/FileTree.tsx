@@ -26,18 +26,29 @@ function FileTreeItem(props: FileTreeItemProps) {
   var isSelected = selectedPath === node.entry.path;
   var isDir = node.entry.isDirectory;
 
+  function handleActivate() {
+    if (isDir) {
+      onToggle(node.entry.path);
+    } else {
+      onSelect(node.entry.path);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleActivate();
+    }
+  }
+
   return (
-    <div>
+    <div role="treeitem" aria-expanded={isDir ? node.expanded : undefined} aria-selected={isSelected}>
       <div
-        onClick={function () {
-          if (isDir) {
-            onToggle(node.entry.path);
-          } else {
-            onSelect(node.entry.path);
-          }
-        }}
+        tabIndex={0}
+        onClick={handleActivate}
+        onKeyDown={handleKeyDown}
         className={
-          "flex items-center gap-1.5 py-[3px] pr-2 cursor-pointer text-[13px] rounded select-none " +
+          "flex items-center gap-1.5 py-[3px] pr-2 cursor-pointer text-[13px] rounded select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 " +
           (isSelected ? "bg-base-300 text-primary" : "text-base-content hover:bg-base-200")
         }
         style={{ paddingLeft: (8 + depth * 16) + "px" }}
@@ -64,7 +75,7 @@ function FileTreeItem(props: FileTreeItemProps) {
         </span>
       </div>
       {isDir && node.expanded && node.children && (
-        <div>
+        <div role="group">
           {node.children.map(function (child) {
             return (
               <FileTreeItem
@@ -94,7 +105,7 @@ export function FileTree(props: FileTreeProps) {
   var { nodes, selectedPath, onToggle, onSelect } = props;
 
   return (
-    <div>
+    <div role="tree" aria-label="File tree">
       {nodes.length === 0 ? (
         <div className="px-2 py-3 text-[12px] text-base-content/40">
           Loading...

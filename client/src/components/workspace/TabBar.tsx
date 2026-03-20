@@ -77,7 +77,13 @@ export function TabBar({ paneId }: TabBarProps) {
       ? workspace.panes.find(function (p) { return p.id === paneId; })
       : workspace.panes[0];
     if (!contextPane || contextPane.tabIds.length < 2) return;
-    setContextMenu({ tabId, x: e.clientX, y: e.clientY });
+    var menuWidth = 160;
+    var menuHeight = 80;
+    var x = e.clientX;
+    var y = e.clientY;
+    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 8;
+    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 8;
+    setContextMenu({ tabId, x, y });
   }
 
   function handleSplit(direction: "horizontal" | "vertical") {
@@ -97,7 +103,7 @@ export function TabBar({ paneId }: TabBarProps) {
               onClick={function () { handleTabClick(tab.id); }}
               onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
               className={
-                "flex items-center gap-1.5 px-3 h-full text-[12px] font-mono border-r border-base-300 transition-colors whitespace-nowrap flex-shrink-0 " +
+                "flex items-center gap-1.5 px-3 h-full text-[12px] font-mono border-r border-base-300 transition-colors whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 " +
                 (isActive
                   ? "bg-base-100 text-base-content border-b-2 border-b-primary"
                   : "text-base-content/50 hover:text-base-content/80 hover:bg-base-300/30")
@@ -105,17 +111,16 @@ export function TabBar({ paneId }: TabBarProps) {
             >
               <span>{tab.label}</span>
               {tab.closeable && (
-                <span
-                  role="button"
+                <button
                   aria-label={"Close " + tab.label + " tab"}
                   onClick={function (e) {
                     e.stopPropagation();
                     handleCloseTab(tab.id);
                   }}
-                  className="ml-1 p-0.5 rounded hover:bg-base-content/10 text-base-content/30 hover:text-base-content/60"
+                  className="ml-1 p-0.5 rounded hover:bg-base-content/10 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
                 >
                   <X size={11} />
-                </span>
+                </button>
               )}
             </button>
           );
@@ -129,14 +134,14 @@ export function TabBar({ paneId }: TabBarProps) {
         >
           <button
             onClick={function () { handleSplit("horizontal"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/10 hover:text-base-content transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/10 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
           >
             <Columns2 size={14} />
             Split Right
           </button>
           <button
             onClick={function () { handleSplit("vertical"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/10 hover:text-base-content transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/10 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
           >
             <Rows2 size={14} />
             Split Down

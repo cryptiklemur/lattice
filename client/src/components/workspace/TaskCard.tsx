@@ -65,8 +65,17 @@ export function TaskCard(props: TaskCardProps) {
   return (
     <div className="bg-base-200 border border-base-300 rounded-lg overflow-hidden">
       <div
-        className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-base-300/50 transition-colors"
+        tabIndex={0}
+        role="button"
+        className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-base-300/50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
         onClick={handleToggleExpand}
+        onKeyDown={function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(function (prev) { return !prev; });
+          }
+        }}
+        aria-expanded={expanded}
       >
         <span className="text-base-content/40 flex-shrink-0">
           {expanded ? <ChevronDown className="!size-3.5" /> : <ChevronRight className="!size-3.5" />}
@@ -113,24 +122,24 @@ export function TaskCard(props: TaskCardProps) {
             <div className="flex items-center gap-1.5 pt-1">
               <button
                 onClick={handleEdit}
-                className="btn btn-ghost btn-xs border border-base-300 text-base-content/60 gap-1"
+                className="btn btn-ghost btn-xs border border-base-300 text-base-content/60 gap-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               >
                 <Pencil className="!size-3" />
                 Edit
               </button>
               {confirming ? (
                 <div className="flex gap-1.5">
-                  <button onClick={handleDelete} className="btn btn-error btn-xs">
+                  <button onClick={handleDelete} className="btn btn-error btn-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
                     Confirm Delete
                   </button>
-                  <button onClick={handleCancelDelete} className="btn btn-ghost btn-xs border border-base-300">
+                  <button onClick={handleCancelDelete} className="btn btn-ghost btn-xs border border-base-300 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200">
                     Cancel
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={handleDelete}
-                  className="btn btn-ghost btn-xs border border-base-300 text-base-content/50"
+                  className="btn btn-ghost btn-xs border border-base-300 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
                   aria-label="Delete task"
                 >
                   <Trash2 className="!size-3" />

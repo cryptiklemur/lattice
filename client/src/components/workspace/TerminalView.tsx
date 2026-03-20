@@ -44,24 +44,34 @@ export function TerminalView() {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      <div className="flex items-center h-8 bg-base-200 border-b border-base-300 flex-shrink-0 overflow-x-auto">
+      <div role="tablist" className="flex items-center h-8 bg-base-200 border-b border-base-300 flex-shrink-0 overflow-x-auto">
         {tabs.map(function(tab) {
           var isActive = tab.id === activeId;
           return (
             <div
               key={tab.id}
+              tabIndex={0}
+              role="tab"
+              aria-selected={isActive}
               className={[
-                "flex items-center gap-1 px-3 h-full text-[12px] cursor-pointer select-none border-r border-base-300 flex-shrink-0",
+                "flex items-center gap-1 px-3 h-full text-[12px] cursor-pointer select-none border-r border-base-300 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200",
                 isActive
                   ? "bg-base-100 text-base-content"
                   : "text-base-content/50 hover:text-base-content hover:bg-base-100/50",
               ].join(" ")}
               onClick={function() { setActiveId(tab.id); }}
+              onKeyDown={function(e) {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setActiveId(tab.id);
+                }
+              }}
             >
               <span>{tab.label}</span>
               {tabs.length > 1 && (
                 <button
-                  className="ml-1 rounded hover:bg-base-300 p-0.5"
+                  className="ml-1 rounded hover:bg-base-300 p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                  aria-label={"Close " + tab.label}
                   onClick={function(e) {
                     e.stopPropagation();
                     closeTab(tab.id);
@@ -74,7 +84,8 @@ export function TerminalView() {
           );
         })}
         <button
-          className="flex items-center justify-center w-8 h-full text-base-content/50 hover:text-base-content hover:bg-base-100/50 flex-shrink-0"
+          className="flex items-center justify-center w-8 h-full text-base-content/50 hover:text-base-content hover:bg-base-100/50 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+          aria-label="New terminal"
           onClick={addTab}
           title="New terminal"
         >

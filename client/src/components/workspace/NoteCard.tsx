@@ -37,6 +37,10 @@ export function NoteCard(props: NoteCardProps) {
       setDraft(originalRef.current);
       setEditing(false);
     }
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleBlur();
+    }
   }
 
   var updatedDate = new Date(note.updatedAt).toLocaleDateString(undefined, {
@@ -46,7 +50,19 @@ export function NoteCard(props: NoteCardProps) {
   });
 
   return (
-    <div className="card bg-base-200 border border-base-300" onClick={editing ? undefined : handleClick} style={{ cursor: editing ? "default" : "pointer" }}>
+    <div
+      className="card bg-base-200 border border-base-300 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+      tabIndex={editing ? undefined : 0}
+      role={editing ? undefined : "button"}
+      onClick={editing ? undefined : handleClick}
+      onKeyDown={editing ? undefined : function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      style={{ cursor: editing ? "default" : "pointer" }}
+    >
       <div className="card-body p-3">
         {editing ? (
           <textarea
@@ -68,13 +84,13 @@ export function NoteCard(props: NoteCardProps) {
             <div className="flex gap-1.5">
               <button
                 onClick={function (e) { e.stopPropagation(); onDelete(note.id); }}
-                className="btn btn-error btn-xs"
+                className="btn btn-error btn-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               >
                 Confirm
               </button>
               <button
                 onClick={function (e) { e.stopPropagation(); setConfirming(false); }}
-                className="btn btn-ghost btn-xs border border-base-300"
+                className="btn btn-ghost btn-xs border border-base-300 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               >
                 Cancel
               </button>
@@ -82,7 +98,7 @@ export function NoteCard(props: NoteCardProps) {
           ) : (
             <button
               onClick={function (e) { e.stopPropagation(); setConfirming(true); }}
-              className="btn btn-ghost btn-xs border border-base-300 text-base-content/50"
+              className="btn btn-ghost btn-xs border border-base-300 text-base-content/50 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
               aria-label="Delete note"
             >
               <Trash2 className="!size-3" />
