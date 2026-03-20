@@ -2,7 +2,7 @@ import type { ClientMessage, SettingsGetMessage, SettingsUpdateMessage } from "@
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig, saveConfig } from "../config";
-import { addProject } from "../project/registry";
+import { addProject, removeProject } from "../project/registry";
 import type { LatticeConfig } from "@lattice/shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -61,6 +61,11 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     if (incoming.mcpServers != null) {
       writeGlobalMcpServers(incoming.mcpServers as Record<string, unknown>);
       delete incoming.mcpServers;
+    }
+
+    if (typeof incoming.removeProject === "string") {
+      removeProject(incoming.removeProject as string);
+      delete incoming.removeProject;
     }
 
     var incomingProjects = incoming.projects as Array<{ path: string; slug?: string; title: string; env?: Record<string, string> }> | undefined;

@@ -278,6 +278,15 @@ export function ProjectRail(props: ProjectRailProps) {
             role="menuitem"
             className="w-full text-left px-3 py-1.5 text-sm text-error hover:bg-error/10 transition-colors"
             onClick={function () {
+              if (contextMenu.slug) {
+                ws.send({
+                  type: "settings:update",
+                  settings: { removeProject: contextMenu.slug },
+                } as any);
+                if (sidebar.activeProjectSlug === contextMenu.slug) {
+                  sidebar.goToDashboard();
+                }
+              }
               setContextMenu(function (prev) { return { ...prev, visible: false }; });
             }}
           >
