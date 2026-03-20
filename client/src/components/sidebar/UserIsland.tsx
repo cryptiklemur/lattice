@@ -1,6 +1,7 @@
-import { Sun, Moon, Settings } from "lucide-react";
+import { Sun, Moon, Settings, Download } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 import { useSidebar } from "../../hooks/useSidebar";
+import { useInstallPrompt } from "../../hooks/useInstallPrompt";
 import pkg from "../../../package.json";
 
 interface UserIslandProps {
@@ -11,6 +12,7 @@ interface UserIslandProps {
 export function UserIsland(props: UserIslandProps) {
   var { mode, toggleMode } = useTheme();
   var sidebar = useSidebar();
+  var { canInstall, install } = useInstallPrompt();
 
   var initial = props.nodeName.charAt(0).toUpperCase();
 
@@ -39,6 +41,15 @@ export function UserIsland(props: UserIslandProps) {
       </button>
 
       <div className="flex items-center gap-0.5 flex-shrink-0">
+        {canInstall && (
+          <button
+            aria-label="Install Lattice"
+            onClick={install}
+            className="btn btn-ghost btn-xs btn-square text-primary/60 hover:text-primary transition-colors"
+          >
+            <Download size={14} />
+          </button>
+        )}
         <button
           aria-label="Global settings"
           onClick={function () { sidebar.openSettings("appearance"); }}
