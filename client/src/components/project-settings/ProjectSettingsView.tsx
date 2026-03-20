@@ -25,6 +25,7 @@ function renderSection(
   section: ProjectSettingsSection,
   settings: ProjectSettings,
   updateSection: (section: string, data: Record<string, unknown>) => void,
+  projectSlug?: string,
 ) {
   if (section === "general") {
     return <ProjectGeneral settings={settings} updateSection={updateSection} />;
@@ -43,7 +44,7 @@ function renderSection(
   }
 
   if (section === "skills") {
-    return <ProjectSkills settings={settings} />;
+    return <ProjectSkills settings={settings} projectSlug={projectSlug} />;
   }
 
   if (section === "rules") {
@@ -92,7 +93,7 @@ export function ProjectSettingsView() {
       {error && (
         <div className="text-[13px] text-error py-4">{error}</div>
       )}
-      {!loading && !error && settings && renderSection(section, settings, updateSection)}
+      {!loading && !error && settings && renderSection(section, settings, updateSection, activeProjectSlug ?? undefined)}
     </div>
   );
 }

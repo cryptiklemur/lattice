@@ -1,7 +1,9 @@
 import type { ProjectSettings } from "@lattice/shared";
+import { SkillMarketplace } from "../settings/SkillMarketplace";
 
 interface ProjectSkillsProps {
   settings: ProjectSettings;
+  projectSlug?: string;
 }
 
 function SkillItem({ skill, badge }: { skill: { name: string; description: string; path: string }; badge?: string }) {
@@ -25,15 +27,18 @@ function SkillItem({ skill, badge }: { skill: { name: string; description: strin
   );
 }
 
-export function ProjectSkills({ settings }: ProjectSkillsProps) {
+export function ProjectSkills({ settings, projectSlug }: ProjectSkillsProps) {
   var globalSkills = settings.global.skills;
   var projectSkills = settings.skills;
   var hasAny = globalSkills.length > 0 || projectSkills.length > 0;
 
   if (!hasAny) {
     return (
-      <div className="py-12 text-center text-[13px] text-base-content/40">
-        No skills found.
+      <div className="py-2 space-y-6">
+        <div className="py-12 text-center text-[13px] text-base-content/40">
+          No skills found.
+        </div>
+        <SkillMarketplace defaultScope="project" defaultProjectSlug={projectSlug} />
       </div>
     );
   }
@@ -60,6 +65,7 @@ export function ProjectSkills({ settings }: ProjectSkillsProps) {
           </div>
         </div>
       )}
+      <SkillMarketplace defaultScope="project" defaultProjectSlug={projectSlug} />
     </div>
   );
 }
