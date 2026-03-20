@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -110,6 +110,15 @@ export function GlobalMcp() {
 
   return (
     <div className="py-2">
+      <a
+        href="https://docs.anthropic.com/en/docs/claude-code/mcp-servers"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] text-base-content/30 hover:text-primary/70 flex items-center gap-1 mb-4 transition-colors"
+      >
+        <ExternalLink size={11} />
+        Claude Code docs
+      </a>
       {entries.length === 0 && !adding && (
         <div className="py-4 text-center text-[13px] text-base-content/30 mb-3">
           No global MCP servers configured.

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ExternalLink } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { SkillMarketplace } from "./SkillMarketplace";
 import { SkillItem, SkillActions, SkillViewModal } from "./skill-shared";
@@ -81,6 +82,15 @@ export function GlobalSkills() {
 
   return (
     <div className="py-2 space-y-6">
+      <a
+        href="https://docs.anthropic.com/en/docs/claude-code/slash-commands"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] text-base-content/30 hover:text-primary/70 flex items-center gap-1 mb-4 transition-colors"
+      >
+        <ExternalLink size={11} />
+        Claude Code docs
+      </a>
       <div>
         <div className="text-[12px] font-semibold text-base-content/40 mb-2">Installed Skills</div>
         {skills.length === 0 ? (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ExternalLink } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
@@ -82,6 +83,15 @@ export function ClaudeSettings() {
 
   return (
     <div className="py-2">
+      <a
+        href="https://docs.anthropic.com/en/docs/claude-code/memory"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] text-base-content/30 hover:text-primary/70 flex items-center gap-1 mb-4 transition-colors"
+      >
+        <ExternalLink size={11} />
+        Claude Code docs
+      </a>
       <div className="mb-5">
         <label htmlFor="claude-default-model" className="block text-[12px] font-semibold text-base-content/40 mb-2">Default Model</label>
         <select

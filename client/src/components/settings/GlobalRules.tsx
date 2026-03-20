@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
 
@@ -52,6 +52,15 @@ export function GlobalRules() {
 
   return (
     <div className="py-2">
+      <a
+        href="https://docs.anthropic.com/en/docs/claude-code/memory"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] text-base-content/30 hover:text-primary/70 flex items-center gap-1 mb-4 transition-colors"
+      >
+        <ExternalLink size={11} />
+        Claude Code docs
+      </a>
       <div className="mb-6">
         <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Global CLAUDE.md

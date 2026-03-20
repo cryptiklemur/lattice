@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Pencil, X, Loader2, Brain } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Loader2, Brain, ExternalLink } from "lucide-react";
 import Markdown from "react-markdown";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ServerMessage } from "@lattice/shared";
@@ -404,6 +404,15 @@ export function ProjectMemory({ projectSlug }: ProjectMemoryProps) {
 
   return (
     <div className="py-2 space-y-6">
+      <a
+        href="https://docs.anthropic.com/en/docs/claude-code/memory"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] text-base-content/30 hover:text-primary/70 flex items-center gap-1 transition-colors"
+      >
+        <ExternalLink size={11} />
+        Claude Code docs
+      </a>
       <div className="flex items-center justify-end">
         <button
           onClick={function () { setEditState({ memory: null, content: "" }); }}
