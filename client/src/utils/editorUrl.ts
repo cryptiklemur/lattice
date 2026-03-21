@@ -44,11 +44,12 @@ export function getEditorUrl(editorType: string, projectPath: string, filePath: 
 
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
     var scheme = editorType;
-    var lineNum = line || 1;
+    var isFile = filePath !== ".";
+    var lineSuffix = isFile ? ":" + (line || 1) : "";
     if (wslDistro) {
-      return scheme + "://vscode-remote/wsl+" + wslDistro + fullPath + ":" + lineNum;
+      return scheme + "://vscode-remote/wsl+" + wslDistro + fullPath + lineSuffix;
     }
-    return scheme + "://file/" + resolvedPath + ":" + lineNum;
+    return scheme + "://file/" + resolvedPath + lineSuffix;
   }
   if (editorType === "sublime") {
     return "subl://open?url=file://" + encodeURIComponent(resolvedPath) + (line ? "&line=" + line : "");
