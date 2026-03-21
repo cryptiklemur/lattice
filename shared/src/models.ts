@@ -89,6 +89,7 @@ export interface LatticeConfig {
   }>;
   editor?: {
     type: "vscode" | "vscode-insiders" | "cursor" | "webstorm" | "intellij" | "pycharm" | "goland" | "notepad++" | "sublime" | "custom";
+    paths?: Record<string, string>;
     customCommand?: string;
   };
   setupComplete?: boolean;
