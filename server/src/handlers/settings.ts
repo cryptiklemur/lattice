@@ -11,10 +11,14 @@ import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills, readGlob
 
 function detectIdeProjectName(projectPath: string): string | undefined {
   try {
-    var ideNameFile = join(projectPath, ".idea", ".name");
+    var ideDir = join(projectPath, ".idea");
+    if (!existsSync(ideDir)) return undefined;
+    var ideNameFile = join(ideDir, ".name");
     if (existsSync(ideNameFile)) {
-      return readFileSync(ideNameFile, "utf-8").trim() || undefined;
+      var name = readFileSync(ideNameFile, "utf-8").trim();
+      if (name) return name;
     }
+    return projectPath.split("/").pop() || undefined;
   } catch {}
   return undefined;
 }
