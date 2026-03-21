@@ -182,10 +182,16 @@ export function useSession(): UseSessionReturn {
       if (activeId) {
         markSessionRead(activeId, getSessionStore().state.messages.length);
       }
-      var nextMessage = dequeueMessage();
-      if (nextMessage) {
+      var queued: string[] = [];
+      var next = dequeueMessage();
+      while (next) {
+        queued.push(next);
+        next = dequeueMessage();
+      }
+      if (queued.length > 0) {
+        var combined = queued.join("\n\n");
         setTimeout(function () {
-          sendMessageRef.current(nextMessage, lastUsedModel, lastUsedEffort);
+          sendMessageRef.current(combined, lastUsedModel, lastUsedEffort);
         }, 100);
       }
     }
