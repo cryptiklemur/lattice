@@ -143,13 +143,13 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
     args = msg.line ? ["--line", String(msg.line), editorFilePath] : [editorFilePath];
   }
 
-  console.log("[editor] Spawning: " + executable + " " + args.join(" "));
+  var quotedArgs = args.map(function (a) { return JSON.stringify(a); }).join(" ");
+  var cmd = JSON.stringify(executable) + " " + quotedArgs;
+  console.log("[editor] Running: " + cmd);
   try {
-    var child = spawn(executable, args, { detached: true, stdio: "pipe" });
-    child.stderr.on("data", function (data: Buffer) { console.error("[editor] stderr: " + data.toString()); });
-    child.on("error", function (err: Error) { console.error("[editor] spawn error: " + err.message); });
+    var child = spawn("sh", ["-c", cmd + " &"], { detached: true, stdio: "ignore" });
     child.unref();
   } catch (err) {
-    console.error("[editor] Failed to spawn " + executable + ": " + (err instanceof Error ? err.message : String(err)));
+    console.error("[editor] Failed to spawn: " + (err instanceof Error ? err.message : String(err)));
   }
 });
