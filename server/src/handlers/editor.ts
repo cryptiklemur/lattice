@@ -1,11 +1,28 @@
 import { execSync, spawn } from "node:child_process";
 import { join } from "node:path";
+import { existsSync } from "node:fs";
 import type { ClientMessage, EditorDetectMessage, EditorOpenMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
 import { loadConfig } from "../config";
 import { getActiveSession } from "./chat";
+
+var isWSL = existsSync("/proc/version") && (function () {
+  try {
+    var version = execSync("cat /proc/version", { encoding: "utf-8" });
+    return version.toLowerCase().includes("microsoft");
+  } catch { return false; }
+})();
+
+function toEditorPath(linuxPath: string): string {
+  if (!isWSL) return linuxPath;
+  try {
+    return execSync("wslpath -w " + JSON.stringify(linuxPath), { encoding: "utf-8", timeout: 3000 }).trim();
+  } catch {
+    return linuxPath;
+  }
+}
 
 var binaryNames: Record<string, string[]> = {
   "vscode": ["code"],
@@ -68,8 +85,9 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   var editorType = editorConfig?.type || "vscode";
 
   if (editorType === "custom" && editorConfig?.customCommand) {
+    var customFilePath = toEditorPath(fullPath);
     var expanded = editorConfig.customCommand
-      .replace(/\{file\}/g, fullPath)
+      .replace(/\{file\}/g, customFilePath)
       .replace(/\{line\}/g, String(msg.line || 1));
     try {
       execSync(expanded, { stdio: "ignore", timeout: 5000 });
@@ -85,20 +103,21 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   }
   if (!executable) return;
 
+  var editorFilePath = toEditorPath(fullPath);
   var args: string[] = [];
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
     if (msg.line) {
-      args = ["-g", fullPath + ":" + msg.line];
+      args = ["-g", editorFilePath + ":" + msg.line];
     } else {
-      args = [fullPath];
+      args = [editorFilePath];
     }
   } else if (editorType === "sublime") {
-    args = msg.line ? [fullPath + ":" + msg.line] : [fullPath];
+    args = msg.line ? [editorFilePath + ":" + msg.line] : [editorFilePath];
   } else if (editorType === "notepad++") {
-    args = msg.line ? ["-n" + msg.line, fullPath] : [fullPath];
+    args = msg.line ? ["-n" + msg.line, editorFilePath] : [editorFilePath];
   } else {
     // JetBrains IDEs (webstorm, intellij, pycharm, goland)
-    args = msg.line ? ["--line", String(msg.line), fullPath] : [fullPath];
+    args = msg.line ? ["--line", String(msg.line), editorFilePath] : [editorFilePath];
   }
 
   try {
