@@ -144,18 +144,7 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   function shellEscape(s: string): string {
     return "'" + s.replace(/'/g, "'\\''") + "'";
   }
-  var cmd = shellEscape(executable) + " " + args.map(shellEscape).join(" ");
+  var cmd = shellEscape(executable) + " " + args.map(shellEscape).join(" ") + " >/dev/null 2>&1 &";
   console.log("[editor] exec: " + cmd);
-
-  exec("echo EXEC_WORKS", function (testErr, testOut) {
-    console.log("[editor] exec test: err=" + testErr + " out=" + (testOut || "").trim());
-  });
-
-  exec(cmd, { env: process.env }, function (err, stdout, stderr) {
-    console.log("[editor] exec callback fired");
-    if (err) console.error("[editor] exec error: " + err.message);
-    if (stdout) console.log("[editor] stdout: " + stdout.trim());
-    if (stderr) console.error("[editor] stderr: " + stderr.trim());
-    if (!err && !stdout && !stderr) console.log("[editor] exec completed with no output");
-  });
+  exec(cmd);
 });
