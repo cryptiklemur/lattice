@@ -16,6 +16,7 @@ import { PermissionModeSelector } from "./PermissionModeSelector";
 import { StatusBar } from "./StatusBar";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
+import { useSpinnerVerb } from "../../hooks/useSpinnerVerb";
 
 export function ChatView() {
   var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage } = useSession();
@@ -23,6 +24,7 @@ export function ChatView() {
   var { toggleDrawer } = useSidebar();
   var online = useOnline();
   var ws = useWebSocket();
+  var spinnerVerb = useSpinnerVerb(isProcessing);
   var scrollParentRef = useRef<HTMLDivElement>(null);
   var prevLengthRef = useRef<number>(0);
   var isLiveChatRef = useRef<boolean>(false);
@@ -804,7 +806,8 @@ export function ChatView() {
       <StatusBar status={currentStatus} />
 
       {isProcessing && (
-        <div className="flex-shrink-0 flex justify-center py-1.5">
+        <div className="flex-shrink-0 flex items-center justify-center gap-3 py-1.5">
+          <span className="text-[11px] text-base-content/30 font-mono animate-pulse">{spinnerVerb}...</span>
           <button
             onClick={handleCancel}
             className="btn btn-ghost btn-xs text-error/70 hover:text-error gap-1"

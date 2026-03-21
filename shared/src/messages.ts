@@ -275,6 +275,17 @@ export interface EditorOpenMessage {
   line?: number;
 }
 
+export interface EditorDetectMessage {
+  type: "editor:detect";
+  editorType: string;
+}
+
+export interface EditorDetectResultMessage {
+  type: "editor:detect_result";
+  editorType: string;
+  path: string | null;
+}
+
 export interface ProjectSettingsGetMessage {
   type: "project-settings:get";
   projectSlug: string;
@@ -349,7 +360,8 @@ export type ClientMessage =
   | MemorySaveMessage
   | MemoryDeleteMessage
   | BrowseSuggestionsMessage
-  | EditorOpenMessage;
+  | EditorOpenMessage
+  | EditorDetectMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -529,6 +541,7 @@ export interface SettingsDataMessage {
   mcpServers?: Record<string, McpServerConfig>;
   globalSkills?: SkillInfo[];
   globalRules?: Array<{ filename: string; content: string }>;
+  spinnerVerbs?: string[];
 }
 
 export interface LoopStatusMessage {
@@ -721,7 +734,8 @@ export type ServerMessage =
   | MemoryViewResultMessage
   | MemorySaveResultMessage
   | MemoryDeleteResultMessage
-  | BrowseSuggestionsResultMessage;
+  | BrowseSuggestionsResultMessage
+  | EditorDetectResultMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

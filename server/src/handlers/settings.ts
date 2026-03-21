@@ -28,6 +28,21 @@ function saveGlobalClaudeMd(content: string): void {
   writeFileSync(join(claudeDir, "CLAUDE.md"), content, "utf-8");
 }
 
+function loadSpinnerVerbs(): string[] {
+  var claudeSettingsPath = join(homedir(), ".claude", "settings.json");
+  var defaultVerbs = ["Thinking", "Analyzing", "Processing", "Computing", "Evaluating", "Considering", "Examining", "Reviewing"];
+  try {
+    var claudeSettings = JSON.parse(readFileSync(claudeSettingsPath, "utf-8"));
+    if (claudeSettings.spinnerVerbs) {
+      if (claudeSettings.spinnerVerbs.mode === "replace") {
+        return claudeSettings.spinnerVerbs.verbs || [];
+      }
+      return [...defaultVerbs, ...(claudeSettings.spinnerVerbs.verbs || [])];
+    }
+  } catch {}
+  return defaultVerbs;
+}
+
 registerHandler("settings", function (clientId: string, message: ClientMessage) {
   if (message.type === "settings:get") {
     var config = loadConfig();
@@ -39,6 +54,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
       globalSkills: readGlobalSkills(),
       globalRules: readGlobalRules(),
+      spinnerVerbs: loadSpinnerVerbs(),
     });
     sendTo(clientId, {
       type: "projects:list",
@@ -95,6 +111,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
       globalSkills: readGlobalSkills(),
       globalRules: readGlobalRules(),
+      spinnerVerbs: loadSpinnerVerbs(),
     });
     var updatedIdentity = loadOrCreateIdentity();
     broadcast({
