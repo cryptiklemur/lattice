@@ -143,7 +143,16 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
 
   console.log("[editor] Spawning: " + executable + " " + args.join(" "));
   try {
-    spawn(executable, args, { detached: true, stdio: "ignore" }).unref();
+    var child = spawn(executable, args, { detached: true, stdio: "pipe" });
+    child.on("error", function (err) {
+      console.error("[editor] spawn error event: " + err.message);
+    });
+    child.on("exit", function (code, signal) {
+      console.log("[editor] process exited: code=" + code + " signal=" + signal);
+    });
+    child.stdout.on("data", function (d) { console.log("[editor] stdout: " + d.toString().trim()); });
+    child.stderr.on("data", function (d) { console.error("[editor] stderr: " + d.toString().trim()); });
+    child.unref();
   } catch (err) {
     console.error("[editor] Failed to spawn: " + (err instanceof Error ? err.message : String(err)));
   }
