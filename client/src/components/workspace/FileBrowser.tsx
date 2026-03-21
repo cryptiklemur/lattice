@@ -14,7 +14,7 @@ export function FileBrowser() {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var { activeProjectSlug } = useSidebar();
   var { activeProject } = useProjects();
-  var { editorType } = useEditorConfig();
+  var { editorType, wslDistro } = useEditorConfig();
   var projectSlugRef = useRef<string | null>(null);
   projectSlugRef.current = activeProjectSlug;
   var [rootNodes, setRootNodes] = useState<TreeNode[]>([]);
@@ -112,7 +112,7 @@ export function FileBrowser() {
   }
 
   var editorUrlForSelected = selectedPath && activeProject
-    ? getEditorUrl(editorType, activeProject.path, selectedPath)
+    ? getEditorUrl(editorType, activeProject.path, selectedPath, undefined, wslDistro)
     : null;
 
   return (

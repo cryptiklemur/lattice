@@ -55,6 +55,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       globalSkills: readGlobalSkills(),
       globalRules: readGlobalRules(),
       spinnerVerbs: loadSpinnerVerbs(),
+      wslDistro: process.env.WSL_DISTRO_NAME || undefined,
     });
     sendTo(clientId, {
       type: "projects:list",
@@ -112,6 +113,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       globalSkills: readGlobalSkills(),
       globalRules: readGlobalRules(),
       spinnerVerbs: loadSpinnerVerbs(),
+      wslDistro: process.env.WSL_DISTRO_NAME || undefined,
     });
     var updatedIdentity = loadOrCreateIdentity();
     broadcast({

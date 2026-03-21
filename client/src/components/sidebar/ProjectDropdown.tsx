@@ -21,7 +21,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
   var menuRef = useRef<HTMLDivElement>(null);
   var { activeProject } = useProjects();
   var sidebar = useSidebar();
-  var { editorType } = useEditorConfig();
+  var { editorType, wslDistro } = useEditorConfig();
   var [copied, setCopied] = useState(false);
 
   useEffect(function () {
@@ -69,7 +69,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
     }
   }
 
-  var ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".") : null;
+  var ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".", undefined, wslDistro) : null;
 
   function handleOpenTerminal() {
     openTab("terminal");

@@ -5,6 +5,7 @@ import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
 export function useEditorConfig() {
   var ws = useWebSocket();
   var [editorType, setEditorType] = useState("vscode");
+  var [wslDistro, setWslDistro] = useState<string | undefined>(undefined);
 
   useEffect(function () {
     function handleSettings(msg: ServerMessage) {
@@ -14,11 +15,14 @@ export function useEditorConfig() {
       if (cfg.editor?.type) {
         setEditorType(cfg.editor.type);
       }
+      if (data.wslDistro) {
+        setWslDistro(data.wslDistro);
+      }
     }
     ws.subscribe("settings:data", handleSettings);
     ws.send({ type: "settings:get" });
     return function () { ws.unsubscribe("settings:data", handleSettings); };
   }, []);
 
-  return { editorType: editorType };
+  return { editorType: editorType, wslDistro: wslDistro };
 }

@@ -311,12 +311,18 @@ export interface ProjectSettingsErrorMessage {
   message: string;
 }
 
+export interface SessionStopExternalMessage {
+  type: "session:stop_external";
+  sessionId: string;
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
   | SessionRenameMessage
   | SessionDeleteMessage
   | SessionListRequestMessage
+  | SessionStopExternalMessage
   | ChatSendMessage
   | ChatPermissionResponseMessage
   | ChatRewindMessage
@@ -550,6 +556,7 @@ export interface SettingsDataMessage {
   globalSkills?: SkillInfo[];
   globalRules?: Array<{ filename: string; content: string }>;
   spinnerVerbs?: string[];
+  wslDistro?: string;
 }
 
 export interface LoopStatusMessage {

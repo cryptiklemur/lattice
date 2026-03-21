@@ -28,10 +28,17 @@ var URL_SCHEMES: Record<string, (path: string, line?: number) => string> = {
   },
 };
 
-export function getEditorUrl(editorType: string, projectPath: string, filePath: string, line?: number): string | null {
+function toWindowsPath(linuxPath: string, wslDistro: string): string {
+  return "\\\\\\\\" + "wsl.localhost\\\\" + wslDistro + linuxPath.replace(/\//g, "\\\\");
+}
+
+export function getEditorUrl(editorType: string, projectPath: string, filePath: string, line?: number, wslDistro?: string): string | null {
   var generator = URL_SCHEMES[editorType];
   if (!generator) return null;
 
   var fullPath = filePath === "." ? projectPath : projectPath + "/" + filePath;
+  if (wslDistro) {
+    fullPath = toWindowsPath(fullPath, wslDistro);
+  }
   return generator(fullPath, line);
 }
