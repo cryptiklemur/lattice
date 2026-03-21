@@ -9,7 +9,7 @@ var URL_SCHEMES: Record<string, (path: string, line?: number) => string> = {
     return "cursor://file" + path + (line ? ":" + line : "");
   },
   webstorm: function (path, line) {
-    return "jetbrains://web-storm/navigate/reference?path=" + encodeURIComponent(path) + (line ? "&line=" + line : "");
+    return "jetbrains://webstorm/navigate/reference?path=" + encodeURIComponent(path) + (line ? "&line=" + line : "");
   },
   intellij: function (path, line) {
     return "jetbrains://idea/navigate/reference?path=" + encodeURIComponent(path) + (line ? "&line=" + line : "");
