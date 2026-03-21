@@ -144,7 +144,15 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   function shellEscape(s: string): string {
     return "'" + s.replace(/'/g, "'\\''") + "'";
   }
-  console.log("[editor] Launching: " + executable + " " + args.join(" "));
+  if (isWSLEnabled()) {
+    for (var ai = 0; ai < args.length; ai++) {
+      if (args[ai].startsWith("/") && !args[ai].startsWith("/mnt/")) {
+        args[ai] = toEditorPath(args[ai]);
+      }
+    }
+  }
+
+  console.log("[editor] Launching: " + executable + " " + JSON.stringify(args));
   try {
     var proc = Bun.spawn([executable, ...args], {
       stdout: "ignore",
