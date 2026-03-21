@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Settings, FileText, Terminal, ScrollText, Shield, Brain,
   Plug, Puzzle, ExternalLink, Copy, Check, FolderOpen,
@@ -98,7 +99,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
 
   if (!activeProject) return null;
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       role="menu"
@@ -186,6 +187,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
           Memory
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
