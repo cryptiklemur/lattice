@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
@@ -22,6 +22,8 @@ export function Editor() {
   var [ideType, setIdeType] = useState("vscode");
   var [customCommand, setCustomCommand] = useState("");
   var save = useSaveState();
+  var saveRef = useRef(save);
+  saveRef.current = save;
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
@@ -33,12 +35,12 @@ export function Editor() {
       var newType = editor?.type ?? "vscode";
       var newCustomCommand = editor?.customCommand ?? "";
 
-      if (save.saving) {
-        save.confirmSave();
+      if (saveRef.current.saving) {
+        saveRef.current.confirmSave();
       } else {
         setIdeType(newType);
         setCustomCommand(newCustomCommand);
-        save.resetFromServer();
+        saveRef.current.resetFromServer();
       }
     }
 
