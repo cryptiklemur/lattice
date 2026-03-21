@@ -22,7 +22,7 @@ import {
 import { getContextBreakdown } from "../project/context-breakdown";
 import { setActiveSession } from "./chat";
 import { setActiveProject } from "./fs";
-import { wasSessionInterrupted, clearInterruptedFlag } from "../project/sdk-bridge";
+import { wasSessionInterrupted, clearInterruptedFlag, isSessionBusy, watchSessionLock, stopExternalSession } from "../project/sdk-bridge";
 
 registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:list_request") {
@@ -62,13 +62,6 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     var createMsg = message as SessionCreateMessage;
     var session = createSession(createMsg.projectSlug);
     sendTo(clientId, { type: "session:created", session });
-    void listSessions(createMsg.projectSlug).then(function (sessions) {
-      sendTo(clientId, {
-        type: "session:list",
-        projectSlug: createMsg.projectSlug,
-        sessions,
-      });
-    });
     return;
   }
 
@@ -76,6 +69,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     var activateMsg = message as SessionActivateMessage;
     setActiveSession(clientId, activateMsg.projectSlug, activateMsg.sessionId);
     setActiveProject(clientId, activateMsg.projectSlug);
+    watchSessionLock(activateMsg.sessionId);
     void Promise.all([
       loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId),
       getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId),
@@ -86,6 +80,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
       if (interrupted) {
         clearInterruptedFlag(activateMsg.sessionId);
       }
+      var busy = isSessionBusy(activateMsg.sessionId);
       sendTo(clientId, {
         type: "session:history",
         projectSlug: activateMsg.projectSlug,
@@ -93,6 +88,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         messages: results[0],
         title: results[1],
         interrupted: interrupted || undefined,
+        busy: busy || undefined,
       });
       var usage = results[2];
       if (usage) {
@@ -155,5 +151,15 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         });
       });
     });
+  }
+
+  if (message.type === "session:stop_external") {
+    var stopMsg = message as { type: string; sessionId: string };
+    var stopped = stopExternalSession(stopMsg.sessionId);
+    if (stopped) {
+      console.log("[lattice] Sent SIGINT to external CLI process for session " + stopMsg.sessionId);
+    } else {
+      sendTo(clientId, { type: "chat:error", message: "No external process found for this session." });
+    }
   }
 });
