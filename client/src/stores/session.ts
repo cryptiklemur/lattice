@@ -38,6 +38,8 @@ export interface SessionState {
   historyLoading: boolean;
   wasInterrupted: boolean;
   promptSuggestion: string | null;
+  failedInput: string | null;
+  messageQueue: string[];
 }
 
 var sessionStore = new Store<SessionState>({
@@ -56,6 +58,8 @@ var sessionStore = new Store<SessionState>({
   historyLoading: false,
   wasInterrupted: false,
   promptSuggestion: null,
+  failedInput: null,
+  messageQueue: [],
 });
 
 var streamGeneration = 0;
@@ -211,6 +215,8 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       historyLoading: true,
       wasInterrupted: false,
       promptSuggestion: null,
+      failedInput: null,
+      messageQueue: [],
     };
   });
 }
@@ -268,6 +274,8 @@ export function clearSession(): void {
       historyLoading: false,
       wasInterrupted: false,
       promptSuggestion: null,
+      failedInput: null,
+      messageQueue: [],
     };
   });
 }
@@ -287,6 +295,50 @@ export function setWasInterrupted(interrupted: boolean): void {
 export function setPromptSuggestion(suggestion: string | null): void {
   sessionStore.setState(function (state) {
     return { ...state, promptSuggestion: suggestion };
+  });
+}
+
+export function setFailedInput(text: string | null): void {
+  sessionStore.setState(function (state) {
+    return { ...state, failedInput: text };
+  });
+}
+
+export function enqueueMessage(text: string): void {
+  sessionStore.setState(function (state) {
+    return { ...state, messageQueue: [...state.messageQueue, text] };
+  });
+}
+
+export function dequeueMessage(): string | null {
+  var queue = sessionStore.state.messageQueue;
+  if (queue.length === 0) return null;
+  var first = queue[0];
+  sessionStore.setState(function (state) {
+    return { ...state, messageQueue: state.messageQueue.slice(1) };
+  });
+  return first;
+}
+
+export function removeQueuedMessage(index: number): void {
+  sessionStore.setState(function (state) {
+    var updated = state.messageQueue.slice();
+    updated.splice(index, 1);
+    return { ...state, messageQueue: updated };
+  });
+}
+
+export function updateQueuedMessage(index: number, text: string): void {
+  sessionStore.setState(function (state) {
+    var updated = state.messageQueue.slice();
+    updated[index] = text;
+    return { ...state, messageQueue: updated };
+  });
+}
+
+export function clearMessageQueue(): void {
+  sessionStore.setState(function (state) {
+    return { ...state, messageQueue: [] };
   });
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap } from "lucide-react";
+import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
@@ -18,7 +18,7 @@ import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
 
 export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
   var online = useOnline();
@@ -316,6 +316,10 @@ export function ChatView() {
     }
   }
 
+  function handleCancel() {
+    ws.send({ type: "chat:cancel" });
+  }
+
   function handleSend(text: string) {
     if (text.startsWith("/")) {
       var parts = text.split(/\s+/);
@@ -332,6 +336,11 @@ export function ChatView() {
       }
 
       if (isBuiltin && handleClientCommand(cmdName, cmdArgs)) return;
+    }
+
+    if (isProcessing) {
+      enqueueMessage(text);
+      return;
     }
     sendMessage(text, selectedModel, selectedEffort);
   }
@@ -794,6 +803,42 @@ export function ChatView() {
 
       <StatusBar status={currentStatus} />
 
+      {isProcessing && (
+        <div className="flex-shrink-0 flex justify-center py-1.5">
+          <button
+            onClick={handleCancel}
+            className="btn btn-ghost btn-xs text-error/70 hover:text-error gap-1"
+          >
+            <Square size={10} className="fill-current" />
+            Stop
+          </button>
+        </div>
+      )}
+
+      {messageQueue.length > 0 && (
+        <div className="flex-shrink-0 px-2 sm:px-4 py-2 space-y-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-base-content/30">Queued</div>
+          {messageQueue.map(function (msg, i) {
+            return (
+              <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-base-300/50 border border-base-content/10">
+                <input
+                  type="text"
+                  value={msg}
+                  onChange={function (e) { updateQueuedMessage(i, e.target.value); }}
+                  className="flex-1 bg-transparent text-[12px] text-base-content outline-none"
+                />
+                <button
+                  onClick={function () { removeQueuedMessage(i); }}
+                  className="text-base-content/30 hover:text-base-content/60"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {wasInterrupted && !isProcessing && (
         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-warning/10 border-t border-warning/20">
           <AlertTriangle size={13} className="text-warning flex-shrink-0" />
@@ -816,7 +861,9 @@ export function ChatView() {
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
         <ChatInput
           onSend={handleSend}
-          disabled={isProcessing || !activeSessionId || !online}
+          disabled={!activeSessionId || !online}
+          failedInput={failedInput}
+          onFailedInputConsumed={clearFailedInput}
           toolbarContent={
             <>
               <PermissionModeSelector />

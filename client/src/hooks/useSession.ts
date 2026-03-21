@@ -42,18 +42,32 @@ import {
   mergeToolResults,
   setWasInterrupted,
   setPromptSuggestion,
+  setFailedInput,
+  enqueueMessage,
+  dequeueMessage,
+  removeQueuedMessage,
+  updateQueuedMessage,
+  clearMessageQueue,
 } from "../stores/session";
 import type { SessionState } from "../stores/session";
 
 var subscriptionsActive = 0;
 var activeStreamGeneration = 0;
+var lastSentText: string | null = null;
+var lastUsedModel: string | undefined = undefined;
+var lastUsedEffort: string | undefined = undefined;
 
 export type { SessionState };
 
 export interface UseSessionReturn extends SessionState {
   sendMessage: (text: string, model?: string, effort?: string) => void;
   activateSession: (projectSlug: string, sessionId: string) => void;
+  clearFailedInput: () => void;
   lastReadIndex: number | null;
+  enqueueMessage: (text: string) => void;
+  removeQueuedMessage: (index: number) => void;
+  updateQueuedMessage: (index: number, text: string) => void;
+  clearMessageQueue: () => void;
 }
 
 export function useSession(): UseSessionReturn {
@@ -62,6 +76,7 @@ export function useSession(): UseSessionReturn {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var sendRef = useRef(send);
   sendRef.current = send;
+  var sendMessageRef = useRef(function (_text: string, _model?: string, _effort?: string) {});
 
   function activateSession(projectSlug: string, sessionId: string) {
     setActiveSession(projectSlug, sessionId);
@@ -82,10 +97,16 @@ export function useSession(): UseSessionReturn {
       msg.effort = effort;
     }
     activeStreamGeneration = getStreamGeneration();
+    lastSentText = text;
+    lastUsedModel = model;
+    lastUsedEffort = effort;
+    setFailedInput(null);
     setPromptSuggestion(null);
     sendRef.current(msg as ChatSendMessage);
     setIsProcessing(true);
   }
+
+  sendMessageRef.current = sendMessage;
 
   useEffect(function () {
     subscriptionsActive++;
@@ -150,6 +171,7 @@ export function useSession(): UseSessionReturn {
     function handleDone(msg: ServerMessage) {
       if (isStaleStream()) return;
       var m = msg as { type: string; cost: number; duration: number; sessionId?: string };
+      lastSentText = null;
       setIsProcessing(false);
       setCurrentStatus(null);
       setCurrentAssistantUuid(null);
@@ -157,6 +179,10 @@ export function useSession(): UseSessionReturn {
       var activeId = getSessionStore().state.activeSessionId;
       if (activeId) {
         markSessionRead(activeId, getSessionStore().state.messages.length);
+      }
+      var nextMessage = dequeueMessage();
+      if (nextMessage) {
+        sendMessageRef.current(nextMessage, lastUsedModel, lastUsedEffort);
       }
     }
 
@@ -166,6 +192,10 @@ export function useSession(): UseSessionReturn {
       setIsProcessing(false);
       setCurrentStatus(null);
       setCurrentAssistantUuid(null);
+      if (lastSentText) {
+        setFailedInput(lastSentText);
+        lastSentText = null;
+      }
       if (m.message) {
         addSessionMessage({
           type: "assistant",
@@ -314,6 +344,7 @@ export function useSession(): UseSessionReturn {
     activeSessionTitle: state.activeSessionTitle,
     sendMessage,
     activateSession,
+    clearFailedInput: function () { setFailedInput(null); },
     currentStatus: state.currentStatus,
     contextUsage: state.contextUsage,
     contextBreakdown: state.contextBreakdown,
@@ -324,5 +355,11 @@ export function useSession(): UseSessionReturn {
     historyLoading: state.historyLoading,
     wasInterrupted: state.wasInterrupted,
     promptSuggestion: state.promptSuggestion,
+    failedInput: state.failedInput,
+    messageQueue: state.messageQueue,
+    enqueueMessage,
+    removeQueuedMessage,
+    updateQueuedMessage,
+    clearMessageQueue,
   };
 }
