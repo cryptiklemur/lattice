@@ -186,7 +186,7 @@ export function useSession(): UseSessionReturn {
       if (nextMessage) {
         setTimeout(function () {
           sendMessageRef.current(nextMessage, lastUsedModel, lastUsedEffort);
-        }, 500);
+        }, 100);
       }
     }
 

@@ -697,7 +697,11 @@ export function startChatStream(options: ChatStreamOptions): void {
       }
 
       doneSent = true;
+      activeStreams.delete(sessionId);
+      streamMetadata.delete(sessionId);
+      persistStreamState();
       sendTo(clientId, { type: "chat:done", cost: cost, duration: dur });
+      broadcast({ type: "session:busy", sessionId, busy: false }, clientId);
       syncSessionToPeers(cwd, projectSlug, sessionId);
       return;
     }
