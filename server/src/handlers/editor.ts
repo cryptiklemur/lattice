@@ -144,7 +144,12 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   function shellEscape(s: string): string {
     return "'" + s.replace(/'/g, "'\\''") + "'";
   }
-  var cmd = shellEscape(executable) + " " + args.map(shellEscape).join(" ") + " >/dev/null 2>&1 &";
+  var cmd = shellEscape(executable) + " " + args.map(shellEscape).join(" ") + " &";
   console.log("[editor] exec: " + cmd);
-  exec(cmd);
+  console.log("[editor] WSL_INTEROP=" + (process.env.WSL_INTEROP || "NOT SET"));
+  console.log("[editor] PATH includes /mnt/c: " + (process.env.PATH || "").includes("/mnt/c"));
+  exec(cmd, function (err, stdout, stderr) {
+    if (err) console.error("[editor] err: " + err.message);
+    if (stderr) console.error("[editor] stderr: " + stderr);
+  });
 });
