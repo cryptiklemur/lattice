@@ -12,11 +12,13 @@ function toWindowsPath(linuxPath: string, wslDistro: string): string {
 function buildJetBrainsUrl(ideId: string, filePath: string, line?: number, projectName?: string): string {
   var url = "jetbrains://" + ideId + "/navigate/reference?";
   if (projectName) {
-    url += "project=" + encodeURIComponent(projectName) + "&";
+    url += "project=" + encodeURIComponent(projectName);
   }
-  url += "path=" + encodeURIComponent(filePath);
-  if (line) {
-    url += "&line=" + line;
+  if (filePath) {
+    url += (projectName ? "&" : "") + "path=" + encodeURIComponent(filePath);
+    if (line) {
+      url += "&line=" + line;
+    }
   }
   return url;
 }
@@ -36,8 +38,9 @@ export function getEditorUrl(editorType: string, projectPath: string, filePath: 
 
   var jetbrainsId = JETBRAINS_IDS[editorType];
   if (jetbrainsId) {
-    if (ideProjectName && filePath !== ".") {
-      return buildJetBrainsUrl(jetbrainsId, filePath, line, ideProjectName);
+    if (ideProjectName) {
+      var jbPath = filePath === "." ? "" : filePath;
+      return buildJetBrainsUrl(jetbrainsId, jbPath, line, ideProjectName);
     }
     return buildJetBrainsUrl(jetbrainsId, resolvedPath, line);
   }
