@@ -93,6 +93,7 @@ export interface LatticeConfig {
     customCommand?: string;
   };
   setupComplete?: boolean;
+  wsl?: boolean | "auto";
 }
 
 export interface StickyNote {

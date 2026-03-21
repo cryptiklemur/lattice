@@ -25,6 +25,7 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
   var [tls, setTls] = useState(false);
   var [debug, setDebug] = useState(false);
   var [copied, setCopied] = useState(false);
+  var [wsl, setWsl] = useState<boolean | "auto">("auto");
   var copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
@@ -43,6 +44,7 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
         setPort(cfg.port);
         setTls(cfg.tls);
         setDebug(cfg.debug);
+        setWsl(cfg.wsl ?? "auto");
         save.resetFromServer();
       }
     }
@@ -65,7 +67,7 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
     save.startSave();
     send({
       type: "settings:update",
-      settings: { name, port, tls, debug },
+      settings: { name, port, tls, debug, wsl },
     } as any);
   }
 
@@ -168,6 +170,26 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
               className="toggle toggle-sm toggle-primary"
               aria-label="Enable debug mode"
             />
+          </div>
+
+          <div>
+            <div className="text-[12px] font-semibold text-base-content/40 mb-1.5">WSL Mode</div>
+            <div className="text-[11px] text-base-content/30 mb-2">Convert file paths for Windows editors when running under WSL</div>
+            <select
+              value={String(wsl)}
+              onChange={function (e) {
+                var val = e.target.value;
+                if (val === "true") { setWsl(true); }
+                else if (val === "false") { setWsl(false); }
+                else { setWsl("auto"); }
+                save.markDirty();
+              }}
+              className={inputClass}
+            >
+              <option value="auto">Auto-detect</option>
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
           </div>
         </div>
 

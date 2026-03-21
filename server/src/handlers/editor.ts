@@ -8,15 +8,33 @@ import { getProjectBySlug } from "../project/registry";
 import { loadConfig } from "../config";
 import { getActiveSession } from "./chat";
 
-var isWSL = existsSync("/proc/version") && (function () {
+var autoDetectedWSL: boolean | null = null;
+
+function detectWSL(): boolean {
+  if (autoDetectedWSL !== null) return autoDetectedWSL;
   try {
-    var version = execSync("cat /proc/version", { encoding: "utf-8" });
-    return version.toLowerCase().includes("microsoft");
-  } catch { return false; }
-})();
+    if (existsSync("/proc/version")) {
+      var version = execSync("cat /proc/version", { encoding: "utf-8" });
+      autoDetectedWSL = version.toLowerCase().includes("microsoft");
+    } else {
+      autoDetectedWSL = false;
+    }
+  } catch {
+    autoDetectedWSL = false;
+  }
+  return autoDetectedWSL;
+}
+
+function isWSLEnabled(): boolean {
+  var config = loadConfig();
+  var wslSetting = config.wsl;
+  if (wslSetting === true) return true;
+  if (wslSetting === false) return false;
+  return detectWSL();
+}
 
 function toEditorPath(linuxPath: string): string {
-  if (!isWSL) return linuxPath;
+  if (!isWSLEnabled()) return linuxPath;
   try {
     return execSync("wslpath -w " + JSON.stringify(linuxPath), { encoding: "utf-8", timeout: 3000 }).trim();
   } catch {
