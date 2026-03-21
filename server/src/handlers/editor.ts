@@ -144,29 +144,22 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   function shellEscape(s: string): string {
     return "'" + s.replace(/'/g, "'\\''") + "'";
   }
+  function shellEscapeSingle(s: string): string {
+    return "'" + s.replace(/'/g, "'\\''") + "'";
+  }
+
   if (isWSLEnabled()) {
     for (var ai = 0; ai < args.length; ai++) {
       if (args[ai].startsWith("/") && !args[ai].startsWith("/mnt/")) {
-        args[ai] = toEditorPath(args[ai]);
+        args[ai] = "$(wslpath -w " + shellEscapeSingle(args[ai]) + ")";
       }
     }
   }
 
-  console.log("[editor] Launching: " + executable + " " + JSON.stringify(args));
-  try {
-    var proc = Bun.spawn([executable, ...args], {
-      stdout: "ignore",
-      stderr: "pipe",
-    });
-    proc.exited.then(function (code) {
-      console.log("[editor] exited code=" + code);
-    });
-    if (proc.stderr) {
-      new Response(proc.stderr).text().then(function (text) {
-        if (text.trim()) console.error("[editor] stderr: " + text.trim());
-      });
-    }
-  } catch (err) {
-    console.error("[editor] Bun.spawn error: " + (err instanceof Error ? err.message : String(err)));
-  }
+  var cmd = shellEscapeSingle(executable) + " " + args.map(function (a) {
+    return a.startsWith("$(") ? a : shellEscapeSingle(a);
+  }).join(" ") + " &";
+
+  console.log("[editor] Running: " + cmd);
+  execSync(cmd, { stdio: "ignore", timeout: 5000 });
 });
