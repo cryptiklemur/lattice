@@ -125,8 +125,7 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
     return;
   }
 
-  console.log("[editor] Opening: executable=" + executable + " type=" + editorType + " path=" + fullPath + " wsl=" + isWSLEnabled());
-  var editorFilePath = toEditorPath(fullPath);
+  var editorFilePath = fullPath;
   var args: string[] = [];
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
     if (msg.line) {
@@ -139,19 +138,12 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   } else if (editorType === "notepad++") {
     args = msg.line ? ["-n" + msg.line, editorFilePath] : [editorFilePath];
   } else {
-    // JetBrains IDEs (webstorm, intellij, pycharm, goland)
     args = msg.line ? ["--line", String(msg.line), editorFilePath] : [editorFilePath];
   }
 
-  function shellQuote(s: string): string {
-    return "'" + s.replace(/'/g, "'\\''") + "'";
-  }
-  var quotedArgs = args.map(function (a) { return shellQuote(a); }).join(" ");
-  var cmd = shellQuote(executable) + " " + quotedArgs;
-  console.log("[editor] Running: " + cmd);
+  console.log("[editor] Spawning: " + executable + " " + args.join(" "));
   try {
-    var child = spawn("sh", ["-c", cmd + " &"], { detached: true, stdio: "ignore" });
-    child.unref();
+    spawn(executable, args, { detached: true, stdio: "ignore" }).unref();
   } catch (err) {
     console.error("[editor] Failed to spawn: " + (err instanceof Error ? err.message : String(err)));
   }
