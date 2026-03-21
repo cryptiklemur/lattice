@@ -79,6 +79,7 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
 
   if (message.type !== "editor:open") return;
 
+  console.log("[editor] Received editor:open:", JSON.stringify(message));
   var msg = message as EditorOpenMessage;
 
   var projectSlug = msg.projectSlug || null;
@@ -119,8 +120,12 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   if (!executable) {
     executable = detectEditorPath(editorType) || "";
   }
-  if (!executable) return;
+  if (!executable) {
+    console.warn("[editor] No executable found for " + editorType);
+    return;
+  }
 
+  console.log("[editor] Opening: executable=" + executable + " type=" + editorType + " path=" + fullPath + " wsl=" + isWSLEnabled());
   var editorFilePath = toEditorPath(fullPath);
   var args: string[] = [];
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
@@ -138,8 +143,12 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
     args = msg.line ? ["--line", String(msg.line), editorFilePath] : [editorFilePath];
   }
 
+  console.log("[editor] Spawning: " + executable + " " + args.join(" "));
   try {
-    spawn(executable, args, { detached: true, stdio: "ignore" }).unref();
+    var child = spawn(executable, args, { detached: true, stdio: "pipe" });
+    child.stderr.on("data", function (data: Buffer) { console.error("[editor] stderr: " + data.toString()); });
+    child.on("error", function (err: Error) { console.error("[editor] spawn error: " + err.message); });
+    child.unref();
   } catch (err) {
     console.error("[editor] Failed to spawn " + executable + ": " + (err instanceof Error ? err.message : String(err)));
   }
