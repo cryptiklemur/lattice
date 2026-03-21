@@ -43,13 +43,13 @@ export function getEditorUrl(editorType: string, projectPath: string, filePath: 
   }
 
   if (editorType === "vscode") {
-    return "vscode://file" + resolvedPath + (line ? ":" + line : "");
+    return "vscode://file/" + resolvedPath + (line ? ":" + line : "");
   }
   if (editorType === "vscode-insiders") {
-    return "vscode-insiders://file" + resolvedPath + (line ? ":" + line : "");
+    return "vscode-insiders://file/" + resolvedPath + (line ? ":" + line : "");
   }
   if (editorType === "cursor") {
-    return "cursor://file" + resolvedPath + (line ? ":" + line : "");
+    return "cursor://file/" + resolvedPath + (line ? ":" + line : "");
   }
   if (editorType === "sublime") {
     return "subl://open?url=file://" + encodeURIComponent(resolvedPath) + (line ? "&line=" + line : "");
