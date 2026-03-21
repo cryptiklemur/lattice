@@ -1,6 +1,6 @@
 import { exec, execSync, spawn } from "node:child_process";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync, unlinkSync } from "node:fs";
 import type { ClientMessage, EditorDetectMessage, EditorOpenMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
@@ -144,22 +144,33 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   function shellEscape(s: string): string {
     return "'" + s.replace(/'/g, "'\\''") + "'";
   }
-  function shellEscapeSingle(s: string): string {
-    return "'" + s.replace(/'/g, "'\\''") + "'";
-  }
+  var scriptLines = ["#!/bin/bash"];
 
   if (isWSLEnabled()) {
     for (var ai = 0; ai < args.length; ai++) {
       if (args[ai].startsWith("/") && !args[ai].startsWith("/mnt/")) {
-        args[ai] = "$(wslpath -w " + shellEscapeSingle(args[ai]) + ")";
+        scriptLines.push("ARG" + ai + '="$(wslpath -w \'' + args[ai].replace(/'/g, "'\\''") + '\')"');
+        args[ai] = "$ARG" + ai;
       }
     }
   }
 
-  var cmd = shellEscapeSingle(executable) + " " + args.map(function (a) {
-    return a.startsWith("$(") ? a : shellEscapeSingle(a);
-  }).join(" ") + " &";
+  var quotedArgs = args.map(function (a) {
+    if (a.startsWith("$ARG")) return '"' + a + '"';
+    return "'" + a.replace(/'/g, "'\\''") + "'";
+  }).join(" ");
 
-  console.log("[editor] Running: " + cmd);
-  execSync(cmd, { stdio: "ignore", timeout: 5000 });
+  scriptLines.push("'" + executable.replace(/'/g, "'\\''") + "' " + quotedArgs);
+
+  var script = scriptLines.join("\n");
+  var tmpFile = "/tmp/lattice-editor-" + Date.now() + ".sh";
+  writeFileSync(tmpFile, script, { mode: 0o755 });
+  console.log("[editor] Script: " + tmpFile);
+  console.log("[editor] Content: " + script.replace(/\n/g, " | "));
+
+  Bun.spawn(["bash", tmpFile], { stdout: "ignore", stderr: "ignore" });
+
+  setTimeout(function () {
+    try { unlinkSync(tmpFile); } catch {}
+  }, 5000);
 });
