@@ -1,4 +1,4 @@
-import { execSync, spawn } from "node:child_process";
+import { exec, execSync, spawn } from "node:child_process";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { ClientMessage, EditorDetectMessage, EditorOpenMessage } from "@lattice/shared";
@@ -141,19 +141,14 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
     args = msg.line ? ["--line", String(msg.line), editorFilePath] : [editorFilePath];
   }
 
-  console.log("[editor] Spawning: " + executable + " " + args.join(" "));
-  try {
-    var child = spawn(executable, args, { detached: true, stdio: "pipe" });
-    child.on("error", function (err) {
-      console.error("[editor] spawn error event: " + err.message);
-    });
-    child.on("exit", function (code, signal) {
-      console.log("[editor] process exited: code=" + code + " signal=" + signal);
-    });
-    child.stdout.on("data", function (d) { console.log("[editor] stdout: " + d.toString().trim()); });
-    child.stderr.on("data", function (d) { console.error("[editor] stderr: " + d.toString().trim()); });
-    child.unref();
-  } catch (err) {
-    console.error("[editor] Failed to spawn: " + (err instanceof Error ? err.message : String(err)));
+  function shellEscape(s: string): string {
+    return "'" + s.replace(/'/g, "'\\''") + "'";
   }
+  var cmd = shellEscape(executable) + " " + args.map(shellEscape).join(" ");
+  console.log("[editor] exec: " + cmd);
+  exec(cmd, function (err, stdout, stderr) {
+    if (err) console.error("[editor] exec error: " + err.message);
+    if (stdout) console.log("[editor] stdout: " + stdout.trim());
+    if (stderr) console.error("[editor] stderr: " + stderr.trim());
+  });
 });
