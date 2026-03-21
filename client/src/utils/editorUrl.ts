@@ -42,14 +42,12 @@ export function getEditorUrl(editorType: string, projectPath: string, filePath: 
     return buildJetBrainsUrl(jetbrainsId, resolvedPath, line);
   }
 
-  if (editorType === "vscode") {
-    return "vscode://file/" + resolvedPath + (line ? ":" + line : "");
-  }
-  if (editorType === "vscode-insiders") {
-    return "vscode-insiders://file/" + resolvedPath + (line ? ":" + line : "");
-  }
-  if (editorType === "cursor") {
-    return "cursor://file/" + resolvedPath + (line ? ":" + line : "");
+  if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
+    var scheme = editorType;
+    if (wslDistro) {
+      return scheme + "://vscode-remote/wsl+" + wslDistro + fullPath + (line ? ":" + line : "");
+    }
+    return scheme + "://file/" + resolvedPath + (line ? ":" + line : "");
   }
   if (editorType === "sublime") {
     return "subl://open?url=file://" + encodeURIComponent(resolvedPath) + (line ? "&line=" + line : "");
