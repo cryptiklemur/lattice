@@ -48,6 +48,7 @@ import {
   removeQueuedMessage,
   updateQueuedMessage,
   clearMessageQueue,
+  setSessionBusy,
 } from "../stores/session";
 import type { SessionState } from "../stores/session";
 
@@ -102,8 +103,9 @@ export function useSession(): UseSessionReturn {
     lastUsedEffort = effort;
     setFailedInput(null);
     setPromptSuggestion(null);
-    sendRef.current(msg as ChatSendMessage);
     setIsProcessing(true);
+    setSessionBusy(false);
+    sendRef.current(msg as ChatSendMessage);
   }
 
   sendMessageRef.current = sendMessage;
@@ -276,6 +278,7 @@ export function useSession(): UseSessionReturn {
             lastReadIndex: null,
             historyLoading: false,
             wasInterrupted: m.interrupted || false,
+            isBusy: m.busy || false,
           };
         });
         var storedIndex = getLastReadIndex(m.sessionId);
@@ -304,6 +307,17 @@ export function useSession(): UseSessionReturn {
       setPromptSuggestion(m.suggestion);
     }
 
+    function handleSessionBusy(msg: ServerMessage) {
+      var m = msg as { type: string; sessionId: string; busy: boolean };
+      var sessionState = getSessionStore().state;
+      if (m.sessionId === sessionState.activeSessionId) {
+        if (m.busy && sessionState.isProcessing) {
+          return;
+        }
+        setSessionBusy(m.busy);
+      }
+    }
+
     subscribe("chat:user_message", handleUserMessage);
     subscribe("chat:delta", handleDelta);
     subscribe("chat:tool_start", handleToolStart);
@@ -317,6 +331,7 @@ export function useSession(): UseSessionReturn {
     subscribe("chat:context_breakdown", handleContextBreakdown);
     subscribe("session:history", handleHistory);
     subscribe("chat:prompt_suggestion", handlePromptSuggestion);
+    subscribe("session:busy", handleSessionBusy);
 
     return function () {
       subscriptionsActive--;
@@ -333,6 +348,7 @@ export function useSession(): UseSessionReturn {
       unsubscribe("chat:context_breakdown", handleContextBreakdown);
       unsubscribe("session:history", handleHistory);
       unsubscribe("chat:prompt_suggestion", handlePromptSuggestion);
+      unsubscribe("session:busy", handleSessionBusy);
     };
   }, [subscribe, unsubscribe]);
 
@@ -357,6 +373,7 @@ export function useSession(): UseSessionReturn {
     promptSuggestion: state.promptSuggestion,
     failedInput: state.failedInput,
     messageQueue: state.messageQueue,
+    isBusy: state.isBusy,
     enqueueMessage,
     removeQueuedMessage,
     updateQueuedMessage,
