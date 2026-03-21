@@ -69,7 +69,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
     }
   }
 
-  var ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".", undefined, wslDistro) : null;
+  var ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".", undefined, wslDistro, activeProject.ideProjectName) : null;
 
   function handleOpenTerminal() {
     openTab("terminal");

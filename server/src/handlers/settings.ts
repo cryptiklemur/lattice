@@ -8,6 +8,16 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills, readGlobalRules } from "../project/project-files";
+
+function detectIdeProjectName(projectPath: string): string | undefined {
+  try {
+    var ideNameFile = join(projectPath, ".idea", ".name");
+    if (existsSync(ideNameFile)) {
+      return readFileSync(ideNameFile, "utf-8").trim() || undefined;
+    }
+  } catch {}
+  return undefined;
+}
 import { loadOrCreateIdentity } from "../identity";
 
 function loadGlobalClaudeMd(): string {
@@ -60,7 +70,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     sendTo(clientId, {
       type: "projects:list",
       projects: config.projects.map(function (p) {
-        return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id, nodeName: config.name, isRemote: false };
+        return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id, nodeName: config.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
       }),
     });
     return;

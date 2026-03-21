@@ -20,6 +20,7 @@ export interface ProjectSummary {
 export interface ProjectInfo extends ProjectSummary {
   nodeName: string;
   isRemote: boolean;
+  ideProjectName?: string;
 }
 
 export interface SessionSummary {

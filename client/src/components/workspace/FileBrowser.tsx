@@ -112,7 +112,7 @@ export function FileBrowser() {
   }
 
   var editorUrlForSelected = selectedPath && activeProject
-    ? getEditorUrl(editorType, activeProject.path, selectedPath, undefined, wslDistro)
+    ? getEditorUrl(editorType, activeProject.path, selectedPath, undefined, wslDistro, activeProject.ideProjectName)
     : null;
 
   return (
