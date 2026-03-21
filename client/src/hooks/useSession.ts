@@ -184,7 +184,9 @@ export function useSession(): UseSessionReturn {
       }
       var nextMessage = dequeueMessage();
       if (nextMessage) {
-        sendMessageRef.current(nextMessage, lastUsedModel, lastUsedEffort);
+        setTimeout(function () {
+          sendMessageRef.current(nextMessage, lastUsedModel, lastUsedEffort);
+        }, 500);
       }
     }
 
