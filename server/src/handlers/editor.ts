@@ -144,12 +144,21 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   function shellEscape(s: string): string {
     return "'" + s.replace(/'/g, "'\\''") + "'";
   }
-  var cmd = shellEscape(executable) + " " + args.map(shellEscape).join(" ") + " &";
-  console.log("[editor] exec: " + cmd);
-  console.log("[editor] WSL_INTEROP=" + (process.env.WSL_INTEROP || "NOT SET"));
-  console.log("[editor] PATH includes /mnt/c: " + (process.env.PATH || "").includes("/mnt/c"));
-  exec(cmd, function (err, stdout, stderr) {
-    if (err) console.error("[editor] err: " + err.message);
-    if (stderr) console.error("[editor] stderr: " + stderr);
-  });
+  console.log("[editor] Launching: " + executable + " " + args.join(" "));
+  try {
+    var proc = Bun.spawn([executable, ...args], {
+      stdout: "ignore",
+      stderr: "pipe",
+    });
+    proc.exited.then(function (code) {
+      console.log("[editor] exited code=" + code);
+    });
+    if (proc.stderr) {
+      new Response(proc.stderr).text().then(function (text) {
+        if (text.trim()) console.error("[editor] stderr: " + text.trim());
+      });
+    }
+  } catch (err) {
+    console.error("[editor] Bun.spawn error: " + (err instanceof Error ? err.message : String(err)));
+  }
 });
