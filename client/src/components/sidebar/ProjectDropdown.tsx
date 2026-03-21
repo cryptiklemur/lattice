@@ -69,15 +69,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
     }
   }
 
-  function handleOpenInIDE() {
-    if (activeProject) {
-      var url = getEditorUrl(editorType, activeProject.path, ".");
-      if (url) {
-        window.location.href = url;
-      }
-    }
-    props.onClose();
-  }
+  var ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".") : null;
 
   function handleOpenTerminal() {
     openTab("terminal");
@@ -120,14 +112,17 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
         <div className="px-2 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-base-content/25">
           Actions
         </div>
-        <button
-          role="menuitem"
-          onClick={handleOpenInIDE}
-          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] text-base-content/60 hover:text-base-content hover:bg-base-content/5 transition-colors"
-        >
-          <ExternalLink size={13} className="flex-shrink-0 text-base-content/30" />
-          Open in IDE
-        </button>
+        {ideUrl && (
+          <a
+            role="menuitem"
+            href={ideUrl}
+            onClick={function () { props.onClose(); }}
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] text-base-content/60 hover:text-base-content hover:bg-base-content/5 transition-colors"
+          >
+            <ExternalLink size={13} className="flex-shrink-0 text-base-content/30" />
+            Open in IDE
+          </a>
+        )}
         <button
           role="menuitem"
           onClick={handleOpenTerminal}

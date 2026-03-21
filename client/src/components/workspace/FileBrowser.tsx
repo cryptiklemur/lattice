@@ -111,13 +111,9 @@ export function FileBrowser() {
     send({ type: "fs:read", path: path, projectSlug: activeProjectSlug || undefined });
   }
 
-  function handleOpenInIDE(path: string, line?: number) {
-    if (!activeProject) return;
-    var url = getEditorUrl(editorType, activeProject.path, path, line);
-    if (url) {
-      window.location.href = url;
-    }
-  }
+  var editorUrlForSelected = selectedPath && activeProject
+    ? getEditorUrl(editorType, activeProject.path, selectedPath)
+    : null;
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-base-100">
@@ -161,7 +157,7 @@ export function FileBrowser() {
           <FileViewer
             path={selectedPath}
             content={fileContent}
-            onOpenInIDE={handleOpenInIDE}
+            editorUrl={editorUrlForSelected}
           />
         )}
 

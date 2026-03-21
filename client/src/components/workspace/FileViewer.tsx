@@ -91,17 +91,15 @@ function isMarkdown(path: string): boolean {
 interface FileViewerProps {
   path: string;
   content: string;
-  onOpenInIDE: (path: string, line?: number) => void;
+  editorUrl: string | null;
 }
 
 export function FileViewer(props: FileViewerProps) {
-  var { path, content, onOpenInIDE } = props;
+  var { path, content, editorUrl } = props;
   var [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
   var [copied, setCopied] = useState(false);
-  var [opened, setOpened] = useState(false);
   var [showRendered, setShowRendered] = useState(true);
   var copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   var language = getLanguage(path);
   var lineCount = content.split("\n").length;
@@ -133,17 +131,6 @@ export function FileViewer(props: FileViewerProps) {
     }
     copyTimeoutRef.current = setTimeout(function () {
       setCopied(false);
-    }, 2000);
-  }
-
-  function handleOpenIDE() {
-    onOpenInIDE(path);
-    setOpened(true);
-    if (openTimeoutRef.current) {
-      clearTimeout(openTimeoutRef.current);
-    }
-    openTimeoutRef.current = setTimeout(function () {
-      setOpened(false);
     }, 2000);
   }
 
@@ -179,13 +166,15 @@ export function FileViewer(props: FileViewerProps) {
         >
           {copied ? <Check size={13} className="text-success" /> : <Copy size={13} />}
         </button>
-        <button
-          onClick={handleOpenIDE}
-          className="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content"
-          title="Open in editor"
-        >
-          {opened ? <Check size={13} className="text-success" /> : <ExternalLink size={13} />}
-        </button>
+        {editorUrl && (
+          <a
+            href={editorUrl}
+            className="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content"
+            title="Open in editor"
+          >
+            <ExternalLink size={13} />
+          </a>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">
