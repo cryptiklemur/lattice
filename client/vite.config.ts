@@ -54,9 +54,18 @@ export default defineConfig({
       "/ws": {
         target: "ws://localhost:7654",
         ws: true,
+        configure: function (proxy) {
+          proxy.on("error", function () {});
+          proxy.on("proxyReqWs", function (_proxyReq, _req, socket) {
+            socket.on("error", function () {});
+          });
+        },
       },
       "/api": {
         target: "http://localhost:7654",
+        configure: function (proxy) {
+          proxy.on("error", function () {});
+        },
       },
     },
   },
