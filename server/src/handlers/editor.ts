@@ -143,8 +143,11 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
     args = msg.line ? ["--line", String(msg.line), editorFilePath] : [editorFilePath];
   }
 
-  var quotedArgs = args.map(function (a) { return JSON.stringify(a); }).join(" ");
-  var cmd = JSON.stringify(executable) + " " + quotedArgs;
+  function shellQuote(s: string): string {
+    return "'" + s.replace(/'/g, "'\\''") + "'";
+  }
+  var quotedArgs = args.map(function (a) { return shellQuote(a); }).join(" ");
+  var cmd = shellQuote(executable) + " " + quotedArgs;
   console.log("[editor] Running: " + cmd);
   try {
     var child = spawn("sh", ["-c", cmd + " &"], { detached: true, stdio: "ignore" });
