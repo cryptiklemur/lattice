@@ -11,12 +11,12 @@ var binaryNames: Record<string, string[]> = {
   "vscode": ["code"],
   "vscode-insiders": ["code-insiders"],
   "cursor": ["cursor"],
-  "webstorm": ["webstorm"],
-  "intellij": ["idea"],
-  "pycharm": ["pycharm"],
-  "goland": ["goland"],
+  "webstorm": ["webstorm", "webstorm.sh", "wstorm"],
+  "intellij": ["idea", "idea.sh"],
+  "pycharm": ["pycharm", "pycharm.sh", "charm"],
+  "goland": ["goland", "goland.sh"],
   "notepad++": ["notepad++"],
-  "sublime": ["subl"],
+  "sublime": ["subl", "sublime_text"],
 };
 
 function detectEditorPath(editorType: string): string | null {
@@ -45,13 +45,24 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   if (message.type !== "editor:open") return;
 
   var msg = message as EditorOpenMessage;
-  var active = getActiveSession(clientId);
-  if (!active) return;
 
-  var project = getProjectBySlug(active.projectSlug);
-  if (!project) return;
+  var projectSlug = msg.projectSlug || null;
+  if (!projectSlug) {
+    var active = getActiveSession(clientId);
+    if (active) projectSlug = active.projectSlug;
+  }
+  if (!projectSlug) {
+    console.warn("[editor] No project context for editor:open");
+    return;
+  }
 
-  var fullPath = join(project.path, msg.path);
+  var project = getProjectBySlug(projectSlug);
+  if (!project) {
+    console.warn("[editor] Project not found: " + projectSlug);
+    return;
+  }
+
+  var fullPath = msg.path === "." ? project.path : join(project.path, msg.path);
   var config = loadConfig();
   var editorConfig = config.editor;
   var editorType = editorConfig?.type || "vscode";
@@ -74,18 +85,25 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   }
   if (!executable) return;
 
-  var lineArg = msg.line ? ":" + msg.line : "";
-
   var args: string[] = [];
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
-    args = ["-g", fullPath + lineArg];
+    if (msg.line) {
+      args = ["-g", fullPath + ":" + msg.line];
+    } else {
+      args = [fullPath];
+    }
   } else if (editorType === "sublime") {
-    args = [fullPath + lineArg];
+    args = msg.line ? [fullPath + ":" + msg.line] : [fullPath];
   } else if (editorType === "notepad++") {
-    args = ["-n" + String(msg.line || 1), fullPath];
+    args = msg.line ? ["-n" + msg.line, fullPath] : [fullPath];
   } else {
-    args = ["--line", String(msg.line || 1), fullPath];
+    // JetBrains IDEs (webstorm, intellij, pycharm, goland)
+    args = msg.line ? ["--line", String(msg.line), fullPath] : [fullPath];
   }
 
-  spawn(executable, args, { detached: true, stdio: "ignore" }).unref();
+  try {
+    spawn(executable, args, { detached: true, stdio: "ignore" }).unref();
+  } catch (err) {
+    console.error("[editor] Failed to spawn " + executable + ": " + (err instanceof Error ? err.message : String(err)));
+  }
 });

@@ -273,6 +273,7 @@ export interface EditorOpenMessage {
   type: "editor:open";
   path: string;
   line?: number;
+  projectSlug?: string;
 }
 
 export interface EditorDetectMessage {
@@ -381,6 +382,13 @@ export interface SessionHistoryMessage {
   messages: HistoryMessage[];
   title?: string;
   interrupted?: boolean;
+  busy?: boolean;
+}
+
+export interface SessionBusyMessage {
+  type: "session:busy";
+  sessionId: string;
+  busy: boolean;
 }
 
 export interface ChatUserMessage {
@@ -686,6 +694,7 @@ export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
   | SessionHistoryMessage
+  | SessionBusyMessage
   | ChatUserMessage
   | ChatDeltaMessage
   | ChatToolStartMessage

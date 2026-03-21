@@ -70,7 +70,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
 
   function handleOpenInIDE() {
     if (activeProject) {
-      ws.send({ type: "editor:open", path: "." } as any);
+      ws.send({ type: "editor:open", path: ".", projectSlug: activeProject.slug } as any);
     }
     props.onClose();
   }

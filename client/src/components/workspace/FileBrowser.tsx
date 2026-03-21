@@ -107,7 +107,7 @@ export function FileBrowser() {
   }
 
   function handleOpenInIDE(path: string, line?: number) {
-    send({ type: "editor:open", path, line });
+    send({ type: "editor:open", path: path, line: line, projectSlug: activeProjectSlug || undefined } as any);
   }
 
   return (
