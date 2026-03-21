@@ -5,7 +5,7 @@ import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } f
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { sendTo } from "../ws/broadcast";
+import { sendTo, broadcast } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
 import { resolveSkillContent } from "../handlers/skills";
 import { guessContextWindow } from "./session";
@@ -56,6 +56,42 @@ export function getAvailableModels(): ModelEntry[] {
 var activeStreams = new Map<string, Query>();
 var streamMetadata = new Map<string, { projectSlug: string; clientId: string; startedAt: number }>();
 var interruptedSessions = new Set<string>();
+
+// Track external lock state so we only broadcast on changes
+var externalLockState = new Map<string, boolean>();
+var watchedSessions = new Set<string>();
+
+/**
+ * Start polling a session's lock file for external CLI usage.
+ * Called when a client activates a session.
+ */
+export function watchSessionLock(sessionId: string): void {
+  watchedSessions.add(sessionId);
+}
+
+/**
+ * Stop polling a session's lock file.
+ */
+export function unwatchSessionLock(sessionId: string): void {
+  watchedSessions.delete(sessionId);
+  externalLockState.delete(sessionId);
+}
+
+// Poll every 3 seconds for external lock changes
+setInterval(function () {
+  for (var sessionId of watchedSessions) {
+    // Skip sessions with active Lattice streams — those are already tracked
+    if (activeStreams.has(sessionId)) continue;
+
+    var locked = isSessionLockedByExternal(sessionId);
+    var prev = externalLockState.get(sessionId) ?? false;
+
+    if (locked !== prev) {
+      externalLockState.set(sessionId, locked);
+      broadcast({ type: "session:busy", sessionId, busy: locked });
+    }
+  }
+}, 3000);
 
 function getStreamStatePath(): string {
   return join(getLatticeHome(), "active-streams.json");
@@ -116,6 +152,98 @@ export function setSessionPermissionOverride(sessionId: string, mode: Permission
 
 export function getActiveStream(sessionId: string): Query | undefined {
   return activeStreams.get(sessionId);
+}
+
+/**
+ * Check if a session is controlled by an external process (not Lattice).
+ * Lattice's own active streams are handled by isProcessing on the client,
+ * so this ONLY returns true for external CLI instances.
+ */
+export function isSessionBusy(sessionId: string): boolean {
+  return isSessionLockedByExternal(sessionId);
+}
+
+/**
+ * Check if a PID is the Lattice daemon or one of its child processes.
+ * The SDK spawns child processes (e.g. claude-agent-sdk/cli.js) that hold
+ * lock files — those are NOT external.
+ */
+function isOwnProcess(pid: number): boolean {
+  var myPid = process.pid;
+  if (pid === myPid) return true;
+  // Walk up the process tree to see if pid is a descendant of us
+  var current = pid;
+  for (var i = 0; i < 10; i++) {
+    try {
+      var stat = readFileSync("/proc/" + current + "/stat", "utf-8");
+      // Format: pid (comm) state ppid ...
+      var match = stat.match(/^\d+\s+\([^)]*\)\s+\S+\s+(\d+)/);
+      if (!match) return false;
+      var ppid = parseInt(match[1], 10);
+      if (ppid === myPid) return true;
+      if (ppid <= 1) return false;
+      current = ppid;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Get PIDs holding the session lock file, excluding Lattice's own process tree.
+ * Returns the list of truly external PIDs.
+ */
+function getExternalLockPids(sessionId: string): number[] {
+  var lockPath = join(homedir(), ".claude", "tasks", sessionId, ".lock");
+  if (!existsSync(lockPath)) return [];
+  try {
+    var result = Bun.spawnSync(["fuser", lockPath], {
+      stderr: "ignore",
+    });
+    if (result.exitCode !== 0) return [];
+    var output = result.stdout.toString().trim();
+    var pids = output.split(/\s+/)
+      .map(function (s) { return parseInt(s, 10); })
+      .filter(function (p) { return !isNaN(p) && !isOwnProcess(p); });
+    return pids;
+  } catch {
+    return [];
+  }
+}
+
+function isSessionLockedByExternal(sessionId: string): boolean {
+  return getExternalLockPids(sessionId).length > 0;
+}
+
+/**
+ * Get the first external PID holding the session lock file.
+ * Used to send SIGINT to stop the external process.
+ */
+function getExternalLockPid(sessionId: string): number | null {
+  var pids = getExternalLockPids(sessionId);
+  return pids.length > 0 ? pids[0] : null;
+}
+
+/**
+ * Gracefully stop an external Claude Code CLI process controlling a session.
+ * Sends SIGINT which triggers Claude Code's graceful shutdown.
+ * Returns true if a signal was sent.
+ */
+export function stopExternalSession(sessionId: string): boolean {
+  var pid = getExternalLockPid(sessionId);
+  if (pid === null) return false;
+  try {
+    process.kill(pid, "SIGINT");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getSessionStreamClientId(sessionId: string): string | undefined {
+  var meta = streamMetadata.get(sessionId);
+  return meta ? meta.clientId : undefined;
 }
 
 export function matchesAllowRules(rules: string[], toolName: string, currentRule: string): boolean {
@@ -382,6 +510,7 @@ export function startChatStream(options: ChatStreamOptions): void {
   activeStreams.set(sessionId, stream);
   streamMetadata.set(sessionId, { projectSlug, clientId, startedAt: Date.now() });
   persistStreamState();
+  broadcast({ type: "session:busy", sessionId, busy: true }, clientId);
 
   void (async function () {
     try {
@@ -396,6 +525,7 @@ export function startChatStream(options: ChatStreamOptions): void {
       activeStreams.delete(sessionId);
       streamMetadata.delete(sessionId);
       persistStreamState();
+      broadcast({ type: "session:busy", sessionId, busy: false }, clientId);
 
       var toCleanup: string[] = [];
       pendingPermissions.forEach(function (entry, reqId) {
