@@ -3,6 +3,9 @@ import { ArrowLeft, FileCode, FileX } from "lucide-react";
 import type { FsListResultMessage, FsReadResultMessage, ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
+import { useProjects } from "../../hooks/useProjects";
+import { useEditorConfig } from "../../hooks/useEditorConfig";
+import { getEditorUrl } from "../../utils/editorUrl";
 import { FileTree, buildNodes } from "./FileTree";
 import { FileViewer } from "./FileViewer";
 import type { TreeNode } from "./FileTree";
@@ -10,6 +13,8 @@ import type { TreeNode } from "./FileTree";
 export function FileBrowser() {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var { activeProjectSlug } = useSidebar();
+  var { activeProject } = useProjects();
+  var { editorType } = useEditorConfig();
   var projectSlugRef = useRef<string | null>(null);
   projectSlugRef.current = activeProjectSlug;
   var [rootNodes, setRootNodes] = useState<TreeNode[]>([]);
@@ -107,7 +112,11 @@ export function FileBrowser() {
   }
 
   function handleOpenInIDE(path: string, line?: number) {
-    send({ type: "editor:open", path: path, line: line, projectSlug: activeProjectSlug || undefined } as any);
+    if (!activeProject) return;
+    var url = getEditorUrl(editorType, activeProject.path, path, line);
+    if (url) {
+      window.location.href = url;
+    }
   }
 
   return (

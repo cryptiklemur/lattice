@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { useProjects } from "../../hooks/useProjects";
 import { useSidebar } from "../../hooks/useSidebar";
-import { useWebSocket } from "../../hooks/useWebSocket";
+import { useEditorConfig } from "../../hooks/useEditorConfig";
+import { getEditorUrl } from "../../utils/editorUrl";
 import { openTab } from "../../stores/workspace";
 import { getSidebarStore } from "../../stores/sidebar";
 import { useState } from "react";
@@ -20,7 +21,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
   var menuRef = useRef<HTMLDivElement>(null);
   var { activeProject } = useProjects();
   var sidebar = useSidebar();
-  var ws = useWebSocket();
+  var { editorType } = useEditorConfig();
   var [copied, setCopied] = useState(false);
 
   useEffect(function () {
@@ -70,7 +71,10 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
 
   function handleOpenInIDE() {
     if (activeProject) {
-      ws.send({ type: "editor:open", path: ".", projectSlug: activeProject.slug } as any);
+      var url = getEditorUrl(editorType, activeProject.path, ".");
+      if (url) {
+        window.location.href = url;
+      }
     }
     props.onClose();
   }
