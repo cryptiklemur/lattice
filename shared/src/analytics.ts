@@ -27,6 +27,12 @@ export interface AnalyticsPayload {
   hourlyHeatmap: Array<{ day: number; hour: number; count: number }>;
   sessionTimeline: Array<{ id: string; title: string; project: string; start: number; end: number; cost: number }>;
   dailySummaries: Array<{ date: string; sessions: number; cost: number; tokens: number; topTool: string; modelMix: Record<string, number> }>;
+
+  toolTreemap: Array<{ name: string; count: number; avgCost: number }>;
+  toolSunburst: Array<{ name: string; category: string; count: number }>;
+  permissionStats: { allowed: number; denied: number; alwaysAllowed: number };
+  projectRadar: Array<{ project: string; cost: number; sessions: number; avgDuration: number; toolDiversity: number; tokensPerSession: number }>;
+  sessionComplexity: Array<{ id: string; title: string; score: number; messages: number; tools: number; contextPercent: number }>;
 }
 
 export type AnalyticsPeriod = "24h" | "7d" | "30d" | "90d" | "all";

@@ -638,6 +638,98 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     });
   }
 
+  var toolTreemap: AnalyticsPayload["toolTreemap"] = [];
+  toolStats.forEach(function (val, key) {
+    toolTreemap.push({
+      name: key,
+      count: val.count,
+      avgCost: val.sessions > 0 ? val.totalCost / val.sessions : 0,
+    });
+  });
+  toolTreemap.sort(function (a, b) { return b.count - a.count; });
+
+  var toolCategoryMap: Record<string, string> = {
+    Read: "Read", Glob: "Read", Grep: "Read", LS: "Read",
+    Edit: "Write", Write: "Write", MultiEdit: "Write",
+    Bash: "Execute",
+    Agent: "AI", Skill: "AI",
+  };
+  var toolSunburst: AnalyticsPayload["toolSunburst"] = [];
+  toolStats.forEach(function (val, key) {
+    var category = toolCategoryMap[key] || "Other";
+    toolSunburst.push({ name: key, category: category, count: val.count });
+  });
+  toolSunburst.sort(function (a, b) { return b.count - a.count; });
+
+  var totalToolCalls = 0;
+  toolStats.forEach(function (val) { totalToolCalls += val.count; });
+  var permissionStats: AnalyticsPayload["permissionStats"] = {
+    allowed: totalToolCalls,
+    denied: 0,
+    alwaysAllowed: 0,
+  };
+
+  var projectRadarMap = new Map<string, { cost: number; sessions: number; totalDuration: number; durationCount: number; tools: Set<string>; totalTokens: number }>();
+  for (var pri = 0; pri < filtered.length; pri++) {
+    var prSess = filtered[pri];
+    var prEntry = projectRadarMap.get(prSess.project);
+    if (!prEntry) {
+      prEntry = { cost: 0, sessions: 0, totalDuration: 0, durationCount: 0, tools: new Set(), totalTokens: 0 };
+      projectRadarMap.set(prSess.project, prEntry);
+    }
+    prEntry.cost += prSess.cost;
+    prEntry.sessions++;
+    prEntry.totalTokens += prSess.inputTokens + prSess.outputTokens;
+    if (prSess.startTime > 0 && prSess.endTime > prSess.startTime) {
+      prEntry.totalDuration += prSess.endTime - prSess.startTime;
+      prEntry.durationCount++;
+    }
+    prSess.tools.forEach(function (_count, tool) { prEntry!.tools.add(tool); });
+  }
+  var projectRadar: AnalyticsPayload["projectRadar"] = [];
+  projectRadarMap.forEach(function (val, key) {
+    projectRadar.push({
+      project: key,
+      cost: val.cost,
+      sessions: val.sessions,
+      avgDuration: val.durationCount > 0 ? val.totalDuration / val.durationCount : 0,
+      toolDiversity: val.tools.size,
+      tokensPerSession: val.sessions > 0 ? val.totalTokens / val.sessions : 0,
+    });
+  });
+  projectRadar.sort(function (a, b) { return b.cost - a.cost; });
+  if (projectRadar.length > 5) projectRadar.length = 5;
+
+  var contextWindowSizesForComplexity: Record<string, number> = { opus: 200000, sonnet: 200000, haiku: 200000, other: 200000 };
+  var sessionComplexity: AnalyticsPayload["sessionComplexity"] = [];
+  for (var sci = 0; sci < filtered.length; sci++) {
+    var scSess = filtered[sci];
+    var scUniqueTools = scSess.tools.size;
+    var scMessages = scSess.contextMessages.length;
+    var scRunning = 0;
+    var scPrimaryModel = "other";
+    var scMaxTokens = 0;
+    scSess.models.forEach(function (val, key) {
+      if (val.tokens > scMaxTokens) { scMaxTokens = val.tokens; scPrimaryModel = key; }
+    });
+    var scWindowSize = contextWindowSizesForComplexity[scPrimaryModel] || 200000;
+    for (var scmi = 0; scmi < scSess.contextMessages.length; scmi++) {
+      scRunning += scSess.contextMessages[scmi].inputTokens;
+    }
+    var scContextPercent = Math.min((scRunning / scWindowSize) * 100, 100);
+    var scScore = (scMessages * 1) + (scUniqueTools * 5) + (scContextPercent * 0.5);
+    sessionComplexity.push({
+      id: scSess.id,
+      title: scSess.title,
+      score: Math.round(scScore * 10) / 10,
+      messages: scMessages,
+      tools: scUniqueTools,
+      contextPercent: Math.round(scContextPercent * 10) / 10,
+    });
+  }
+  sessionComplexity.sort(function (a, b) { return b.score - a.score; });
+  if (sessionComplexity.length > 20) sessionComplexity.length = 20;
+
   return {
     totalCost: totalCost,
     totalSessions: filtered.length,
@@ -667,6 +759,11 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     hourlyHeatmap: hourlyHeatmap,
     sessionTimeline: sessionTimeline,
     dailySummaries: dailySummaries,
+    toolTreemap: toolTreemap,
+    toolSunburst: toolSunburst,
+    permissionStats: permissionStats,
+    projectRadar: projectRadar,
+    sessionComplexity: sessionComplexity,
   };
 }
 
