@@ -20,7 +20,7 @@ import { useOnline } from "../../hooks/useOnline";
 import { useSpinnerVerb } from "../../hooks/useSpinnerVerb";
 
 export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, isPlanMode } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
   var online = useOnline();
@@ -612,6 +612,13 @@ export function ChatView() {
           </button>
         )}
       </div>
+
+      {isPlanMode && (
+        <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/8 border-b border-primary/15">
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-[11px] font-mono font-medium text-primary/60 uppercase tracking-wider">Plan Mode</span>
+        </div>
+      )}
 
       <div
         ref={scrollParentRef}

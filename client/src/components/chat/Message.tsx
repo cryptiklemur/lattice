@@ -6,6 +6,8 @@ import type { HistoryMessage, ChatPermissionResponseMessage } from "@lattice/sha
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { ToolResultRenderer } from "./ToolResultRenderer";
 import { formatToolSummary } from "./toolSummary";
+import { PromptQuestion } from "./PromptQuestion";
+import { TodoCard } from "./TodoCard";
 
 var mdComponents = {
   table: function (props: React.HTMLAttributes<HTMLTableElement>) {
@@ -367,6 +369,14 @@ export function Message(props: MessageProps) {
 
   if (msg.type === "permission_request") {
     return <PermissionMessage message={msg} />;
+  }
+
+  if (msg.type === "prompt_question") {
+    return <PromptQuestion message={msg} />;
+  }
+
+  if (msg.type === "todo_update") {
+    return <TodoCard message={msg} />;
   }
 
   return null;
