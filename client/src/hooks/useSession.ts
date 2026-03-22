@@ -182,14 +182,10 @@ export function useSession(): UseSessionReturn {
       if (activeId) {
         markSessionRead(activeId, getSessionStore().state.messages.length);
       }
-      var queued: string[] = [];
-      var next = dequeueMessage();
-      while (next) {
-        queued.push(next);
-        next = dequeueMessage();
-      }
-      if (queued.length > 0) {
-        var combined = queued.join("\n\n");
+      var queue = getSessionStore().state.messageQueue;
+      if (queue.length > 0) {
+        var combined = queue.join("\n\n");
+        clearMessageQueue();
         setTimeout(function () {
           sendMessageRef.current(combined, lastUsedModel, lastUsedEffort);
         }, 100);
