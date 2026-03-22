@@ -1,0 +1,491 @@
+import { readdirSync, existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope } from "@lattice/shared";
+import { estimateCost, projectPathToHash } from "../project/session";
+import { loadConfig } from "../config";
+
+interface SessionData {
+  id: string;
+  title: string;
+  project: string;
+  cost: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  models: Map<string, { cost: number; tokens: number }>;
+  tools: Map<string, number>;
+  startTime: number;
+  endTime: number;
+}
+
+interface CacheEntry {
+  data: AnalyticsPayload;
+  timestamp: number;
+}
+
+var cache = new Map<string, CacheEntry>();
+var CACHE_TTL = 5 * 60 * 1000;
+
+function bucketModel(model: string): "opus" | "sonnet" | "haiku" | "other" {
+  if (model.includes("opus")) return "opus";
+  if (model.includes("haiku")) return "haiku";
+  if (model.includes("sonnet")) return "sonnet";
+  return "other";
+}
+
+function getPeriodCutoff(period: AnalyticsPeriod): number {
+  if (period === "all") return 0;
+  var now = Date.now();
+  var hours: Record<string, number> = { "24h": 24, "7d": 168, "30d": 720, "90d": 2160 };
+  return now - (hours[period] || 0) * 60 * 60 * 1000;
+}
+
+function formatDate(ts: number): string {
+  var d = new Date(ts);
+  var year = d.getFullYear();
+  var month = String(d.getMonth() + 1).padStart(2, "0");
+  var day = String(d.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function getCostBucket(cost: number): string {
+  if (cost < 0.01) return "$0-0.01";
+  if (cost < 0.05) return "$0.01-0.05";
+  if (cost < 0.10) return "$0.05-0.10";
+  if (cost < 0.50) return "$0.10-0.50";
+  if (cost < 1.00) return "$0.50-1.00";
+  if (cost < 5.00) return "$1.00-5.00";
+  return "$5.00+";
+}
+
+function parseSessionFile(filePath: string, sessionId: string, projectSlug: string): SessionData | null {
+  try {
+    var text: string;
+    try {
+      text = require("node:fs").readFileSync(filePath, "utf-8");
+    } catch {
+      return null;
+    }
+
+    var lines = text.split("\n");
+    var data: SessionData = {
+      id: sessionId,
+      title: "",
+      project: projectSlug,
+      cost: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheCreationTokens: 0,
+      models: new Map(),
+      tools: new Map(),
+      startTime: 0,
+      endTime: 0,
+    };
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+
+      var parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(line);
+      } catch {
+        continue;
+      }
+
+      var timestamp = 0;
+      if (typeof parsed.timestamp === "string") {
+        var ts = new Date(parsed.timestamp as string).getTime();
+        if (!isNaN(ts)) timestamp = ts;
+      }
+
+      if (timestamp > 0) {
+        if (data.startTime === 0 || timestamp < data.startTime) data.startTime = timestamp;
+        if (timestamp > data.endTime) data.endTime = timestamp;
+      }
+
+      if (parsed.type === "assistant") {
+        var message = parsed.message as Record<string, unknown> | undefined;
+        if (!message) continue;
+
+        var usage = message.usage as Record<string, number> | undefined;
+        var model = (message.model as string) || "";
+
+        if (usage) {
+          var inTok = usage.input_tokens || 0;
+          var outTok = usage.output_tokens || 0;
+          var cacheRead = usage.cache_read_input_tokens || 0;
+          var cacheCreation = usage.cache_creation_input_tokens || 0;
+
+          data.inputTokens += inTok;
+          data.outputTokens += outTok;
+          data.cacheReadTokens += cacheRead;
+          data.cacheCreationTokens += cacheCreation;
+
+          var cost = estimateCost(model, inTok, outTok, cacheRead, cacheCreation);
+          data.cost += cost;
+
+          var bucket = bucketModel(model);
+          var existing = data.models.get(bucket);
+          if (existing) {
+            existing.cost += cost;
+            existing.tokens += inTok + outTok;
+          } else {
+            data.models.set(bucket, { cost: cost, tokens: inTok + outTok });
+          }
+        }
+
+        if (!data.title && message.content) {
+          if (typeof message.content === "string" && message.content.length > 0) {
+            data.title = message.content.slice(0, 80);
+          }
+        }
+      } else if (parsed.type === "user") {
+        var userMsg = parsed.message as Record<string, unknown> | undefined;
+        if (!userMsg || !Array.isArray(userMsg.content)) continue;
+
+        var contentArr = userMsg.content as Array<Record<string, unknown>>;
+        for (var j = 0; j < contentArr.length; j++) {
+          var block = contentArr[j];
+          if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
+            var toolName = (block.name as string) || "unknown";
+            data.tools.set(toolName, (data.tools.get(toolName) || 0) + 1);
+          }
+        }
+
+        if (!data.title && Array.isArray(userMsg.content)) {
+          for (var k = 0; k < contentArr.length; k++) {
+            if (contentArr[k].type === "text" && typeof contentArr[k].text === "string") {
+              data.title = (contentArr[k].text as string).slice(0, 80);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!data.title) data.title = "Session " + sessionId.slice(0, 8);
+
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function getSessionFilesForProject(projectPath: string): Array<{ path: string; id: string }> {
+  var hash = projectPathToHash(projectPath);
+  var dir = join(homedir(), ".claude", "projects", hash);
+  if (!existsSync(dir)) return [];
+
+  var files: Array<{ path: string; id: string }> = [];
+  try {
+    var entries = readdirSync(dir);
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].endsWith(".jsonl")) {
+        files.push({
+          path: join(dir, entries[i]),
+          id: entries[i].replace(".jsonl", ""),
+        });
+      }
+    }
+  } catch {
+    return [];
+  }
+  return files;
+}
+
+function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsPayload {
+  var cutoff = getPeriodCutoff(period);
+  var filtered: SessionData[] = [];
+  for (var i = 0; i < sessions.length; i++) {
+    var s = sessions[i];
+    var sessionTime = s.endTime > 0 ? s.endTime : s.startTime;
+    if (sessionTime >= cutoff) filtered.push(s);
+  }
+
+  var totalCost = 0;
+  var totalInput = 0;
+  var totalOutput = 0;
+  var totalCacheRead = 0;
+  var totalCacheCreation = 0;
+  var totalDuration = 0;
+  var durationCount = 0;
+
+  var dailyCost = new Map<string, { total: number; opus: number; sonnet: number; haiku: number; other: number }>();
+  var dailySessions = new Map<string, number>();
+  var dailyTokens = new Map<string, { input: number; output: number; cacheRead: number }>();
+  var dailyCacheHit = new Map<string, { cacheRead: number; totalInput: number }>();
+
+  var modelStats = new Map<string, { sessions: number; cost: number; tokens: number }>();
+  var projectStats = new Map<string, { cost: number; sessions: number; tokens: number }>();
+  var toolStats = new Map<string, { count: number; totalCost: number; sessions: number }>();
+
+  var costBuckets = new Map<string, number>();
+  var bucketOrder = ["$0-0.01", "$0.01-0.05", "$0.05-0.10", "$0.10-0.50", "$0.50-1.00", "$1.00-5.00", "$5.00+"];
+  for (var b = 0; b < bucketOrder.length; b++) {
+    costBuckets.set(bucketOrder[b], 0);
+  }
+
+  for (var si = 0; si < filtered.length; si++) {
+    var sess = filtered[si];
+    totalCost += sess.cost;
+    totalInput += sess.inputTokens;
+    totalOutput += sess.outputTokens;
+    totalCacheRead += sess.cacheReadTokens;
+    totalCacheCreation += sess.cacheCreationTokens;
+
+    if (sess.startTime > 0 && sess.endTime > 0 && sess.endTime > sess.startTime) {
+      totalDuration += sess.endTime - sess.startTime;
+      durationCount++;
+    }
+
+    var date = formatDate(sess.endTime > 0 ? sess.endTime : sess.startTime);
+
+    var dc = dailyCost.get(date);
+    if (!dc) {
+      dc = { total: 0, opus: 0, sonnet: 0, haiku: 0, other: 0 };
+      dailyCost.set(date, dc);
+    }
+    dc.total += sess.cost;
+    sess.models.forEach(function (val, key) {
+      dc![key as "opus" | "sonnet" | "haiku" | "other"] += val.cost;
+    });
+
+    dailySessions.set(date, (dailySessions.get(date) || 0) + 1);
+
+    var dt = dailyTokens.get(date);
+    if (!dt) {
+      dt = { input: 0, output: 0, cacheRead: 0 };
+      dailyTokens.set(date, dt);
+    }
+    dt.input += sess.inputTokens;
+    dt.output += sess.outputTokens;
+    dt.cacheRead += sess.cacheReadTokens;
+
+    var dch = dailyCacheHit.get(date);
+    if (!dch) {
+      dch = { cacheRead: 0, totalInput: 0 };
+      dailyCacheHit.set(date, dch);
+    }
+    dch.cacheRead += sess.cacheReadTokens;
+    dch.totalInput += sess.inputTokens;
+
+    sess.models.forEach(function (val, key) {
+      var ms = modelStats.get(key);
+      if (!ms) {
+        ms = { sessions: 0, cost: 0, tokens: 0 };
+        modelStats.set(key, ms);
+      }
+      ms.sessions++;
+      ms.cost += val.cost;
+      ms.tokens += val.tokens;
+    });
+
+    var ps = projectStats.get(sess.project);
+    if (!ps) {
+      ps = { cost: 0, sessions: 0, tokens: 0 };
+      projectStats.set(sess.project, ps);
+    }
+    ps.cost += sess.cost;
+    ps.sessions++;
+    ps.tokens += sess.inputTokens + sess.outputTokens;
+
+    sess.tools.forEach(function (count, tool) {
+      var ts = toolStats.get(tool);
+      if (!ts) {
+        ts = { count: 0, totalCost: 0, sessions: 0 };
+        toolStats.set(tool, ts);
+      }
+      ts.count += count;
+      ts.totalCost += sess.cost;
+      ts.sessions++;
+    });
+
+    var bucket = getCostBucket(sess.cost);
+    costBuckets.set(bucket, (costBuckets.get(bucket) || 0) + 1);
+  }
+
+  var totalTokensAll = totalInput + totalOutput + totalCacheRead + totalCacheCreation;
+  var cacheHitRate = totalInput > 0 ? totalCacheRead / totalInput : 0;
+
+  var dates = Array.from(dailyCost.keys()).sort();
+
+  var costOverTime: AnalyticsPayload["costOverTime"] = [];
+  var cumulativeCost: AnalyticsPayload["cumulativeCost"] = [];
+  var sessionsOverTime: AnalyticsPayload["sessionsOverTime"] = [];
+  var tokensOverTime: AnalyticsPayload["tokensOverTime"] = [];
+  var cacheHitRateOverTime: AnalyticsPayload["cacheHitRateOverTime"] = [];
+
+  var cumTotal = 0;
+  for (var di = 0; di < dates.length; di++) {
+    var d = dates[di];
+    var dcEntry = dailyCost.get(d)!;
+    cumTotal += dcEntry.total;
+
+    costOverTime.push({
+      date: d,
+      total: dcEntry.total,
+      opus: dcEntry.opus,
+      sonnet: dcEntry.sonnet,
+      haiku: dcEntry.haiku,
+      other: dcEntry.other,
+    });
+    cumulativeCost.push({ date: d, total: cumTotal });
+    sessionsOverTime.push({ date: d, count: dailySessions.get(d) || 0 });
+
+    var dtEntry = dailyTokens.get(d);
+    tokensOverTime.push({
+      date: d,
+      input: dtEntry ? dtEntry.input : 0,
+      output: dtEntry ? dtEntry.output : 0,
+      cacheRead: dtEntry ? dtEntry.cacheRead : 0,
+    });
+
+    var dchEntry = dailyCacheHit.get(d);
+    var rate = dchEntry && dchEntry.totalInput > 0 ? dchEntry.cacheRead / dchEntry.totalInput : 0;
+    cacheHitRateOverTime.push({ date: d, rate: rate });
+  }
+
+  var costDistribution: AnalyticsPayload["costDistribution"] = [];
+  for (var bi = 0; bi < bucketOrder.length; bi++) {
+    costDistribution.push({
+      bucket: bucketOrder[bi],
+      count: costBuckets.get(bucketOrder[bi]) || 0,
+    });
+  }
+
+  var sessionBubbles: AnalyticsPayload["sessionBubbles"] = [];
+  var sorted = filtered.slice().sort(function (a, b) {
+    return (b.endTime || b.startTime) - (a.endTime || a.startTime);
+  });
+  var bubbleCap = Math.min(sorted.length, 200);
+  for (var sbi = 0; sbi < bubbleCap; sbi++) {
+    var sb = sorted[sbi];
+    sessionBubbles.push({
+      id: sb.id,
+      title: sb.title,
+      cost: sb.cost,
+      tokens: sb.inputTokens + sb.outputTokens,
+      timestamp: sb.endTime > 0 ? sb.endTime : sb.startTime,
+      project: sb.project,
+    });
+  }
+
+  var modelUsage: AnalyticsPayload["modelUsage"] = [];
+  var totalModelCost = totalCost || 1;
+  modelStats.forEach(function (val, key) {
+    modelUsage.push({
+      model: key,
+      sessions: val.sessions,
+      cost: val.cost,
+      tokens: val.tokens,
+      percentage: (val.cost / totalModelCost) * 100,
+    });
+  });
+  modelUsage.sort(function (a, b) { return b.cost - a.cost; });
+
+  var projectBreakdown: AnalyticsPayload["projectBreakdown"] = [];
+  projectStats.forEach(function (val, key) {
+    projectBreakdown.push({
+      project: key,
+      cost: val.cost,
+      sessions: val.sessions,
+      tokens: val.tokens,
+    });
+  });
+  projectBreakdown.sort(function (a, b) { return b.cost - a.cost; });
+
+  var toolUsage: AnalyticsPayload["toolUsage"] = [];
+  toolStats.forEach(function (val, key) {
+    toolUsage.push({
+      tool: key,
+      count: val.count,
+      avgCost: val.sessions > 0 ? val.totalCost / val.sessions : 0,
+    });
+  });
+  toolUsage.sort(function (a, b) { return b.count - a.count; });
+
+  return {
+    totalCost: totalCost,
+    totalSessions: filtered.length,
+    totalTokens: {
+      input: totalInput,
+      output: totalOutput,
+      cacheRead: totalCacheRead,
+      cacheCreation: totalCacheCreation,
+    },
+    cacheHitRate: cacheHitRate,
+    avgSessionCost: filtered.length > 0 ? totalCost / filtered.length : 0,
+    avgSessionDuration: durationCount > 0 ? totalDuration / durationCount : 0,
+    costOverTime: costOverTime,
+    cumulativeCost: cumulativeCost,
+    sessionsOverTime: sessionsOverTime,
+    tokensOverTime: tokensOverTime,
+    cacheHitRateOverTime: cacheHitRateOverTime,
+    costDistribution: costDistribution,
+    sessionBubbles: sessionBubbles,
+    modelUsage: modelUsage,
+    projectBreakdown: projectBreakdown,
+    toolUsage: toolUsage,
+  };
+}
+
+export function getAnalytics(
+  scope: AnalyticsScope,
+  period: AnalyticsPeriod,
+  projectSlug?: string,
+  sessionId?: string,
+  forceRefresh?: boolean,
+): Promise<AnalyticsPayload> {
+  var cacheKey = scope + ":" + period + ":" + (projectSlug || "all");
+  if (sessionId) cacheKey += ":" + sessionId;
+
+  if (!forceRefresh) {
+    var cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return Promise.resolve(cached.data);
+    }
+  }
+
+  var sessions: SessionData[] = [];
+  var config = loadConfig();
+
+  if (scope === "global") {
+    for (var i = 0; i < config.projects.length; i++) {
+      var proj = config.projects[i];
+      var files = getSessionFilesForProject(proj.path);
+      for (var j = 0; j < files.length; j++) {
+        var data = parseSessionFile(files[j].path, files[j].id, proj.slug);
+        if (data) sessions.push(data);
+      }
+    }
+  } else if (scope === "project" && projectSlug) {
+    var project = config.projects.find(function (p) { return p.slug === projectSlug; });
+    if (project) {
+      var projFiles = getSessionFilesForProject(project.path);
+      for (var pf = 0; pf < projFiles.length; pf++) {
+        var pData = parseSessionFile(projFiles[pf].path, projFiles[pf].id, projectSlug);
+        if (pData) sessions.push(pData);
+      }
+    }
+  } else if (scope === "session" && projectSlug && sessionId) {
+    var sessProject = config.projects.find(function (p) { return p.slug === projectSlug; });
+    if (sessProject) {
+      var hash = projectPathToHash(sessProject.path);
+      var filePath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+      if (existsSync(filePath)) {
+        var sData = parseSessionFile(filePath, sessionId, projectSlug);
+        if (sData) sessions.push(sData);
+      }
+    }
+  }
+
+  var result = aggregate(sessions, period);
+
+  cache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+  return Promise.resolve(result);
+}

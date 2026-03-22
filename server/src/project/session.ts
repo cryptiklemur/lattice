@@ -18,7 +18,7 @@ function getProjectPath(projectSlug: string): string | null {
   return project ? project.path : null;
 }
 
-function projectPathToHash(projectPath: string): string {
+export function projectPathToHash(projectPath: string): string {
   return projectPath.replace(/\//g, "-");
 }
 
@@ -43,7 +43,7 @@ var FALLBACK_PRICING: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5": { input: 0.80, output: 4 },
 };
 
-function loadPricing(): void {
+export function loadPricing(): void {
   if (pricingLoaded) return;
   pricingLoaded = true;
   fetch(LITELLM_PRICING_URL).then(function (res) {
@@ -69,7 +69,7 @@ function loadPricing(): void {
 
 loadPricing();
 
-function getPricing(model: string): { input: number; output: number; cacheRead?: number; cacheCreation?: number } {
+export function getPricing(model: string): { input: number; output: number; cacheRead?: number; cacheCreation?: number } {
   if (pricingCache[model]) return pricingCache[model];
   for (var key in pricingCache) {
     if (key.includes(model) || model.includes(key)) return pricingCache[key];
@@ -84,7 +84,7 @@ function getPricing(model: string): { input: number; output: number; cacheRead?:
   return FALLBACK_PRICING["claude-sonnet-4-6"];
 }
 
-function estimateCost(model: string, inputTokens: number, outputTokens: number, cacheRead: number, cacheCreation: number): number {
+export function estimateCost(model: string, inputTokens: number, outputTokens: number, cacheRead: number, cacheCreation: number): number {
   var pricing = getPricing(model);
   var normalInput = inputTokens - cacheRead - cacheCreation;
   var inputCost = (normalInput * pricing.input) / 1000000;
