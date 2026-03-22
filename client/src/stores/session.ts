@@ -40,6 +40,8 @@ export interface SessionState {
   promptSuggestion: string | null;
   failedInput: string | null;
   messageQueue: string[];
+  isBusy: boolean;
+  isPlanMode: boolean;
 }
 
 var sessionStore = new Store<SessionState>({
@@ -60,6 +62,8 @@ var sessionStore = new Store<SessionState>({
   promptSuggestion: null,
   failedInput: null,
   messageQueue: [],
+  isBusy: false,
+  isPlanMode: false,
 });
 
 var streamGeneration = 0;
@@ -217,6 +221,8 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       promptSuggestion: null,
       failedInput: null,
       messageQueue: [],
+      isBusy: false,
+      isPlanMode: false,
     };
   });
 }
@@ -276,6 +282,8 @@ export function clearSession(): void {
       promptSuggestion: null,
       failedInput: null,
       messageQueue: [],
+      isBusy: false,
+      isPlanMode: false,
     };
   });
 }
@@ -301,6 +309,72 @@ export function setPromptSuggestion(suggestion: string | null): void {
 export function setFailedInput(text: string | null): void {
   sessionStore.setState(function (state) {
     return { ...state, failedInput: text };
+  });
+}
+
+export function setSessionBusy(busy: boolean): void {
+  sessionStore.setState(function (state) {
+    return { ...state, isBusy: busy };
+  });
+}
+
+export function setIsPlanMode(active: boolean): void {
+  sessionStore.setState(function (state) {
+    return { ...state, isPlanMode: active };
+  });
+}
+
+export function addPromptQuestion(requestId: string, questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }>): void {
+  sessionStore.setState(function (state) {
+    return {
+      ...state,
+      messages: [...state.messages, {
+        type: "prompt_question",
+        toolId: requestId,
+        promptQuestions: questions,
+        promptStatus: "pending",
+        timestamp: Date.now(),
+      } as HistoryMessage],
+    };
+  });
+}
+
+export function resolvePromptQuestion(requestId: string, answers: Record<string, string>): void {
+  sessionStore.setState(function (state) {
+    return {
+      ...state,
+      messages: state.messages.map(function (msg) {
+        if (msg.type === "prompt_question" && msg.toolId === requestId) {
+          return { ...msg, promptAnswers: answers, promptStatus: "answered" };
+        }
+        return msg;
+      }),
+    };
+  });
+}
+
+export function addTodoUpdate(todos: Array<{ id: string; content: string; status: string; priority: string }>): void {
+  sessionStore.setState(function (state) {
+    var existingIndex = -1;
+    for (var i = state.messages.length - 1; i >= 0; i--) {
+      if (state.messages[i].type === "todo_update") {
+        existingIndex = i;
+        break;
+      }
+    }
+    if (existingIndex >= 0) {
+      var updated = state.messages.slice();
+      updated[existingIndex] = { ...updated[existingIndex], todos: todos, timestamp: Date.now() } as HistoryMessage;
+      return { ...state, messages: updated };
+    }
+    return {
+      ...state,
+      messages: [...state.messages, {
+        type: "todo_update",
+        todos: todos,
+        timestamp: Date.now(),
+      } as HistoryMessage],
+    };
   });
 }
 

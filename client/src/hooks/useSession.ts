@@ -49,6 +49,9 @@ import {
   updateQueuedMessage,
   clearMessageQueue,
   setSessionBusy,
+  addPromptQuestion,
+  addTodoUpdate,
+  setIsPlanMode,
 } from "../stores/session";
 import type { SessionState } from "../stores/session";
 
@@ -286,6 +289,7 @@ export function useSession(): UseSessionReturn {
             historyLoading: false,
             wasInterrupted: m.interrupted || false,
             isBusy: m.busy || false,
+            isPlanMode: false,
           };
         });
         var storedIndex = getLastReadIndex(m.sessionId);
@@ -325,6 +329,27 @@ export function useSession(): UseSessionReturn {
       }
     }
 
+    function handlePromptRequest(msg: ServerMessage) {
+      if (isStaleStream()) return;
+      var m = msg as { type: string; requestId: string; questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }> };
+      addPromptQuestion(m.requestId, m.questions);
+    }
+
+    function handlePromptResolved(_msg: ServerMessage) {
+      // No-op — client already updated state when it sent the response
+    }
+
+    function handleTodoUpdate(msg: ServerMessage) {
+      if (isStaleStream()) return;
+      var m = msg as { type: string; todos: Array<{ id: string; content: string; status: string; priority: string }> };
+      addTodoUpdate(m.todos);
+    }
+
+    function handlePlanMode(msg: ServerMessage) {
+      var m = msg as { type: string; active: boolean };
+      setIsPlanMode(m.active);
+    }
+
     subscribe("chat:user_message", handleUserMessage);
     subscribe("chat:delta", handleDelta);
     subscribe("chat:tool_start", handleToolStart);
@@ -339,6 +364,10 @@ export function useSession(): UseSessionReturn {
     subscribe("session:history", handleHistory);
     subscribe("chat:prompt_suggestion", handlePromptSuggestion);
     subscribe("session:busy", handleSessionBusy);
+    subscribe("chat:prompt_request", handlePromptRequest);
+    subscribe("chat:prompt_resolved", handlePromptResolved);
+    subscribe("chat:todo_update", handleTodoUpdate);
+    subscribe("chat:plan_mode", handlePlanMode);
 
     return function () {
       subscriptionsActive--;
@@ -356,6 +385,10 @@ export function useSession(): UseSessionReturn {
       unsubscribe("session:history", handleHistory);
       unsubscribe("chat:prompt_suggestion", handlePromptSuggestion);
       unsubscribe("session:busy", handleSessionBusy);
+      unsubscribe("chat:prompt_request", handlePromptRequest);
+      unsubscribe("chat:prompt_resolved", handlePromptResolved);
+      unsubscribe("chat:todo_update", handleTodoUpdate);
+      unsubscribe("chat:plan_mode", handlePlanMode);
     };
   }, [subscribe, unsubscribe]);
 
@@ -381,6 +414,7 @@ export function useSession(): UseSessionReturn {
     failedInput: state.failedInput,
     messageQueue: state.messageQueue,
     isBusy: state.isBusy,
+    isPlanMode: state.isPlanMode,
     enqueueMessage,
     removeQueuedMessage,
     updateQueuedMessage,
