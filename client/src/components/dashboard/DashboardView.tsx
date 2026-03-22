@@ -4,6 +4,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
+import { QuickStats } from "../analytics/QuickStats";
 import {
   Network, FolderOpen, Activity, MessageSquare, Menu,
   ChevronRight, Lock, Bug,
@@ -116,6 +117,10 @@ export function DashboardView() {
             </div>
             <div className="text-xl font-mono font-bold text-success">OK</div>
           </div>
+        </div>
+
+        <div className="mt-4 mb-8">
+          <QuickStats />
         </div>
 
         {sessions.length > 0 && (
