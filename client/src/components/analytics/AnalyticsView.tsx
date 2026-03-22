@@ -32,6 +32,10 @@ import { CacheEfficiencyChart } from "./charts/CacheEfficiencyChart";
 import { ResponseTimeScatter } from "./charts/ResponseTimeScatter";
 import { ContextUtilizationChart } from "./charts/ContextUtilizationChart";
 import { TokenSankeyChart } from "./charts/TokenSankeyChart";
+import { ActivityCalendar } from "./charts/ActivityCalendar";
+import { HourlyHeatmap } from "./charts/HourlyHeatmap";
+import { SessionTimeline } from "./charts/SessionTimeline";
+import { DailySummaryCards } from "./charts/DailySummaryCards";
 
 export function AnalyticsView() {
   var analytics = useAnalytics();
@@ -107,6 +111,31 @@ export function AnalyticsView() {
                 </ChartErrorBoundary>
               </ChartCard>
             </div>
+
+            <ChartCard title="Activity Calendar">
+              <ChartErrorBoundary name="Calendar">
+                <ActivityCalendar data={analytics.data.activityCalendar} />
+              </ChartErrorBoundary>
+            </ChartCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ChartCard title="Hourly Activity">
+                <ChartErrorBoundary name="HourlyHeatmap">
+                  <HourlyHeatmap data={analytics.data.hourlyHeatmap} />
+                </ChartErrorBoundary>
+              </ChartCard>
+              <ChartCard title="Session Timeline">
+                <ChartErrorBoundary name="Timeline">
+                  <SessionTimeline data={analytics.data.sessionTimeline} />
+                </ChartErrorBoundary>
+              </ChartCard>
+            </div>
+
+            <ChartCard title="Daily Summary">
+              <ChartErrorBoundary name="DailySummary">
+                <DailySummaryCards data={analytics.data.dailySummaries} />
+              </ChartErrorBoundary>
+            </ChartCard>
           </div>
         )}
 

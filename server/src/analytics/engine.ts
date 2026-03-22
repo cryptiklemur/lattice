@@ -520,6 +520,124 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
 
   var tokenFlowSankey: AnalyticsPayload["tokenFlowSankey"] = { nodes: sankeyNodes, links: sankeyLinks };
 
+  var activityCalendarMap = new Map<string, { count: number; tokens: number; cost: number }>();
+  for (var aci = 0; aci < filtered.length; aci++) {
+    var acSess = filtered[aci];
+    var acDate = formatDate(acSess.endTime > 0 ? acSess.endTime : acSess.startTime);
+    var acEntry = activityCalendarMap.get(acDate);
+    if (!acEntry) {
+      acEntry = { count: 0, tokens: 0, cost: 0 };
+      activityCalendarMap.set(acDate, acEntry);
+    }
+    acEntry.count++;
+    acEntry.tokens += acSess.inputTokens + acSess.outputTokens;
+    acEntry.cost += acSess.cost;
+  }
+
+  var activityCalendar: AnalyticsPayload["activityCalendar"] = [];
+  if (dates.length > 0) {
+    var calStart = new Date(dates[0]);
+    var calEnd = new Date(dates[dates.length - 1]);
+    var calCursor = new Date(calStart);
+    while (calCursor <= calEnd) {
+      var calKey = formatDate(calCursor.getTime());
+      var calData = activityCalendarMap.get(calKey);
+      activityCalendar.push({
+        date: calKey,
+        count: calData ? calData.count : 0,
+        tokens: calData ? calData.tokens : 0,
+        cost: calData ? calData.cost : 0,
+      });
+      calCursor.setDate(calCursor.getDate() + 1);
+    }
+  }
+
+  var hourlyHeatmap: AnalyticsPayload["hourlyHeatmap"] = [];
+  var heatmapGrid = new Map<string, number>();
+  for (var hmi = 0; hmi < filtered.length; hmi++) {
+    var hmSess = filtered[hmi];
+    if (hmSess.startTime <= 0) continue;
+    var hmDate = new Date(hmSess.startTime);
+    var hmDay = hmDate.getDay();
+    var hmHour = hmDate.getHours();
+    var hmKey = hmDay + ":" + hmHour;
+    heatmapGrid.set(hmKey, (heatmapGrid.get(hmKey) || 0) + 1);
+  }
+  for (var hd = 0; hd < 7; hd++) {
+    for (var hh = 0; hh < 24; hh++) {
+      var hhKey = hd + ":" + hh;
+      hourlyHeatmap.push({ day: hd, hour: hh, count: heatmapGrid.get(hhKey) || 0 });
+    }
+  }
+
+  var sessionTimeline: AnalyticsPayload["sessionTimeline"] = [];
+  var tlSorted = filtered
+    .filter(function (s) { return s.startTime > 0 && s.endTime > 0; })
+    .sort(function (a, b) { return b.startTime - a.startTime; });
+  var tlCap = Math.min(tlSorted.length, 50);
+  for (var tli = 0; tli < tlCap; tli++) {
+    var tlSess = tlSorted[tli];
+    sessionTimeline.push({
+      id: tlSess.id,
+      title: tlSess.title,
+      project: tlSess.project,
+      start: tlSess.startTime,
+      end: tlSess.endTime,
+      cost: tlSess.cost,
+    });
+  }
+
+  var dailySummaryMap = new Map<string, { sessions: number; cost: number; tokens: number; tools: Map<string, number>; models: Map<string, number> }>();
+  for (var dsi = 0; dsi < filtered.length; dsi++) {
+    var dsSess = filtered[dsi];
+    var dsDate = formatDate(dsSess.endTime > 0 ? dsSess.endTime : dsSess.startTime);
+    var dsEntry = dailySummaryMap.get(dsDate);
+    if (!dsEntry) {
+      dsEntry = { sessions: 0, cost: 0, tokens: 0, tools: new Map(), models: new Map() };
+      dailySummaryMap.set(dsDate, dsEntry);
+    }
+    dsEntry.sessions++;
+    dsEntry.cost += dsSess.cost;
+    dsEntry.tokens += dsSess.inputTokens + dsSess.outputTokens;
+    dsSess.tools.forEach(function (count, tool) {
+      dsEntry!.tools.set(tool, (dsEntry!.tools.get(tool) || 0) + count);
+    });
+    dsSess.models.forEach(function (val, key) {
+      dsEntry!.models.set(key, (dsEntry!.models.get(key) || 0) + val.cost);
+    });
+  }
+
+  var dailySummaries: AnalyticsPayload["dailySummaries"] = [];
+  var dsSortedDates = Array.from(dailySummaryMap.keys()).sort();
+  for (var dsdi = 0; dsdi < dsSortedDates.length; dsdi++) {
+    var dsd = dsSortedDates[dsdi];
+    var dsData = dailySummaryMap.get(dsd)!;
+    var topTool = "";
+    var topToolCount = 0;
+    dsData.tools.forEach(function (count, tool) {
+      if (count > topToolCount) {
+        topToolCount = count;
+        topTool = tool;
+      }
+    });
+    var modelMix: Record<string, number> = {};
+    var modelTotal = 0;
+    dsData.models.forEach(function (cost) { modelTotal += cost; });
+    if (modelTotal > 0) {
+      dsData.models.forEach(function (cost, model) {
+        modelMix[model] = Math.round((cost / modelTotal) * 100) / 100;
+      });
+    }
+    dailySummaries.push({
+      date: dsd,
+      sessions: dsData.sessions,
+      cost: dsData.cost,
+      tokens: dsData.tokens,
+      topTool: topTool,
+      modelMix: modelMix,
+    });
+  }
+
   return {
     totalCost: totalCost,
     totalSessions: filtered.length,
@@ -545,6 +663,10 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     responseTimeData: responseTimeData,
     contextUtilization: contextUtilization,
     tokenFlowSankey: tokenFlowSankey,
+    activityCalendar: activityCalendar,
+    hourlyHeatmap: hourlyHeatmap,
+    sessionTimeline: sessionTimeline,
+    dailySummaries: dailySummaries,
   };
 }
 
