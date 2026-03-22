@@ -21,6 +21,7 @@ interface PendingPermission {
   suggestions: PermissionUpdate[] | undefined;
   clientId: string;
   sessionId: string;
+  promptType?: string;
 }
 
 var pendingPermissions = new Map<string, PendingPermission>();
@@ -376,10 +377,43 @@ export function startChatStream(options: ChatStreamOptions): void {
     mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers as Record<string, any> : undefined,
   };
 
+  (queryOptions as any).toolConfig = {
+    askUserQuestion: { previewFormat: "html" },
+  };
+
   queryOptions.canUseTool = function (toolName, input, options) {
     var approved = autoApprovedTools.get(sessionId);
     if (approved && approved.has(toolName)) {
       return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
+    }
+
+    if (toolName === "AskUserQuestion") {
+      var promptRequestId = options.toolUseID;
+      var questions = (input as { questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }> }).questions;
+      sendTo(clientId, {
+        type: "chat:prompt_request",
+        requestId: promptRequestId,
+        questions: questions,
+      });
+      return new Promise<PermissionResult>(function (resolve) {
+        pendingPermissions.set(promptRequestId, {
+          resolve: resolve,
+          toolName: toolName,
+          toolUseID: options.toolUseID,
+          input: input,
+          suggestions: undefined,
+          clientId: clientId,
+          sessionId: sessionId,
+          promptType: "question",
+        });
+      });
+    }
+
+    if (toolName === "ExitPlanMode") {
+      sendTo(clientId, {
+        type: "chat:plan_mode",
+        active: false,
+      });
     }
 
     if (toolName === "Read") {
@@ -627,6 +661,23 @@ export function startChatStream(options: ChatStreamOptions): void {
               name: aBlock.name,
               args: JSON.stringify(aBlock.input ?? {}),
             });
+            if (aBlock.name === "TodoWrite" && aBlock.input) {
+              var todoInput = aBlock.input as { todos?: Array<{ id?: string; content: string; status: string; activeForm?: string }> };
+              if (todoInput.todos) {
+                sendTo(clientId, {
+                  type: "chat:todo_update",
+                  todos: todoInput.todos.map(function (t, idx) {
+                    return { id: t.id || String(idx), content: t.content, status: t.status, priority: "medium" };
+                  }),
+                });
+              }
+            }
+            if (aBlock.name === "EnterPlanMode") {
+              sendTo(clientId, { type: "chat:plan_mode", active: true });
+            }
+            if (aBlock.name === "ExitPlanMode") {
+              sendTo(clientId, { type: "chat:plan_mode", active: false });
+            }
           }
         }
       } else if (typeof aContent === "string" && aContent) {
@@ -675,7 +726,29 @@ export function startChatStream(options: ChatStreamOptions): void {
 
       if (evt.type === "content_block_stop") {
         var stopIdx = (evt as { index: number }).index;
-        delete activeToolBlocks[stopIdx];
+        var stoppedBlock = activeToolBlocks[stopIdx];
+        if (stoppedBlock) {
+          if (stoppedBlock.name === "TodoWrite" && stoppedBlock.inputJson) {
+            try {
+              var todoInput = JSON.parse(stoppedBlock.inputJson) as { todos?: Array<{ id?: string; content: string; status: string }> };
+              if (todoInput.todos) {
+                sendTo(clientId, {
+                  type: "chat:todo_update",
+                  todos: todoInput.todos.map(function (t, idx) {
+                    return { id: t.id || String(idx), content: t.content, status: t.status, priority: "medium" };
+                  }),
+                });
+              }
+            } catch {}
+          }
+          if (stoppedBlock.name === "EnterPlanMode") {
+            sendTo(clientId, { type: "chat:plan_mode", active: true });
+          }
+          if (stoppedBlock.name === "ExitPlanMode") {
+            sendTo(clientId, { type: "chat:plan_mode", active: false });
+          }
+          delete activeToolBlocks[stopIdx];
+        }
         return;
       }
 
