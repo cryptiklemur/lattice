@@ -1,12 +1,21 @@
 import { useRef, useState, useEffect, useMemo } from "react";
-import { SendHorizontal, Settings } from "lucide-react";
+import { SendHorizontal, Settings, Paperclip } from "lucide-react";
 import { useSkills } from "../../hooks/useSkills";
 import { CommandPalette, getFilteredItems } from "./CommandPalette";
+import { useAttachments } from "../../hooks/useAttachments";
+import { useVoiceRecorder } from "../../hooks/useVoiceRecorder";
+import { AttachmentChips } from "./AttachmentChips";
+import { VoiceRecorder } from "./VoiceRecorder";
 
 interface ChatInputProps {
-  onSend: (text: string) => void;
+  onSend: (text: string, attachmentIds: string[]) => void;
   disabled: boolean;
+  disabledPlaceholder?: string;
   toolbarContent?: React.ReactNode;
+  failedInput?: string | null;
+  onFailedInputConsumed?: () => void;
+  prefillText?: string | null;
+  onPrefillConsumed?: () => void;
 }
 
 function getModKey(): string {
@@ -26,6 +35,13 @@ export function ChatInput(props: ChatInputProps) {
   var [selectedIndex, setSelectedIndex] = useState(0);
   var [showMobileSettings, setShowMobileSettings] = useState(false);
   var modKey = useMemo(getModKey, []);
+
+  var attachmentsHook = useAttachments();
+  var voice = useVoiceRecorder();
+  var [isDragging, setIsDragging] = useState(false);
+  var dragCounter = useRef(0);
+  var fileInputRef = useRef<HTMLInputElement>(null);
+  var savedTextRef = useRef("");
 
   var itemCount = useMemo(function () {
     if (slashQuery === null) return 0;
@@ -58,6 +74,34 @@ export function ChatInput(props: ChatInputProps) {
     return function () { document.removeEventListener("mousedown", handleClick); };
   }, [showMobileSettings]);
 
+  useEffect(function () {
+    if (props.failedInput && textareaRef.current) {
+      var el = textareaRef.current;
+      el.value = props.failedInput;
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 160) + "px";
+      el.focus();
+      checkSlash();
+      if (props.onFailedInputConsumed) {
+        props.onFailedInputConsumed();
+      }
+    }
+  }, [props.failedInput]);
+
+  useEffect(function () {
+    if (props.prefillText && textareaRef.current) {
+      var el = textareaRef.current;
+      el.value = props.prefillText;
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 160) + "px";
+      el.focus();
+      checkSlash();
+      if (props.onPrefillConsumed) {
+        props.onPrefillConsumed();
+      }
+    }
+  }, [props.prefillText]);
+
   function checkSlash() {
     var el = textareaRef.current;
     if (!el) return;
@@ -81,7 +125,7 @@ export function ChatInput(props: ChatInputProps) {
       el.focus();
       setSlashQuery(null);
     } else {
-      props.onSend("/" + item.name);
+      props.onSend("/" + item.name, []);
       el.value = "";
       el.style.height = "auto";
       setSlashQuery(null);
@@ -127,23 +171,103 @@ export function ChatInput(props: ChatInputProps) {
     checkSlash();
   }
 
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    var items = e.clipboardData.items;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        var file = items[i].getAsFile();
+        if (file && attachmentsHook.canAttach) {
+          attachmentsHook.addFile(file);
+        }
+        return;
+      }
+    }
+
+    var text = e.clipboardData.getData("text/plain");
+    if (text && text.split("\n").length >= 10) {
+      e.preventDefault();
+      if (attachmentsHook.canAttach) {
+        attachmentsHook.addPaste(text);
+      }
+    }
+  }
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current++;
+    if (e.dataTransfer.types.indexOf("Files") !== -1) {
+      setIsDragging(true);
+    }
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    var files = e.dataTransfer.files;
+    for (var i = 0; i < files.length; i++) {
+      if (attachmentsHook.canAttach) {
+        attachmentsHook.addFile(files[i]);
+      }
+    }
+  }
+
+  function handleVoiceStart() {
+    savedTextRef.current = textareaRef.current?.value || "";
+    voice.start();
+  }
+
+  function handleVoiceStop() {
+    var transcript = voice.stop();
+    if (transcript && textareaRef.current) {
+      var el = textareaRef.current;
+      var existing = savedTextRef.current;
+      el.value = existing ? existing + " " + transcript : transcript;
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 160) + "px";
+    }
+  }
+
+  function handleVoiceCancel() {
+    voice.cancel();
+    if (textareaRef.current) {
+      textareaRef.current.value = savedTextRef.current;
+    }
+  }
+
   function submit() {
     var el = textareaRef.current;
-    if (!el) {
-      return;
-    }
+    if (!el) return;
     var text = el.value.trim();
-    if (!text || props.disabled) {
-      return;
-    }
-    props.onSend(text);
+    if ((!text && attachmentsHook.attachments.length === 0) || props.disabled || attachmentsHook.hasUploading) return;
+    props.onSend(text, attachmentsHook.readyIds);
     el.value = "";
     el.style.height = "auto";
     setSlashQuery(null);
+    attachmentsHook.clearAll();
   }
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {isOpen && (
         <div ref={popupRef}>
           <CommandPalette
@@ -167,12 +291,32 @@ export function ChatInput(props: ChatInputProps) {
         </div>
       )}
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={function (e) {
+          var files = e.target.files;
+          if (files) {
+            for (var i = 0; i < files.length; i++) {
+              if (attachmentsHook.canAttach) {
+                attachmentsHook.addFile(files[i]);
+              }
+            }
+          }
+          e.target.value = "";
+        }}
+      />
+
       <div
         className={
           "border rounded-xl bg-base-300/60 overflow-hidden transition-all duration-150 " +
-          (props.disabled
-            ? "border-base-content/10 opacity-60"
-            : "border-primary/20 focus-within:border-primary/40 focus-within:shadow-[0_0_0_3px_oklch(from_var(--color-primary)_l_c_h/0.1)]")
+          (isDragging
+            ? "border-primary/40 shadow-[0_0_0_3px_oklch(from_var(--color-primary)_l_c_h/0.1)]"
+            : props.disabled
+              ? "border-base-content/10 opacity-60"
+              : "border-primary/20 focus-within:border-primary/40 focus-within:shadow-[0_0_0_3px_oklch(from_var(--color-primary)_l_c_h/0.1)]")
         }
       >
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border-b border-base-content/8 font-mono text-[10px]">
@@ -180,24 +324,62 @@ export function ChatInput(props: ChatInputProps) {
           <span className="flex-1" />
           <span className="text-base-content/20">{modKey}+K commands</span>
         </div>
+
+        <AttachmentChips
+          attachments={attachmentsHook.attachments}
+          onRemove={attachmentsHook.removeAttachment}
+          onRetry={attachmentsHook.retryAttachment}
+        />
+
         <div className="flex items-center gap-2 px-3.5 py-2.5">
-          <div className="flex-1 min-w-0 relative">
-            <span className="absolute left-0 top-[1px] text-primary/50 font-mono text-[14px] leading-relaxed select-none pointer-events-none">›</span>
-            <textarea
-              ref={textareaRef}
-              aria-label="Message input"
-              placeholder={props.disabled ? "Claude is responding..." : "Message Claude..."}
-              disabled={props.disabled}
-              onKeyDown={handleKeyDown}
-              onInput={handleInput}
-              rows={1}
-              style={{ padding: "1px 0 0 16px", margin: 0, border: "none" }}
+          <div className="flex gap-1 flex-shrink-0">
+            <button
+              aria-label="Attach file"
+              disabled={!attachmentsHook.canAttach}
+              onClick={function () { fileInputRef.current?.click(); }}
               className={
-                "w-full resize-none bg-transparent text-base-content text-[14px] leading-relaxed max-h-[160px] overflow-y-auto outline-none placeholder:text-base-content/30 " +
-                (props.disabled ? "cursor-not-allowed" : "cursor-text")
+                "w-7 h-7 rounded-md flex items-center justify-center transition-colors " +
+                (attachmentsHook.canAttach
+                  ? "text-base-content/30 hover:text-base-content/50 border border-base-content/10 hover:border-base-content/20"
+                  : "text-base-content/15 cursor-not-allowed")
               }
+              title={attachmentsHook.canAttach ? "Attach file" : "Maximum attachments reached"}
+            >
+              <Paperclip size={13} />
+            </button>
+            <VoiceRecorder
+              isRecording={voice.isRecording}
+              isSupported={voice.isSupported}
+              isSpeaking={voice.isSpeaking}
+              elapsed={voice.elapsed}
+              interimTranscript={voice.interimTranscript}
+              onStart={handleVoiceStart}
+              onStop={handleVoiceStop}
+              onCancel={handleVoiceCancel}
             />
           </div>
+
+          {voice.isRecording ? null : (
+            <div className="flex-1 min-w-0 relative">
+              <span className="absolute left-0 top-[1px] text-primary/50 font-mono text-[14px] leading-relaxed select-none pointer-events-none">›</span>
+              <textarea
+                ref={textareaRef}
+                aria-label="Message input"
+                placeholder={props.disabled ? (props.disabledPlaceholder || "Claude is responding...") : "Message Claude..."}
+                disabled={props.disabled}
+                onKeyDown={handleKeyDown}
+                onInput={handleInput}
+                onPaste={handlePaste}
+                rows={1}
+                style={{ padding: "1px 0 0 16px", margin: 0, border: "none" }}
+                className={
+                  "w-full resize-none bg-transparent text-base-content text-[14px] leading-relaxed max-h-[160px] overflow-y-auto outline-none placeholder:text-base-content/30 " +
+                  (props.disabled ? "cursor-not-allowed" : "cursor-text")
+                }
+              />
+            </div>
+          )}
+
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               ref={settingsBtnRef}
@@ -210,11 +392,12 @@ export function ChatInput(props: ChatInputProps) {
             <span className="text-[10px] text-base-content/20 font-mono hidden sm:block">⏎ send</span>
             <button
               aria-label="Send message"
-              disabled={props.disabled}
+              disabled={props.disabled || attachmentsHook.hasUploading}
               onClick={submit}
+              title={attachmentsHook.hasUploading ? "Uploading..." : "Send message"}
               className={
                 "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-150 outline-none " +
-                (props.disabled
+                (props.disabled || attachmentsHook.hasUploading
                   ? "bg-base-content/5 text-base-content/20 cursor-not-allowed"
                   : "bg-primary text-primary-content hover:bg-primary/80 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-base-300")
               }
@@ -224,6 +407,12 @@ export function ChatInput(props: ChatInputProps) {
           </div>
         </div>
       </div>
+
+      {isDragging && (
+        <div className="absolute inset-0 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center z-40 pointer-events-none">
+          <span className="text-[13px] text-primary/60 font-mono">Drop files to attach</span>
+        </div>
+      )}
     </div>
   );
 }
