@@ -1,4 +1,25 @@
+import { Component } from "react";
 import { useAnalytics } from "../../hooks/useAnalytics";
+
+class ChartErrorBoundary extends Component<{ children: React.ReactNode; name: string }, { error: Error | null }> {
+  constructor(props: { children: React.ReactNode; name: string }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error: error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex items-center justify-center h-[200px] text-base-content/25 font-mono text-[11px]">
+          Chart error: {this.props.name}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { PeriodSelector } from "./PeriodSelector";
 import { ChartCard } from "./ChartCard";
 import { CostAreaChart } from "./charts/CostAreaChart";
@@ -56,24 +77,34 @@ export function AnalyticsView() {
             </div>
 
             <ChartCard title="Token Flow">
-              <TokenFlowChart data={analytics.data.tokensOverTime} />
+              <ChartErrorBoundary name="TokenFlow">
+                <TokenFlowChart data={analytics.data.tokensOverTime} />
+              </ChartErrorBoundary>
             </ChartCard>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ChartCard title="Cache Efficiency">
-                <CacheEfficiencyChart data={analytics.data.cacheHitRateOverTime} />
+                <ChartErrorBoundary name="CacheEfficiency">
+                  <CacheEfficiencyChart data={analytics.data.cacheHitRateOverTime} />
+                </ChartErrorBoundary>
               </ChartCard>
               <ChartCard title="Response Time vs Tokens">
-                <ResponseTimeScatter data={analytics.data.responseTimeData} />
+                <ChartErrorBoundary name="ResponseTime">
+                  <ResponseTimeScatter data={analytics.data.responseTimeData} />
+                </ChartErrorBoundary>
               </ChartCard>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ChartCard title="Context Window Usage">
-                <ContextUtilizationChart data={analytics.data.contextUtilization} />
+                <ChartErrorBoundary name="ContextUtilization">
+                  <ContextUtilizationChart data={analytics.data.contextUtilization} />
+                </ChartErrorBoundary>
               </ChartCard>
               <ChartCard title="Token Flow (Sankey)">
-                <TokenSankeyChart data={analytics.data.tokenFlowSankey} />
+                <ChartErrorBoundary name="Sankey">
+                  <TokenSankeyChart data={analytics.data.tokenFlowSankey} />
+                </ChartErrorBoundary>
               </ChartCard>
             </div>
           </div>
