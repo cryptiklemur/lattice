@@ -1,0 +1,101 @@
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
+var TICK_STYLE = {
+  fontSize: 10,
+  fontFamily: "var(--font-mono)",
+  fill: "oklch(0.9 0.02 280 / 0.3)",
+};
+
+var GRID_COLOR = "oklch(0.9 0.02 280 / 0.06)";
+
+var MODEL_COLORS: Record<string, string> = {
+  opus: "#a855f7",
+  sonnet: "oklch(55% 0.25 280)",
+  haiku: "#22c55e",
+  other: "#f59e0b",
+};
+
+interface ResponseTimeDatum {
+  tokens: number;
+  duration: number;
+  model: string;
+  sessionId: string;
+}
+
+interface ResponseTimeScatterProps {
+  data: ResponseTimeDatum[];
+}
+
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { tokens: number; durationSec: number; model: string } }> }) {
+  if (!active || !payload || payload.length === 0) return null;
+  var d = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg">
+      <div className="text-[11px] font-mono text-base-content/70 space-y-0.5">
+        <p><span className="text-base-content/40">tokens </span>{d.tokens.toLocaleString()}</p>
+        <p><span className="text-base-content/40">duration </span>{d.durationSec.toFixed(1)}s</p>
+        <p><span className="text-base-content/40">model </span>{d.model}</p>
+      </div>
+    </div>
+  );
+}
+
+export function ResponseTimeScatter({ data }: ResponseTimeScatterProps) {
+  var models = Array.from(new Set(data.map(function (d) { return d.model; })));
+
+  var byModel = models.map(function (model) {
+    return {
+      model: model,
+      color: MODEL_COLORS[model] || "#f59e0b",
+      points: data
+        .filter(function (d) { return d.model === model; })
+        .map(function (d) { return { tokens: d.tokens, durationSec: d.duration / 1000, model: d.model }; }),
+    };
+  });
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <ScatterChart margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+        <XAxis
+          dataKey="tokens"
+          type="number"
+          tick={TICK_STYLE}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={function (v) { return v >= 1000 ? (v / 1000).toFixed(0) + "k" : String(v); }}
+          name="tokens"
+        />
+        <YAxis
+          dataKey="durationSec"
+          type="number"
+          tick={TICK_STYLE}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={function (v) { return v.toFixed(0) + "s"; }}
+          name="duration"
+        />
+        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: "3 3", stroke: GRID_COLOR }} />
+        {byModel.map(function (group) {
+          return (
+            <Scatter
+              key={group.model}
+              name={group.model}
+              data={group.points}
+              fill={group.color}
+              fillOpacity={0.7}
+            />
+          );
+        })}
+      </ScatterChart>
+    </ResponsiveContainer>
+  );
+}

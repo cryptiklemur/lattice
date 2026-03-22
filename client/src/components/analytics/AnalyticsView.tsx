@@ -6,6 +6,11 @@ import { CumulativeCostChart } from "./charts/CumulativeCostChart";
 import { CostDonutChart } from "./charts/CostDonutChart";
 import { CostDistributionChart } from "./charts/CostDistributionChart";
 import { SessionBubbleChart } from "./charts/SessionBubbleChart";
+import { TokenFlowChart } from "./charts/TokenFlowChart";
+import { CacheEfficiencyChart } from "./charts/CacheEfficiencyChart";
+import { ResponseTimeScatter } from "./charts/ResponseTimeScatter";
+import { ContextUtilizationChart } from "./charts/ContextUtilizationChart";
+import { TokenSankeyChart } from "./charts/TokenSankeyChart";
 
 export function AnalyticsView() {
   var analytics = useAnalytics();
@@ -47,6 +52,28 @@ export function AnalyticsView() {
               </ChartCard>
               <ChartCard title="Session Costs">
                 <SessionBubbleChart data={analytics.data.sessionBubbles} />
+              </ChartCard>
+            </div>
+
+            <ChartCard title="Token Flow">
+              <TokenFlowChart data={analytics.data.tokensOverTime} />
+            </ChartCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ChartCard title="Cache Efficiency">
+                <CacheEfficiencyChart data={analytics.data.cacheHitRateOverTime} />
+              </ChartCard>
+              <ChartCard title="Response Time vs Tokens">
+                <ResponseTimeScatter data={analytics.data.responseTimeData} />
+              </ChartCard>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ChartCard title="Context Window Usage">
+                <ContextUtilizationChart data={analytics.data.contextUtilization} />
+              </ChartCard>
+              <ChartCard title="Token Flow (Sankey)">
+                <TokenSankeyChart data={analytics.data.tokenFlowSankey} />
               </ChartCard>
             </div>
           </div>

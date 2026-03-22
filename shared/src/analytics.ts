@@ -18,6 +18,10 @@ export interface AnalyticsPayload {
   modelUsage: Array<{ model: string; sessions: number; cost: number; tokens: number; percentage: number }>;
   projectBreakdown: Array<{ project: string; cost: number; sessions: number; tokens: number }>;
   toolUsage: Array<{ tool: string; count: number; avgCost: number }>;
+
+  responseTimeData: Array<{ tokens: number; duration: number; model: string; sessionId: string }>;
+  contextUtilization: Array<{ messageIndex: number; contextPercent: number; sessionId: string; title: string }>;
+  tokenFlowSankey: { nodes: Array<{ name: string }>; links: Array<{ source: number; target: number; value: number }> };
 }
 
 export type AnalyticsPeriod = "24h" | "7d" | "30d" | "90d" | "all";

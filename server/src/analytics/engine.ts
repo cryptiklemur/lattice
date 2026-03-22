@@ -5,6 +5,18 @@ import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope } from "@lattice
 import { estimateCost, projectPathToHash } from "../project/session";
 import { loadConfig } from "../config";
 
+interface ResponseTimeDatum {
+  tokens: number;
+  duration: number;
+  model: string;
+}
+
+interface ContextMessage {
+  messageIndex: number;
+  inputTokens: number;
+  model: string;
+}
+
 interface SessionData {
   id: string;
   title: string;
@@ -18,6 +30,8 @@ interface SessionData {
   tools: Map<string, number>;
   startTime: number;
   endTime: number;
+  responseTimePoints: ResponseTimeDatum[];
+  contextMessages: ContextMessage[];
 }
 
 interface CacheEntry {
@@ -83,7 +97,12 @@ function parseSessionFile(filePath: string, sessionId: string, projectSlug: stri
       tools: new Map(),
       startTime: 0,
       endTime: 0,
+      responseTimePoints: [],
+      contextMessages: [],
     };
+
+    var lastUserTimestamp = 0;
+    var assistantIndex = 0;
 
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim();
@@ -136,6 +155,16 @@ function parseSessionFile(filePath: string, sessionId: string, projectSlug: stri
           } else {
             data.models.set(bucket, { cost: cost, tokens: inTok + outTok });
           }
+
+          if (outTok > 0 && timestamp > 0 && lastUserTimestamp > 0) {
+            var dur = timestamp - lastUserTimestamp;
+            if (dur > 0 && dur < 600000) {
+              data.responseTimePoints.push({ tokens: outTok, duration: dur, model: bucket });
+            }
+          }
+
+          data.contextMessages.push({ messageIndex: assistantIndex, inputTokens: inTok + cacheRead + cacheCreation, model: bucket });
+          assistantIndex++;
         }
 
         if (!data.title && message.content) {
@@ -144,6 +173,7 @@ function parseSessionFile(filePath: string, sessionId: string, projectSlug: stri
           }
         }
       } else if (parsed.type === "user") {
+        if (timestamp > 0) lastUserTimestamp = timestamp;
         var userMsg = parsed.message as Record<string, unknown> | undefined;
         if (!userMsg || !Array.isArray(userMsg.content)) continue;
 
@@ -408,6 +438,88 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   });
   toolUsage.sort(function (a, b) { return b.count - a.count; });
 
+  var responseTimeData: AnalyticsPayload["responseTimeData"] = [];
+  for (var rti = 0; rti < filtered.length; rti++) {
+    var rtSess = filtered[rti];
+    for (var rtj = 0; rtj < rtSess.responseTimePoints.length; rtj++) {
+      var rtp = rtSess.responseTimePoints[rtj];
+      responseTimeData.push({ tokens: rtp.tokens, duration: rtp.duration, model: rtp.model, sessionId: rtSess.id });
+    }
+    if (responseTimeData.length >= 200) break;
+  }
+  if (responseTimeData.length > 200) responseTimeData.length = 200;
+
+  var contextWindowSizes: Record<string, number> = { opus: 200000, sonnet: 200000, haiku: 200000, other: 200000 };
+  var contextUtilization: AnalyticsPayload["contextUtilization"] = [];
+  var recentSessions = sorted.slice(0, 5);
+  for (var cui = 0; cui < recentSessions.length; cui++) {
+    var cuSess = recentSessions[cui];
+    var runningTokens = 0;
+    var primaryModel = "other";
+    var maxModelTokens = 0;
+    cuSess.models.forEach(function (val, key) {
+      if (val.tokens > maxModelTokens) {
+        maxModelTokens = val.tokens;
+        primaryModel = key;
+      }
+    });
+    var windowSize = contextWindowSizes[primaryModel] || 200000;
+    for (var cmj = 0; cmj < cuSess.contextMessages.length; cmj++) {
+      var cm = cuSess.contextMessages[cmj];
+      runningTokens += cm.inputTokens;
+      contextUtilization.push({
+        messageIndex: cm.messageIndex,
+        contextPercent: Math.min((runningTokens / windowSize) * 100, 100),
+        sessionId: cuSess.id,
+        title: cuSess.title,
+      });
+    }
+  }
+
+  var sankeyNodes = [
+    { name: "Input Tokens" },
+    { name: "Cache Read" },
+    { name: "Cache Creation" },
+    { name: "Opus" },
+    { name: "Sonnet" },
+    { name: "Haiku" },
+    { name: "Other" },
+    { name: "Output Tokens" },
+  ];
+  var modelNodeMap: Record<string, number> = { opus: 3, sonnet: 4, haiku: 5, other: 6 };
+  var sankeyLinks: Array<{ source: number; target: number; value: number }> = [];
+  var modelInputTotals = new Map<string, number>();
+  var modelCacheTotals = new Map<string, number>();
+  var modelCacheCreationTotals = new Map<string, number>();
+  var modelOutputTotals = new Map<string, number>();
+
+  for (var ski = 0; ski < filtered.length; ski++) {
+    var skSess = filtered[ski];
+    var skTotal = skSess.inputTokens + skSess.cacheReadTokens + skSess.cacheCreationTokens;
+    if (skTotal === 0) continue;
+    skSess.models.forEach(function (val, key) {
+      var proportion = val.tokens / (skTotal + skSess.outputTokens || 1);
+      modelInputTotals.set(key, (modelInputTotals.get(key) || 0) + skSess.inputTokens * proportion);
+      modelCacheTotals.set(key, (modelCacheTotals.get(key) || 0) + skSess.cacheReadTokens * proportion);
+      modelCacheCreationTotals.set(key, (modelCacheCreationTotals.get(key) || 0) + skSess.cacheCreationTokens * proportion);
+      modelOutputTotals.set(key, (modelOutputTotals.get(key) || 0) + skSess.outputTokens * proportion);
+    });
+  }
+
+  ["opus", "sonnet", "haiku", "other"].forEach(function (model) {
+    var nodeIdx = modelNodeMap[model];
+    var inputVal = Math.round(modelInputTotals.get(model) || 0);
+    var cacheVal = Math.round(modelCacheTotals.get(model) || 0);
+    var cacheCreationVal = Math.round(modelCacheCreationTotals.get(model) || 0);
+    var outputVal = Math.round(modelOutputTotals.get(model) || 0);
+    if (inputVal > 0) sankeyLinks.push({ source: 0, target: nodeIdx, value: inputVal });
+    if (cacheVal > 0) sankeyLinks.push({ source: 1, target: nodeIdx, value: cacheVal });
+    if (cacheCreationVal > 0) sankeyLinks.push({ source: 2, target: nodeIdx, value: cacheCreationVal });
+    if (outputVal > 0) sankeyLinks.push({ source: nodeIdx, target: 7, value: outputVal });
+  });
+
+  var tokenFlowSankey: AnalyticsPayload["tokenFlowSankey"] = { nodes: sankeyNodes, links: sankeyLinks };
+
   return {
     totalCost: totalCost,
     totalSessions: filtered.length,
@@ -430,6 +542,9 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     modelUsage: modelUsage,
     projectBreakdown: projectBreakdown,
     toolUsage: toolUsage,
+    responseTimeData: responseTimeData,
+    contextUtilization: contextUtilization,
+    tokenFlowSankey: tokenFlowSankey,
   };
 }
 
