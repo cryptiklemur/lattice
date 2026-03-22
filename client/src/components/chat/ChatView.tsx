@@ -7,6 +7,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { setSessionTitle } from "../../stores/session";
 import { openSettings, openProjectSettings } from "../../stores/sidebar";
+import { openTab } from "../../stores/workspace";
 import { builtinCommands } from "../../commands";
 import { Message } from "./Message";
 import { ToolGroup } from "./ToolGroup";
@@ -19,7 +20,7 @@ import { useOnline } from "../../hooks/useOnline";
 import { useSpinnerVerb } from "../../hooks/useSpinnerVerb";
 
 export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
   var online = useOnline();
@@ -34,6 +35,8 @@ export function ChatView() {
   var [selectedModel, setSelectedModel] = useState<string>("default");
   var [selectedEffort, setSelectedEffort] = useState<string>("medium");
   var [showInfo, setShowInfo] = useState<boolean>(false);
+  var [confirmStopExternal, setConfirmStopExternal] = useState<boolean>(false);
+  var [prefillText, setPrefillText] = useState<string | null>(null);
   var [copiedField, setCopiedField] = useState<string | null>(null);
   var [isRenaming, setIsRenaming] = useState<boolean>(false);
   var [renameValue, setRenameValue] = useState<string>("");
@@ -427,9 +430,8 @@ export function ChatView() {
             )}
             <button
               aria-label="Open terminal"
-              title="Coming soon"
-              disabled
-              className="btn btn-ghost btn-sm btn-square text-base-content/30 opacity-40 cursor-not-allowed"
+              onClick={function () { openTab("terminal"); }}
+              className="btn btn-ghost btn-sm btn-square text-base-content/50 hover:text-base-content/70"
             >
               <Terminal size={15} />
             </button>
@@ -806,15 +808,17 @@ export function ChatView() {
       <StatusBar status={currentStatus} />
 
       {isProcessing && (
-        <div className="flex-shrink-0 flex items-center justify-center gap-3 py-1.5">
-          <span className="text-[11px] text-base-content/30 font-mono animate-pulse">{spinnerVerb}...</span>
-          <button
-            onClick={handleCancel}
-            className="btn btn-ghost btn-xs text-error/70 hover:text-error gap-1"
-          >
-            <Square size={10} className="fill-current" />
-            Stop
-          </button>
+        <div className="flex-shrink-0 flex items-center justify-center gap-4 my-4 pointer-events-none relative z-10">
+          <div className="flex items-center gap-4 pointer-events-auto bg-base-200/90 backdrop-blur-sm border border-base-content/10 rounded-full px-5 py-2 shadow-lg">
+            <span className="text-[14px] text-base-content/40 font-mono animate-pulse">{spinnerVerb}...</span>
+            <button
+              onClick={handleCancel}
+              className="btn btn-ghost btn-sm text-error/70 hover:text-error gap-1.5"
+            >
+              <Square size={12} className="fill-current" />
+              Stop
+            </button>
+          </div>
         </div>
       )}
 
@@ -842,31 +846,95 @@ export function ChatView() {
         </div>
       )}
 
-      {wasInterrupted && !isProcessing && (
+      {isBusy && !isProcessing && (
+        <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-info/10 border-t border-info/20">
+          <Terminal size={13} className="text-info flex-shrink-0" />
+          <span className="text-[12px] text-info flex-1">This session is being used by another client — input is disabled</span>
+          <button
+            onClick={function () { setConfirmStopExternal(true); }}
+            className="btn btn-ghost btn-xs text-error/70 hover:text-error gap-1 flex-shrink-0"
+          >
+            <Square size={10} className="fill-current" />
+            End Process
+          </button>
+        </div>
+      )}
+
+      {confirmStopExternal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={function () { setConfirmStopExternal(false); }} />
+          <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="px-5 py-4 border-b border-base-content/15">
+              <h2 className="text-[15px] font-mono font-bold text-base-content">End External Process</h2>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-[13px] text-base-content/60 leading-relaxed">
+                This will send a graceful stop signal (SIGINT) to the Claude Code CLI process controlling this session. The process will finish its current operation and exit.
+              </p>
+              <p className="text-[13px] text-warning mt-2 leading-relaxed">
+                Any in-progress work may be interrupted.
+              </p>
+            </div>
+            <div className="px-5 py-3 border-t border-base-content/15 flex justify-end gap-2">
+              <button
+                onClick={function () { setConfirmStopExternal(false); }}
+                className="btn btn-ghost btn-sm text-[12px]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={function () {
+                  if (activeSessionId) {
+                    ws.send({ type: "session:stop_external", sessionId: activeSessionId } as any);
+                  }
+                  setConfirmStopExternal(false);
+                }}
+                className="btn btn-error btn-sm text-[12px]"
+              >
+                End Process
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {wasInterrupted && !isProcessing && !isBusy && (
         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-warning/10 border-t border-warning/20">
           <AlertTriangle size={13} className="text-warning flex-shrink-0" />
           <span className="text-[12px] text-warning">Session was interrupted — send a message to continue</span>
         </div>
       )}
 
-      {promptSuggestion && !isProcessing && (
-        <div className="flex-shrink-0 px-2 sm:px-4 pt-2">
-          <button
-            onClick={function () { if (promptSuggestion) handleSend(promptSuggestion); }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-[12px] text-primary/80 hover:bg-primary/15 hover:text-primary transition-colors max-w-full"
-          >
-            <Zap size={12} className="flex-shrink-0" />
-            <span className="truncate">{promptSuggestion}</span>
-          </button>
+      {promptSuggestion && !isProcessing && !isBusy && (
+        <div className="flex-shrink-0 px-2 sm:px-4 py-2">
+          <div className="flex items-center gap-1.5 max-w-full">
+            <button
+              onClick={function () { if (promptSuggestion) handleSend(promptSuggestion); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-[12px] text-primary/80 hover:bg-primary/15 hover:text-primary transition-colors min-w-0"
+            >
+              <Zap size={12} className="flex-shrink-0" />
+              <span className="truncate">{promptSuggestion}</span>
+            </button>
+            <button
+              onClick={function () { if (promptSuggestion) setPrefillText(promptSuggestion); }}
+              aria-label="Edit suggestion"
+              className="btn btn-ghost btn-xs btn-square text-primary/40 hover:text-primary/80 flex-shrink-0"
+            >
+              <Pencil size={12} />
+            </button>
+          </div>
         </div>
       )}
 
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
         <ChatInput
           onSend={handleSend}
-          disabled={!activeSessionId || !online}
+          disabled={!activeSessionId || !online || isBusy}
+          disabledPlaceholder={isBusy ? "Session in use by another client..." : undefined}
           failedInput={failedInput}
           onFailedInputConsumed={clearFailedInput}
+          prefillText={prefillText}
+          onPrefillConsumed={function () { setPrefillText(null); }}
           toolbarContent={
             <>
               <PermissionModeSelector />
