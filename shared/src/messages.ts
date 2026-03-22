@@ -101,6 +101,44 @@ export interface AttachmentErrorMessage {
   error: string;
 }
 
+export interface ChatPromptRequestMessage {
+  type: "chat:prompt_request";
+  requestId: string;
+  questions: Array<{
+    question: string;
+    header: string;
+    options: Array<{ label: string; description: string; preview?: string }>;
+    multiSelect: boolean;
+  }>;
+}
+
+export interface ChatPromptResponseMessage {
+  type: "chat:prompt_response";
+  requestId: string;
+  answers: Record<string, string>;
+  annotations?: Record<string, { notes?: string; preview?: string }>;
+}
+
+export interface ChatPromptResolvedMessage {
+  type: "chat:prompt_resolved";
+  requestId: string;
+}
+
+export interface ChatTodoUpdateMessage {
+  type: "chat:todo_update";
+  todos: Array<{
+    id: string;
+    content: string;
+    status: "pending" | "in_progress" | "completed";
+    priority: "high" | "medium" | "low";
+  }>;
+}
+
+export interface ChatPlanModeMessage {
+  type: "chat:plan_mode";
+  active: boolean;
+}
+
 export interface FsListMessage {
   type: "fs:list";
   path: string;
@@ -400,7 +438,8 @@ export type ClientMessage =
   | MemoryDeleteMessage
   | BrowseSuggestionsMessage
   | EditorOpenMessage
-  | EditorDetectMessage;
+  | EditorDetectMessage
+  | ChatPromptResponseMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -785,7 +824,11 @@ export type ServerMessage =
   | BrowseSuggestionsResultMessage
   | EditorDetectResultMessage
   | AttachmentProgressMessage
-  | AttachmentErrorMessage;
+  | AttachmentErrorMessage
+  | ChatPromptRequestMessage
+  | ChatPromptResolvedMessage
+  | ChatTodoUpdateMessage
+  | ChatPlanModeMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

@@ -67,6 +67,20 @@ export interface HistoryMessage {
   model?: string;
   costEstimate?: number;
   duration?: number;
+  promptQuestions?: Array<{
+    question: string;
+    header: string;
+    options: Array<{ label: string; description: string; preview?: string }>;
+    multiSelect: boolean;
+  }>;
+  promptAnswers?: Record<string, string>;
+  promptStatus?: "pending" | "answered" | "timed_out";
+  todos?: Array<{
+    id: string;
+    content: string;
+    status: "pending" | "in_progress" | "completed";
+    priority: "high" | "medium" | "low";
+  }>;
 }
 
 export interface PeerInfo {
