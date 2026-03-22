@@ -309,7 +309,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   }
 
   var totalTokensAll = totalInput + totalOutput + totalCacheRead + totalCacheCreation;
-  var cacheHitRate = totalInput > 0 ? totalCacheRead / totalInput : 0;
+  var cacheHitRate = (totalInput + totalCacheRead) > 0 ? totalCacheRead / (totalInput + totalCacheRead) : 0;
 
   var dates = Array.from(dailyCost.keys()).sort();
 
@@ -345,7 +345,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     });
 
     var dchEntry = dailyCacheHit.get(d);
-    var rate = dchEntry && dchEntry.totalInput > 0 ? dchEntry.cacheRead / dchEntry.totalInput : 0;
+    var rate = dchEntry && (dchEntry.totalInput + dchEntry.cacheRead) > 0 ? dchEntry.cacheRead / (dchEntry.totalInput + dchEntry.cacheRead) : 0;
     cacheHitRateOverTime.push({ date: d, rate: rate });
   }
 

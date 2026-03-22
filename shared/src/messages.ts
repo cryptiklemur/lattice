@@ -1,3 +1,4 @@
+import type { AnalyticsPayload } from "./analytics.js";
 import type {
   FileEntry,
   HistoryMessage,
@@ -384,6 +385,30 @@ export interface SessionStopExternalMessage {
   sessionId: string;
 }
 
+export interface AnalyticsRequestMessage {
+  type: "analytics:request";
+  requestId: string;
+  scope: "global" | "project" | "session";
+  projectSlug?: string;
+  sessionId?: string;
+  period: "24h" | "7d" | "30d" | "90d" | "all";
+  forceRefresh?: boolean;
+}
+
+export interface AnalyticsDataMessage {
+  type: "analytics:data";
+  requestId: string;
+  scope: "global" | "project" | "session";
+  period: "24h" | "7d" | "30d" | "90d" | "all";
+  data: AnalyticsPayload;
+}
+
+export interface AnalyticsErrorMessage {
+  type: "analytics:error";
+  scope: "global" | "project" | "session";
+  message: string;
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
@@ -439,7 +464,8 @@ export type ClientMessage =
   | BrowseSuggestionsMessage
   | EditorOpenMessage
   | EditorDetectMessage
-  | ChatPromptResponseMessage;
+  | ChatPromptResponseMessage
+  | AnalyticsRequestMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -828,7 +854,9 @@ export type ServerMessage =
   | ChatPromptRequestMessage
   | ChatPromptResolvedMessage
   | ChatTodoUpdateMessage
-  | ChatPlanModeMessage;
+  | ChatPlanModeMessage
+  | AnalyticsDataMessage
+  | AnalyticsErrorMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

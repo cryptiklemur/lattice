@@ -1,0 +1,24 @@
+export interface AnalyticsPayload {
+  totalCost: number;
+  totalSessions: number;
+  totalTokens: { input: number; output: number; cacheRead: number; cacheCreation: number };
+  cacheHitRate: number;
+  avgSessionCost: number;
+  avgSessionDuration: number;
+
+  costOverTime: Array<{ date: string; total: number; opus: number; sonnet: number; haiku: number; other: number }>;
+  cumulativeCost: Array<{ date: string; total: number }>;
+  sessionsOverTime: Array<{ date: string; count: number }>;
+  tokensOverTime: Array<{ date: string; input: number; output: number; cacheRead: number }>;
+  cacheHitRateOverTime: Array<{ date: string; rate: number }>;
+
+  costDistribution: Array<{ bucket: string; count: number }>;
+  sessionBubbles: Array<{ id: string; title: string; cost: number; tokens: number; timestamp: number; project: string }>;
+
+  modelUsage: Array<{ model: string; sessions: number; cost: number; tokens: number; percentage: number }>;
+  projectBreakdown: Array<{ project: string; cost: number; sessions: number; tokens: number }>;
+  toolUsage: Array<{ tool: string; count: number; avgCost: number }>;
+}
+
+export type AnalyticsPeriod = "24h" | "7d" | "30d" | "90d" | "all";
+export type AnalyticsScope = "global" | "project" | "session";
