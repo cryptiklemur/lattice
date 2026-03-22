@@ -13,6 +13,7 @@ export type SidebarMode = "project" | "settings";
 export type ActiveView =
   | { type: "dashboard" }
   | { type: "project-dashboard" }
+  | { type: "analytics" }
   | { type: "chat" }
   | { type: "settings"; section: SettingsSection }
   | { type: "project-settings"; section: ProjectSettingsSection };
@@ -244,6 +245,13 @@ export function goToDashboard(): void {
     };
   });
   pushUrl(null, null);
+}
+
+export function goToAnalytics(): void {
+  sidebarStore.setState(function (state) {
+    return { ...state, activeView: { type: "analytics" }, sidebarMode: "project" };
+  });
+  pushUrl(sidebarStore.state.activeProjectSlug, null);
 }
 
 export function handlePopState(): void {

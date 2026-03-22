@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar } from "lucide-react";
+import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3 } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import type { SessionSummary, ServerMessage, SettingsDataMessage } from "@lattice/shared";
 import { useProjects } from "../../hooks/useProjects";
@@ -10,7 +10,7 @@ import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
 import { useOnline } from "../../hooks/useOnline";
 import { openTab } from "../../stores/workspace";
-import { getSidebarStore } from "../../stores/sidebar";
+import { getSidebarStore, goToAnalytics } from "../../stores/sidebar";
 import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
 import { UserIsland } from "./UserIsland";
@@ -175,6 +175,14 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                       </button>
                     );
                   })}
+                  <button
+                    type="button"
+                    onClick={goToAnalytics}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                  >
+                    <BarChart3 size={12} />
+                    <span className="font-mono tracking-wide">Analytics</span>
+                  </button>
                 </div>
 
                 <SectionLabel

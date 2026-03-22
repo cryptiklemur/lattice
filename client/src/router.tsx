@@ -8,6 +8,7 @@ import { SettingsView } from "./components/settings/SettingsView";
 import { ProjectSettingsView } from "./components/project-settings/ProjectSettingsView";
 import { DashboardView } from "./components/dashboard/DashboardView";
 import { ProjectDashboardView } from "./components/dashboard/ProjectDashboardView";
+import { AnalyticsView } from "./components/analytics/AnalyticsView";
 import { NodeSettingsModal } from "./components/sidebar/NodeSettingsModal";
 import { AddProjectModal } from "./components/sidebar/AddProjectModal";
 import { useSidebar } from "./hooks/useSidebar";
@@ -420,6 +421,9 @@ function IndexPage() {
   }
   if (sidebar.activeView.type === "project-dashboard") {
     return <ProjectDashboardView />;
+  }
+  if (sidebar.activeView.type === "analytics") {
+    return <AnalyticsView />;
   }
   return <WorkspaceView />;
 }
