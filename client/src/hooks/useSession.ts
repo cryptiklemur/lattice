@@ -61,7 +61,7 @@ var lastUsedEffort: string | undefined = undefined;
 export type { SessionState };
 
 export interface UseSessionReturn extends SessionState {
-  sendMessage: (text: string, model?: string, effort?: string) => void;
+  sendMessage: (text: string, attachmentIds?: string[], model?: string, effort?: string) => void;
   activateSession: (projectSlug: string, sessionId: string) => void;
   clearFailedInput: () => void;
   lastReadIndex: number | null;
@@ -77,7 +77,7 @@ export function useSession(): UseSessionReturn {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var sendRef = useRef(send);
   sendRef.current = send;
-  var sendMessageRef = useRef(function (_text: string, _model?: string, _effort?: string) {});
+  var sendMessageRef = useRef(function (_text: string, _attachmentIds?: string[], _model?: string, _effort?: string) {});
 
   function activateSession(projectSlug: string, sessionId: string) {
     setActiveSession(projectSlug, sessionId);
@@ -85,12 +85,15 @@ export function useSession(): UseSessionReturn {
     sendRef.current({ type: "session:activate", projectSlug, sessionId });
   }
 
-  function sendMessage(text: string, model?: string, effort?: string) {
+  function sendMessage(text: string, attachmentIds?: string[], model?: string, effort?: string) {
     var currentSessionId = getSessionStore().state.activeSessionId;
-    if (!currentSessionId || !text.trim()) {
+    if (!currentSessionId || (!text.trim() && (!attachmentIds || attachmentIds.length === 0))) {
       return;
     }
     var msg = { type: "chat:send" as const, text: text } as ChatSendMessage & { model?: string; effort?: string };
+    if (attachmentIds && attachmentIds.length > 0) {
+      msg.attachmentIds = attachmentIds;
+    }
     if (model && model !== "default") {
       msg.model = model;
     }
@@ -187,7 +190,7 @@ export function useSession(): UseSessionReturn {
         var combined = queue.join("\n\n");
         clearMessageQueue();
         setTimeout(function () {
-          sendMessageRef.current(combined, lastUsedModel, lastUsedEffort);
+          sendMessageRef.current(combined, [], lastUsedModel, lastUsedEffort);
         }, 100);
       }
     }

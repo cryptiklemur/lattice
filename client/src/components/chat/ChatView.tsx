@@ -328,7 +328,7 @@ export function ChatView() {
     setWasInterrupted(true);
   }
 
-  function handleSend(text: string) {
+  function handleSend(text: string, attachmentIds: string[]) {
     if (text.startsWith("/")) {
       var parts = text.split(/\s+/);
       var cmdName = parts[0].slice(1).toLowerCase();
@@ -350,7 +350,7 @@ export function ChatView() {
       enqueueMessage(text);
       return;
     }
-    sendMessage(text, selectedModel, selectedEffort);
+    sendMessage(text, attachmentIds, selectedModel, selectedEffort);
   }
 
   var virtualItems = virtualizer.getVirtualItems();
@@ -912,7 +912,7 @@ export function ChatView() {
         <div className="flex-shrink-0 px-2 sm:px-4 py-2">
           <div className="flex items-center gap-1.5 max-w-full">
             <button
-              onClick={function () { if (promptSuggestion) handleSend(promptSuggestion); }}
+              onClick={function () { if (promptSuggestion) handleSend(promptSuggestion, []); }}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-[12px] text-primary/80 hover:bg-primary/15 hover:text-primary transition-colors min-w-0"
             >
               <Zap size={12} className="flex-shrink-0" />
