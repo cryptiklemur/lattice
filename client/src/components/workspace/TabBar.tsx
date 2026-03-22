@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Columns2, Rows2 } from "lucide-react";
+import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
-import type { Tab } from "../../stores/workspace";
+import type { Tab, TabType } from "../../stores/workspace";
 
 interface TabBarProps {
   paneId?: string;
@@ -13,6 +13,14 @@ interface ContextMenuState {
   x: number;
   y: number;
 }
+
+var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
+  chat: MessageSquare,
+  files: FolderOpen,
+  terminal: TerminalSquare,
+  notes: StickyNote,
+  tasks: Calendar,
+};
 
 export function TabBar({ paneId, isActivePane }: TabBarProps) {
   var workspace = useWorkspace();
@@ -57,6 +65,8 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     activeTabId = workspace.activeTabId;
   }
 
+  var shouldShow = paneTabs.length > 1 || (paneTabs[0]?.closeable ?? false);
+
   function handleTabClick(tabId: string) {
     if (paneId) {
       workspace.setPaneActiveTab(paneId, tabId);
@@ -93,9 +103,22 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
 
   return (
     <>
-      <div className={"flex items-center py-3 bg-base-200 border-b border-base-content/15 overflow-x-auto flex-shrink-0" + (isActivePane ? " border-t-2 border-t-primary/40" : "")}>
+      <div
+        className={
+          "flex items-stretch bg-base-200 overflow-x-auto flex-shrink-0 order-1 sm:order-none" +
+          (shouldShow ? " border-b border-t sm:border-t-0 border-base-content/15" : "") +
+          (isActivePane && shouldShow ? " sm:border-t-2 sm:border-t-primary/40" : "")
+        }
+        style={{
+          maxHeight: shouldShow ? "3rem" : "0",
+          opacity: shouldShow ? 1 : 0,
+          overflow: shouldShow ? undefined : "hidden",
+          transition: "max-height 0.2s ease, opacity 0.15s ease",
+        }}
+      >
         {paneTabs.map(function (tab) {
           var isActive = tab.id === activeTabId;
+          var Icon = TAB_ICONS[tab.type] || MessageSquare;
           return (
             <div
               key={tab.id}
@@ -111,12 +134,13 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
               }}
               onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
               className={
-                "flex items-center gap-1.5 px-3 h-full text-[12px] font-mono border-r border-base-content/15 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 " +
+                "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset " +
                 (isActive
                   ? "bg-base-100 text-base-content border-b-2 border-b-primary"
-                  : "text-base-content/50 hover:text-base-content/80 hover:bg-base-300/30")
+                  : "text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30")
               }
             >
+              <Icon size={14} className={isActive ? "text-primary" : ""} />
               <span>{tab.label}</span>
               {tab.closeable && (
                 <button
@@ -125,9 +149,9 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
                     e.stopPropagation();
                     handleCloseTab(tab.id);
                   }}
-                  className="ml-1 p-1 sm:p-0.5 rounded hover:bg-base-content/15 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+                  className="ml-0.5 p-1 rounded hover:bg-base-content/15 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  <X size={11} />
+                  <X size={12} />
                 </button>
               )}
             </div>
@@ -142,14 +166,14 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
         >
           <button
             onClick={function () { handleSplit("horizontal"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <Columns2 size={14} />
             Split Right
           </button>
           <button
             onClick={function () { handleSplit("vertical"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base-200"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <Rows2 size={14} />
             Split Down

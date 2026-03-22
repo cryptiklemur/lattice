@@ -72,12 +72,12 @@ export function WorkspaceView() {
       <div className="flex flex-col h-full w-full overflow-hidden">
         <TabBar paneId={singlePane?.id} />
         {!online && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-warning/10 border-b border-warning/20 flex-shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-warning/10 border-b border-warning/20 flex-shrink-0 order-0 sm:order-none">
             <WifiOff size={13} className="text-warning flex-shrink-0" />
             <span className="text-[12px] text-warning">Disconnected — viewing only</span>
           </div>
         )}
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0 relative order-0 sm:order-none">
           {tabs.map(function (tab) {
             var Component = TAB_COMPONENTS[tab.type];
             if (!Component) return null;

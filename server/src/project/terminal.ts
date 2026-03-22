@@ -1,15 +1,33 @@
 import { randomUUID } from "node:crypto";
-import type { IPty } from "node-pty";
+import { spawn } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
+import { join } from "node:path";
 
-var terminals = new Map<string, IPty>();
-var pty: typeof import("node-pty") | null = null;
-
-function getPty(): typeof import("node-pty") {
-  if (!pty) {
-    pty = require("node-pty") as typeof import("node-pty");
-  }
-  return pty;
+interface TerminalWorker {
+  process: ChildProcess;
+  send: (msg: object) => void;
 }
+
+var terminals = new Map<string, TerminalWorker>();
+
+// node-pty doesn't work under Bun (child gets SIGHUP immediately).
+// We run it in a Node.js subprocess instead, communicating via JSON over stdio.
+var WORKER_PATH = join(import.meta.dir, "pty-worker.cjs");
+
+// node-pty lives in Bun's module cache — resolve the path so Node can find it.
+var NODE_MODULES_PATH = (function () {
+  // Bun can resolve the module — use it to find the actual path
+  try {
+    var resolved = require.resolve("node-pty");
+    // resolved = .../node_modules/.bun/node-pty@X.Y.Z/node_modules/node-pty/lib/index.js
+    // We need: .../node_modules/.bun/node-pty@X.Y.Z/node_modules
+    var parts = resolved.split("/node_modules/");
+    parts.pop(); // remove node-pty/lib/index.js
+    return parts.join("/node_modules/") + "/node_modules";
+  } catch {
+    return join(import.meta.dir, "..", "..", "..", "node_modules");
+  }
+})();
 
 export function createTerminal(
   cwd: string,
@@ -17,53 +35,79 @@ export function createTerminal(
   onExit: (code: number) => void,
 ): string {
   var termId = randomUUID();
-  var shell = process.env.SHELL || "bash";
-  var lib = getPty();
 
-  var term = lib.spawn(shell, [], {
-    name: "xterm-256color",
-    cols: 80,
-    rows: 24,
+  var child = spawn("node", [WORKER_PATH], {
+    stdio: ["pipe", "pipe", "ignore"],
     cwd: cwd,
-    env: process.env as Record<string, string>,
+    env: { ...process.env, NODE_PATH: NODE_MODULES_PATH },
   });
 
-  term.onData(onData);
-  term.onExit(function(e) {
-    terminals.delete(termId);
-    onExit(e.exitCode ?? 0);
+  var buffer = "";
+
+  child.stdout!.setEncoding("utf-8");
+  child.stdout!.on("data", function (chunk: string) {
+    buffer += chunk;
+    var lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (var i = 0; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      try {
+        var msg = JSON.parse(lines[i]);
+        if (msg.type === "data") {
+          onData(msg.data);
+        } else if (msg.type === "exit") {
+          terminals.delete(termId);
+          onExit(msg.code ?? 0);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
   });
 
-  terminals.set(termId, term);
+  child.on("exit", function () {
+    if (terminals.has(termId)) {
+      terminals.delete(termId);
+      onExit(0);
+    }
+  });
+
+  function sendMsg(msg: object) {
+    if (child.stdin && !child.stdin.destroyed) {
+      child.stdin.write(JSON.stringify(msg) + "\n");
+    }
+  }
+
+  terminals.set(termId, { process: child, send: sendMsg });
+
+  // Tell the worker to create the PTY
+  sendMsg({ type: "create", cwd: cwd, cols: 80, rows: 24 });
+
   return termId;
 }
 
 export function writeToTerminal(termId: string, data: string): void {
-  var term = terminals.get(termId);
-  if (term) {
-    term.write(data);
+  var worker = terminals.get(termId);
+  if (worker) {
+    worker.send({ type: "input", data: data });
   }
 }
 
 export function resizeTerminal(termId: string, cols: number, rows: number): void {
-  var term = terminals.get(termId);
-  if (term) {
-    term.resize(cols, rows);
+  var worker = terminals.get(termId);
+  if (worker) {
+    worker.send({ type: "resize", cols: cols, rows: rows });
   }
 }
 
 export function destroyTerminal(termId: string): void {
-  var term = terminals.get(termId);
-  if (term) {
-    try {
-      term.kill();
-    } catch {
-      // already dead
-    }
+  var worker = terminals.get(termId);
+  if (worker) {
+    worker.send({ type: "kill" });
     terminals.delete(termId);
   }
 }
 
-export function getTerminal(termId: string): IPty | undefined {
+export function getTerminal(termId: string): TerminalWorker | undefined {
   return terminals.get(termId);
 }

@@ -12,7 +12,8 @@ import { NodeSettingsModal } from "./components/sidebar/NodeSettingsModal";
 import { AddProjectModal } from "./components/sidebar/AddProjectModal";
 import { useSidebar } from "./hooks/useSidebar";
 import { useWebSocket } from "./hooks/useWebSocket";
-import { exitSettings, getSidebarStore, handlePopState, closeDrawer } from "./stores/sidebar";
+import { useSwipeDrawer } from "./hooks/useSwipeDrawer";
+import { exitSettings, getSidebarStore, handlePopState, closeDrawer, toggleDrawer } from "./stores/sidebar";
 
 function LoadingScreen() {
   var ws = useWebSocket();
@@ -334,6 +335,9 @@ function RootLayout() {
   }, [ws.status]);
 
   var sidebar = useSidebar();
+  var drawerSideRef = useRef<HTMLDivElement>(null);
+
+  useSwipeDrawer(drawerSideRef, sidebar.drawerOpen, toggleDrawer, closeDrawer);
 
   useEffect(function () {
     function handleKeyDown(e: KeyboardEvent) {
@@ -378,14 +382,14 @@ function RootLayout() {
           <Outlet />
         </div>
 
-        <div className="drawer-side z-50 h-full">
+        <div ref={drawerSideRef} className="drawer-side z-50 h-full">
           <label
             htmlFor="sidebar-drawer"
             aria-label="close sidebar"
             className="drawer-overlay"
             onClick={closeDrawer}
           />
-          <div className="h-full w-[284px] flex flex-col overflow-hidden">
+          <div className="h-full w-full lg:w-[284px] flex flex-col overflow-hidden">
             <Sidebar onSessionSelect={closeDrawer} />
           </div>
         </div>

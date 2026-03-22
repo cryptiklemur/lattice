@@ -1,4 +1,4 @@
-import type { ChatSendMessage, ChatPermissionResponseMessage, ChatSetPermissionModeMessage, ClientMessage } from "@lattice/shared";
+import type { ChatSendMessage, ChatPermissionResponseMessage, ChatSetPermissionModeMessage, ChatPromptResponseMessage, ClientMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
@@ -189,6 +189,31 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
     }
 
     deletePendingPermission(permMsg.requestId);
+    return;
+  }
+
+  if (message.type === "chat:prompt_response") {
+    var promptRespMsg = message as ChatPromptResponseMessage;
+    var pendingPrompt = getPendingPermission(promptRespMsg.requestId);
+    if (!pendingPrompt || pendingPrompt.promptType !== "question") {
+      return;
+    }
+
+    var updatedInput = Object.assign({}, pendingPrompt.input, {
+      answers: promptRespMsg.answers,
+    });
+    if (promptRespMsg.annotations) {
+      (updatedInput as Record<string, unknown>).annotations = promptRespMsg.annotations;
+    }
+
+    pendingPrompt.resolve({
+      behavior: "allow",
+      updatedInput: updatedInput,
+      toolUseID: pendingPrompt.toolUseID,
+    });
+
+    sendTo(clientId, { type: "chat:prompt_resolved", requestId: promptRespMsg.requestId });
+    deletePendingPermission(promptRespMsg.requestId);
     return;
   }
 
