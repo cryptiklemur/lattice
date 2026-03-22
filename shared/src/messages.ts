@@ -1,5 +1,4 @@
 import type {
-  Attachment,
   FileEntry,
   HistoryMessage,
   LatticeConfig,
@@ -44,7 +43,7 @@ export interface SessionListRequestMessage {
 export interface ChatSendMessage {
   type: "chat:send";
   text: string;
-  attachments?: Attachment[];
+  attachmentIds?: string[];
   model?: string;
   effort?: string;
 }
@@ -69,6 +68,37 @@ export interface ChatCancelMessage {
 export interface ChatSetPermissionModeMessage {
   type: "chat:set_permission_mode";
   mode: "default" | "acceptEdits" | "plan" | "dontAsk";
+}
+
+export interface AttachmentChunkMessage {
+  type: "attachment:chunk";
+  attachmentId: string;
+  chunkIndex: number;
+  totalChunks: number;
+  data: string;
+}
+
+export interface AttachmentCompleteMessage {
+  type: "attachment:complete";
+  attachmentId: string;
+  attachmentType: "file" | "image" | "paste";
+  name: string;
+  mimeType: string;
+  size: number;
+  lineCount?: number;
+}
+
+export interface AttachmentProgressMessage {
+  type: "attachment:progress";
+  attachmentId: string;
+  received: number;
+  total: number;
+}
+
+export interface AttachmentErrorMessage {
+  type: "attachment:error";
+  attachmentId: string;
+  error: string;
 }
 
 export interface FsListMessage {
@@ -353,6 +383,8 @@ export type ClientMessage =
   | NotesDeleteMessage
   | SkillsListRequestMessage
   | ChatSetPermissionModeMessage
+  | AttachmentChunkMessage
+  | AttachmentCompleteMessage
   | ProjectSettingsGetMessage
   | ProjectSettingsUpdateMessage
   | SessionListAllRequestMessage
@@ -751,7 +783,9 @@ export type ServerMessage =
   | MemorySaveResultMessage
   | MemoryDeleteResultMessage
   | BrowseSuggestionsResultMessage
-  | EditorDetectResultMessage;
+  | EditorDetectResultMessage
+  | AttachmentProgressMessage
+  | AttachmentErrorMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

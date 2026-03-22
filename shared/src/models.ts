@@ -41,9 +41,12 @@ export interface FileEntry {
 }
 
 export interface Attachment {
-  type: "file" | "image";
+  type: "file" | "image" | "paste";
   name: string;
   content: string;
+  mimeType?: string;
+  size: number;
+  lineCount?: number;
 }
 
 export interface HistoryMessage {
