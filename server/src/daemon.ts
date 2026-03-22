@@ -14,7 +14,9 @@ import { ensureCerts } from "./tls";
 import type { ClientMessage, MeshMessage } from "@lattice/shared";
 import "./handlers/session";
 import "./handlers/chat";
-import { loadInterruptedSessions } from "./project/sdk-bridge";
+import "./handlers/attachment";
+import { loadInterruptedSessions, unwatchSessionLock } from "./project/sdk-bridge";
+import { clearActiveSession, getActiveSession } from "./handlers/chat";
 import "./handlers/fs";
 import "./handlers/terminal";
 import "./handlers/settings";
@@ -29,6 +31,7 @@ import "./handlers/editor";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
 import { cleanupClientTerminals } from "./handlers/terminal";
+import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
 
 interface WsData {
   id: string;
@@ -300,8 +303,14 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         }
       },
       close(ws: ServerWebSocket<WsData>) {
+        var activeSession = getActiveSession(ws.data.id);
+        if (activeSession) {
+          unwatchSessionLock(activeSession.sessionId);
+        }
+        clearActiveSession(ws.data.id);
         removeClient(ws.data.id);
         cleanupClientTerminals(ws.data.id);
+        cleanupClientAttachments(ws.data.id);
         console.log(`[lattice] Client disconnected: ${ws.data.id}`);
       },
     },

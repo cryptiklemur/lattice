@@ -1,7 +1,9 @@
 import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
+import type { MessageParam } from "@anthropic-ai/sdk/resources";
+import type { Attachment } from "@lattice/shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -29,6 +31,7 @@ export interface ChatStreamOptions {
   projectSlug: string;
   sessionId: string;
   text: string;
+  attachments?: Attachment[];
   clientId: string;
   cwd: string;
   env?: Record<string, string>;
@@ -316,7 +319,7 @@ export function buildPermissionRule(toolName: string, input: Record<string, unkn
 }
 
 export function startChatStream(options: ChatStreamOptions): void {
-  var { projectSlug, sessionId, text, clientId, cwd, env, model, effort, isNewSession } = options;
+  var { projectSlug, sessionId, text, attachments, clientId, cwd, env, model, effort, isNewSession } = options;
   var startTime = Date.now();
 
   if (activeStreams.has(sessionId)) {
@@ -506,7 +509,46 @@ export function startChatStream(options: ChatStreamOptions): void {
   var activeToolBlocks: Record<number, { id: string; name: string; inputJson: string }> = {};
   var doneSent = false;
 
-  var stream = query({ prompt: prompt, options: queryOptions });
+  var queryPrompt: string | AsyncIterable<SDKUserMessage>;
+
+  if (attachments && attachments.length > 0) {
+    var contentBlocks: Array<{ type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
+    contentBlocks.push({ type: "text", text: prompt });
+
+    for (var ai = 0; ai < attachments.length; ai++) {
+      var att = attachments[ai];
+      if (att.type === "image" && att.mimeType && !att.mimeType.includes("svg")) {
+        contentBlocks.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: att.mimeType,
+            data: att.content,
+          },
+        });
+      } else {
+        var prefix = att.name ? "[Attached: " + att.name + "]\n" : "";
+        contentBlocks.push({
+          type: "text",
+          text: prefix + att.content,
+        });
+      }
+    }
+
+    var userMessage: SDKUserMessage = {
+      type: "user",
+      message: { role: "user", content: contentBlocks } as MessageParam,
+      parent_tool_use_id: null,
+    };
+
+    queryPrompt = (async function* () {
+      yield userMessage;
+    })();
+  } else {
+    queryPrompt = prompt;
+  }
+
+  var stream = query({ prompt: queryPrompt, options: queryOptions });
   activeStreams.set(sessionId, stream);
   streamMetadata.set(sessionId, { projectSlug, clientId, startedAt: Date.now() });
   persistStreamState();

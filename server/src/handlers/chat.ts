@@ -4,6 +4,7 @@ import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
 import { loadConfig } from "../config";
 import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream, buildPermissionRule } from "../project/sdk-bridge";
+import { getAttachments } from "./attachment";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -122,10 +123,15 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
     var config = loadConfig();
     var env = Object.assign({}, config.globalEnv, project.env);
 
+    var attachments = sendMsg.attachmentIds
+      ? getAttachments(clientId, sendMsg.attachmentIds)
+      : [];
+
     startChatStream({
       projectSlug: active.projectSlug,
       sessionId: active.sessionId,
       text: sendMsg.text,
+      attachments,
       clientId,
       cwd: project.path,
       env: Object.keys(env).length > 0 ? env : undefined,
