@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Trash2, RefreshCw, X, Loader2, FileText } from "lucide-react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { SkillInfo } from "@lattice/shared";
 
 function parseFrontmatter(content: string): { meta: Record<string, string>; body: string } {
@@ -163,7 +164,7 @@ export function SkillViewModal({ path, content, onClose }: { path: string; conte
 
           <div className="px-5 py-4">
             <div className="prose prose-sm max-w-none prose-headings:text-base-content prose-headings:font-mono prose-p:text-base-content/70 prose-strong:text-base-content prose-code:text-base-content/60 prose-code:bg-base-100/50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-pre:bg-base-100 prose-pre:text-base-content/70 prose-pre:text-[11px] prose-a:text-primary prose-li:text-base-content/70 prose-li:marker:text-base-content/30 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-              <Markdown>{parsed.body}</Markdown>
+              <Markdown remarkPlugins={[remarkGfm]}>{parsed.body}</Markdown>
             </div>
           </div>
         </div>

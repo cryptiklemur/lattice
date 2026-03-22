@@ -1,10 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Wrench, TriangleAlert, ChevronDown, Check, X, Shield } from "lucide-react";
 import type { HistoryMessage, ChatPermissionResponseMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { ToolResultRenderer } from "./ToolResultRenderer";
 import { formatToolSummary } from "./toolSummary";
+
+var mdComponents = {
+  table: function (props: React.HTMLAttributes<HTMLTableElement>) {
+    return (
+      <div className="table-wrapper">
+        <table {...props} />
+      </div>
+    );
+  },
+};
 
 interface MessageProps {
   message: HistoryMessage;
@@ -41,7 +52,7 @@ function UserMessage(props: { message: HistoryMessage }) {
     <div className="chat chat-end px-5 py-1">
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline">
-          <Markdown>{msg.text || ""}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.text || ""}</Markdown>
         </div>
       </div>
       {time && (
@@ -79,7 +90,7 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
       </div>
       <div className="chat-bubble bg-base-300/70 text-base-content text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm border border-base-content/5">
         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-base-content prose-p:text-base-content prose-strong:text-base-content prose-code:text-base-content/70 prose-code:bg-base-100/50 prose-pre:bg-base-100 prose-pre:text-base-content/70 prose-a:text-primary prose-a:underline prose-li:text-base-content">
-          <Markdown>{msg.text || ""}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.text || ""}</Markdown>
         </div>
       </div>
       {time && (

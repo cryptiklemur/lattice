@@ -123,6 +123,79 @@ html, body {
   background: transparent;
 }
 
+.prose .table-wrapper {
+  overflow-x: auto;
+  margin: 0.75em 0;
+  border-radius: 0.5rem;
+  border: 1px solid oklch(from var(--color-base-content) l c h / 0.08);
+  background: oklch(from var(--color-base-100) l c h / 0.6);
+  scrollbar-width: thin;
+}
+
+.prose table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  margin: 0;
+  border: none;
+  line-height: 1.5;
+}
+
+.prose thead {
+  background: oklch(from var(--color-base-content) l c h / 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.prose th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 14px;
+  color: oklch(from var(--color-base-content) l c h / 0.35);
+  border-bottom: 1px solid oklch(from var(--color-base-content) l c h / 0.1);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.prose td {
+  padding: 8px 14px;
+  color: oklch(from var(--color-base-content) l c h / 0.65);
+  border-bottom: 1px solid oklch(from var(--color-base-content) l c h / 0.04);
+  vertical-align: top;
+  white-space: normal;
+  min-width: 60px;
+}
+
+.prose td code {
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: oklch(from var(--color-primary) l c h / 0.08);
+  color: oklch(from var(--color-primary) l c h / 0.8);
+}
+
+.prose tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.prose tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.prose tbody tr:nth-child(even) {
+  background: oklch(from var(--color-base-content) l c h / 0.015);
+}
+
+.prose tbody tr:hover {
+  background: oklch(from var(--color-primary) l c h / 0.04);
+}
+
 .bg-lattice-grid {
   background-color: transparent;
 }

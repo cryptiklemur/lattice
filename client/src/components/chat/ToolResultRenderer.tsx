@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Columns2, AlignLeft, FileText, Image } from "lucide-react";
 
 interface ToolResultRendererProps {
@@ -324,7 +325,7 @@ export function ToolResultRenderer(props: ToolResultRendererProps) {
       <div className="px-2.5 py-2">
         <div className="text-[9px] text-base-content/25 uppercase tracking-wider font-semibold mb-0.5">Result</div>
         <div className="prose prose-sm max-w-none text-[11px] [&_table]:text-[11px] [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_th]:text-base-content/60 [&_td]:text-base-content/45 [&_table]:border-base-content/10 [&_th]:border-base-content/10 [&_td]:border-base-content/10 [&_th]:bg-base-100/50">
-          <Markdown>{result}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>
         </div>
       </div>
     );
