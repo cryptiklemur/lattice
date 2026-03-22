@@ -5,7 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { setSessionTitle } from "../../stores/session";
+import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted } from "../../stores/session";
 import { openSettings, openProjectSettings } from "../../stores/sidebar";
 import { openTab } from "../../stores/workspace";
 import { builtinCommands } from "../../commands";
@@ -323,6 +323,9 @@ export function ChatView() {
 
   function handleCancel() {
     ws.send({ type: "chat:cancel" });
+    setIsProcessing(false);
+    setCurrentStatus(null);
+    setWasInterrupted(true);
   }
 
   function handleSend(text: string) {

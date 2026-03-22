@@ -552,12 +552,9 @@ export function startChatStream(options: ChatStreamOptions): void {
     if (msg.type === "system") {
       var sysMsg = msg as { type: "system"; subtype?: string; mcp_servers?: { name: string; status: string }[]; tools?: string[] };
       if (sysMsg.subtype === "init") {
-        console.log("[lattice] SDK init - MCP servers:", JSON.stringify(sysMsg.mcp_servers || []));
-        console.log("[lattice] SDK init - tools count:", (sysMsg.tools || []).length);
-        var mcpTools = (sysMsg.tools || []).filter(function (t) { return t.startsWith("mcp__"); });
-        if (mcpTools.length > 0) {
-          console.log("[lattice] SDK init - MCP tools:", mcpTools.join(", "));
-        }
+        var toolCount = (sysMsg.tools || []).length;
+        var mcpCount = (sysMsg.mcp_servers || []).filter(function (s) { return s.status === "connected"; }).length;
+        console.log("[lattice] Session ready: " + toolCount + " tools, " + mcpCount + " MCP servers connected");
       }
       return;
     }

@@ -138,23 +138,16 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
 
   if (message.type === "chat:cancel") {
     var active = activeSessionByClient.get(clientId);
-    console.log("[chat] chat:cancel - clientId:", clientId, "active:", active ? active.sessionId : "NONE");
     if (!active) {
       sendTo(clientId, { type: "chat:error", message: "No active session." });
       return;
     }
     var stream = getActiveStream(active.sessionId);
-    console.log("[chat] chat:cancel - stream found:", !!stream);
     if (!stream) {
       sendTo(clientId, { type: "chat:error", message: "No active stream to cancel." });
       return;
     }
-    console.log("[chat] Interrupting stream for session:", active.sessionId);
-    stream.interrupt().then(function () {
-      console.log("[chat] Stream interrupted successfully");
-    }).catch(function (err: unknown) {
-      console.error("[chat] Stream interrupt failed:", err instanceof Error ? err.message : String(err));
-    });
+    stream.interrupt().catch(function () {});
     return;
   }
 
