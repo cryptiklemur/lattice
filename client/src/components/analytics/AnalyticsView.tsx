@@ -1,5 +1,6 @@
 import { Component } from "react";
 import { useAnalytics } from "../../hooks/useAnalytics";
+import { useMesh } from "../../hooks/useMesh";
 
 class ChartErrorBoundary extends Component<{ children: React.ReactNode; name: string }, { error: Error | null }> {
   constructor(props: { children: React.ReactNode; name: string }) {
@@ -41,9 +42,12 @@ import { ToolSunburst } from "./charts/ToolSunburst";
 import { PermissionBreakdown } from "./charts/PermissionBreakdown";
 import { ProjectRadar } from "./charts/ProjectRadar";
 import { SessionComplexityList } from "./charts/SessionComplexityList";
+import { NodeFleetOverview } from "./charts/NodeFleetOverview";
 
 export function AnalyticsView() {
   var analytics = useAnalytics();
+  var mesh = useMesh();
+  var nodes = mesh.nodes;
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-base-100 bg-lattice-grid">
@@ -171,6 +175,12 @@ export function AnalyticsView() {
             <ChartCard title="Session Complexity">
               <ChartErrorBoundary name="Complexity">
                 <SessionComplexityList data={analytics.data.sessionComplexity} />
+              </ChartErrorBoundary>
+            </ChartCard>
+
+            <ChartCard title="Node Fleet">
+              <ChartErrorBoundary name="Fleet">
+                <NodeFleetOverview nodes={nodes} />
               </ChartErrorBoundary>
             </ChartCard>
           </div>
