@@ -57,6 +57,7 @@ import type { SessionState } from "../stores/session";
 
 var subscriptionsActive = 0;
 var activeStreamGeneration = 0;
+var streamSessionId: string | null = null;
 var lastSentText: string | null = null;
 var lastUsedModel: string | undefined = undefined;
 var lastUsedEffort: string | undefined = undefined;
@@ -104,6 +105,7 @@ export function useSession(): UseSessionReturn {
       msg.effort = effort;
     }
     activeStreamGeneration = getStreamGeneration();
+    streamSessionId = currentSessionId;
     lastSentText = text;
     lastUsedModel = model;
     lastUsedEffort = effort;
@@ -123,7 +125,10 @@ export function useSession(): UseSessionReturn {
     }
 
     function isStaleStream(): boolean {
-      return activeStreamGeneration !== getStreamGeneration();
+      if (activeStreamGeneration !== getStreamGeneration()) return true;
+      var currentActiveId = getSessionStore().state.activeSessionId;
+      if (streamSessionId && currentActiveId && streamSessionId !== currentActiveId) return true;
+      return false;
     }
 
     function handleUserMessage(msg: ServerMessage) {
@@ -272,7 +277,10 @@ export function useSession(): UseSessionReturn {
       if (m.sessionId) {
         var projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
         setSidebarSessionId(m.sessionId);
-        activeStreamGeneration = getStreamGeneration();
+        streamSessionId = m.sessionId;
+        if (m.busy) {
+          activeStreamGeneration = getStreamGeneration();
+        }
         getSessionStore().setState(function (state) {
           return {
             ...state,
