@@ -8,36 +8,14 @@ export function useChartFullscreen(): number | false {
   return useContext(ChartFullscreenContext);
 }
 
-function FullscreenChartArea(props: { children: ReactNode; ready: boolean }) {
-  var containerRef = useRef<HTMLDivElement>(null);
-  var [height, setHeight] = useState(0);
-
+function useViewportChartHeight(): number {
+  var [h, setH] = useState(Math.round(window.innerHeight * 0.5));
   useEffect(function () {
-    if (!props.ready || !containerRef.current) return;
-    var h = containerRef.current.clientHeight;
-    if (h > 0) setHeight(h - 48);
-
-    var observer = new ResizeObserver(function (entries) {
-      for (var i = 0; i < entries.length; i++) {
-        var newH = entries[i].contentRect.height;
-        if (newH > 0) setHeight(newH - 48);
-      }
-    });
-    observer.observe(containerRef.current);
-    return function () { observer.disconnect(); };
-  }, [props.ready]);
-
-  return (
-    <div ref={containerRef} className="flex-1 p-6 overflow-auto min-h-0">
-      {height > 0 ? (
-        <ChartFullscreenContext.Provider value={height}>
-          {props.children}
-        </ChartFullscreenContext.Provider>
-      ) : (
-        <div className="flex items-center justify-center h-full text-base-content/20 font-mono text-[11px]">Expanding...</div>
-      )}
-    </div>
-  );
+    function onResize() { setH(Math.round(window.innerHeight * 0.5)); }
+    window.addEventListener("resize", onResize);
+    return function () { window.removeEventListener("resize", onResize); };
+  }, []);
+  return h;
 }
 
 interface ChartCardProps {
@@ -49,6 +27,7 @@ interface ChartCardProps {
 
 export function ChartCard(props: ChartCardProps) {
   var [isFullscreen, setIsFullscreen] = useState(false);
+  var chartHeight = useViewportChartHeight();
   var cardRef = useRef<HTMLDivElement>(null);
   var [originRect, setOriginRect] = useState<DOMRect | null>(null);
   var [animating, setAnimating] = useState(false);
@@ -182,9 +161,13 @@ export function ChartCard(props: ChartCardProps) {
                 </button>
               </div>
             </div>
-            <FullscreenChartArea ready={!animating}>
-              {props.children}
-            </FullscreenChartArea>
+            <div className="flex-1 p-6 overflow-auto min-h-0">
+              <ChartFullscreenContext.Provider value={chartHeight}>
+                <div style={{ height: chartHeight + "px" }}>
+                  {props.children}
+                </div>
+              </ChartFullscreenContext.Provider>
+            </div>
           </div>
         </div>
       </>
