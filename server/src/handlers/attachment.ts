@@ -88,36 +88,36 @@ registerHandler("attachment", function (clientId: string, message: ClientMessage
   }
 
   if (message.type === "attachment:complete") {
-    var msg = message as AttachmentCompleteMessage;
-    var store = getClientStore(clientId);
-    var pending = store.get(msg.attachmentId);
+    var completeMsg = message as AttachmentCompleteMessage;
+    var completeStore = getClientStore(clientId);
+    var completePending = completeStore.get(completeMsg.attachmentId);
 
-    if (!pending) {
+    if (!completePending) {
       sendTo(clientId, {
         type: "attachment:error",
-        attachmentId: msg.attachmentId,
+        attachmentId: completeMsg.attachmentId,
         error: "No chunks received for this attachment",
       });
       return;
     }
 
-    if (pending.receivedCount !== pending.totalChunks) {
+    if (completePending.receivedCount !== completePending.totalChunks) {
       sendTo(clientId, {
         type: "attachment:error",
-        attachmentId: msg.attachmentId,
-        error: "Missing chunks: received " + pending.receivedCount + " of " + pending.totalChunks,
+        attachmentId: completeMsg.attachmentId,
+        error: "Missing chunks: received " + completePending.receivedCount + " of " + completePending.totalChunks,
       });
       return;
     }
 
     var buffers: Buffer[] = [];
-    for (var i = 0; i < pending.totalChunks; i++) {
-      var chunk = pending.chunks.get(i);
+    for (var ci = 0; ci < completePending.totalChunks; ci++) {
+      var chunk = completePending.chunks.get(ci);
       if (!chunk) {
         sendTo(clientId, {
           type: "attachment:error",
-          attachmentId: msg.attachmentId,
-          error: "Missing chunk at index " + i,
+          attachmentId: completeMsg.attachmentId,
+          error: "Missing chunk at index " + ci,
         });
         return;
       }
@@ -125,21 +125,21 @@ registerHandler("attachment", function (clientId: string, message: ClientMessage
     }
 
     var assembled = Buffer.concat(buffers);
-    var isText = msg.attachmentType === "paste" || isTextMimeType(msg.mimeType);
+    var isText = completeMsg.attachmentType === "paste" || isTextMimeType(completeMsg.mimeType);
     var content = isText ? assembled.toString("utf-8") : assembled.toString("base64");
 
     var attachment: Attachment = {
-      type: msg.attachmentType,
-      name: msg.name,
+      type: completeMsg.attachmentType,
+      name: completeMsg.name,
       content,
-      mimeType: msg.mimeType,
-      size: msg.size,
-      lineCount: msg.lineCount,
+      mimeType: completeMsg.mimeType,
+      size: completeMsg.size,
+      lineCount: completeMsg.lineCount,
     };
 
-    var completedStore = getClientCompleted(clientId);
-    completedStore.set(msg.attachmentId, attachment);
-    store.delete(msg.attachmentId);
+    var finishedStore = getClientCompleted(clientId);
+    finishedStore.set(completeMsg.attachmentId, attachment);
+    completeStore.delete(completeMsg.attachmentId);
     return;
   }
 });

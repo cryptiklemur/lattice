@@ -100,7 +100,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
           {expanded && answeredQuestion && (
             <div className="px-4 pb-3 border-t border-base-content/5">
               <div className="flex flex-col gap-1 pt-2">
-                {answeredQuestion.options.map(function (opt: typeof answeredQuestion.options[number], oi: number) {
+                {answeredQuestion!.options.map(function (opt: { label: string; description: string; preview?: string }, oi: number) {
                   var isChosen = firstAnswer && firstAnswer[1] === opt.label;
                   return (
                     <div
