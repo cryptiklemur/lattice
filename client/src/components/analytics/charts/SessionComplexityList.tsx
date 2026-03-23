@@ -1,12 +1,7 @@
+import { getScoreColor } from "../chartTokens";
+
 interface SessionComplexityListProps {
   data: Array<{ id: string; title: string; score: number; messages: number; tools: number; contextPercent: number }>;
-}
-
-function getScoreColor(score: number, maxScore: number): string {
-  var intensity = maxScore > 0 ? Math.min(score / maxScore, 1) : 0;
-  var lightness = 0.45 - intensity * 0.1;
-  var chroma = 0.1 + intensity * 0.18;
-  return "oklch(" + lightness + " " + chroma + " 280)";
 }
 
 export function SessionComplexityList({ data }: SessionComplexityListProps) {

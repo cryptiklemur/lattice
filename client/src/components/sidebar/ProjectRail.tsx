@@ -180,7 +180,15 @@ export function ProjectRail(props: ProjectRailProps) {
   );
 
   function handleContextMenu(e: React.MouseEvent, slug: string) {
-    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, slug: slug });
+    var menuWidth = 160;
+    var menuHeight = 100;
+    var cx = e.clientX;
+    var cy = e.clientY;
+    if (cx + menuWidth > window.innerWidth - 8) cx = window.innerWidth - menuWidth - 8;
+    if (cy + menuHeight > window.innerHeight - 8) cy = window.innerHeight - menuHeight - 8;
+    if (cx < 8) cx = 8;
+    if (cy < 8) cy = 8;
+    setContextMenu({ visible: true, x: cx, y: cy, slug: slug });
   }
 
   return (

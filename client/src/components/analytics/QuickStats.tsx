@@ -1,5 +1,6 @@
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { useAnalytics } from "../../hooks/useAnalytics";
+import { getChartColors } from "./chartTokens";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -48,6 +49,7 @@ export function QuickStats() {
   }
 
   var d = analytics.data;
+  var colors = getChartColors();
 
   var costSparkData = d.costOverTime.slice(-7).map(function (e) { return { v: e.total }; });
   var sessionsSparkData = d.sessionsOverTime.slice(-7).map(function (e) { return { v: e.count }; });
@@ -61,7 +63,7 @@ export function QuickStats() {
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-base-content/35">Cost</span>
-          {costSparkData.length > 1 && <Sparkline data={costSparkData} stroke="oklch(55% 0.25 280)" />}
+          {costSparkData.length > 1 && <Sparkline data={costSparkData} stroke={colors.primary} />}
         </div>
         <div className="text-[22px] font-mono text-base-content/85">${d.totalCost.toFixed(2)}</div>
       </div>
@@ -69,7 +71,7 @@ export function QuickStats() {
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-base-content/35">Sessions</span>
-          {sessionsSparkData.length > 1 && <Sparkline data={sessionsSparkData} stroke="#22c55e" />}
+          {sessionsSparkData.length > 1 && <Sparkline data={sessionsSparkData} stroke={colors.success} />}
         </div>
         <div className="text-[22px] font-mono text-base-content/85">{d.totalSessions}</div>
       </div>
@@ -77,7 +79,7 @@ export function QuickStats() {
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-base-content/35">Tokens</span>
-          {tokensSparkData.length > 1 && <Sparkline data={tokensSparkData} stroke="#f59e0b" />}
+          {tokensSparkData.length > 1 && <Sparkline data={tokensSparkData} stroke={colors.warning} />}
         </div>
         <div className="text-[22px] font-mono text-base-content/85">{formatTokens(totalTokens)}</div>
       </div>

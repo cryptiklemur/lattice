@@ -4,6 +4,7 @@ import type {
   SessionCreateMessage,
   SessionDeleteMessage,
   SessionListRequestMessage,
+  SessionPreviewRequestMessage,
   SessionRenameMessage,
 } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
@@ -13,6 +14,7 @@ import {
   createSession,
   deleteSession,
   findProjectSlugForSession,
+  getSessionPreview,
   getSessionTitle,
   getSessionUsage,
   listSessions,
@@ -28,11 +30,27 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:list_request") {
     var listReqMsg = message as SessionListRequestMessage;
     void listSessions(listReqMsg.projectSlug).then(function (sessions) {
+      var offset = listReqMsg.offset || 0;
+      var limit = listReqMsg.limit || 0;
+      var totalCount = sessions.length;
+      var sliced = limit > 0 ? sessions.slice(offset, offset + limit) : sessions;
       sendTo(clientId, {
         type: "session:list",
         projectSlug: listReqMsg.projectSlug,
-        sessions,
+        sessions: sliced,
+        totalCount,
+        offset,
       });
+    });
+    return;
+  }
+
+  if (message.type === "session:preview_request") {
+    var previewMsg = message as SessionPreviewRequestMessage;
+    void getSessionPreview(previewMsg.projectSlug, previewMsg.sessionId).then(function (preview) {
+      if (preview) {
+        sendTo(clientId, { type: "session:preview", sessionId: previewMsg.sessionId, preview });
+      }
     });
     return;
   }

@@ -8,22 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useChartFullscreen } from "../ChartCard";
-
-var TICK_STYLE = {
-  fontSize: 10,
-  fontFamily: "var(--font-mono)",
-  fill: "oklch(0.9 0.02 280 / 0.3)",
-};
-
-var GRID_COLOR = "oklch(0.9 0.02 280 / 0.06)";
-
-var LINE_COLORS = [
-  "oklch(55% 0.25 280)",
-  "#a855f7",
-  "#22c55e",
-  "#f59e0b",
-  "oklch(65% 0.2 240)",
-];
+import { getChartColors, getTickStyle } from "../chartTokens";
 
 interface ContextUtilDatum {
   messageIndex: number;
@@ -55,6 +40,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 
 export function ContextUtilizationChart({ data }: ContextUtilizationChartProps) {
   var fullscreenHeight = useChartFullscreen();
+  var colors = getChartColors();
   var sessionMap = new Map<string, { title: string; points: Array<{ messageIndex: number; contextPercent: number }> }>();
   for (var i = 0; i < data.length; i++) {
     var d = data[i];
@@ -88,9 +74,9 @@ export function ContextUtilizationChart({ data }: ContextUtilizationChartProps) 
   return (
     <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
       <LineChart data={merged} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
-        <XAxis dataKey="messageIndex" tick={TICK_STYLE} axisLine={false} tickLine={false} />
-        <YAxis domain={[0, 100]} tick={TICK_STYLE} axisLine={false} tickLine={false} tickFormatter={function (v) { return v + "%"; }} />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} vertical={false} />
+        <XAxis dataKey="messageIndex" tick={getTickStyle()} axisLine={false} tickLine={false} />
+        <YAxis domain={[0, 100]} tick={getTickStyle()} axisLine={false} tickLine={false} tickFormatter={function (v) { return v + "%"; }} />
         <Tooltip content={<CustomTooltip />} />
         {sessions.map(function (s, idx) {
           return (
@@ -99,7 +85,7 @@ export function ContextUtilizationChart({ data }: ContextUtilizationChartProps) 
               type="monotone"
               dataKey={s[0]}
               name={s[1].title.slice(0, 30)}
-              stroke={LINE_COLORS[idx % LINE_COLORS.length]}
+              stroke={colors.palette[idx % colors.palette.length]}
               strokeWidth={1.5}
               dot={false}
               connectNulls

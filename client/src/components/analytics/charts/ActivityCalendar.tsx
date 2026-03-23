@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getChartColors } from "../chartTokens";
 
 interface CalendarDatum {
   date: string;
@@ -18,7 +19,6 @@ var DAY_LABEL_WIDTH = 28;
 var MONTH_LABEL_HEIGHT = 14;
 
 var INTENSITY_OPACITIES = [0.05, 0.15, 0.3, 0.5, 0.8];
-var PRIMARY_COLOR = "oklch(55% 0.25 280)";
 
 var MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var DAY_LABELS = [
@@ -43,6 +43,8 @@ function parseDateParts(dateStr: string): { year: number; month: number; day: nu
 }
 
 export function ActivityCalendar({ data }: ActivityCalendarProps) {
+  var colors = getChartColors();
+  var PRIMARY_COLOR = colors.primary;
   var [hover, setHover] = useState<{ x: number; y: number; datum: CalendarDatum } | null>(null);
 
   if (!data || data.length === 0) {

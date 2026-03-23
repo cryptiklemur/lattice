@@ -8,14 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useChartFullscreen } from "../ChartCard";
-
-var TICK_STYLE = {
-  fontSize: 10,
-  fontFamily: "var(--font-mono)",
-  fill: "oklch(0.9 0.02 280 / 0.3)",
-};
-
-var GRID_COLOR = "oklch(0.9 0.02 280 / 0.06)";
+import { getChartColors, getTickStyle } from "../chartTokens";
 
 interface CumulativeDatum {
   date: string;
@@ -38,23 +31,24 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 export function CumulativeCostChart({ data }: CumulativeCostChartProps) {
   var fullscreenHeight = useChartFullscreen();
+  var colors = getChartColors();
   return (
     <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
       <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="cumulativeGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="oklch(55% 0.25 280)" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="oklch(55% 0.25 280)" stopOpacity={0} />
+            <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={colors.primary} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
-        <XAxis dataKey="date" tick={TICK_STYLE} axisLine={false} tickLine={false} />
-        <YAxis tick={TICK_STYLE} axisLine={false} tickLine={false} tickFormatter={function (v) { return "$" + v.toFixed(2); }} />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} vertical={false} />
+        <XAxis dataKey="date" tick={getTickStyle()} axisLine={false} tickLine={false} />
+        <YAxis tick={getTickStyle()} axisLine={false} tickLine={false} tickFormatter={function (v) { return "$" + v.toFixed(2); }} />
         <Tooltip content={<CustomTooltip />} />
         <Area
           type="monotone"
           dataKey="total"
-          stroke="oklch(55% 0.25 280)"
+          stroke={colors.primary}
           fill="url(#cumulativeGrad)"
           strokeWidth={2}
         />

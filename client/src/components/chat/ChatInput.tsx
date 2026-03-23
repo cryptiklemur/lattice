@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useMemo } from "react";
+import { useStore } from "@tanstack/react-store";
 import { SendHorizontal, Settings, Paperclip } from "lucide-react";
 import { useSkills } from "../../hooks/useSkills";
 import { CommandPalette, getFilteredItems } from "./CommandPalette";
@@ -17,6 +18,7 @@ interface ChatInputProps {
   onFailedInputConsumed?: () => void;
   prefillText?: string | null;
   onPrefillConsumed?: () => void;
+  sessionId?: string | null;
 }
 
 function getModKey(): string {
@@ -26,8 +28,36 @@ function getModKey(): string {
   return "Ctrl";
 }
 
-var inputHistory: string[] = [];
+var historyBySession = new Map<string, string[]>();
 var MAX_HISTORY = 100;
+
+function extractTypedInput(text: string): string | null {
+  var firstNewline = text.search(/\r?\n/);
+  var firstLine = firstNewline !== -1 ? text.slice(0, firstNewline).trim() : text;
+  if (firstLine.indexOf(":") !== -1 && /\n---[\r\n]/.test(text)) {
+    return "/" + firstLine;
+  }
+  if (text.startsWith("<skill-name>")) {
+    var endTag = text.indexOf("</skill-name>");
+    if (endTag !== -1) {
+      return "/" + text.slice(12, endTag);
+    }
+    return null;
+  }
+  if (text.startsWith("<skill-content>")) return null;
+  if (text.length > 500) return null;
+  return text;
+}
+
+function getHistory(sessionId: string | null | undefined): string[] {
+  if (!sessionId) return [];
+  var hist = historyBySession.get(sessionId);
+  if (!hist) {
+    hist = [];
+    historyBySession.set(sessionId, hist);
+  }
+  return hist;
+}
 
 export function ChatInput(props: ChatInputProps) {
   var textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,26 +71,29 @@ export function ChatInput(props: ChatInputProps) {
   var modKey = useMemo(getModKey, []);
   var [historyIndex, setHistoryIndex] = useState(-1);
   var savedCurrentRef = useRef("");
+  var inputHistory = getHistory(props.sessionId);
+  var historyLoading = useStore(getSessionStore(), function (s) { return s.historyLoading; });
+  var messages = useStore(getSessionStore(), function (s) { return s.messages; });
 
   useEffect(function () {
-    var store = getSessionStore();
-    var messages = store.state.messages;
-    var seen = new Set<string>();
+    setHistoryIndex(-1);
+    savedCurrentRef.current = "";
+  }, [props.sessionId]);
+
+  useEffect(function () {
+    if (!props.sessionId || historyLoading) return;
     for (var i = 0; i < messages.length; i++) {
       if (messages[i].type === "user" && messages[i].text) {
-        var text = messages[i].text!.trim();
-        if (text && !seen.has(text)) {
-          seen.add(text);
-          if (inputHistory.indexOf(text) === -1) {
-            inputHistory.push(text);
-          }
+        var typed = extractTypedInput(messages[i].text!.trim());
+        if (typed && inputHistory.indexOf(typed) === -1) {
+          inputHistory.push(typed);
         }
       }
     }
     if (inputHistory.length > MAX_HISTORY) {
       inputHistory.splice(0, inputHistory.length - MAX_HISTORY);
     }
-  }, []);
+  }, [props.sessionId, historyLoading]);
 
   var attachmentsHook = useAttachments();
   var voice = useVoiceRecorder();

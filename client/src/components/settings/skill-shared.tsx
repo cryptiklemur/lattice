@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, RefreshCw, X, Loader2, FileText } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -126,8 +126,16 @@ export function SkillViewModal({ path, content, onClose }: { path: string; conte
   var parsed = parseFrontmatter(content);
   var hasMeta = Object.keys(parsed.meta).length > 0;
 
+  useEffect(function () {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return function () { document.removeEventListener("keydown", handleKeyDown); };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-label={"Skill: " + (parsed.meta.name || path)}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15 flex-shrink-0">

@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState, useMemo } from "react";
-import type { SessionSummary, SessionListMessage, SessionCreatedMessage } from "@lattice/shared";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { Clock, MessageSquare, Cpu, DollarSign } from "lucide-react";
+import type { SessionSummary, SessionPreview, SessionListMessage, SessionCreatedMessage, SessionPreviewMessage } from "@lattice/shared";
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { markSessionHasUpdates, sessionHasUpdates, markSessionRead } from "../../stores/session";
+import { formatSessionTitle } from "../../utils/formatSessionTitle";
+
+var PAGE_SIZE = 40;
 
 interface SessionGroup {
   label: string;
@@ -83,6 +88,19 @@ function formatDate(ts: number): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function formatDuration(ms: number): string {
+  if (ms < 60000) return Math.round(ms / 1000) + "s";
+  if (ms < 3600000) return Math.round(ms / 60000) + "m";
+  var hours = Math.floor(ms / 3600000);
+  var mins = Math.round((ms % 3600000) / 60000);
+  return hours + "h " + mins + "m";
+}
+
+function formatCost(cost: number): string {
+  if (cost < 0.01) return "<$0.01";
+  return "$" + cost.toFixed(2);
+}
+
 function SessionSkeleton() {
   return (
     <div className="flex flex-col gap-2 px-4 py-3">
@@ -93,17 +111,84 @@ function SessionSkeleton() {
   );
 }
 
+function PreviewPopover(props: { preview: SessionPreview | null; anchorRect: DOMRect | null }) {
+  if (!props.anchorRect) return null;
+
+  var top = props.anchorRect.top;
+  var left = props.anchorRect.right + 8;
+
+  var fitsRight = left + 280 < window.innerWidth;
+  if (!fitsRight) {
+    left = props.anchorRect.left - 288;
+  }
+
+  var fitsBelow = top + 160 < window.innerHeight;
+  if (!fitsBelow) {
+    top = Math.max(8, props.anchorRect.bottom - 160);
+  }
+
+  var content = (
+    <div
+      className="fixed z-[9999] w-[270px] bg-base-300 border border-base-content/15 rounded-lg shadow-xl p-3 pointer-events-none"
+      style={{ top, left }}
+    >
+      {props.preview ? (
+        <>
+          <div className="text-[11px] text-base-content/50 leading-relaxed line-clamp-2 mb-2.5 italic">
+            {props.preview.lastMessage || "No messages"}
+          </div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="!size-3 text-base-content/30 shrink-0" />
+              <span className="text-[11px] text-base-content/60">{formatCost(props.preview.cost)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="!size-3 text-base-content/30 shrink-0" />
+              <span className="text-[11px] text-base-content/60">{formatDuration(props.preview.durationMs)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MessageSquare className="!size-3 text-base-content/30 shrink-0" />
+              <span className="text-[11px] text-base-content/60">{props.preview.messageCount} msgs</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Cpu className="!size-3 text-base-content/30 shrink-0" />
+              <span className="text-[11px] text-base-content/60">{props.preview.model || "unknown"}</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 border-2 border-base-content/20 border-t-primary/50 rounded-full animate-spin" />
+          <span className="text-[11px] text-base-content/40">Loading...</span>
+        </div>
+      )}
+    </div>
+  );
+
+  return createPortal(content, document.body);
+}
+
 export function SessionList(props: SessionListProps) {
   var ws = useWebSocket();
   var [sessions, setSessions] = useState<SessionSummary[]>([]);
   var [loading, setLoading] = useState<boolean>(false);
+  var [loadingMore, setLoadingMore] = useState<boolean>(false);
+  var [totalCount, setTotalCount] = useState<number>(0);
   var [renameId, setRenameId] = useState<string | null>(null);
   var [renameValue, setRenameValue] = useState<string>("");
   var [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   var [unreadTick, setUnreadTick] = useState<number>(0);
+  var [hoveredId, setHoveredId] = useState<string | null>(null);
+  var [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
+  var [previews, setPreviews] = useState<Map<string, SessionPreview>>(new Map());
   var renameInputRef = useRef<HTMLInputElement | null>(null);
   var handleRef = useRef<(msg: ServerMessage) => void>(function () {});
   var activeSessionIdRef = useRef<string | null>(props.activeSessionId);
+  var hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  var sentinelRef = useRef<HTMLDivElement | null>(null);
+  var scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  var offsetRef = useRef<number>(0);
+  var hasMoreRef = useRef<boolean>(true);
   activeSessionIdRef.current = props.activeSessionId;
 
   useEffect(function () {
@@ -111,22 +196,43 @@ export function SessionList(props: SessionListProps) {
       if (msg.type === "session:list") {
         var listMsg = msg as SessionListMessage;
         if (listMsg.projectSlug === props.projectSlug) {
-          var sorted = listMsg.sessions.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
-          var hadChanges = false;
-          for (var i = 0; i < sorted.length; i++) {
-            var s = sorted[i];
-            var prev = knownUpdatedAt.get(s.id);
-            if (prev !== undefined && s.updatedAt > prev && s.id !== activeSessionIdRef.current) {
-              markSessionHasUpdates(s.id);
-              hadChanges = true;
+          var incoming = listMsg.sessions.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+          var listOffset = listMsg.offset || 0;
+          var listTotal = listMsg.totalCount || incoming.length;
+
+          if (listOffset > 0) {
+            setSessions(function (prev) {
+              var existingIds = new Set(prev.map(function (s) { return s.id; }));
+              var newSessions = incoming.filter(function (s) { return !existingIds.has(s.id); });
+              return prev.concat(newSessions);
+            });
+            setLoadingMore(false);
+          } else {
+            var hadChanges = false;
+            for (var i = 0; i < incoming.length; i++) {
+              var s = incoming[i];
+              var prev = knownUpdatedAt.get(s.id);
+              if (prev !== undefined && s.updatedAt > prev && s.id !== activeSessionIdRef.current) {
+                markSessionHasUpdates(s.id);
+                hadChanges = true;
+              }
+              knownUpdatedAt.set(s.id, s.updatedAt);
             }
-            knownUpdatedAt.set(s.id, s.updatedAt);
+            setSessions(function (existing) {
+              if (existing.length <= PAGE_SIZE) return incoming;
+              var incomingIds = new Set(incoming.map(function (s) { return s.id; }));
+              var kept = existing.filter(function (s) { return !incomingIds.has(s.id); });
+              return incoming.concat(kept).sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+            });
+            setLoading(false);
+            if (hadChanges) {
+              setUnreadTick(function (t) { return t + 1; });
+            }
           }
-          setSessions(sorted);
-          setLoading(false);
-          if (hadChanges) {
-            setUnreadTick(function (t) { return t + 1; });
-          }
+
+          setTotalCount(listTotal);
+          offsetRef.current = listOffset + incoming.length;
+          hasMoreRef.current = listOffset + incoming.length < listTotal;
         }
       } else if (msg.type === "session:created") {
         var createdMsg = msg as SessionCreatedMessage;
@@ -135,8 +241,16 @@ export function SessionList(props: SessionListProps) {
           setSessions(function (prev2) {
             return [createdMsg.session, ...prev2];
           });
+          setTotalCount(function (t) { return t + 1; });
           props.onSessionActivate(createdMsg.session);
         }
+      } else if (msg.type === "session:preview") {
+        var previewMsg = msg as SessionPreviewMessage;
+        setPreviews(function (prev3) {
+          var next = new Map(prev3);
+          next.set(previewMsg.sessionId, previewMsg.preview);
+          return next;
+        });
       }
     };
   });
@@ -147,9 +261,11 @@ export function SessionList(props: SessionListProps) {
     }
     ws.subscribe("session:list", handler);
     ws.subscribe("session:created", handler);
+    ws.subscribe("session:preview", handler);
     return function () {
       ws.unsubscribe("session:list", handler);
       ws.unsubscribe("session:created", handler);
+      ws.unsubscribe("session:preview", handler);
     };
   }, [ws]);
 
@@ -160,15 +276,42 @@ export function SessionList(props: SessionListProps) {
     if (props.projectSlug && ws.status === "connected") {
       setSessions([]);
       setLoading(true);
-      sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug });
+      offsetRef.current = 0;
+      hasMoreRef.current = true;
+      sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
       var interval = setInterval(function () {
         if (props.projectSlug) {
-          sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug });
+          sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
         }
       }, 10000);
       return function () { clearInterval(interval); };
     }
   }, [props.projectSlug, ws.status]);
+
+  var loadMore = useCallback(function () {
+    if (!props.projectSlug || loadingMore || !hasMoreRef.current) return;
+    setLoadingMore(true);
+    sendRef.current({
+      type: "session:list_request",
+      projectSlug: props.projectSlug,
+      offset: offsetRef.current,
+      limit: PAGE_SIZE,
+    });
+  }, [props.projectSlug, loadingMore]);
+
+  useEffect(function () {
+    var sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    var observer = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) {
+        loadMore();
+      }
+    }, { root: scrollContainerRef.current, rootMargin: "100px" });
+
+    observer.observe(sentinel);
+    return function () { observer.disconnect(); };
+  }, [loadMore]);
 
   useEffect(function () {
     if (renameId && renameInputRef.current) {
@@ -198,6 +341,7 @@ export function SessionList(props: SessionListProps) {
       markSessionRead(session.id, 0);
       setUnreadTick(function (t) { return t + 1; });
     }
+    setHoveredId(null);
     props.onSessionActivate(session);
   }
 
@@ -246,9 +390,31 @@ export function SessionList(props: SessionListProps) {
     setSessions(function (prev) {
       return prev.filter(function (s) { return s.id !== session.id; });
     });
+    setTotalCount(function (t) { return Math.max(0, t - 1); });
     if (props.activeSessionId === session.id && props.onSessionDeactivate) {
       props.onSessionDeactivate();
     }
+  }
+
+  function handleMouseEnter(session: SessionSummary, e: React.PointerEvent | React.MouseEvent) {
+    var rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(function () {
+      setHoveredId(session.id);
+      setHoveredRect(rect);
+      if (!previews.has(session.id) && props.projectSlug) {
+        ws.send({ type: "session:preview_request", projectSlug: props.projectSlug, sessionId: session.id });
+      }
+    }, 300);
+  }
+
+  function handleMouseLeave() {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoveredId(null);
+    setHoveredRect(null);
   }
 
   var grouped = useMemo(function () {
@@ -278,9 +444,11 @@ export function SessionList(props: SessionListProps) {
     );
   }
 
+  var activePreview = hoveredId ? (previews.get(hoveredId) || null) : null;
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5 pb-16">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5 pb-16">
         {grouped.length === 0 ? (
           <div className="px-3 py-2 text-sm text-base-content/40 italic">
             {props.filter ? "No matches" : "No sessions yet"}
@@ -305,6 +473,8 @@ export function SessionList(props: SessionListProps) {
                         aria-current={isActive ? "true" : undefined}
                         onClick={function () { handleActivate(session); }}
                         onContextMenu={function (e) { handleContextMenu(e, session); }}
+                        onPointerEnter={function (e) { handleMouseEnter(session, e); }}
+                        onPointerLeave={handleMouseLeave}
                         className={
                           "flex flex-row items-start gap-2 px-2.5 py-[5px] mx-1 rounded w-[calc(100%-8px)] min-w-0 overflow-hidden cursor-pointer select-none transition-colors duration-[120ms] text-left focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none " +
                           (isActive ? "bg-primary/20 text-base-content font-medium" : "hover:bg-base-300/50")
@@ -331,7 +501,7 @@ export function SessionList(props: SessionListProps) {
                                 (isActive ? "" : isUnread ? "text-base-content font-semibold" : "text-base-content/55")
                               }
                             >
-                              {session.title}
+                              {formatSessionTitle(session.title)}
                             </span>
                           )}
                           <div className="flex items-center gap-1.5 mt-0.5">
@@ -356,7 +526,22 @@ export function SessionList(props: SessionListProps) {
             );
           })
         )}
+
+        {hasMoreRef.current && (
+          <div ref={sentinelRef} className="py-3 flex justify-center">
+            {loadingMore && (
+              <div className="flex items-center gap-2 text-[11px] text-base-content/30">
+                <span className="w-3 h-3 border-2 border-base-content/20 border-t-primary/50 rounded-full animate-spin" />
+                Loading...
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {hoveredId && (
+        <PreviewPopover preview={activePreview} anchorRect={hoveredRect} />
+      )}
 
       {contextMenu !== null && (
         <div

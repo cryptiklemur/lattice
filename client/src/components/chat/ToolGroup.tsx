@@ -119,7 +119,7 @@ export function ToolGroup(props: ToolGroupProps) {
         {expanded && (
           <div className="border-t border-base-content/8">
             {tools.map(function (tool, i) {
-              return <ToolDetail key={tool.toolId || i} tool={tool} />;
+              return <ToolDetail key={tool.toolId || (tool.name + "-" + i)} tool={tool} />;
             })}
           </div>
         )}

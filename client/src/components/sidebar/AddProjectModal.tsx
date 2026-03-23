@@ -273,13 +273,22 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     } as any);
   }
 
+  useEffect(function () {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && !dropdownOpen) onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return function () { document.removeEventListener("keydown", handleKeyDown); };
+  }, [isOpen, dropdownOpen, onClose]);
+
   if (!isOpen) return null;
 
   var filtered = getFilteredEntries();
   var validation = getValidationMessage();
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Add Project">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15">

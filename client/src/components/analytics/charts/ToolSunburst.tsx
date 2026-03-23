@@ -1,19 +1,13 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { getChartColors } from "../chartTokens";
 
 interface ToolSunburstProps {
   data: Array<{ name: string; category: string; count: number }>;
 }
 
-var CATEGORY_COLORS: Record<string, string> = {
-  Read: "#22c55e",
-  Write: "#f59e0b",
-  Execute: "#ef4444",
-  AI: "#a855f7",
-  Other: "oklch(55% 0.15 280)",
-};
-
 function getCategoryColor(category: string): string {
-  return CATEGORY_COLORS[category] || CATEGORY_COLORS.Other;
+  var colors = getChartColors();
+  return colors.category[category] || colors.category.Other;
 }
 
 function getToolColor(category: string, index: number): string {

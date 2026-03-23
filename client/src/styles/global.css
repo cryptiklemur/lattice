@@ -124,12 +124,34 @@ html, body {
 }
 
 .prose .table-wrapper {
+  position: relative;
   overflow-x: auto;
   margin: 0.75em 0;
   border-radius: 0.5rem;
   border: 1px solid oklch(from var(--color-base-content) l c h / 0.08);
   background: oklch(from var(--color-base-100) l c h / 0.6);
   scrollbar-width: thin;
+}
+
+/* Horizontal scroll fade indicator */
+.prose .table-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to right, transparent, oklch(from var(--color-base-100) l c h / 0.8));
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 150ms;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* Hide fade when scrolled to end (JS adds this class) or when content fits */
+.prose .table-wrapper.scrolled-end::after,
+.prose .table-wrapper:not(.has-overflow)::after {
+  opacity: 0;
 }
 
 .prose table {
@@ -251,6 +273,17 @@ html, body {
   }
 }
 
+/* Neutralize DaisyUI 5's root scroll lock for the drawer.
+   DaisyUI sets --page-overflow:hidden on :root when a drawer-toggle is
+   checked, which applies overflow:hidden to <html> and kills ALL
+   scrolling — including nested overflow-y:auto containers on mobile
+   browsers. Our app manages its own scroll containers, so we always
+   want the page overflow to stay as defined in our html/body rules. */
+:root:has(.drawer-toggle:checked) {
+  --page-overflow: unset !important;
+  --page-scroll-gutter: unset !important;
+}
+
 /* Override DaisyUI drawer for smooth slide transitions on mobile.
    DaisyUI defaults use opacity on the whole drawer-side which causes
    an instant vanish. We keep drawer-side always opacity:1 and instead
@@ -294,12 +327,39 @@ html, body {
   display: none;
 }
 
+.skill-content-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(from var(--color-primary-content) l c h / 0.2) transparent;
+  mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
+  padding-bottom: 8px;
+}
+
+.skill-content-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.skill-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.skill-content-scroll::-webkit-scrollbar-thumb {
+  background: oklch(from var(--color-primary-content) l c h / 0.2);
+  border-radius: 2px;
+}
+
+.skill-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: oklch(from var(--color-primary-content) l c h / 0.35);
+}
+
 @keyframes waveform {
-  0%, 100% { height: 4px; opacity: 0.3; }
-  50% { height: 16px; opacity: 0.8; }
+  0%, 100% { transform: scaleY(0.25); opacity: 0.3; }
+  50% { transform: scaleY(1); opacity: 0.8; }
 }
 
 .animate-waveform {
+  height: 16px;
+  transform-origin: bottom;
   animation: waveform 0.6s ease-in-out infinite;
 }
 

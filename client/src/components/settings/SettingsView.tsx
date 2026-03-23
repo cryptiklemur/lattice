@@ -50,7 +50,7 @@ export function SettingsView() {
   var config = SECTION_CONFIG[section];
 
   return (
-    <div className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">
+    <section aria-label="Settings" className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">
       {config && (
         <div className="mb-6 flex items-center gap-3">
           <button
@@ -64,6 +64,6 @@ export function SettingsView() {
         </div>
       )}
       {renderSection(section)}
-    </div>
+    </section>
   );
 }

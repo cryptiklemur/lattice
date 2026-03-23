@@ -1,3 +1,5 @@
+import { getChartColors } from "../chartTokens";
+
 interface DailySummaryDatum {
   date: string;
   sessions: number;
@@ -11,13 +13,6 @@ interface DailySummaryCardsProps {
   data: DailySummaryDatum[];
 }
 
-var MODEL_COLORS: Record<string, string> = {
-  opus: "oklch(55% 0.25 280)",
-  sonnet: "#a855f7",
-  haiku: "#22c55e",
-  other: "#f59e0b",
-};
-
 function formatCardDate(dateStr: string): string {
   var d = new Date(dateStr + "T00:00:00");
   var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -25,6 +20,13 @@ function formatCardDate(dateStr: string): string {
 }
 
 export function DailySummaryCards({ data }: DailySummaryCardsProps) {
+  var colors = getChartColors();
+  var MODEL_COLORS: Record<string, string> = {
+    opus: colors.model.opus,
+    sonnet: colors.model.sonnet,
+    haiku: colors.model.haiku,
+    other: colors.model.other,
+  };
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[100px] text-base-content/25 font-mono text-[11px]">

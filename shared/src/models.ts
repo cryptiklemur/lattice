@@ -32,6 +32,15 @@ export interface SessionSummary {
   messageCount?: number;
 }
 
+export interface SessionPreview {
+  sessionId: string;
+  cost: number;
+  durationMs: number;
+  messageCount: number;
+  model: string;
+  lastMessage: string;
+}
+
 export interface FileEntry {
   name: string;
   path: string;

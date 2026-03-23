@@ -8,6 +8,7 @@ import type {
   NodeInfo,
   ProjectInfo,
   ScheduledTask,
+  SessionPreview,
   SessionSummary,
   SkillInfo,
   StickyNote,
@@ -39,6 +40,14 @@ export interface SessionDeleteMessage {
 export interface SessionListRequestMessage {
   type: "session:list_request";
   projectSlug: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface SessionPreviewRequestMessage {
+  type: "session:preview_request";
+  projectSlug: string;
+  sessionId: string;
 }
 
 export interface ChatSendMessage {
@@ -465,12 +474,21 @@ export type ClientMessage =
   | EditorOpenMessage
   | EditorDetectMessage
   | ChatPromptResponseMessage
-  | AnalyticsRequestMessage;
+  | AnalyticsRequestMessage
+  | SessionPreviewRequestMessage;
 
 export interface SessionListMessage {
   type: "session:list";
   projectSlug: string;
   sessions: SessionSummary[];
+  totalCount?: number;
+  offset?: number;
+}
+
+export interface SessionPreviewMessage {
+  type: "session:preview";
+  sessionId: string;
+  preview: SessionPreview;
 }
 
 export interface SessionCreatedMessage {
@@ -856,7 +874,8 @@ export type ServerMessage =
   | ChatTodoUpdateMessage
   | ChatPlanModeMessage
   | AnalyticsDataMessage
-  | AnalyticsErrorMessage;
+  | AnalyticsErrorMessage
+  | SessionPreviewMessage;
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

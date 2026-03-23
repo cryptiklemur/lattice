@@ -8,21 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useChartFullscreen } from "../ChartCard";
-
-var TICK_STYLE = {
-  fontSize: 10,
-  fontFamily: "var(--font-mono)",
-  fill: "oklch(0.9 0.02 280 / 0.3)",
-};
-
-var GRID_COLOR = "oklch(0.9 0.02 280 / 0.06)";
-
-var MODEL_COLORS: Record<string, string> = {
-  opus: "#a855f7",
-  sonnet: "oklch(55% 0.25 280)",
-  haiku: "#22c55e",
-  other: "#f59e0b",
-};
+import { getChartColors, getTickStyle, getModelColor } from "../chartTokens";
 
 interface ResponseTimeDatum {
   tokens: number;
@@ -51,12 +37,13 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 
 export function ResponseTimeScatter({ data }: ResponseTimeScatterProps) {
   var fullscreenHeight = useChartFullscreen();
+  var colors = getChartColors();
   var models = Array.from(new Set(data.map(function (d) { return d.model; })));
 
   var byModel = models.map(function (model) {
     return {
       model: model,
-      color: MODEL_COLORS[model] || "#f59e0b",
+      color: getModelColor(model),
       points: data
         .filter(function (d) { return d.model === model; })
         .map(function (d) { return { tokens: d.tokens, durationSec: d.duration / 1000, model: d.model }; }),
@@ -66,11 +53,11 @@ export function ResponseTimeScatter({ data }: ResponseTimeScatterProps) {
   return (
     <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
       <ScatterChart margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
         <XAxis
           dataKey="tokens"
           type="number"
-          tick={TICK_STYLE}
+          tick={getTickStyle()}
           axisLine={false}
           tickLine={false}
           tickFormatter={function (v) { return v >= 1000 ? (v / 1000).toFixed(0) + "k" : String(v); }}
@@ -79,13 +66,13 @@ export function ResponseTimeScatter({ data }: ResponseTimeScatterProps) {
         <YAxis
           dataKey="durationSec"
           type="number"
-          tick={TICK_STYLE}
+          tick={getTickStyle()}
           axisLine={false}
           tickLine={false}
           tickFormatter={function (v) { return v.toFixed(0) + "s"; }}
           name="duration"
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: "3 3", stroke: GRID_COLOR }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: "3 3", stroke: colors.gridStroke }} />
         {byModel.map(function (group) {
           return (
             <Scatter

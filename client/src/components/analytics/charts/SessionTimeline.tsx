@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getChartColors } from "../chartTokens";
 
 interface TimelineDatum {
   id: string;
@@ -19,16 +20,6 @@ var ROW_STEP = ROW_HEIGHT + ROW_GAP;
 var LEFT_MARGIN = 8;
 var RIGHT_MARGIN = 8;
 
-var PROJECT_PALETTE = [
-  "oklch(55% 0.25 280)",
-  "#a855f7",
-  "#22c55e",
-  "#f59e0b",
-  "oklch(65% 0.2 240)",
-  "oklch(65% 0.25 25)",
-  "oklch(65% 0.25 150)",
-  "oklch(70% 0.2 60)",
-];
 
 function formatTime(ts: number): string {
   var d = new Date(ts);
@@ -37,6 +28,7 @@ function formatTime(ts: number): string {
 
 export function SessionTimeline({ data }: SessionTimelineProps) {
   var [hover, setHover] = useState<{ x: number; y: number; datum: TimelineDatum } | null>(null);
+  var colors = getChartColors();
 
   if (!data || data.length === 0) {
     return (
@@ -49,7 +41,7 @@ export function SessionTimeline({ data }: SessionTimelineProps) {
   var projects = Array.from(new Set(data.map(function (d) { return d.project; })));
   function getColor(project: string): string {
     var idx = projects.indexOf(project);
-    return PROJECT_PALETTE[idx % PROJECT_PALETTE.length];
+    return colors.palette[idx % colors.palette.length];
   }
 
   var minTime = Infinity;

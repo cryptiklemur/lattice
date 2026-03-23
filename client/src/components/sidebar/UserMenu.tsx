@@ -47,7 +47,11 @@ export function UserMenu(props: UserMenuProps) {
   if (props.anchorRef.current) {
     var rect = props.anchorRef.current.getBoundingClientRect();
     style.bottom = window.innerHeight - rect.top + 4 + "px";
-    style.left = rect.left + "px";
+    var leftPos = rect.left;
+    var menuW = 180;
+    if (leftPos + menuW > window.innerWidth - 8) leftPos = window.innerWidth - menuW - 8;
+    if (leftPos < 8) leftPos = 8;
+    style.left = leftPos + "px";
   }
 
   function handleRestart() {

@@ -86,7 +86,7 @@ export function ProjectSettingsView() {
   var { settings, loading, error, updateSection } = useProjectSettings(activeProjectSlug);
 
   return (
-    <div className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">
+    <section aria-label="Project Settings" className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">
       {config && (
         <div className="mb-6 flex items-center gap-3">
           <button
@@ -106,6 +106,6 @@ export function ProjectSettingsView() {
         <div className="text-[13px] text-error py-4">{error}</div>
       )}
       {!loading && !error && settings && renderSection(section, settings, updateSection, activeProjectSlug ?? undefined)}
-    </div>
+    </section>
   );
 }

@@ -1,11 +1,11 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted } from "../../stores/session";
+import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted, setPendingPrefill } from "../../stores/session";
 import { openSettings, openProjectSettings } from "../../stores/sidebar";
 import { openTab } from "../../stores/workspace";
 import { builtinCommands } from "../../commands";
@@ -18,9 +18,10 @@ import { StatusBar } from "./StatusBar";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
 import { useSpinnerVerb } from "../../hooks/useSpinnerVerb";
+import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
 export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, isPlanMode } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, isPlanMode, pendingPrefill } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
   var online = useOnline();
@@ -37,6 +38,14 @@ export function ChatView() {
   var [showInfo, setShowInfo] = useState<boolean>(false);
   var [confirmStopExternal, setConfirmStopExternal] = useState<boolean>(false);
   var [prefillText, setPrefillText] = useState<string | null>(null);
+
+  useEffect(function () {
+    if (pendingPrefill && !historyLoading) {
+      setPrefillText(pendingPrefill);
+      setPendingPrefill(null);
+    }
+  }, [pendingPrefill, historyLoading]);
+
   var [copiedField, setCopiedField] = useState<string | null>(null);
   var [isRenaming, setIsRenaming] = useState<boolean>(false);
   var [renameValue, setRenameValue] = useState<string>("");
@@ -236,16 +245,28 @@ export function ChatView() {
     return "oklch(0.5 0.1 250)";
   }
 
-  var contextPercent = 0;
-  var contextFilled = 0;
-  if (contextUsage && contextUsage.contextWindow > 0) {
-    contextFilled = contextUsage.inputTokens + contextUsage.cacheReadTokens + contextUsage.cacheCreationTokens;
-    contextPercent = Math.min(100, Math.round((contextFilled / contextUsage.contextWindow) * 100));
-  }
+  var contextInfo = useMemo(function () {
+    var percent = 0;
+    var filled = 0;
+    if (contextUsage && contextUsage.contextWindow > 0) {
+      filled = contextUsage.inputTokens + contextUsage.cacheReadTokens + contextUsage.cacheCreationTokens;
+      percent = Math.min(100, Math.round((filled / contextUsage.contextWindow) * 100));
+    }
+    var autocompact = contextBreakdown ? Math.round((contextBreakdown.autocompactAt / contextBreakdown.contextWindow) * 100) : 90;
+    return {
+      contextPercent: percent,
+      contextFilled: filled,
+      autocompactPercent: autocompact,
+      isApproachingCompact: percent >= autocompact - 10,
+      isCritical: percent >= autocompact,
+    };
+  }, [contextUsage, contextBreakdown]);
 
-  var autocompactPercent = contextBreakdown ? Math.round((contextBreakdown.autocompactAt / contextBreakdown.contextWindow) * 100) : 90;
-  var isApproachingCompact = contextPercent >= autocompactPercent - 10;
-  var isCritical = contextPercent >= autocompactPercent;
+  var contextPercent = contextInfo.contextPercent;
+  var contextFilled = contextInfo.contextFilled;
+  var autocompactPercent = contextInfo.autocompactPercent;
+  var isApproachingCompact = contextInfo.isApproachingCompact;
+  var isCritical = contextInfo.isCritical;
 
   var resumeCommand = activeSessionId && activeProject
     ? "cd " + activeProject.path + " && claude --resume " + activeSessionId
@@ -263,7 +284,10 @@ export function ChatView() {
         }
         return true;
       case "copy": {
-        var lastAssistant = [...messages].reverse().find(function (m) { return m.type === "assistant"; });
+        var lastAssistant: typeof messages[0] | undefined;
+        for (var ci = messages.length - 1; ci >= 0; ci--) {
+          if (messages[ci].type === "assistant") { lastAssistant = messages[ci]; break; }
+        }
         if (lastAssistant?.text) {
           navigator.clipboard.writeText(lastAssistant.text);
         }
@@ -355,6 +379,14 @@ export function ChatView() {
 
   var virtualItems = virtualizer.getVirtualItems();
 
+  var lastAssistantIndex = useMemo(function () {
+    if (isProcessing || lastResponseCost == null) return -1;
+    for (var i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].type === "assistant") return i;
+    }
+    return -1;
+  }, [messages, isProcessing, lastResponseCost]);
+
   return (
     <div className="flex flex-col h-full w-full bg-base-100 overflow-hidden relative">
       <div className="bg-base-100 border-b border-base-300 flex-shrink-0 px-2 sm:px-4">
@@ -379,7 +411,7 @@ export function ChatView() {
             ) : (
               <>
                 <span className="text-sm font-semibold text-base-content truncate">
-                  {activeSessionTitle || (activeSessionId ? "Session" : "New Session")}
+                  {formatSessionTitle(activeSessionTitle) || (activeSessionId ? "Session" : "New Session")}
                 </span>
                 {activeSessionId && (
                   <button
@@ -442,7 +474,7 @@ export function ChatView() {
           {showContext && activeSessionId && (
             <div
               ref={contextPanelRef}
-              className="absolute top-full right-0 mt-1 z-50 bg-base-300 border border-base-content/15 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[340px]"
+              className="absolute top-full right-0 mt-1 z-50 bg-base-300 border border-base-content/15 rounded-lg shadow-xl p-3 w-[calc(100vw-24px)] sm:min-w-[300px] sm:w-auto max-w-[340px]"
             >
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -555,7 +587,7 @@ export function ChatView() {
           {showInfo && activeSessionId && (
             <div
               ref={infoPanelRef}
-              className="absolute top-full right-0 mt-1 z-50 bg-base-300 border border-base-content/15 rounded-lg shadow-xl p-3 min-w-[340px]"
+              className="absolute top-full right-0 mt-1 z-50 bg-base-300 border border-base-content/15 rounded-lg shadow-xl p-3 w-[calc(100vw-24px)] sm:min-w-[340px] sm:w-auto max-w-[380px]"
             >
               <div className="flex flex-col gap-2.5">
                 <div>
@@ -623,7 +655,9 @@ export function ChatView() {
       <div
         ref={scrollParentRef}
         className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 bg-lattice-grid"
-        style={{ WebkitOverflowScrolling: "touch" }}
+        aria-live="polite"
+        aria-relevant="additions"
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
       >
         {messages.length === 0 && historyLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -680,22 +714,15 @@ export function ChatView() {
                 if (groupSize >= 2) {
                   if (idx === groupStart) {
                     var groupTools = messages.slice(groupStart, groupEnd + 1);
-                    return <ToolGroup key={idx} tools={groupTools} />;
+                    return <ToolGroup key={"tg-" + (groupTools[0].uuid || idx)} tools={groupTools} />;
                   }
                   return null;
                 }
               }
-              var isLastAssistant = false;
-              if (msg.type === "assistant" && !isProcessing && lastResponseCost != null) {
-                var foundLater = false;
-                for (var li = idx + 1; li < messages.length; li++) {
-                  if (messages[li].type === "assistant") { foundLater = true; break; }
-                }
-                if (!foundLater) isLastAssistant = true;
-              }
+              var isLastAssistant = idx === lastAssistantIndex;
               return (
                 <Message
-                  key={idx}
+                  key={msg.uuid || ("msg-" + idx)}
                   message={msg}
                   responseCost={isLastAssistant ? lastResponseCost : undefined}
                   responseDuration={isLastAssistant ? lastResponseDuration : undefined}
@@ -753,14 +780,7 @@ export function ChatView() {
                   }
                 }
 
-                var isLastAssistant = false;
-                if (msg.type === "assistant" && !isProcessing && lastResponseCost != null) {
-                  var foundLater = false;
-                  for (var li = virtualItem.index + 1; li < messages.length; li++) {
-                    if (messages[li].type === "assistant") { foundLater = true; break; }
-                  }
-                  if (!foundLater) isLastAssistant = true;
-                }
+                var isLastAssistant = virtualItem.index === lastAssistantIndex;
                 return (
                   <div
                     key={virtualItem.key}
@@ -871,7 +891,7 @@ export function ChatView() {
       )}
 
       {confirmStopExternal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="End External Process" onKeyDown={function (e) { if (e.key === "Escape") setConfirmStopExternal(false); }}>
           <div className="absolute inset-0 bg-black/50" onClick={function () { setConfirmStopExternal(false); }} />
           <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
             <div className="px-5 py-4 border-b border-base-content/15">
@@ -938,6 +958,7 @@ export function ChatView() {
 
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
         <ChatInput
+          sessionId={activeSessionId}
           onSend={handleSend}
           disabled={!activeSessionId || !online || isBusy}
           disabledPlaceholder={isBusy ? "Session in use by another client..." : undefined}

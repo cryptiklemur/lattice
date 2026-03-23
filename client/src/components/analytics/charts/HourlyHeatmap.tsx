@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getChartColors } from "../chartTokens";
 
 interface HeatmapDatum {
   day: number;
@@ -20,9 +21,9 @@ var DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 var DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 var HOUR_LABELS = [0, 3, 6, 9, 12, 15, 18, 21];
 
-var PRIMARY_COLOR = "oklch(55% 0.25 280)";
-
 export function HourlyHeatmap({ data }: HourlyHeatmapProps) {
+  var colors = getChartColors();
+  var PRIMARY_COLOR = colors.primary;
   var [hover, setHover] = useState<{ x: number; y: number; day: string; hour: number; count: number } | null>(null);
 
   if (!data || data.length === 0) {

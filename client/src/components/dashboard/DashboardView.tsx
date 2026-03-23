@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMesh } from "../../hooks/useMesh";
 import { useProjects } from "../../hooks/useProjects";
 import { useSidebar } from "../../hooks/useSidebar";
@@ -10,6 +10,7 @@ import {
   ChevronRight, Lock, Bug,
 } from "lucide-react";
 import type { ServerMessage, SessionSummary, LatticeConfig } from "@lattice/shared";
+import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
 function relativeTime(ts: number): string {
   var diff = Date.now() - ts;
@@ -31,7 +32,9 @@ export function DashboardView() {
   var [sessions, setSessions] = useState<SessionSummary[]>([]);
   var [localConfig, setLocalConfig] = useState<LatticeConfig | null>(null);
 
-  var onlineNodes = nodes.filter(function (n) { return n.online; });
+  var onlineNodes = useMemo(function () {
+    return nodes.filter(function (n) { return n.online; });
+  }, [nodes]);
 
   useEffect(function () {
     function handleSessions(msg: ServerMessage) {
@@ -57,10 +60,31 @@ export function DashboardView() {
     };
   }, []);
 
+  var projectTitleMap = useMemo(function () {
+    var map = new Map<string, string>();
+    for (var i = 0; i < projects.length; i++) {
+      map.set(projects[i].slug, projects[i].title);
+    }
+    return map;
+  }, [projects]);
+
   function getProjectTitle(slug: string): string {
-    var project = projects.find(function (p) { return p.slug === slug; });
-    return project ? project.title : slug;
+    return projectTitleMap.get(slug) || slug;
   }
+
+  var sessionsByProject = useMemo(function () {
+    var map = new Map<string, SessionSummary[]>();
+    for (var i = 0; i < sessions.length; i++) {
+      var s = sessions[i];
+      var arr = map.get(s.projectSlug);
+      if (!arr) {
+        arr = [];
+        map.set(s.projectSlug, arr);
+      }
+      arr.push(s);
+    }
+    return map;
+  }, [sessions]);
 
   var totalSessions = sessions.length;
 
@@ -135,7 +159,7 @@ export function DashboardView() {
                     className="flex items-center gap-3 px-3 py-2 rounded-xl border border-base-content/15 bg-base-200 hover:border-base-content/30 transition-colors duration-[120ms] cursor-pointer text-left focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <MessageSquare size={12} className="text-base-content/30 flex-shrink-0" />
-                    <span className="flex-1 text-[12px] text-base-content truncate">{s.title || "Untitled"}</span>
+                    <span className="flex-1 text-[12px] text-base-content truncate">{formatSessionTitle(s.title) || "Untitled"}</span>
                     <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-base-content/8 text-base-content/40 flex-shrink-0">
                       {getProjectTitle(s.projectSlug)}
                     </span>
@@ -155,7 +179,7 @@ export function DashboardView() {
             <h2 className="text-[11px] font-semibold tracking-wider uppercase text-base-content/40 mb-3">Projects</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {projects.map(function (project) {
-                var projectSessions = sessions.filter(function (s) { return s.projectSlug === project.slug; });
+                var projectSessions = sessionsByProject.get(project.slug) || [];
                 return (
                   <button
                     key={project.slug}

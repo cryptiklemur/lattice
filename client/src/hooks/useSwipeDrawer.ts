@@ -123,12 +123,35 @@ export function useSwipeDrawer(
       }
     }
 
+    var cleanupTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function cancelPendingCleanup() {
+      if (cleanupTimer !== null) {
+        clearTimeout(cleanupTimer);
+        cleanupTimer = null;
+      }
+    }
+
     function cleanupAfterAnimation() {
-      // After the CSS transition finishes, remove inline styles
-      // so the checkbox-driven DaisyUI styles take over again
-      setTimeout(function () {
+      // Cancel any pending cleanup from a previous swipe to avoid races
+      cancelPendingCleanup();
+
+      // Listen for the transition to actually finish, with a fallback timer
+      if (panel) {
+        var handled = false;
+        function onEnd() {
+          if (handled) return;
+          handled = true;
+          if (panel) panel.removeEventListener("transitionend", onEnd);
+          cancelPendingCleanup();
+          clearDragStyles();
+        }
+        panel.addEventListener("transitionend", onEnd, { once: true });
+        // Fallback in case transitionend never fires (e.g. display:none)
+        cleanupTimer = setTimeout(onEnd, 350);
+      } else {
         clearDragStyles();
-      }, 280);
+      }
     }
 
     function onTouchStart(e: TouchEvent) {
@@ -266,6 +289,7 @@ export function useSwipeDrawer(
     document.addEventListener("touchcancel", onTouchCancel, { passive: true });
 
     return function () {
+      cancelPendingCleanup();
       document.removeEventListener("touchstart", onTouchStart);
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);

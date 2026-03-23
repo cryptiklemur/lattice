@@ -49,7 +49,7 @@ function renderPreview(value?: ProjectIcon) {
 
   if (value.type === "image") {
     return (
-      <img src={value.path} alt="icon" className="w-8 h-8 rounded-lg object-cover border border-base-content/15" />
+      <img src={value.path} alt="icon" className="w-8 h-8 rounded-lg object-cover border border-base-content/15" loading="lazy" />
     );
   }
 
@@ -200,7 +200,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
             className="w-full text-[12px] text-base-content/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12px] file:bg-base-300 file:text-base-content/60 file:cursor-pointer"
           />
           {value?.type === "image" && (
-            <img src={value.path} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-base-content/15" />
+            <img src={value.path} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-base-content/15" loading="lazy" />
           )}
         </div>
       )}

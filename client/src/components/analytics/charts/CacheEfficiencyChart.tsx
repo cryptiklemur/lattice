@@ -8,14 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useChartFullscreen } from "../ChartCard";
-
-var TICK_STYLE = {
-  fontSize: 10,
-  fontFamily: "var(--font-mono)",
-  fill: "oklch(0.9 0.02 280 / 0.3)",
-};
-
-var GRID_COLOR = "oklch(0.9 0.02 280 / 0.06)";
+import { getChartColors, getTickStyle } from "../chartTokens";
 
 interface CacheEfficiencyDatum {
   date: string;
@@ -38,6 +31,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 export function CacheEfficiencyChart({ data }: CacheEfficiencyChartProps) {
   var fullscreenHeight = useChartFullscreen();
+  var colors = getChartColors();
   var displayData = data.map(function (d) {
     return { date: d.date, rate: d.rate * 100 };
   });
@@ -47,15 +41,15 @@ export function CacheEfficiencyChart({ data }: CacheEfficiencyChartProps) {
       <AreaChart data={displayData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="cacheEffGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
-            <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
+            <stop offset="5%" stopColor={colors.success} stopOpacity={0.4} />
+            <stop offset="95%" stopColor={colors.success} stopOpacity={0.02} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
-        <XAxis dataKey="date" tick={TICK_STYLE} axisLine={false} tickLine={false} />
-        <YAxis domain={[0, 100]} tick={TICK_STYLE} axisLine={false} tickLine={false} tickFormatter={function (v) { return v + "%"; }} />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} vertical={false} />
+        <XAxis dataKey="date" tick={getTickStyle()} axisLine={false} tickLine={false} />
+        <YAxis domain={[0, 100]} tick={getTickStyle()} axisLine={false} tickLine={false} tickFormatter={function (v) { return v + "%"; }} />
         <Tooltip content={<CustomTooltip />} />
-        <Area type="monotone" dataKey="rate" stroke="#22c55e" fill="url(#cacheEffGrad)" strokeWidth={1.5} />
+        <Area type="monotone" dataKey="rate" stroke={colors.success} fill="url(#cacheEffGrad)" strokeWidth={1.5} />
       </AreaChart>
     </ResponsiveContainer>
   );

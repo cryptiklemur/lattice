@@ -52,15 +52,35 @@ export function PopupMenu(props: PopupMenuProps) {
   if (props.anchorRef.current) {
     var rect = props.anchorRef.current.getBoundingClientRect();
     var pos = props.position ?? "above";
+    var menuWidth = 180;
+    var menuHeight = 200;
+
     if (pos === "above") {
       style.bottom = window.innerHeight - rect.top + 4 + "px";
-      style.left = rect.left + "px";
+      var leftAbove = rect.left;
+      if (leftAbove + menuWidth > window.innerWidth - 8) leftAbove = window.innerWidth - menuWidth - 8;
+      if (leftAbove < 8) leftAbove = 8;
+      style.left = leftAbove + "px";
     } else if (pos === "below") {
-      style.top = rect.bottom + 4 + "px";
-      style.left = rect.left + "px";
+      var topBelow = rect.bottom + 4;
+      if (topBelow + menuHeight > window.innerHeight - 8) {
+        style.bottom = window.innerHeight - rect.top + 4 + "px";
+      } else {
+        style.top = topBelow + "px";
+      }
+      var leftBelow = rect.left;
+      if (leftBelow + menuWidth > window.innerWidth - 8) leftBelow = window.innerWidth - menuWidth - 8;
+      if (leftBelow < 8) leftBelow = 8;
+      style.left = leftBelow + "px";
     } else if (pos === "right") {
-      style.top = rect.top + "px";
-      style.left = rect.right + 4 + "px";
+      var topRight = rect.top;
+      if (topRight + menuHeight > window.innerHeight - 8) topRight = window.innerHeight - menuHeight - 8;
+      if (topRight < 8) topRight = 8;
+      style.top = topRight + "px";
+      var leftRight = rect.right + 4;
+      if (leftRight + menuWidth > window.innerWidth - 8) leftRight = rect.left - menuWidth - 4;
+      if (leftRight < 8) leftRight = 8;
+      style.left = leftRight + "px";
     }
   }
 

@@ -1,14 +1,9 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { getChartColors } from "../chartTokens";
 
 interface PermissionBreakdownProps {
   data: { allowed: number; denied: number; alwaysAllowed: number };
 }
-
-var COLORS = {
-  allowed: "#22c55e",
-  denied: "#ef4444",
-  alwaysAllowed: "oklch(55% 0.25 280)",
-};
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) {
   if (!active || !payload || payload.length === 0) return null;
@@ -22,6 +17,8 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function PermissionBreakdown({ data }: PermissionBreakdownProps) {
+  var chartColors = getChartColors();
+  var COLORS = chartColors.permission;
   var total = data.allowed + data.denied + data.alwaysAllowed;
 
   if (total === 0) {
@@ -73,10 +70,10 @@ export function PermissionBreakdown({ data }: PermissionBreakdownProps) {
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-            <tspan x="50%" dy="-0.3em" style={{ fontSize: 14, fontFamily: "var(--font-mono)", fill: "oklch(0.9 0.02 280 / 0.9)", fontWeight: 700 }}>
+            <tspan x="50%" dy="-0.3em" style={{ fontSize: 14, fontFamily: "var(--font-mono)", fill: chartColors.tickFill, fontWeight: 700 }}>
               {total.toLocaleString()}
             </tspan>
-            <tspan x="50%" dy="1.3em" style={{ fontSize: 9, fontFamily: "var(--font-mono)", fill: "oklch(0.9 0.02 280 / 0.35)" }}>
+            <tspan x="50%" dy="1.3em" style={{ fontSize: 9, fontFamily: "var(--font-mono)", fill: chartColors.tickFill }}>
               total
             </tspan>
           </text>

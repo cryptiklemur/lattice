@@ -22,9 +22,9 @@ import { SettingsSidebar } from "./SettingsSidebar";
 function SectionLabel({ label, actions }: { label: string; actions?: React.ReactNode }) {
   return (
     <div className="px-4 pt-4 pb-2 flex items-center justify-between flex-shrink-0 select-none">
-      <span className="text-xs font-bold tracking-wider uppercase text-base-content/40">
+      <h2 className="text-xs font-bold tracking-wider uppercase text-base-content/40">
         {label}
-      </span>
+      </h2>
       {actions && (
         <div className="flex items-center gap-0.5">
           {actions}

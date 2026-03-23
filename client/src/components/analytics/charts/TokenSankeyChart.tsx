@@ -1,16 +1,6 @@
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 import { useChartFullscreen } from "../ChartCard";
-
-var NODE_COLORS: Record<string, string> = {
-  "Input Tokens": "oklch(55% 0.25 280)",
-  "Cache Read": "#f59e0b",
-  "Cache Creation": "oklch(65% 0.2 240)",
-  "Opus": "#a855f7",
-  "Sonnet": "oklch(55% 0.25 280)",
-  "Haiku": "#22c55e",
-  "Other": "#f59e0b",
-  "Output Tokens": "#22c55e",
-};
+import { getChartColors } from "../chartTokens";
 
 interface SankeyData {
   nodes: Array<{ name: string }>;
@@ -44,7 +34,18 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 function SankeyNode({ x, y, width, height, index, payload }: { x: number; y: number; width: number; height: number; index: number; payload: { name: string } }) {
-  var color = NODE_COLORS[payload.name] || "oklch(0.5 0.1 280)";
+  var colors = getChartColors();
+  var NODE_COLORS: Record<string, string> = {
+    "Input Tokens": colors.primary,
+    "Cache Read": colors.warning,
+    "Cache Creation": colors.accent,
+    "Opus": colors.secondary,
+    "Sonnet": colors.primary,
+    "Haiku": colors.success,
+    "Other": colors.warning,
+    "Output Tokens": colors.success,
+  };
+  var color = NODE_COLORS[payload.name] || colors.primary;
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} fill={color} fillOpacity={0.85} rx={2} />
@@ -53,7 +54,7 @@ function SankeyNode({ x, y, width, height, index, payload }: { x: number; y: num
           x={x + width + 6}
           y={y + height / 2}
           dy={4}
-          fill="oklch(0.9 0.02 280 / 0.5)"
+          fill={colors.tickFill}
           fontSize={9}
           fontFamily="var(--font-mono)"
         >
@@ -66,6 +67,7 @@ function SankeyNode({ x, y, width, height, index, payload }: { x: number; y: num
 
 export function TokenSankeyChart({ data }: TokenSankeyChartProps) {
   var fullscreenHeight = useChartFullscreen();
+  var colors = getChartColors();
   if (!data.links || data.links.length === 0) {
     return (
       <div className="flex items-center justify-center h-[250px] text-base-content/30 font-mono text-[12px]">
@@ -79,7 +81,7 @@ export function TokenSankeyChart({ data }: TokenSankeyChartProps) {
       <Sankey
         data={data}
         node={<SankeyNode x={0} y={0} width={0} height={0} index={0} payload={{ name: "" }} />}
-        link={{ stroke: "oklch(0.9 0.02 280 / 0.1)" }}
+        link={{ stroke: colors.gridStroke }}
         margin={{ top: 10, right: 100, left: 10, bottom: 10 }}
         nodeWidth={12}
         nodePadding={14}

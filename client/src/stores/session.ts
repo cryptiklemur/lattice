@@ -42,6 +42,7 @@ export interface SessionState {
   messageQueue: string[];
   isBusy: boolean;
   isPlanMode: boolean;
+  pendingPrefill: string | null;
 }
 
 var sessionStore = new Store<SessionState>({
@@ -64,6 +65,7 @@ var sessionStore = new Store<SessionState>({
   messageQueue: [],
   isBusy: false,
   isPlanMode: false,
+  pendingPrefill: null,
 });
 
 var streamGeneration = 0;
@@ -223,6 +225,7 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       messageQueue: [],
       isBusy: false,
       isPlanMode: false,
+      pendingPrefill: state.pendingPrefill,
     };
   });
 }
@@ -284,6 +287,7 @@ export function clearSession(): void {
       messageQueue: [],
       isBusy: false,
       isPlanMode: false,
+      pendingPrefill: null,
     };
   });
 }
@@ -321,6 +325,12 @@ export function setSessionBusy(busy: boolean): void {
 export function setIsPlanMode(active: boolean): void {
   sessionStore.setState(function (state) {
     return { ...state, isPlanMode: active };
+  });
+}
+
+export function setPendingPrefill(text: string | null): void {
+  sessionStore.setState(function (state) {
+    return { ...state, pendingPrefill: text };
   });
 }
 

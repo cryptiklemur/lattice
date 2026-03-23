@@ -8,12 +8,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { getChartColors } from "../chartTokens";
 
 interface ProjectRadarProps {
   data: Array<{ project: string; cost: number; sessions: number; avgDuration: number; toolDiversity: number; tokensPerSession: number }>;
 }
-
-var PROJECT_COLORS = ["#a855f7", "#22c55e", "#f59e0b", "#ef4444", "oklch(55% 0.25 280)"];
 
 var AXIS_KEYS = ["cost", "sessions", "avgDuration", "toolDiversity", "tokensPerSession"] as const;
 var AXIS_LABELS: Record<string, string> = {
@@ -50,6 +49,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function ProjectRadar({ data }: ProjectRadarProps) {
+  var colors = getChartColors();
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[250px] text-base-content/25 font-mono text-[11px]">
@@ -87,10 +87,10 @@ export function ProjectRadar({ data }: ProjectRadarProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-        <PolarGrid stroke="oklch(0.9 0.02 280 / 0.08)" />
+        <PolarGrid stroke={colors.gridStroke} />
         <PolarAngleAxis
           dataKey="axis"
-          tick={{ fontSize: 9, fontFamily: "var(--font-mono)", fill: "oklch(0.9 0.02 280 / 0.4)" }}
+          tick={{ fontSize: 9, fontFamily: "var(--font-mono)", fill: colors.tickFill }}
         />
         <PolarRadiusAxis
           angle={90}
@@ -104,8 +104,8 @@ export function ProjectRadar({ data }: ProjectRadarProps) {
               key={project.project}
               name={project.project}
               dataKey={project.project}
-              stroke={PROJECT_COLORS[index % PROJECT_COLORS.length]}
-              fill={PROJECT_COLORS[index % PROJECT_COLORS.length]}
+              stroke={colors.palette[index % colors.palette.length]}
+              fill={colors.palette[index % colors.palette.length]}
               fillOpacity={0.1}
               strokeWidth={1.5}
             />

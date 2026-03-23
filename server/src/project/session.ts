@@ -9,7 +9,7 @@ import { existsSync, unlinkSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import type { HistoryMessage, SessionSummary } from "@lattice/shared";
+import type { HistoryMessage, SessionPreview, SessionSummary } from "@lattice/shared";
 import { loadConfig } from "../config";
 
 function getProjectPath(projectSlug: string): string | null {
@@ -316,6 +316,88 @@ export async function getSessionUsage(projectSlug: string, sessionId: string): P
     }
 
     return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getSessionPreview(projectSlug: string, sessionId: string): Promise<SessionPreview | null> {
+  var projectPath = getProjectPath(projectSlug);
+  if (!projectPath) return null;
+
+  var hash = projectPathToHash(projectPath);
+  var sessionFile = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+  if (!existsSync(sessionFile)) return null;
+
+  try {
+    var content = readFileSync(sessionFile, "utf-8");
+    var lines = content.trim().split("\n");
+
+    var totalCost = 0;
+    var messageCount = 0;
+    var model = "";
+    var lastMessage = "";
+    var firstTimestamp = 0;
+    var lastTimestamp = 0;
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      try {
+        var parsed = JSON.parse(line);
+        var ts = 0;
+        var rawTs = parsed.timestamp;
+        if (rawTs) {
+          var parsedTs = new Date(rawTs).getTime();
+          if (!isNaN(parsedTs)) ts = parsedTs;
+        }
+        if (ts > 0 && firstTimestamp === 0) firstTimestamp = ts;
+        if (ts > lastTimestamp) lastTimestamp = ts;
+
+        if (parsed.type === "user") {
+          messageCount++;
+          var userText = extractUserText(parsed.message?.content);
+          if (userText) lastMessage = userText;
+        } else if (parsed.type === "assistant" && parsed.message) {
+          messageCount++;
+          var usage = parsed.message.usage;
+          var msgModel = parsed.message.model || "";
+          if (msgModel) model = msgModel;
+          if (usage) {
+            var inTok = usage.input_tokens || 0;
+            var outTok = usage.output_tokens || 0;
+            var cacheRead = usage.cache_read_input_tokens || 0;
+            var cacheCreate = usage.cache_creation_input_tokens || 0;
+            totalCost += estimateCost(msgModel || model, inTok, outTok, cacheRead, cacheCreate);
+          }
+          var aContent = parsed.message.content;
+          if (Array.isArray(aContent)) {
+            for (var j = aContent.length - 1; j >= 0; j--) {
+              if (aContent[j].type === "text" && aContent[j].text) {
+                lastMessage = aContent[j].text;
+                break;
+              }
+            }
+          } else if (typeof aContent === "string" && aContent) {
+            lastMessage = aContent;
+          }
+        }
+      } catch {}
+    }
+
+    var maxSnippet = 120;
+    if (lastMessage.length > maxSnippet) {
+      lastMessage = lastMessage.slice(0, maxSnippet) + "...";
+    }
+
+    return {
+      sessionId,
+      cost: Math.round(totalCost * 100) / 100,
+      durationMs: lastTimestamp > firstTimestamp ? lastTimestamp - firstTimestamp : 0,
+      messageCount,
+      model: model.replace("claude-", "").split("-20")[0],
+      lastMessage,
+    };
   } catch {
     return null;
   }

@@ -136,6 +136,9 @@ export function ChartCard(props: ChartCardProps) {
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center p-8"
           style={{ pointerEvents: "none" }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={props.title + " (fullscreen)"}
         >
           <div
             className="w-full max-w-[1100px] rounded-2xl border border-base-content/10 bg-base-200 shadow-2xl overflow-hidden flex flex-col"

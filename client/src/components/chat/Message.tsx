@@ -1,22 +1,47 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Wrench, TriangleAlert, ChevronDown, Check, X, Shield } from "lucide-react";
+import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus } from "lucide-react";
 import type { HistoryMessage, ChatPermissionResponseMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { getSessionStore, setPendingPrefill } from "../../stores/session";
 import { ToolResultRenderer } from "./ToolResultRenderer";
 import { formatToolSummary } from "./toolSummary";
 import { PromptQuestion } from "./PromptQuestion";
 import { TodoCard } from "./TodoCard";
 
+function TableWrapper(props: React.HTMLAttributes<HTMLTableElement>) {
+  var wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(function () {
+    var el = wrapperRef.current;
+    if (!el) return;
+    function check() {
+      if (!el) return;
+      var hasOverflow = el.scrollWidth > el.clientWidth + 1;
+      var atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+      el.classList.toggle("has-overflow", hasOverflow);
+      el.classList.toggle("scrolled-end", atEnd || !hasOverflow);
+    }
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    var ro = new ResizeObserver(check);
+    ro.observe(el);
+    return function () {
+      el!.removeEventListener("scroll", check);
+      ro.disconnect();
+    };
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="table-wrapper">
+      <table {...props} />
+    </div>
+  );
+}
+
 var mdComponents = {
-  table: function (props: React.HTMLAttributes<HTMLTableElement>) {
-    return (
-      <div className="table-wrapper">
-        <table {...props} />
-      </div>
-    );
-  },
+  table: TableWrapper,
 };
 
 interface MessageProps {
@@ -47,19 +72,140 @@ function formatTime(timestamp: number): string {
   return months[d.getMonth()] + " " + d.getDate() + ", " + time;
 }
 
+function MessageAnchor(props: { id: string | undefined }) {
+  if (!props.id) return null;
+  function handleClick() {
+    var url = window.location.pathname + "#msg-" + props.id;
+    window.history.replaceState(null, "", url);
+    navigator.clipboard.writeText(window.location.origin + url);
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 text-base-content/20 hover:text-base-content/50 cursor-pointer p-0.5 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none rounded"
+      title="Copy link to message"
+    >
+      <Link size={11} />
+    </button>
+  );
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, function (m) { return m.replace(/```\w*\n?/g, "").replace(/```$/g, ""); })
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "- ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^>\s+/gm, "")
+    .trim();
+}
+
+function MessageActions(props: { text: string; showNewSession?: boolean }) {
+  var [copied, setCopied] = useState(false);
+  var ws = useWebSocket();
+
+  function handleCopy(e: React.MouseEvent) {
+    var content = e.shiftKey ? stripMarkdown(props.text) : props.text;
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(function () { setCopied(false); }, 1500);
+  }
+
+  function handleNewSession() {
+    var state = getSessionStore().state;
+    if (!state.activeProjectSlug) return;
+    setPendingPrefill(props.text);
+    ws.send({ type: "session:create", projectSlug: state.activeProjectSlug });
+  }
+
+  var btnClass = "opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 text-base-content/20 hover:text-base-content/50 cursor-pointer p-0.5 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none rounded";
+
+  return (
+    <>
+      <button type="button" onClick={handleCopy} className={btnClass} title={copied ? "Copied!" : "Copy message (Shift+click for plain text)"}>
+        {copied ? <Check size={11} /> : <Copy size={11} />}
+      </button>
+      {props.showNewSession && (
+        <button type="button" onClick={handleNewSession} className={btnClass} title="Start new session with this message">
+          <SquarePlus size={11} />
+        </button>
+      )}
+    </>
+  );
+}
+
+function parseSkillInvocation(text: string): { skillName: string; content: string } | null {
+  var firstNewline = text.search(/\r?\n/);
+  if (firstNewline === -1) return null;
+  var firstLine = text.slice(0, firstNewline).trim();
+  if (firstLine.indexOf(":") === -1) return null;
+  if (!/\n---[\r\n]/.test(text)) return null;
+  return { skillName: firstLine, content: text.slice(firstNewline).replace(/^\r?\n+---[\r\n]+/, "").trim() };
+}
+
+function SkillMessage(props: { skillName: string; content: string; time: string | null; uuid?: string }) {
+  var [expanded, setExpanded] = useState(false);
+  return (
+    <div id={props.uuid ? "msg-" + props.uuid : undefined} className="chat chat-end px-5 py-1 group/msg">
+      <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={function () { setExpanded(!expanded); }}
+          className="flex items-center gap-2 w-full text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-content/30 rounded py-0.5"
+        >
+          <Zap size={13} className="text-primary-content/50 shrink-0" />
+          <span className="font-mono font-semibold text-primary-content text-[13px] tracking-tight">
+            /{props.skillName}
+          </span>
+          <ChevronRight
+            size={14}
+            className={"text-primary-content/30 ml-auto shrink-0 transition-transform duration-200 " + (expanded ? "rotate-90" : "")}
+          />
+        </button>
+        {expanded && (
+          <div className="mt-2 pt-2 border-t border-primary-content/10 relative">
+            <div className="max-h-[400px] overflow-y-auto skill-content-scroll prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-headings:text-[13px] prose-headings:mt-3 prose-headings:mb-1 prose-p:text-primary-content/80 prose-strong:text-primary-content prose-code:text-primary-content/70 prose-code:text-[11px] prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline text-[12px] leading-relaxed prose-li:text-primary-content/75 prose-li:text-[12px] prose-hr:border-primary-content/10">
+              <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{props.content}</Markdown>
+            </div>
+          </div>
+        )}
+      </div>
+      {props.time && (
+        <div className="chat-footer text-[10px] text-base-content/30 mt-0.5 flex items-center gap-1">
+          {props.time}
+          <MessageAnchor id={props.uuid} />
+          <MessageActions text={"/" + props.skillName} showNewSession />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UserMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
   var time = formatTime(msg.timestamp);
+  var text = msg.text || "";
+  var skill = parseSkillInvocation(text);
+  if (skill) {
+    return <SkillMessage skillName={skill.skillName} content={skill.content} time={time} uuid={msg.uuid} />;
+  }
   return (
-    <div className="chat chat-end px-5 py-1">
+    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} className="chat chat-end px-5 py-1 group/msg">
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline">
-          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.text || ""}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
         </div>
       </div>
       {time && (
-        <div className="chat-footer text-[10px] text-base-content/30 mt-0.5">
+        <div className="chat-footer text-[10px] text-base-content/30 mt-0.5 flex items-center gap-1">
           {time}
+          <MessageAnchor id={msg.uuid} />
+          <MessageActions text={text} showNewSession />
         </div>
       )}
     </div>
@@ -84,7 +230,7 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
   var msg = props.message;
   var time = formatTime(msg.timestamp);
   return (
-    <div className="chat chat-start px-5 py-1">
+    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} className="chat chat-start px-5 py-1 group/msg">
       <div className="chat-image">
         <div className="w-6 h-6 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center">
           <div className="w-2.5 h-2.5 rounded-full bg-primary" />
@@ -109,6 +255,8 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
           {msg.outputTokens != null && msg.outputTokens > 0 && (
             <span className="text-base-content/15">{formatTokenCount(msg.outputTokens)} out</span>
           )}
+          <MessageAnchor id={msg.uuid} />
+          <MessageActions text={msg.text || ""} showNewSession />
         </div>
       )}
     </div>
@@ -130,7 +278,7 @@ function ToolMessage(props: { message: HistoryMessage }) {
   }
 
   return (
-    <div className="ml-14 mr-5 py-0.5 max-w-[95%] sm:max-w-[75%]">
+    <div className="ml-14 mr-5 py-0.5 max-w-[95%] sm:max-w-[75%] group/msg">
       <div
         className={
           "rounded-lg overflow-hidden text-[12px] border transition-colors duration-100 " +
@@ -176,6 +324,11 @@ function ToolMessage(props: { message: HistoryMessage }) {
           </div>
         )}
       </div>
+      {hasResult && (
+        <div className="flex items-center gap-1 mt-0.5 px-0.5">
+          <MessageActions text={msg.content || ""} />
+        </div>
+      )}
     </div>
   );
 }
@@ -322,7 +475,7 @@ function PermissionMessage(props: { message: HistoryMessage }) {
           <span className="text-[10px] text-base-content/20 italic ml-auto">waiting for approval...</span>
 
           {showScopeMenu && (
-            <div className={"absolute left-[88px] z-50 bg-base-300 border border-warning/20 rounded-lg shadow-xl p-1 text-[12px] font-mono min-w-[220px] " + (dropUp ? "bottom-full mb-1" : "top-full mt-1")}>
+            <div className={"absolute left-0 sm:left-[88px] z-50 bg-base-300 border border-warning/20 rounded-lg shadow-xl p-1 text-[12px] font-mono w-[calc(100vw-48px)] sm:w-auto sm:min-w-[220px] max-w-[280px] " + (dropUp ? "bottom-full mb-1" : "top-full mt-1")}>
               <button
                 className="flex flex-col w-full px-2.5 py-1.5 rounded hover:bg-warning/10 text-left text-base-content/70 transition-colors"
                 onClick={function () { setShowScopeMenu(false); respond(true, true, "session"); }}
@@ -352,7 +505,7 @@ function PermissionMessage(props: { message: HistoryMessage }) {
   );
 }
 
-export function Message(props: MessageProps) {
+export var Message = memo(function Message(props: MessageProps) {
   var msg = props.message;
 
   if (msg.type === "user") {
@@ -380,4 +533,4 @@ export function Message(props: MessageProps) {
   }
 
   return null;
-}
+});

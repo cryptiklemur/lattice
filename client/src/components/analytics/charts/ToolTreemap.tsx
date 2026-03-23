@@ -1,5 +1,6 @@
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts";
 import { useChartFullscreen } from "../ChartCard";
+import { getChartColors, getIntensityColor } from "../chartTokens";
 
 interface ToolTreemapProps {
   data: Array<{ name: string; count: number; avgCost: number }>;
@@ -9,9 +10,7 @@ var MAX_COST_INTENSITY = 0.5;
 
 function getColor(avgCost: number, maxCost: number): string {
   var intensity = maxCost > 0 ? Math.min(avgCost / maxCost, 1) : 0.3;
-  var lightness = 0.45 - intensity * 0.15;
-  var chroma = 0.15 + intensity * 0.12;
-  return "oklch(" + lightness + " " + chroma + " 280)";
+  return getIntensityColor(intensity);
 }
 
 function CustomContent(props: {
@@ -21,6 +20,7 @@ function CustomContent(props: {
 }) {
   var { x = 0, y = 0, width = 0, height = 0, name = "", count = 0, avgCost = 0, maxCost = MAX_COST_INTENSITY } = props;
   if (width < 4 || height < 4) return null;
+  var colors = getChartColors();
   var showLabel = width > 40 && height > 20;
   var showCount = width > 50 && height > 34;
   return (
@@ -33,7 +33,7 @@ function CustomContent(props: {
         rx={3}
         fill={getColor(avgCost, maxCost)}
         fillOpacity={0.85}
-        stroke="oklch(0.2 0.02 280)"
+        stroke={colors.gridStroke}
         strokeWidth={1}
       />
       {showLabel && (
@@ -42,7 +42,7 @@ function CustomContent(props: {
           y={y + height / 2 + (showCount ? -5 : 0)}
           textAnchor="middle"
           dominantBaseline="middle"
-          style={{ fontSize: 10, fontFamily: "var(--font-mono)", fill: "oklch(0.95 0.02 280 / 0.9)" }}
+          style={{ fontSize: 10, fontFamily: "var(--font-mono)", fill: colors.tickFill }}
         >
           {name}
         </text>
@@ -53,7 +53,7 @@ function CustomContent(props: {
           y={y + height / 2 + 9}
           textAnchor="middle"
           dominantBaseline="middle"
-          style={{ fontSize: 9, fontFamily: "var(--font-mono)", fill: "oklch(0.95 0.02 280 / 0.5)" }}
+          style={{ fontSize: 9, fontFamily: "var(--font-mono)", fill: colors.tickFill }}
         >
           {count}
         </text>

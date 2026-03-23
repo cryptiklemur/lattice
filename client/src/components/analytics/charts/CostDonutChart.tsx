@@ -1,20 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useChartFullscreen } from "../ChartCard";
-
-var MODEL_COLORS: Record<string, string> = {
-  opus: "#a855f7",
-  sonnet: "oklch(55% 0.25 280)",
-  haiku: "#22c55e",
-  other: "#f59e0b",
-};
-
-function getModelColor(model: string): string {
-  var key = model.toLowerCase();
-  if (key.includes("opus")) return MODEL_COLORS.opus;
-  if (key.includes("sonnet")) return MODEL_COLORS.sonnet;
-  if (key.includes("haiku")) return MODEL_COLORS.haiku;
-  return MODEL_COLORS.other;
-}
+import { getChartColors, getModelColor } from "../chartTokens";
 
 interface ModelUsage {
   model: string;
@@ -40,12 +26,13 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 function CenterLabel({ totalCost }: { totalCost: number }) {
+  var colors = getChartColors();
   return (
     <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-      <tspan x="50%" dy="-0.4em" style={{ fontSize: 11, fontFamily: "var(--font-mono)", fill: "oklch(0.9 0.02 280 / 0.4)" }}>
+      <tspan x="50%" dy="-0.4em" style={{ fontSize: 11, fontFamily: "var(--font-mono)", fill: colors.tickFill }}>
         TOTAL
       </tspan>
-      <tspan x="50%" dy="1.4em" style={{ fontSize: 14, fontFamily: "var(--font-mono)", fill: "oklch(0.9 0.02 280 / 0.9)", fontWeight: 700 }}>
+      <tspan x="50%" dy="1.4em" style={{ fontSize: 14, fontFamily: "var(--font-mono)", fill: colors.tickFill, fontWeight: 700 }}>
         ${totalCost.toFixed(2)}
       </tspan>
     </text>
@@ -54,6 +41,7 @@ function CenterLabel({ totalCost }: { totalCost: number }) {
 
 export function CostDonutChart({ modelUsage, totalCost }: CostDonutChartProps) {
   var fullscreenHeight = useChartFullscreen();
+  var colors = getChartColors();
   return (
     <div>
       <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>

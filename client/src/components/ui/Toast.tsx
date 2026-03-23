@@ -36,7 +36,7 @@ export function Toast(props: ToastProps) {
   }
 
   return (
-    <div className="fixed top-3 right-3 z-[9999] flex flex-col gap-2 max-w-[340px]">
+    <div className="fixed top-3 right-3 z-[9999] flex flex-col gap-2 max-w-[340px]" role="status" aria-live="polite" aria-atomic="false">
       {props.items.map(function (item) {
         var Icon = ICON_MAP[item.type];
         return (

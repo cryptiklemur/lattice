@@ -415,6 +415,7 @@ export function useSession(): UseSessionReturn {
     messageQueue: state.messageQueue,
     isBusy: state.isBusy,
     isPlanMode: state.isPlanMode,
+    pendingPrefill: state.pendingPrefill,
     enqueueMessage,
     removeQueuedMessage,
     updateQueuedMessage,
