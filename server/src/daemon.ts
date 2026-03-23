@@ -15,7 +15,7 @@ import type { ClientMessage, MeshMessage } from "@lattice/shared";
 import "./handlers/session";
 import "./handlers/chat";
 import "./handlers/attachment";
-import { loadInterruptedSessions, unwatchSessionLock } from "./project/sdk-bridge";
+import { loadInterruptedSessions, unwatchSessionLock, cleanupClientPermissions } from "./project/sdk-bridge";
 import { clearActiveSession, getActiveSession } from "./handlers/chat";
 import "./handlers/fs";
 import "./handlers/terminal";
@@ -312,6 +312,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         removeClient(ws.data.id);
         cleanupClientTerminals(ws.data.id);
         cleanupClientAttachments(ws.data.id);
+        cleanupClientPermissions(ws.data.id);
         console.log(`[lattice] Client disconnected: ${ws.data.id}`);
       },
     },

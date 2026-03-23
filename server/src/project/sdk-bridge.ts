@@ -141,6 +141,22 @@ export function deletePendingPermission(requestId: string): void {
   pendingPermissions.delete(requestId);
 }
 
+export function cleanupClientPermissions(clientId: string): void {
+  var toRemove: string[] = [];
+  pendingPermissions.forEach(function (entry, requestId) {
+    if (entry.clientId === clientId) {
+      toRemove.push(requestId);
+      entry.resolve({ behavior: "deny", message: "Client disconnected.", toolUseID: entry.toolUseID });
+    }
+  });
+  for (var i = 0; i < toRemove.length; i++) {
+    pendingPermissions.delete(toRemove[i]);
+  }
+  if (toRemove.length > 0) {
+    console.log("[lattice] Cleaned up " + toRemove.length + " pending permission(s) for disconnected client " + clientId);
+  }
+}
+
 export function addAutoApprovedTool(sessionId: string, toolName: string): void {
   var tools = autoApprovedTools.get(sessionId);
   if (!tools) {
