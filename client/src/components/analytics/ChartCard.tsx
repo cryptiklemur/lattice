@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useRef, createContext, useContext, useCallback } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { Maximize2, Minimize2 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -31,6 +32,9 @@ export function ChartCard(props: ChartCardProps) {
   var cardRef = useRef<HTMLDivElement>(null);
   var [originRect, setOriginRect] = useState<DOMRect | null>(null);
   var [animating, setAnimating] = useState(false);
+  var fullscreenModalRef = useRef<HTMLDivElement>(null);
+  var closeFullscreenCb = useCallback(function () { closeFullscreen(); }, []);
+  useFocusTrap(fullscreenModalRef, closeFullscreenCb, isFullscreen);
 
   function openFullscreen() {
     if (cardRef.current) {
@@ -53,15 +57,6 @@ export function ChartCard(props: ChartCardProps) {
       setOriginRect(null);
     }, 250);
   }
-
-  useEffect(function () {
-    if (!isFullscreen) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") closeFullscreen();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return function () { document.removeEventListener("keydown", handleKeyDown); };
-  }, [isFullscreen]);
 
   useEffect(function () {
     if (isFullscreen) {
@@ -134,6 +129,7 @@ export function ChartCard(props: ChartCardProps) {
           onClick={closeFullscreen}
         />
         <div
+          ref={fullscreenModalRef}
           className="fixed inset-0 z-[9999] flex items-center justify-center p-8"
           style={{ pointerEvents: "none" }}
           role="dialog"

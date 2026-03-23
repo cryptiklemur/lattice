@@ -4,6 +4,7 @@ import { WebSocketProvider } from "./providers/WebSocketProvider";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 import { Toast, useToastState } from "./components/ui/Toast";
 import { CommandPalette } from "./components/ui/CommandPalette";
+import { KeyboardShortcuts } from "./components/ui/KeyboardShortcuts";
 import { UpdatePrompt } from "./components/ui/UpdatePrompt";
 
 function AppInner() {
@@ -13,6 +14,7 @@ function AppInner() {
     <>
       <RouterProvider router={router} />
       <CommandPalette />
+      <KeyboardShortcuts />
       <Toast items={items} onDismiss={dismiss} />
       <UpdatePrompt />
     </>

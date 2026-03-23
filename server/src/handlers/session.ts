@@ -25,6 +25,7 @@ import { getContextBreakdown } from "../project/context-breakdown";
 import { setActiveSession } from "./chat";
 import { setActiveProject } from "./fs";
 import { wasSessionInterrupted, clearInterruptedFlag, isSessionBusy, watchSessionLock, stopExternalSession } from "../project/sdk-bridge";
+import { log } from "../logger";
 
 registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:list_request") {
@@ -90,19 +91,19 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     watchSessionLock(activateMsg.sessionId);
     void Promise.all([
       loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        console.error("[lattice] Failed to load session history:", err);
+        log.session("Failed to load session history: %O", err);
         return null;
       }),
       getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        console.error("[lattice] Failed to load session title:", err);
+        log.session("Failed to load session title: %O", err);
         return null;
       }),
       getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        console.error("[lattice] Failed to load session usage:", err);
+        log.session("Failed to load session usage: %O", err);
         return null;
       }),
       getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        console.error("[lattice] Failed to load context breakdown:", err);
+        log.session("Failed to load context breakdown: %O", err);
         return null;
       }),
     ]).then(function (results) {
@@ -122,7 +123,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
           busy: busy || undefined,
         });
       } catch (err) {
-        console.error("[lattice] Error sending session history:", err);
+        log.session("Error sending session history: %O", err);
         sendTo(clientId, { type: "chat:error", message: "Failed to load session history" });
       }
       try {
@@ -138,7 +139,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
           });
         }
       } catch (err) {
-        console.error("[lattice] Error sending context usage:", err);
+        log.session("Error sending context usage: %O", err);
       }
       try {
         var breakdown = results[3];
@@ -151,10 +152,10 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
           });
         }
       } catch (err) {
-        console.error("[lattice] Error sending context breakdown:", err);
+        log.session("Error sending context breakdown: %O", err);
       }
     }).catch(function (err) {
-      console.error("[lattice] Failed to activate session:", err);
+      log.session("Failed to activate session: %O", err);
       sendTo(clientId, { type: "chat:error", message: "Failed to activate session" });
     });
     return;
@@ -203,7 +204,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     var stopMsg = message as { type: string; sessionId: string };
     var stopped = stopExternalSession(stopMsg.sessionId);
     if (stopped) {
-      console.log("[lattice] Sent SIGINT to external CLI process for session " + stopMsg.sessionId);
+      log.session("Sent SIGINT to external CLI process for session %s", stopMsg.sessionId);
     } else {
       sendTo(clientId, { type: "chat:error", message: "No external process found for this session." });
     }

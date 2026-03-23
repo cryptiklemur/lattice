@@ -1,10 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { X, Info, AlertTriangle, AlertCircle } from "lucide-react";
 
+export interface ToastOptions {
+  persistent?: boolean;
+  duration?: number;
+}
+
 export interface ToastItem {
   id: string;
   message: string;
   type: "info" | "error" | "warning";
+  persistent?: boolean;
+  duration?: number;
 }
 
 interface ToastProps {
@@ -63,11 +70,20 @@ export function Toast(props: ToastProps) {
 
 var toastListeners: Array<(item: ToastItem) => void> = [];
 
-export function showToast(message: string, type: ToastItem["type"] = "info"): void {
+export function showToast(message: string, type: ToastItem["type"] = "info", options?: ToastOptions): void {
+  var persistent = options?.persistent;
+  var duration = options?.duration;
+
+  if (type === "error" && persistent === undefined && duration === undefined) {
+    persistent = true;
+  }
+
   var item: ToastItem = {
     id: Math.random().toString(36).slice(2),
     message,
     type,
+    persistent,
+    duration,
   };
   toastListeners.forEach(function (listener) {
     listener(item);
@@ -90,13 +106,17 @@ export function useToastState(): { items: ToastItem[]; dismiss: (id: string) => 
       setItems(function (prev) {
         return [...prev, item];
       });
+
+      if (item.persistent) return;
+
+      var timeout = item.duration ?? 5000;
       setTimeout(function () {
         setItems(function (prev) {
           return prev.filter(function (i) {
             return i.id !== item.id;
           });
         });
-      }, 5000);
+      }, timeout);
     }
 
     toastListeners.push(listener);

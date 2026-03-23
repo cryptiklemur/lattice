@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { Plus, Trash2, Pencil, X, Loader2, Brain, ExternalLink } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -120,17 +121,12 @@ function MemoryViewModal({
 }) {
   var parsed = parseFrontmatter(content);
   var hasMeta = Object.keys(parsed.meta).length > 0;
-
-  useEffect(function () {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return function () { document.removeEventListener("keydown", handleKeyDown); };
-  }, [onClose]);
+  var modalRef = useRef<HTMLDivElement>(null);
+  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  useFocusTrap(modalRef, stableOnClose);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label={"Memory: " + (parsed.meta.name || memory.filename)}>
+    <div ref={modalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label={"Memory: " + (parsed.meta.name || memory.filename)}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15 flex-shrink-0">
@@ -209,6 +205,9 @@ function MemoryEditModal({
   var [description, setDescription] = useState(parsed.meta.description || (memory ? memory.description : ""));
   var [type, setType] = useState(parsed.meta.type || (memory ? memory.type : "project"));
   var [body, setBody] = useState(parsed.body);
+  var editModalRef = useRef<HTMLDivElement>(null);
+  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  useFocusTrap(editModalRef, stableOnClose);
 
   function handleSave() {
     var content = buildContent(name, description, type, body);
@@ -216,16 +215,8 @@ function MemoryEditModal({
     onSave(filename, content);
   }
 
-  useEffect(function () {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return function () { document.removeEventListener("keydown", handleKeyDown); };
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label={isNew ? "New Memory" : "Edit Memory"}>
+    <div ref={editModalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label={isNew ? "New Memory" : "Edit Memory"}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15 flex-shrink-0">

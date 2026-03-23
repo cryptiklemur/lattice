@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { X, Copy, Check } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
@@ -27,6 +28,9 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
   var [copied, setCopied] = useState(false);
   var [wsl, setWsl] = useState<boolean | "auto">("auto");
   var copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  var modalRef = useRef<HTMLDivElement>(null);
+  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  useFocusTrap(modalRef, stableOnClose, isOpen);
 
   useEffect(function () {
     if (!isOpen) return;
@@ -79,21 +83,12 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
     copyTimeout.current = setTimeout(function () { setCopied(false); }, 2000);
   }
 
-  useEffect(function () {
-    if (!isOpen) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return function () { document.removeEventListener("keydown", handleKeyDown); };
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   var inputClass = "w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Node Settings">
+    <div ref={modalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Node Settings">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15">

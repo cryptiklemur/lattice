@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { X, Copy, Check } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
@@ -21,22 +22,9 @@ export function PairingDialog(props: PairingDialogProps) {
   var [pairStatus, setPairStatus] = useState<PairStatus>("idle");
   var [pairError, setPairError] = useState<string | null>(null);
   var [copied, setCopied] = useState(false);
-
-  var handleKeyDown = useCallback(function (e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      props.onClose();
-    }
-  }, [props.onClose]);
-
-  useEffect(function () {
-    if (!props.isOpen) {
-      return;
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return function () {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [props.isOpen, handleKeyDown]);
+  var modalRef = useRef<HTMLDivElement>(null);
+  var stableOnClose = useCallback(function () { props.onClose(); }, [props.onClose]);
+  useFocusTrap(modalRef, stableOnClose, props.isOpen);
 
   useEffect(function () {
     if (!props.isOpen) {
@@ -113,6 +101,7 @@ export function PairingDialog(props: PairingDialogProps) {
 
   return (
     <div
+      ref={modalRef}
       role="dialog"
       aria-modal="true"
       aria-label="Pair a node"

@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import type { HistoryMessage, SessionPreview, SessionSummary } from "@lattice/shared";
 import { loadConfig } from "../config";
+import { log } from "../logger";
 
 function getProjectPath(projectSlug: string): string | null {
   var config = loadConfig();
@@ -417,7 +418,7 @@ export async function listSessions(projectSlug: string): Promise<SessionSummary[
     summaries.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
     return summaries;
   } catch (err) {
-    console.warn("[lattice] Failed to list SDK sessions:", err);
+    log.session("Failed to list SDK sessions: %O", err);
     return [];
   }
 }
@@ -442,7 +443,7 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
     var messages = await getSessionMessages(sessionId, options);
     return convertSessionMessages(messages);
   } catch (err) {
-    console.warn("[lattice] Failed to load session history:", err);
+    log.session("Failed to load session history: %O", err);
     return [];
   }
 }
@@ -467,7 +468,7 @@ export async function renameSession(projectSlug: string, sessionId: string, titl
     await sdkRenameSession(sessionId, title, options);
     return true;
   } catch (err) {
-    console.warn("[lattice] Failed to rename session:", err);
+    log.session("Failed to rename session: %O", err);
     return false;
   }
 }
@@ -489,7 +490,7 @@ export async function deleteSession(projectSlug: string, sessionId: string): Pro
     unlinkSync(sessionFile);
     return true;
   } catch (err) {
-    console.warn("[lattice] Failed to delete session:", err);
+    log.session("Failed to delete session: %O", err);
     return false;
   }
 }

@@ -1,5 +1,6 @@
 import type { ClientMessage } from "@lattice/shared";
 import { sendTo } from "./broadcast";
+import { log } from "../logger";
 
 var _registry: typeof import("../project/registry") | null = null;
 var _connector: typeof import("../mesh/connector") | null = null;
@@ -81,18 +82,18 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
       if (result && typeof result.then === "function") {
         result.then(undefined, function (err: unknown) {
           var stack = err instanceof Error ? err.stack : String(err);
-          console.error("[lattice] Async handler error for " + message.type + ":", stack);
+          log.ws("Async handler error for %s: %s", message.type, stack);
           sendTo(clientId, { type: "chat:error", message: "Internal server error processing " + message.type });
         });
       }
     } catch (err) {
       var stack = err instanceof Error ? (err as Error).stack : String(err);
-      console.error("[lattice] Handler error for " + message.type + ":", stack);
+      log.ws("Handler error for %s: %s", message.type, stack);
       sendTo(clientId, { type: "chat:error", message: "Internal server error processing " + message.type });
     }
     return;
   }
-  console.warn(`[lattice] No handler for message type: ${message.type}`);
+  log.ws("No handler for message type: %s", message.type);
   sendTo(clientId, { type: "error", message: `Unknown message type: ${message.type}` });
 }
 
@@ -112,7 +113,7 @@ function proxyMessage(clientId: string, nodeId: string, projectSlug: string, mes
   try {
     getProxy().proxyToRemoteNode(nodeId, projectSlug, clientId, message);
   } catch (err) {
-    console.error("[router] Failed to proxy message:", err);
+    log.ws("Failed to proxy message: %O", err);
     sendTo(clientId, { type: "chat:error", message: "Failed to proxy message to remote node" });
   }
 }

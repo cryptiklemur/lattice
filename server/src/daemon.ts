@@ -12,6 +12,7 @@ import { handleProxyRequest, handleProxyResponse } from "./mesh/proxy";
 import { verifyPassphrase, generateSessionToken, addSession, isValidSession } from "./auth/passphrase";
 import { ensureCerts } from "./tls";
 import type { ClientMessage, MeshMessage } from "@lattice/shared";
+import { log } from "./logger";
 import "./handlers/session";
 import "./handlers/chat";
 import "./handlers/attachment";
@@ -194,8 +195,8 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   }
   var identity = loadOrCreateIdentity();
 
-  console.log(`[lattice] Node: ${config.name} (${identity.id})`);
-  console.log(`[lattice] Home: ${getLatticeHome()}`);
+  log.server("Node: %s (%s)", config.name, identity.id);
+  log.server("Home: %s", getLatticeHome());
 
   var clientDir = join(import.meta.dir, "../../client/dist");
 
@@ -207,7 +208,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         cert: readFileSync(certs.cert),
         key: readFileSync(certs.key),
       };
-      console.log("[lattice] TLS enabled");
+      log.server("TLS enabled");
     } catch (err) {
       console.error("[lattice] Failed to load TLS certs, falling back to HTTP:", err);
     }
@@ -297,7 +298,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     websocket: {
       open(ws: ServerWebSocket<WsData>) {
         addClient(ws);
-        console.log(`[lattice] Client connected: ${ws.data.id}`);
+        log.ws("Client connected: %s", ws.data.id);
         sendTo(ws.data.id, { type: "mesh:nodes", nodes: buildNodesMessage() });
       },
       message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
@@ -318,7 +319,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
           var msg = JSON.parse(text) as ClientMessage;
           routeMessage(ws.data.id, msg);
         } catch (err) {
-          console.error("[lattice] Invalid JSON message:", err);
+          log.ws("Invalid JSON message: %O", err);
         }
       },
       close(ws: ServerWebSocket<WsData>) {
@@ -334,12 +335,12 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         cleanupClientAttachments(ws.data.id);
         cleanupClientPermissions(ws.data.id);
         clientRateLimits.delete(ws.data.id);
-        console.log(`[lattice] Client disconnected: ${ws.data.id}`);
+        log.ws("Client disconnected: %s", ws.data.id);
       },
     },
   });
 
-  console.log(`[lattice] Listening on ${protocol}://0.0.0.0:${config.port}`);
+  log.server("Listening on %s://0.0.0.0:%d", protocol, config.port);
 
   startDiscovery(identity.id, config.name, config.port);
 

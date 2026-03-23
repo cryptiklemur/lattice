@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
@@ -38,6 +39,9 @@ export function ChatView() {
   var [showInfo, setShowInfo] = useState<boolean>(false);
   var [confirmStopExternal, setConfirmStopExternal] = useState<boolean>(false);
   var [prefillText, setPrefillText] = useState<string | null>(null);
+  var stopExternalModalRef = useRef<HTMLDivElement>(null);
+  var closeStopExternal = useCallback(function () { setConfirmStopExternal(false); }, []);
+  useFocusTrap(stopExternalModalRef, closeStopExternal, confirmStopExternal);
 
   useEffect(function () {
     if (pendingPrefill && !historyLoading) {
@@ -885,7 +889,7 @@ export function ChatView() {
       )}
 
       {confirmStopExternal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="End External Process" onKeyDown={function (e) { if (e.key === "Escape") setConfirmStopExternal(false); }}>
+        <div ref={stopExternalModalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="End External Process">
           <div className="absolute inset-0 bg-black/50" onClick={function () { setConfirmStopExternal(false); }} />
           <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
             <div className="px-5 py-4 border-b border-base-content/15">

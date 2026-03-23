@@ -5,6 +5,7 @@ import { loadConfig } from "../config";
 import { listProjects } from "../project/registry";
 import { getProjectBySlug } from "../project/registry";
 import { handleSessionSync, handleSessionRequest } from "./session-sync";
+import { log } from "../logger";
 
 interface PeerConnection {
   nodeId: string;
@@ -102,7 +103,7 @@ function openConnection(conn: PeerConnection, url: string): void {
 
   var connectionTimer = setTimeout(function () {
     if (ws.readyState !== WebSocket.OPEN) {
-      console.error("[mesh] Connection timeout for peer: " + conn.nodeId);
+      log.mesh("Connection timeout for peer: %s", conn.nodeId);
       ws.close();
     }
   }, CONNECTION_TIMEOUT_MS);
@@ -132,7 +133,7 @@ function openConnection(conn: PeerConnection, url: string): void {
 
     ws.send(JSON.stringify(hello));
 
-    console.log("[mesh] Connected to peer: " + conn.nodeId);
+    log.mesh("Connected to peer: %s", conn.nodeId);
 
     for (var i = 0; i < connectedCallbacks.length; i++) {
       connectedCallbacks[i](conn.nodeId);
@@ -163,7 +164,7 @@ function openConnection(conn: PeerConnection, url: string): void {
         messageCallbacks[i](conn.nodeId, msg);
       }
     } catch {
-      console.error("[mesh] Invalid message from peer: " + conn.nodeId);
+      log.mesh("Invalid message from peer: %s", conn.nodeId);
     }
   });
 
@@ -183,10 +184,10 @@ function openConnection(conn: PeerConnection, url: string): void {
     if (circuit.halfOpen) {
       circuit.halfOpen = false;
       circuit.openUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN;
-      console.log("[mesh] Circuit breaker open for peer: " + conn.nodeId + " (half-open attempt failed)");
+      log.mesh("Circuit breaker open for peer: %s (half-open attempt failed)", conn.nodeId);
     } else if (circuit.failures >= CIRCUIT_BREAKER_THRESHOLD) {
       circuit.openUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN;
-      console.log("[mesh] Circuit breaker open for peer: " + conn.nodeId + " after " + circuit.failures + " consecutive failures");
+      log.mesh("Circuit breaker open for peer: %s after %d consecutive failures", conn.nodeId, circuit.failures);
     }
 
     for (var i = 0; i < disconnectedCallbacks.length; i++) {
@@ -206,7 +207,7 @@ function openConnection(conn: PeerConnection, url: string): void {
   });
 
   ws.addEventListener("error", function () {
-    console.error("[mesh] WebSocket error for peer: " + conn.nodeId);
+    log.mesh("WebSocket error for peer: %s", conn.nodeId);
   });
 }
 

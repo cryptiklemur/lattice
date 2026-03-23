@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { X } from "lucide-react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import cronstrue from "cronstrue";
 import type { ScheduledTask } from "@lattice/shared";
 
@@ -25,6 +26,10 @@ export function TaskEditModal(props: TaskEditModalProps) {
   var [prompt, setPrompt] = useState(task ? task.prompt : "");
   var [cron, setCron] = useState(task ? task.cron : "0 9 * * 1-5");
 
+  var modalRef = useRef<HTMLDivElement>(null);
+  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  useFocusTrap(modalRef, stableOnClose);
+
   var cronPreview = getCronPreview(cron);
   var cronValid = cronPreview !== "Invalid cron expression" && cronPreview !== "";
 
@@ -40,12 +45,12 @@ export function TaskEditModal(props: TaskEditModalProps) {
 
   return (
     <div
+      ref={modalRef}
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={handleBackdrop}
       role="dialog"
       aria-modal="true"
       aria-label={task ? "Edit Task" : "New Scheduled Task"}
-      onKeyDown={function (e) { if (e.key === "Escape") onClose(); }}
     >
       <div className="bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15">

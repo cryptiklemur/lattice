@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { createPortal } from "react-dom";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -175,6 +176,9 @@ function ImageRenderer(props: { path: string }) {
   var [error, setError] = useState(false);
   var [modalOpen, setModalOpen] = useState(false);
   var imgSrc = "/api/file?path=" + encodeURIComponent(props.path);
+  var imageModalRef = useRef<HTMLDivElement>(null);
+  var closeImageModal = useCallback(function () { setModalOpen(false); }, []);
+  useFocusTrap(imageModalRef, closeImageModal, modalOpen);
 
   useEffect(function () {
     if (!modalOpen) return;
@@ -213,9 +217,9 @@ function ImageRenderer(props: { path: string }) {
       </div>
       {modalOpen && createPortal(
         <div
+          ref={imageModalRef}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-8 cursor-pointer overscroll-contain"
           onClick={function () { setModalOpen(false); }}
-          onKeyDown={function (e) { if (e.key === "Escape") setModalOpen(false); }}
           onWheel={function (e) { e.stopPropagation(); }}
           onTouchMove={function (e) { e.stopPropagation(); }}
           role="dialog"

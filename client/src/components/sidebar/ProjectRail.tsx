@@ -208,7 +208,7 @@ export function ProjectRail(props: ProjectRailProps) {
         <button
           onClick={props.onDashboardClick}
           className={
-            "w-[42px] h-[42px] flex items-center justify-center cursor-pointer transition-all duration-[120ms] flex-shrink-0 " +
+            "relative w-[42px] h-[42px] flex items-center justify-center cursor-pointer transition-all duration-[120ms] flex-shrink-0 " +
             (props.isDashboardActive
               ? "rounded-xl bg-primary text-primary-content"
               : "rounded-full bg-base-200 text-base-content/60 hover:rounded-xl hover:bg-primary/20 hover:text-primary")
@@ -216,6 +216,16 @@ export function ProjectRail(props: ProjectRailProps) {
           title="Lattice Dashboard"
         >
           <LatticeLogomark size={22} />
+          <div
+            className={
+              "absolute bottom-0 right-0 w-2 h-2 rounded-full border-[1.5px] border-base-100 pointer-events-none " +
+              (ws.status === "connected"
+                ? "bg-success"
+                : ws.status === "connecting"
+                ? "bg-warning animate-pulse"
+                : "bg-error")
+            }
+          />
         </button>
       </div>
 

@@ -1,6 +1,7 @@
 import { createRouter, createRootRoute, createRoute, createMemoryHistory } from "@tanstack/react-router";
 import { Outlet } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useFocusTrap } from "./hooks/useFocusTrap";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { WorkspaceView } from "./components/workspace/WorkspaceView";
 import { SetupWizard } from "./components/setup/SetupWizard";
@@ -299,6 +300,9 @@ function RemoveProjectConfirm() {
   var sidebar = useSidebar();
   var ws = useWebSocket();
   var slug = sidebar.confirmRemoveSlug;
+  var removeModalRef = useRef<HTMLDivElement>(null);
+  var stableCloseRemove = useCallback(function () { sidebar.closeConfirmRemove(); }, [sidebar.closeConfirmRemove]);
+  useFocusTrap(removeModalRef, stableCloseRemove, !!slug);
 
   if (!slug) return null;
 
@@ -311,17 +315,8 @@ function RemoveProjectConfirm() {
     }
   })();
 
-  useEffect(function () {
-    if (!slug) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") sidebar.closeConfirmRemove();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return function () { document.removeEventListener("keydown", handleKeyDown); };
-  }, [slug]);
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Remove Project">
+    <div ref={removeModalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Remove Project">
       <div className="absolute inset-0 bg-black/50" onClick={sidebar.closeConfirmRemove} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="px-5 py-4 border-b border-base-content/15">

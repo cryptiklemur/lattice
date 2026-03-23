@@ -58,8 +58,10 @@ export interface Attachment {
   lineCount?: number;
 }
 
+export type HistoryMessageType = "user" | "assistant" | "tool_start" | "tool_result" | "permission_request" | "prompt_question" | "todo_update";
+
 export interface HistoryMessage {
-  type: string;
+  type: HistoryMessageType;
   uuid?: string;
   text?: string;
   toolId?: string;

@@ -10,8 +10,9 @@ import { homedir } from "node:os";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
 import { resolveSkillContent } from "../handlers/skills";
-import { guessContextWindow } from "./session";
+import { guessContextWindow, getSessionTitle, renameSession, listSessions } from "./session";
 import { getLatticeHome } from "../config";
+import { log } from "../logger";
 
 interface PendingPermission {
   resolve: (result: PermissionResult) => void;
@@ -154,7 +155,7 @@ export function cleanupClientPermissions(clientId: string): void {
     pendingPermissions.delete(toRemove[i]);
   }
   if (toRemove.length > 0) {
-    console.log("[lattice] Cleaned up " + toRemove.length + " pending permission(s) for disconnected client " + clientId);
+    log.chat("Cleaned up %d pending permission(s) for disconnected client %s", toRemove.length, clientId);
   }
 }
 
@@ -340,9 +341,53 @@ export function buildPermissionRule(toolName: string, input: Record<string, unkn
   return toolName;
 }
 
+var STRIP_PREFIXES = [
+  /^please\s+/i,
+  /^can\s+you\s+/i,
+  /^could\s+you\s+/i,
+  /^help\s+me\s+/i,
+  /^i\s+need\s+you\s+to\s+/i,
+  /^i\s+want\s+you\s+to\s+/i,
+  /^i'd\s+like\s+you\s+to\s+/i,
+];
+
+function generateSessionTitle(userMessage: string): string {
+  var title = userMessage
+    .replace(/[#*_`~>\[\]()!]/g, "")
+    .replace(/\n+/g, " ")
+    .trim();
+
+  for (var i = 0; i < STRIP_PREFIXES.length; i++) {
+    title = title.replace(STRIP_PREFIXES[i], "");
+  }
+
+  title = title.trim();
+
+  if (title.length > 50) {
+    title = title.slice(0, 50);
+    var lastSpace = title.lastIndexOf(" ");
+    if (lastSpace > 30) {
+      title = title.slice(0, lastSpace);
+    }
+  }
+
+  if (!title) {
+    return "";
+  }
+
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
+function isDefaultTitle(title: string): boolean {
+  if (title === "Untitled") return true;
+  if (/^Session\s+\d/.test(title)) return true;
+  return false;
+}
+
 export function startChatStream(options: ChatStreamOptions): void {
   var { projectSlug, sessionId, text, attachments, clientId, cwd, env, model, effort, isNewSession } = options;
   var startTime = Date.now();
+  var firstUserMessage = text;
 
   if (activeStreams.has(sessionId) || pendingStreams.has(sessionId)) {
     sendTo(clientId, { type: "chat:error", message: "Session already has an active stream." });
@@ -670,7 +715,7 @@ export function startChatStream(options: ChatStreamOptions): void {
       if (sysMsg.subtype === "init") {
         var toolCount = (sysMsg.tools || []).length;
         var mcpCount = (sysMsg.mcp_servers || []).filter(function (s) { return s.status === "connected"; }).length;
-        console.log("[lattice] Session ready: " + toolCount + " tools, " + mcpCount + " MCP servers connected");
+        log.chat("Session ready: %d tools, %d MCP servers connected", toolCount, mcpCount);
       }
       return;
     }
@@ -855,6 +900,20 @@ export function startChatStream(options: ChatStreamOptions): void {
       sendTo(clientId, { type: "chat:done", cost: cost, duration: dur });
       broadcast({ type: "session:busy", sessionId, busy: false }, clientId);
       syncSessionToPeers(cwd, projectSlug, sessionId);
+
+      void getSessionTitle(projectSlug, sessionId).then(function (currentTitle) {
+        if (!isDefaultTitle(currentTitle)) return;
+        var newTitle = generateSessionTitle(firstUserMessage);
+        if (!newTitle) return;
+        void renameSession(projectSlug, sessionId, newTitle).then(function (ok) {
+          if (!ok) return;
+          log.session("Auto-titled session %s: %s", sessionId, newTitle);
+          void listSessions(projectSlug).then(function (sessions) {
+            broadcast({ type: "session:list", projectSlug, sessions });
+          });
+        });
+      });
+
       return;
     }
   }
