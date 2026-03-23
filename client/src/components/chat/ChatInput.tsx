@@ -6,6 +6,7 @@ import { useAttachments } from "../../hooks/useAttachments";
 import { useVoiceRecorder } from "../../hooks/useVoiceRecorder";
 import { AttachmentChips } from "./AttachmentChips";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { getSessionStore } from "../../stores/session";
 
 interface ChatInputProps {
   onSend: (text: string, attachmentIds: string[]) => void;
@@ -40,6 +41,26 @@ export function ChatInput(props: ChatInputProps) {
   var modKey = useMemo(getModKey, []);
   var [historyIndex, setHistoryIndex] = useState(-1);
   var savedCurrentRef = useRef("");
+
+  useEffect(function () {
+    var store = getSessionStore();
+    var messages = store.state.messages;
+    var seen = new Set<string>();
+    for (var i = 0; i < messages.length; i++) {
+      if (messages[i].type === "user" && messages[i].text) {
+        var text = messages[i].text!.trim();
+        if (text && !seen.has(text)) {
+          seen.add(text);
+          if (inputHistory.indexOf(text) === -1) {
+            inputHistory.push(text);
+          }
+        }
+      }
+    }
+    if (inputHistory.length > MAX_HISTORY) {
+      inputHistory.splice(0, inputHistory.length - MAX_HISTORY);
+    }
+  }, []);
 
   var attachmentsHook = useAttachments();
   var voice = useVoiceRecorder();
