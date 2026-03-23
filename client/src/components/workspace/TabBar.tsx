@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar } from "lucide-react";
+import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { useSession } from "../../hooks/useSession";
 import type { Tab, TabType } from "../../stores/workspace";
+import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
 interface TabBarProps {
   paneId?: string;
@@ -20,10 +22,12 @@ var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
   terminal: TerminalSquare,
   notes: StickyNote,
   tasks: Calendar,
+  bookmarks: Bookmark,
 };
 
 export function TabBar({ paneId, isActivePane }: TabBarProps) {
   var workspace = useWorkspace();
+  var session = useSession();
   var [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   var menuRef = useRef<HTMLDivElement>(null);
 
@@ -65,13 +69,29 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     activeTabId = workspace.activeTabId;
   }
 
-  var shouldShow = paneTabs.length > 1 || (paneTabs[0]?.closeable ?? false);
+  var shouldShow = paneTabs.length > 1 || paneTabs.some(function (t) { return t.closeable; });
+
+  function getTabLabel(tab: Tab): string {
+    if (tab.type === "chat" && tab.sessionId) {
+      if (tab.sessionId === session.activeSessionId && session.activeSessionTitle) {
+        return formatSessionTitle(session.activeSessionTitle) || tab.label;
+      }
+      return formatSessionTitle(tab.label) || "Session";
+    }
+    return tab.label;
+  }
 
   function handleTabClick(tabId: string) {
     if (paneId) {
       workspace.setPaneActiveTab(paneId, tabId);
     } else {
       workspace.setActiveTab(tabId);
+    }
+    var tab = workspace.tabs.find(function (t) { return t.id === tabId; });
+    if (tab && tab.type === "chat" && tab.sessionId && tab.projectSlug) {
+      if (session.activeSessionId !== tab.sessionId) {
+        session.activateSession(tab.projectSlug, tab.sessionId);
+      }
     }
   }
 
@@ -101,6 +121,13 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     setContextMenu(null);
   }
 
+  function handleMiddleClick(e: React.MouseEvent, tab: Tab) {
+    if (e.button === 1 && tab.closeable) {
+      e.preventDefault();
+      handleCloseTab(tab.id);
+    }
+  }
+
   return (
     <>
       <div
@@ -119,6 +146,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
         {paneTabs.map(function (tab) {
           var isActive = tab.id === activeTabId;
           var Icon = TAB_ICONS[tab.type] || MessageSquare;
+          var label = getTabLabel(tab);
           return (
             <div
               key={tab.id}
@@ -126,6 +154,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
               tabIndex={0}
               aria-selected={isActive}
               onClick={function () { handleTabClick(tab.id); }}
+              onMouseDown={function (e) { handleMiddleClick(e, tab); }}
               onKeyDown={function (e) {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -134,17 +163,17 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
               }}
               onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
               className={
-                "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset " +
+                "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset max-w-[200px] " +
                 (isActive
                   ? "bg-base-100 text-base-content border-b-2 border-b-primary"
                   : "text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30")
               }
             >
               <Icon size={14} className={isActive ? "text-primary" : ""} />
-              <span>{tab.label}</span>
+              <span className="truncate text-[12px]">{label}</span>
               {tab.closeable && (
                 <button
-                  aria-label={"Close " + tab.label + " tab"}
+                  aria-label={"Close " + label + " tab"}
                   onClick={function (e) {
                     e.stopPropagation();
                     handleCloseTab(tab.id);

@@ -3,6 +3,7 @@ import { useMesh } from "../../hooks/useMesh";
 import { useProjects } from "../../hooks/useProjects";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { useTimeTick } from "../../hooks/useTimeTick";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { QuickStats } from "../analytics/QuickStats";
 import {
@@ -25,6 +26,7 @@ function relativeTime(ts: number): string {
 }
 
 export function DashboardView() {
+  useTimeTick();
   var { nodes } = useMesh();
   var { projects } = useProjects();
   var sidebar = useSidebar();

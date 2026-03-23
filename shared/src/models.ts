@@ -123,6 +123,10 @@ export interface LatticeConfig {
   };
   setupComplete?: boolean;
   wsl?: boolean | "auto";
+  costBudget?: {
+    dailyLimit: number;
+    enforcement: "warning" | "soft-block" | "hard-block";
+  };
 }
 
 export interface StickyNote {
@@ -158,6 +162,16 @@ export interface MarketplaceSkill {
   name: string;
   source: string;
   installs: number;
+}
+
+export interface MessageBookmark {
+  id: string;
+  sessionId: string;
+  projectSlug: string;
+  messageUuid: string;
+  messageText: string;
+  messageType: "user" | "assistant";
+  createdAt: number;
 }
 
 export interface LoopStatus {

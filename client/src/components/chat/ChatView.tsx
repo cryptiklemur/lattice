@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
-import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X } from "lucide-react";
+import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -8,7 +8,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted, setPendingPrefill } from "../../stores/session";
 import { openSettings, openProjectSettings } from "../../stores/sidebar";
-import { openTab } from "../../stores/workspace";
+import { openTab, updateSessionTabTitle } from "../../stores/workspace";
 import { builtinCommands } from "../../commands";
 import { Message } from "./Message";
 import { ToolGroup } from "./ToolGroup";
@@ -19,15 +19,26 @@ import { StatusBar } from "./StatusBar";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
 import { useSpinnerVerb } from "../../hooks/useSpinnerVerb";
+import { useBookmarks } from "../../hooks/useBookmarks";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
-export function ChatView() {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, isPlanMode, pendingPrefill } = useSession();
+export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug }: { sessionId?: string; projectSlug?: string } = {}) {
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
+
+  useEffect(function () {
+    if (!tabSessionId || !tabProjectSlug) return;
+    if (activeSessionId === tabSessionId) return;
+    activateSession(tabProjectSlug, tabSessionId);
+  }, [tabSessionId, tabProjectSlug]);
   var online = useOnline();
   var ws = useWebSocket();
   var spinnerVerb = useSpinnerVerb(isProcessing);
+  var { bookmarks, requestSessionBookmarks } = useBookmarks();
+  var [showBookmarkDropdown, setShowBookmarkDropdown] = useState<boolean>(false);
+  var bookmarkDropdownRef = useRef<HTMLDivElement>(null);
+  var bookmarkBtnRef = useRef<HTMLButtonElement>(null);
   var scrollParentRef = useRef<HTMLDivElement>(null);
   var prevLengthRef = useRef<number>(0);
   var isLiveChatRef = useRef<boolean>(false);
@@ -49,6 +60,24 @@ export function ChatView() {
       setPendingPrefill(null);
     }
   }, [pendingPrefill, historyLoading]);
+
+  useEffect(function () {
+    if (activeSessionId && !historyLoading) {
+      requestSessionBookmarks();
+    }
+  }, [activeSessionId, historyLoading]);
+
+  useEffect(function () {
+    if (!showBookmarkDropdown) return;
+    function handleClick(e: MouseEvent) {
+      var target = e.target as Node;
+      if (bookmarkDropdownRef.current && bookmarkDropdownRef.current.contains(target)) return;
+      if (bookmarkBtnRef.current && bookmarkBtnRef.current.contains(target)) return;
+      setShowBookmarkDropdown(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return function () { document.removeEventListener("mousedown", handleClick); };
+  }, [showBookmarkDropdown]);
 
   var [copiedField, setCopiedField] = useState<string | null>(null);
   var [isRenaming, setIsRenaming] = useState<boolean>(false);
@@ -202,6 +231,7 @@ export function ChatView() {
       if (renameValue.trim() !== activeSessionTitle) {
         ws.send({ type: "session:rename", sessionId: activeSessionId, title: renameValue.trim() });
         setSessionTitle(renameValue.trim());
+        updateSessionTabTitle(activeSessionId, renameValue.trim());
       }
     }
     setIsRenaming(false);
@@ -309,6 +339,7 @@ export function ChatView() {
         if (args && activeSessionId) {
           ws.send({ type: "session:rename", sessionId: activeSessionId, title: args });
           setSessionTitle(args);
+          updateSessionTabTitle(activeSessionId, args);
         } else {
           handleRenameStart();
         }
@@ -419,6 +450,53 @@ export function ChatView() {
                   >
                     <Pencil size={12} />
                   </button>
+                )}
+                {activeSessionId && bookmarks.length > 0 && (
+                  <div className="relative">
+                    <button
+                      ref={bookmarkBtnRef}
+                      onClick={function () { setShowBookmarkDropdown(!showBookmarkDropdown); }}
+                      aria-label="View bookmarks"
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-warning/70 hover:text-warning hover:bg-warning/10 transition-colors"
+                    >
+                      <Bookmark size={11} />
+                      <span>{bookmarks.length}</span>
+                    </button>
+                    {showBookmarkDropdown && (
+                      <div
+                        ref={bookmarkDropdownRef}
+                        className="absolute top-full left-0 mt-1 z-50 bg-base-300 border border-base-content/15 rounded-lg shadow-xl py-1 w-[280px] max-h-[300px] overflow-y-auto"
+                      >
+                        <div className="px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-base-content/40 font-mono font-bold">
+                          Bookmarks
+                        </div>
+                        {bookmarks.map(function (bm) {
+                          return (
+                            <button
+                              key={bm.id}
+                              type="button"
+                              onClick={function () {
+                                setShowBookmarkDropdown(false);
+                                var el = document.getElementById("msg-" + bm.messageUuid);
+                                if (el) {
+                                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  el.classList.add("ring-2", "ring-warning/40");
+                                  setTimeout(function () { el!.classList.remove("ring-2", "ring-warning/40"); }, 2000);
+                                }
+                              }}
+                              className="flex items-start gap-2 w-full px-2.5 py-1.5 hover:bg-base-content/5 transition-colors text-left"
+                            >
+                              <Bookmark size={10} className="text-warning/60 mt-0.5 flex-shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[11px] text-base-content/60 truncate">{bm.messageText}</div>
+                                <div className="text-[9px] text-base-content/30 font-mono">{bm.messageType}</div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}
@@ -954,12 +1032,42 @@ export function ChatView() {
         </div>
       )}
 
+      {budgetExceeded && budgetStatus && (
+        <div className="flex-shrink-0 border-t border-base-300 bg-warning/10 px-4 py-3 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-warning flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] text-base-content font-medium">
+              Daily budget exceeded (${budgetStatus.dailySpend.toFixed(2)} / ${budgetStatus.dailyLimit.toFixed(2)})
+            </div>
+            <div className="text-[11px] text-base-content/50">Send anyway?</div>
+          </div>
+          <button
+            onClick={sendBudgetOverride}
+            className="px-3 py-1.5 rounded-lg bg-warning text-warning-content text-[12px] font-semibold hover:bg-warning/80 transition-colors"
+          >
+            Continue
+          </button>
+          <button
+            onClick={dismissBudgetExceeded}
+            className="px-3 py-1.5 rounded-lg border border-base-content/15 text-base-content/60 text-[12px] hover:bg-base-content/5 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
         <ChatInput
           sessionId={activeSessionId}
           onSend={handleSend}
-          disabled={!activeSessionId || !online || isBusy}
-          disabledPlaceholder={isBusy ? "Session in use by another client..." : undefined}
+          disabled={!activeSessionId || !online || isBusy || (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)}
+          disabledPlaceholder={
+            isBusy
+              ? "Session in use by another client..."
+              : (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)
+                ? "Daily budget exceeded ($" + budgetStatus.dailySpend.toFixed(2) + " / $" + budgetStatus.dailyLimit.toFixed(2) + ")"
+                : undefined
+          }
           failedInput={failedInput}
           onFailedInputConsumed={clearFailedInput}
           prefillText={prefillText}

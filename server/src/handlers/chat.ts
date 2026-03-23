@@ -7,6 +7,7 @@ import { startChatStream, getPendingPermission, deletePendingPermission, addAuto
 import { getAttachments } from "./attachment";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { getDailySpend } from "../analytics/engine";
 
 function formatSdkRule(rule: { toolName: string; ruleContent?: string }): string {
   if (!rule.ruleContent) return rule.toolName;
@@ -91,6 +92,19 @@ function addProjectAllowRules(projectPath: string, suggestions: Array<{ type: st
 }
 
 var activeSessionByClient = new Map<string, { projectSlug: string; sessionId: string }>();
+var pendingBudgetOverride = new Map<string, { projectSlug: string; sessionId: string; sendMsg: ChatSendMessage; env: Record<string, string> | undefined; cwd: string; }>();
+
+export function sendBudgetStatus(clientId: string): void {
+  var config = loadConfig();
+  if (!config.costBudget) return;
+  var dailySpend = getDailySpend();
+  sendTo(clientId, {
+    type: "budget:status",
+    dailySpend: dailySpend,
+    dailyLimit: config.costBudget.dailyLimit,
+    enforcement: config.costBudget.enforcement,
+  } as never);
+}
 
 export function setActiveSession(clientId: string, projectSlug: string, sessionId: string): void {
   activeSessionByClient.set(clientId, { projectSlug, sessionId });
@@ -103,6 +117,31 @@ export function clearActiveSession(clientId: string): void {
 export function getActiveSession(clientId: string): { projectSlug: string; sessionId: string } | undefined {
   return activeSessionByClient.get(clientId);
 }
+
+registerHandler("budget", function (clientId: string, message: ClientMessage) {
+  if (message.type === "budget:override") {
+    var pending = pendingBudgetOverride.get(clientId);
+    if (!pending) return;
+    pendingBudgetOverride.delete(clientId);
+
+    var overrideAttachments = pending.sendMsg.attachmentIds
+      ? getAttachments(clientId, pending.sendMsg.attachmentIds)
+      : [];
+
+    startChatStream({
+      projectSlug: pending.projectSlug,
+      sessionId: pending.sessionId,
+      text: pending.sendMsg.text,
+      attachments: overrideAttachments,
+      clientId,
+      cwd: pending.cwd,
+      env: pending.env,
+      model: pending.sendMsg.model,
+      effort: pending.sendMsg.effort as "low" | "medium" | "high" | "max" | undefined,
+    });
+    return;
+  }
+});
 
 registerHandler("chat", function (clientId: string, message: ClientMessage) {
   if (message.type === "chat:send") {
@@ -122,6 +161,31 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
 
     var config = loadConfig();
     var env = Object.assign({}, config.globalEnv, project.env);
+
+    if (config.costBudget && config.costBudget.dailyLimit > 0) {
+      var dailySpend = getDailySpend();
+      if (dailySpend >= config.costBudget.dailyLimit) {
+        if (config.costBudget.enforcement === "hard-block") {
+          sendTo(clientId, { type: "chat:error", message: "Daily cost budget exceeded ($" + dailySpend.toFixed(2) + " / $" + config.costBudget.dailyLimit.toFixed(2) + "). Sending is blocked until tomorrow." });
+          return;
+        }
+        if (config.costBudget.enforcement === "soft-block") {
+          pendingBudgetOverride.set(clientId, {
+            projectSlug: active.projectSlug,
+            sessionId: active.sessionId,
+            sendMsg: sendMsg,
+            env: Object.keys(env).length > 0 ? env : undefined,
+            cwd: project.path,
+          });
+          sendTo(clientId, {
+            type: "budget:exceeded",
+            dailySpend: dailySpend,
+            dailyLimit: config.costBudget.dailyLimit,
+          } as never);
+          return;
+        }
+      }
+    }
 
     var attachments = sendMsg.attachmentIds
       ? getAttachments(clientId, sendMsg.attachmentIds)

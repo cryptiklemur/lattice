@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect, memo, useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus } from "lucide-react";
+import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck } from "lucide-react";
 import type { HistoryMessage, ChatPermissionResponseMessage } from "@lattice/shared";
+import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { getSessionStore, setPendingPrefill } from "../../stores/session";
+import { getBookmarkStore, findBookmarkByUuid } from "../../stores/bookmarks";
 import { ToolResultRenderer } from "./ToolResultRenderer";
 import { formatToolSummary } from "./toolSummary";
 import { PromptQuestion } from "./PromptQuestion";
@@ -104,9 +106,17 @@ function stripMarkdown(text: string): string {
     .trim();
 }
 
-function MessageActions(props: { text: string; showNewSession?: boolean }) {
+function MessageActions(props: { text: string; showNewSession?: boolean; messageUuid?: string; messageType?: "user" | "assistant" }) {
   var [copied, setCopied] = useState(false);
   var ws = useWebSocket();
+  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s; });
+  var isBookmarked = useMemo(function () {
+    if (!props.messageUuid) return false;
+    for (var i = 0; i < bookmarkState.bookmarks.length; i++) {
+      if (bookmarkState.bookmarks[i].messageUuid === props.messageUuid) return true;
+    }
+    return false;
+  }, [props.messageUuid, bookmarkState.bookmarks]);
 
   function handleCopy(e: React.MouseEvent) {
     var content = e.shiftKey ? stripMarkdown(props.text) : props.text;
@@ -122,6 +132,26 @@ function MessageActions(props: { text: string; showNewSession?: boolean }) {
     ws.send({ type: "session:create", projectSlug: state.activeProjectSlug });
   }
 
+  function handleBookmarkToggle() {
+    var state = getSessionStore().state;
+    if (!state.activeSessionId || !state.activeProjectSlug || !props.messageUuid || !props.messageType) return;
+    if (isBookmarked) {
+      var bm = findBookmarkByUuid(props.messageUuid);
+      if (bm) {
+        ws.send({ type: "bookmark:remove", id: bm.id });
+      }
+    } else {
+      ws.send({
+        type: "bookmark:add",
+        sessionId: state.activeSessionId,
+        projectSlug: state.activeProjectSlug,
+        messageUuid: props.messageUuid,
+        messageText: props.text.slice(0, 100),
+        messageType: props.messageType,
+      });
+    }
+  }
+
   var btnClass = "opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 text-base-content/20 hover:text-base-content/50 cursor-pointer p-0.5 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none rounded";
 
   return (
@@ -132,6 +162,11 @@ function MessageActions(props: { text: string; showNewSession?: boolean }) {
       {props.showNewSession && (
         <button type="button" onClick={handleNewSession} className={btnClass} title="Start new session with this message">
           <SquarePlus size={11} />
+        </button>
+      )}
+      {props.messageUuid && props.messageType && (
+        <button type="button" onClick={handleBookmarkToggle} className={btnClass + (isBookmarked ? " !opacity-100 !text-warning" : "")} title={isBookmarked ? "Remove bookmark" : "Bookmark message"}>
+          {isBookmarked ? <BookmarkCheck size={11} /> : <Bookmark size={11} />}
         </button>
       )}
     </>
@@ -179,7 +214,7 @@ function SkillMessage(props: { skillName: string; content: string; time: string 
         <div className="chat-footer text-[10px] text-base-content/30 mt-0.5 flex items-center gap-1">
           {props.time}
           <MessageAnchor id={props.uuid} />
-          <MessageActions text={"/" + props.skillName} showNewSession />
+          <MessageActions text={"/" + props.skillName} showNewSession messageUuid={props.uuid} messageType="user" />
         </div>
       )}
     </div>
@@ -205,7 +240,7 @@ function UserMessage(props: { message: HistoryMessage }) {
         <div className="chat-footer text-[10px] text-base-content/30 mt-0.5 flex items-center gap-1">
           {time}
           <MessageAnchor id={msg.uuid} />
-          <MessageActions text={text} showNewSession />
+          <MessageActions text={text} showNewSession messageUuid={msg.uuid} messageType="user" />
         </div>
       )}
     </div>
@@ -256,7 +291,7 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
             <span className="text-base-content/15">{formatTokenCount(msg.outputTokens)} out</span>
           )}
           <MessageAnchor id={msg.uuid} />
-          <MessageActions text={msg.text || ""} showNewSession />
+          <MessageActions text={msg.text || ""} showNewSession messageUuid={msg.uuid} messageType="assistant" />
         </div>
       )}
     </div>

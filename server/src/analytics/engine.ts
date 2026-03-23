@@ -823,3 +823,37 @@ export function getAnalytics(
 
   return Promise.resolve(result);
 }
+
+var dailySpendCache: { value: number; timestamp: number } | null = null;
+var DAILY_SPEND_CACHE_TTL = 30 * 1000;
+
+export function getDailySpend(): number {
+  if (dailySpendCache && Date.now() - dailySpendCache.timestamp < DAILY_SPEND_CACHE_TTL) {
+    return dailySpendCache.value;
+  }
+
+  var config = loadConfig();
+  var now = new Date();
+  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  var totalCost = 0;
+
+  for (var i = 0; i < config.projects.length; i++) {
+    var proj = config.projects[i];
+    var files = getSessionFilesForProject(proj.path);
+    for (var j = 0; j < files.length; j++) {
+      var data = parseSessionFile(files[j].path, files[j].id, proj.slug);
+      if (!data) continue;
+      var sessionTime = data.endTime > 0 ? data.endTime : data.startTime;
+      if (sessionTime >= todayStart) {
+        totalCost += data.cost;
+      }
+    }
+  }
+
+  dailySpendCache = { value: totalCost, timestamp: Date.now() };
+  return totalCost;
+}
+
+export function invalidateDailySpendCache(): void {
+  dailySpendCache = null;
+}

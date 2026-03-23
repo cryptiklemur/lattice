@@ -9,14 +9,15 @@ import { TerminalView } from "./TerminalView";
 import { FileBrowser } from "./FileBrowser";
 import { NotesView } from "./NotesView";
 import { ScheduledTasksView } from "./ScheduledTasksView";
+import { BookmarksView } from "./BookmarksView";
 import type { Pane, Tab } from "../../stores/workspace";
 
-var TAB_COMPONENTS: Record<string, () => React.JSX.Element> = {
-  chat: ChatView,
+var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
   files: FileBrowser,
   terminal: TerminalView,
   notes: NotesView,
   tasks: ScheduledTasksView,
+  bookmarks: BookmarksView,
 };
 
 function PaneContent({ pane, tabs, isActive, onFocus }: {
@@ -44,9 +45,20 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
       )}
       <div className="flex-1 min-h-0 relative">
         {paneTabs.map(function (tab) {
-          var Component = TAB_COMPONENTS[tab.type];
-          if (!Component) return null;
           var isTabActive = tab.id === pane.activeTabId;
+          if (tab.type === "chat") {
+            return (
+              <div
+                key={tab.id}
+                className="absolute inset-0"
+                style={{ display: isTabActive ? "flex" : "none", flexDirection: "column" }}
+              >
+                <ChatView sessionId={tab.sessionId} projectSlug={tab.projectSlug} />
+              </div>
+            );
+          }
+          var Component = NON_CHAT_COMPONENTS[tab.type];
+          if (!Component) return null;
           return (
             <div
               key={tab.id}
@@ -79,9 +91,20 @@ export function WorkspaceView() {
         )}
         <div className="flex-1 min-h-0 relative order-0 sm:order-none">
           {tabs.map(function (tab) {
-            var Component = TAB_COMPONENTS[tab.type];
-            if (!Component) return null;
             var isActive = singlePane ? tab.id === singlePane.activeTabId : tab.id === "chat";
+            if (tab.type === "chat") {
+              return (
+                <div
+                  key={tab.id}
+                  className="absolute inset-0"
+                  style={{ display: isActive ? "flex" : "none", flexDirection: "column" }}
+                >
+                  <ChatView sessionId={tab.sessionId} projectSlug={tab.projectSlug} />
+                </div>
+              );
+            }
+            var Component = NON_CHAT_COMPONENTS[tab.type];
+            if (!Component) return null;
             return (
               <div
                 key={tab.id}

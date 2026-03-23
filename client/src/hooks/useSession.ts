@@ -18,6 +18,7 @@ import type {
 } from "@lattice/shared";
 import { useWebSocket } from "./useWebSocket";
 import { setActiveSessionId as setSidebarSessionId } from "../stores/sidebar";
+import { updateSessionTabTitle } from "../stores/workspace";
 import {
   getSessionStore,
   setSessionMessages,
@@ -52,8 +53,10 @@ import {
   addPromptQuestion,
   addTodoUpdate,
   setIsPlanMode,
+  setBudgetStatus,
+  setBudgetExceeded,
 } from "../stores/session";
-import type { SessionState } from "../stores/session";
+import type { SessionState, BudgetStatus } from "../stores/session";
 
 var subscriptionsActive = 0;
 var activeStreamGeneration = 0;
@@ -73,6 +76,8 @@ export interface UseSessionReturn extends SessionState {
   removeQueuedMessage: (index: number) => void;
   updateQueuedMessage: (index: number, text: string) => void;
   clearMessageQueue: () => void;
+  sendBudgetOverride: () => void;
+  dismissBudgetExceeded: () => void;
 }
 
 export function useSession(): UseSessionReturn {
@@ -281,6 +286,9 @@ export function useSession(): UseSessionReturn {
         if (m.busy) {
           activeStreamGeneration = getStreamGeneration();
         }
+        if (m.title) {
+          updateSessionTabTitle(m.sessionId, m.title);
+        }
         getSessionStore().setState(function (state) {
           return {
             ...state,
@@ -358,6 +366,17 @@ export function useSession(): UseSessionReturn {
       setIsPlanMode(m.active);
     }
 
+    function handleBudgetStatus(msg: ServerMessage) {
+      var m = msg as { type: string; dailySpend: number; dailyLimit: number; enforcement: "warning" | "soft-block" | "hard-block" };
+      setBudgetStatus({ dailySpend: m.dailySpend, dailyLimit: m.dailyLimit, enforcement: m.enforcement });
+    }
+
+    function handleBudgetExceeded(msg: ServerMessage) {
+      setBudgetExceeded(true);
+      setIsProcessing(false);
+      setCurrentStatus(null);
+    }
+
     subscribe("chat:user_message", handleUserMessage);
     subscribe("chat:delta", handleDelta);
     subscribe("chat:tool_start", handleToolStart);
@@ -376,6 +395,8 @@ export function useSession(): UseSessionReturn {
     subscribe("chat:prompt_resolved", handlePromptResolved);
     subscribe("chat:todo_update", handleTodoUpdate);
     subscribe("chat:plan_mode", handlePlanMode);
+    subscribe("budget:status", handleBudgetStatus);
+    subscribe("budget:exceeded", handleBudgetExceeded);
 
     return function () {
       subscriptionsActive--;
@@ -397,6 +418,8 @@ export function useSession(): UseSessionReturn {
       unsubscribe("chat:prompt_resolved", handlePromptResolved);
       unsubscribe("chat:todo_update", handleTodoUpdate);
       unsubscribe("chat:plan_mode", handlePlanMode);
+      unsubscribe("budget:status", handleBudgetStatus);
+      unsubscribe("budget:exceeded", handleBudgetExceeded);
     };
   }, [subscribe, unsubscribe]);
 
@@ -424,9 +447,23 @@ export function useSession(): UseSessionReturn {
     isBusy: state.isBusy,
     isPlanMode: state.isPlanMode,
     pendingPrefill: state.pendingPrefill,
+    budgetStatus: state.budgetStatus,
+    budgetExceeded: state.budgetExceeded,
     enqueueMessage,
     removeQueuedMessage,
     updateQueuedMessage,
     clearMessageQueue,
+    sendBudgetOverride: function () {
+      setBudgetExceeded(false);
+      setIsProcessing(true);
+      sendRef.current({ type: "budget:override" } as never);
+    },
+    dismissBudgetExceeded: function () {
+      setBudgetExceeded(false);
+      if (lastSentText) {
+        setFailedInput(lastSentText);
+        lastSentText = null;
+      }
+    },
   };
 }

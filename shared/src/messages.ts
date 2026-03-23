@@ -5,6 +5,7 @@ import type {
   LatticeConfig,
   LoopStatus,
   MarketplaceSkill,
+  MessageBookmark,
   NodeInfo,
   ProjectInfo,
   ScheduledTask,
@@ -394,6 +395,10 @@ export interface SessionStopExternalMessage {
   sessionId: string;
 }
 
+export interface BudgetOverrideMessage {
+  type: "budget:override";
+}
+
 export interface AnalyticsRequestMessage {
   type: "analytics:request";
   requestId: string;
@@ -416,6 +421,26 @@ export interface AnalyticsErrorMessage {
   type: "analytics:error";
   scope: "global" | "project" | "session";
   message: string;
+}
+
+export interface BookmarkListMessage {
+  type: "bookmark:list";
+  projectSlug?: string;
+  sessionId?: string;
+}
+
+export interface BookmarkAddMessage {
+  type: "bookmark:add";
+  sessionId: string;
+  projectSlug: string;
+  messageUuid: string;
+  messageText: string;
+  messageType: "user" | "assistant";
+}
+
+export interface BookmarkRemoveMessage {
+  type: "bookmark:remove";
+  id: string;
 }
 
 export type ClientMessage =
@@ -475,7 +500,11 @@ export type ClientMessage =
   | EditorDetectMessage
   | ChatPromptResponseMessage
   | AnalyticsRequestMessage
-  | SessionPreviewRequestMessage;
+  | SessionPreviewRequestMessage
+  | BookmarkListMessage
+  | BookmarkAddMessage
+  | BookmarkRemoveMessage
+  | BudgetOverrideMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -812,6 +841,12 @@ export interface BrowseSuggestionsResultMessage {
   }>;
 }
 
+export interface BookmarkListResultMessage {
+  type: "bookmark:list_result";
+  scope: "session" | "all";
+  bookmarks: MessageBookmark[];
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -875,7 +910,23 @@ export type ServerMessage =
   | ChatPlanModeMessage
   | AnalyticsDataMessage
   | AnalyticsErrorMessage
-  | SessionPreviewMessage;
+  | SessionPreviewMessage
+  | BookmarkListResultMessage
+  | BudgetStatusMessage
+  | BudgetExceededMessage;
+
+export interface BudgetStatusMessage {
+  type: "budget:status";
+  dailySpend: number;
+  dailyLimit: number;
+  enforcement: "warning" | "soft-block" | "hard-block";
+}
+
+export interface BudgetExceededMessage {
+  type: "budget:exceeded";
+  dailySpend: number;
+  dailyLimit: number;
+}
 
 export interface MeshHelloMessage {
   type: "mesh:hello";

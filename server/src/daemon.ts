@@ -32,8 +32,10 @@ import "./handlers/skills";
 import "./handlers/memory";
 import "./handlers/editor";
 import "./handlers/analytics";
+import "./handlers/bookmarks";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
+import { loadBookmarks } from "./project/bookmarks";
 import { cleanupClientTerminals } from "./handlers/terminal";
 import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
 
@@ -349,6 +351,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   startScheduler();
 
   loadNotes();
+  loadBookmarks();
 
   loadInterruptedSessions();
 

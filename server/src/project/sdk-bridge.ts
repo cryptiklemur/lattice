@@ -11,8 +11,9 @@ import { sendTo, broadcast } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
 import { resolveSkillContent } from "../handlers/skills";
 import { guessContextWindow, getSessionTitle, renameSession, listSessions } from "./session";
-import { getLatticeHome } from "../config";
+import { getLatticeHome, loadConfig } from "../config";
 import { log } from "../logger";
+import { getDailySpend, invalidateDailySpendCache } from "../analytics/engine";
 
 interface PendingPermission {
   resolve: (result: PermissionResult) => void;
@@ -898,6 +899,16 @@ export function startChatStream(options: ChatStreamOptions): void {
       streamMetadata.delete(sessionId);
       persistStreamState();
       sendTo(clientId, { type: "chat:done", cost: cost, duration: dur });
+      invalidateDailySpendCache();
+      var budgetConfig = loadConfig().costBudget;
+      if (budgetConfig) {
+        sendTo(clientId, {
+          type: "budget:status",
+          dailySpend: getDailySpend(),
+          dailyLimit: budgetConfig.dailyLimit,
+          enforcement: budgetConfig.enforcement,
+        } as never);
+      }
       broadcast({ type: "session:busy", sessionId, busy: false }, clientId);
       syncSessionToPeers(cwd, projectSlug, sessionId);
 

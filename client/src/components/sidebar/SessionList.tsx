@@ -4,6 +4,7 @@ import { Clock, MessageSquare, Cpu, DollarSign } from "lucide-react";
 import type { SessionSummary, SessionPreview, SessionListMessage, SessionCreatedMessage, SessionPreviewMessage } from "@lattice/shared";
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { useTimeTick } from "../../hooks/useTimeTick";
 import { markSessionHasUpdates, sessionHasUpdates, markSessionRead } from "../../stores/session";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
@@ -169,6 +170,7 @@ function PreviewPopover(props: { preview: SessionPreview | null; anchorRect: DOM
 }
 
 export function SessionList(props: SessionListProps) {
+  useTimeTick();
   var ws = useWebSocket();
   var [sessions, setSessions] = useState<SessionSummary[]>([]);
   var [loading, setLoading] = useState<boolean>(false);

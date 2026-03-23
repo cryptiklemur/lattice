@@ -37,6 +37,7 @@
     "client"
   ],
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/github": "^12.0.6",
     "@semantic-release/npm": "^13.1.5",

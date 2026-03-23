@@ -2,6 +2,8 @@ import { useStore } from "@tanstack/react-store";
 import {
   getWorkspaceStore,
   openTab,
+  openSessionTab,
+  updateSessionTabTitle,
   closeTab,
   setActiveTab,
   resetWorkspace,
@@ -10,12 +12,15 @@ import {
   setPaneActiveTab,
   setSplitRatio,
   setActivePaneId,
+  getActiveSessionTab,
 } from "../stores/workspace";
-import type { WorkspaceState, TabType } from "../stores/workspace";
+import type { WorkspaceState, TabType, Tab } from "../stores/workspace";
 
 export interface UseWorkspaceReturn extends WorkspaceState {
   activeTabId: string;
   openTab: (type: TabType) => void;
+  openSessionTab: (sessionId: string, projectSlug: string, title: string) => void;
+  updateSessionTabTitle: (sessionId: string, title: string) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   resetWorkspace: () => void;
@@ -24,6 +29,7 @@ export interface UseWorkspaceReturn extends WorkspaceState {
   setPaneActiveTab: (paneId: string, tabId: string) => void;
   setSplitRatio: (ratio: number) => void;
   setActivePaneId: (paneId: string) => void;
+  getActiveSessionTab: () => Tab | null;
 }
 
 export function useWorkspace(): UseWorkspaceReturn {
@@ -36,6 +42,8 @@ export function useWorkspace(): UseWorkspaceReturn {
     splitRatio: state.splitRatio,
     activeTabId: state.panes.find(function (p) { return p.id === state.activePaneId; })?.activeTabId ?? state.panes[0]?.activeTabId ?? "chat",
     openTab: openTab,
+    openSessionTab: openSessionTab,
+    updateSessionTabTitle: updateSessionTabTitle,
     closeTab: closeTab,
     setActiveTab: setActiveTab,
     resetWorkspace: resetWorkspace,
@@ -44,5 +52,6 @@ export function useWorkspace(): UseWorkspaceReturn {
     setPaneActiveTab: setPaneActiveTab,
     setSplitRatio: setSplitRatio,
     setActivePaneId: setActivePaneId,
+    getActiveSessionTab: getActiveSessionTab,
   };
 }

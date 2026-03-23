@@ -1,12 +1,14 @@
 import { Store } from "@tanstack/react-store";
 
-export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks";
+export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks";
 
 export interface Tab {
   id: string;
   type: TabType;
   label: string;
   closeable: boolean;
+  sessionId?: string;
+  projectSlug?: string;
 }
 
 export interface Pane {
@@ -41,7 +43,7 @@ export function getWorkspaceStore(): Store<WorkspaceState> {
 
 export function openTab(type: TabType): void {
   workspaceStore.setState(function (state) {
-    var existing = state.tabs.find(function (t) { return t.type === type; });
+    var existing = state.tabs.find(function (t) { return t.type === type && !t.sessionId; });
     if (existing) {
       var paneWithTab = state.panes.find(function (p) {
         return p.tabIds.indexOf(existing!.id) !== -1;
@@ -66,6 +68,7 @@ export function openTab(type: TabType): void {
       terminal: "Terminal",
       notes: "Notes",
       tasks: "Tasks",
+      bookmarks: "Bookmarks",
     };
     var tab: Tab = {
       id: type,
@@ -91,10 +94,109 @@ export function openTab(type: TabType): void {
   });
 }
 
+export function openSessionTab(sessionId: string, projectSlug: string, title: string): void {
+  workspaceStore.setState(function (state) {
+    var tabId = "chat-" + sessionId;
+    var existing = state.tabs.find(function (t) { return t.id === tabId; });
+    if (existing) {
+      var paneWithTab = state.panes.find(function (p) {
+        return p.tabIds.indexOf(tabId) !== -1;
+      });
+      if (paneWithTab) {
+        return {
+          ...state,
+          activePaneId: paneWithTab.id,
+          panes: state.panes.map(function (p) {
+            if (p.id === paneWithTab!.id) {
+              return { ...p, activeTabId: tabId };
+            }
+            return p;
+          }),
+        };
+      }
+      return state;
+    }
+
+    var tab: Tab = {
+      id: tabId,
+      type: "chat",
+      label: title || "Session",
+      closeable: true,
+      sessionId: sessionId,
+      projectSlug: projectSlug,
+    };
+
+    var hadDefaultChat = state.tabs.some(function (t) { return t.id === "chat"; });
+
+    var newTabs = hadDefaultChat
+      ? state.tabs.filter(function (t) { return t.id !== "chat"; }).concat([tab])
+      : [...state.tabs, tab];
+
+    var newPanes = state.panes.map(function (p) {
+      var updatedTabIds = hadDefaultChat
+        ? p.tabIds.map(function (id) { return id === "chat" ? tabId : id; })
+        : (p.id === state.activePaneId ? [...p.tabIds, tabId] : p.tabIds);
+
+      var needsActiveUpdate = hadDefaultChat
+        ? (p.activeTabId === "chat" || p.id === state.activePaneId)
+        : p.id === state.activePaneId;
+
+      return {
+        ...p,
+        tabIds: updatedTabIds,
+        activeTabId: needsActiveUpdate ? tabId : p.activeTabId,
+      };
+    });
+
+    return {
+      ...state,
+      tabs: newTabs,
+      panes: newPanes,
+    };
+  });
+}
+
+export function updateSessionTabTitle(sessionId: string, title: string): void {
+  workspaceStore.setState(function (state) {
+    var tabId = "chat-" + sessionId;
+    var found = false;
+    var newTabs = state.tabs.map(function (t) {
+      if (t.id === tabId) {
+        found = true;
+        return { ...t, label: title };
+      }
+      return t;
+    });
+    if (!found) return state;
+    return { ...state, tabs: newTabs };
+  });
+}
+
 export function closeTab(tabId: string): void {
   workspaceStore.setState(function (state) {
     var tab = state.tabs.find(function (t) { return t.id === tabId; });
     if (!tab || !tab.closeable) return state;
+
+    var chatTabCount = 0;
+    for (var i = 0; i < state.tabs.length; i++) {
+      if (state.tabs[i].type === "chat") chatTabCount++;
+    }
+
+    var isLastChatTab = tab.type === "chat" && chatTabCount <= 1;
+
+    if (isLastChatTab) {
+      var replacementTab: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false };
+      var replacedTabs = state.tabs.map(function (t) {
+        if (t.id === tabId) return replacementTab;
+        return t;
+      });
+      var replacedPanes = state.panes.map(function (p) {
+        var newTabIds = p.tabIds.map(function (id) { return id === tabId ? "chat" : id; });
+        var newActiveTabId = p.activeTabId === tabId ? "chat" : p.activeTabId;
+        return { ...p, tabIds: newTabIds, activeTabId: newActiveTabId };
+      });
+      return { ...state, tabs: replacedTabs, panes: replacedPanes };
+    }
 
     var filteredTabs = state.tabs.filter(function (t) { return t.id !== tabId; });
     var newPanes = state.panes.map(function (p) {
@@ -102,7 +204,7 @@ export function closeTab(tabId: string): void {
       if (idx === -1) return p;
       var newTabIds = p.tabIds.filter(function (id) { return id !== tabId; });
       var newActiveTabId = p.activeTabId === tabId
-        ? (newTabIds.length > 0 ? newTabIds[newTabIds.length - 1] : "")
+        ? (newTabIds.length > 0 ? newTabIds[Math.max(0, idx - 1)] : "")
         : p.activeTabId;
       return { ...p, tabIds: newTabIds, activeTabId: newActiveTabId };
     });
@@ -251,4 +353,13 @@ export function setActivePaneId(paneId: string): void {
   workspaceStore.setState(function (state) {
     return { ...state, activePaneId: paneId };
   });
+}
+
+export function getActiveSessionTab(): Tab | null {
+  var state = workspaceStore.state;
+  var activePane = state.panes.find(function (p) { return p.id === state.activePaneId; });
+  if (!activePane) return null;
+  var activeTab = state.tabs.find(function (t) { return t.id === activePane!.activeTabId; });
+  if (!activeTab || activeTab.type !== "chat") return null;
+  return activeTab;
 }

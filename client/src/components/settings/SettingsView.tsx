@@ -10,12 +10,14 @@ import { Editor } from "./Editor";
 import { GlobalRules } from "./GlobalRules";
 import { GlobalMemory } from "./GlobalMemory";
 import { Notifications } from "./Notifications";
+import { BudgetSettings } from "./BudgetSettings";
 import type { SettingsSection } from "../../stores/sidebar";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   appearance: { title: "Appearance" },
   notifications: { title: "Notifications" },
   claude: { title: "Claude Settings" },
+  budget: { title: "Budget" },
   environment: { title: "Environment" },
   mcp: { title: "MCP Servers" },
   skills: { title: "Skills" },
@@ -29,6 +31,7 @@ function renderSection(section: SettingsSection) {
   if (section === "appearance") return <Appearance />;
   if (section === "notifications") return <Notifications />;
   if (section === "claude") return <ClaudeSettings />;
+  if (section === "budget") return <BudgetSettings />;
   if (section === "environment") return <Environment />;
   if (section === "mcp") return <GlobalMcp />;
   if (section === "skills") return <GlobalSkills />;

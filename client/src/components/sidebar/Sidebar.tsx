@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3 } from "lucide-react";
+import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import type { SessionSummary, ServerMessage, SettingsDataMessage } from "@lattice/shared";
 import { useProjects } from "../../hooks/useProjects";
@@ -9,7 +9,7 @@ import { useSidebar } from "../../hooks/useSidebar";
 import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
 import { useOnline } from "../../hooks/useOnline";
-import { openTab } from "../../stores/workspace";
+import { openTab, openSessionTab } from "../../stores/workspace";
 import { getSidebarStore, goToAnalytics } from "../../stores/sidebar";
 import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
@@ -72,6 +72,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
     if (!sidebar.activeProjectSlug || !sidebar.activeSessionId) return;
     if (!activeProject) return;
     initialActivatedRef.current = true;
+    openSessionTab(sidebar.activeSessionId, sidebar.activeProjectSlug, "Session");
     session.activateSession(sidebar.activeProjectSlug, sidebar.activeSessionId);
   }, [sidebar.activeProjectSlug, sidebar.activeSessionId, activeProject]);
 
@@ -79,6 +80,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
 
   function handleSessionActivate(s: SessionSummary) {
     if (activeProject) {
+      openSessionTab(s.id, activeProject.slug, s.title);
       session.activateSession(activeProject.slug, s.id);
     }
     sidebar.closeMenus();
@@ -154,6 +156,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     { type: "terminal" as const, icon: TerminalSquare, label: "Terminal" },
                     { type: "notes" as const, icon: StickyNote, label: "Notes" },
                     { type: "tasks" as const, icon: Calendar, label: "Tasks" },
+                    { type: "bookmarks" as const, icon: Bookmark, label: "Bookmarks" },
                   ].map(function (item) {
                     return (
                       <button

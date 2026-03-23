@@ -8,6 +8,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills, readGlobalRules } from "../project/project-files";
+import { sendBudgetStatus } from "./chat";
 
 function detectIdeProjectName(projectPath: string): string | undefined {
   try {
@@ -77,6 +78,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
         return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id, nodeName: config.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
       }),
     });
+    sendBudgetStatus(clientId);
     return;
   }
 
@@ -136,6 +138,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
         return { slug: p.slug, path: p.path, title: p.title, nodeId: updatedIdentity.id, nodeName: updated.name, isRemote: false };
       }),
     });
+    sendBudgetStatus(clientId);
     return;
   }
 

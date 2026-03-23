@@ -22,6 +22,12 @@ export interface ContextBreakdown {
   autocompactAt: number;
 }
 
+export interface BudgetStatus {
+  dailySpend: number;
+  dailyLimit: number;
+  enforcement: "warning" | "soft-block" | "hard-block";
+}
+
 export interface SessionState {
   messages: HistoryMessage[];
   isProcessing: boolean;
@@ -43,6 +49,8 @@ export interface SessionState {
   isBusy: boolean;
   isPlanMode: boolean;
   pendingPrefill: string | null;
+  budgetStatus: BudgetStatus | null;
+  budgetExceeded: boolean;
 }
 
 var sessionStore = new Store<SessionState>({
@@ -66,6 +74,8 @@ var sessionStore = new Store<SessionState>({
   isBusy: false,
   isPlanMode: false,
   pendingPrefill: null,
+  budgetStatus: null,
+  budgetExceeded: false,
 });
 
 var streamGeneration = 0;
@@ -288,6 +298,8 @@ export function clearSession(): void {
       isBusy: false,
       isPlanMode: false,
       pendingPrefill: null,
+      budgetStatus: null,
+      budgetExceeded: false,
     };
   });
 }
@@ -325,6 +337,18 @@ export function setSessionBusy(busy: boolean): void {
 export function setIsPlanMode(active: boolean): void {
   sessionStore.setState(function (state) {
     return { ...state, isPlanMode: active };
+  });
+}
+
+export function setBudgetStatus(status: BudgetStatus | null): void {
+  sessionStore.setState(function (state) {
+    return { ...state, budgetStatus: status };
+  });
+}
+
+export function setBudgetExceeded(exceeded: boolean): void {
+  sessionStore.setState(function (state) {
+    return { ...state, budgetExceeded: exceeded };
   });
 }
 
