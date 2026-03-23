@@ -117,26 +117,34 @@ export function ChartCard(props: ChartCardProps) {
           onClick={closeFullscreen}
         />
         <div
-          className="fixed inset-4 sm:inset-8 z-[9999] rounded-2xl border border-base-content/10 bg-base-200 shadow-2xl overflow-hidden flex flex-col"
-          style={animating ? { opacity: 0, transform: "scale(0.95)", transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)" } : { opacity: 1, transform: "scale(1)", transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)" }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-8"
+          style={{ pointerEvents: "none" }}
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-base-content/8 flex-shrink-0">
-            <span className="text-[12px] font-mono font-bold uppercase tracking-widest text-base-content/50">
-              {props.title}
-            </span>
-            <div className="flex items-center gap-3">
-              {props.action && <div>{props.action}</div>}
-              <button
-                onClick={closeFullscreen}
-                className="text-base-content/30 hover:text-base-content/60 transition-colors cursor-pointer p-1 rounded-lg hover:bg-base-content/5"
-                aria-label="Exit fullscreen"
-              >
-                <Minimize2 size={16} />
-              </button>
+          <div
+            className="w-full max-w-[1100px] rounded-2xl border border-base-content/10 bg-base-200 shadow-2xl overflow-hidden flex flex-col"
+            style={Object.assign(
+              { maxHeight: "65vh", pointerEvents: "auto" as const },
+              animating
+                ? { opacity: 0, transform: "scale(0.95)", transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)" }
+                : { opacity: 1, transform: "scale(1)", transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)" }
+            )}
+          >
+            <div className="flex items-center justify-between px-6 py-3 border-b border-base-content/8 flex-shrink-0">
+              <span className="text-[12px] font-mono font-bold uppercase tracking-widest text-base-content/50">
+                {props.title}
+              </span>
+              <div className="flex items-center gap-3">
+                {props.action && <div>{props.action}</div>}
+                <button
+                  onClick={closeFullscreen}
+                  className="text-base-content/30 hover:text-base-content/60 transition-colors cursor-pointer p-1 rounded-lg hover:bg-base-content/5"
+                  aria-label="Exit fullscreen"
+                >
+                  <Minimize2 size={16} />
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="flex-1 p-6 overflow-auto flex items-center justify-center">
-            <div className="w-full h-full">
+            <div className="flex-1 p-6 overflow-auto min-h-0 [&_.recharts-responsive-container]:!h-full [&_.recharts-responsive-container]:!min-h-[350px]">
               {props.children}
             </div>
           </div>
