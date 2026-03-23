@@ -1,5 +1,34 @@
 import { useState, useCallback, useRef } from "react";
 
+interface SpeechRecognitionResult {
+  readonly transcript: string;
+  readonly confidence: number;
+  readonly isFinal: boolean;
+}
+
+interface SpeechRecognitionResultItem {
+  readonly length: number;
+  readonly isFinal: boolean;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResultItem;
+  [index: number]: SpeechRecognitionResultItem;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+  readonly message: string;
+}
+
 interface SpeechRecognitionLike extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
