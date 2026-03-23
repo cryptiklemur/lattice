@@ -127,7 +127,7 @@ export function ProjectEnvironment({
                   </div>
                   <div className="flex gap-1.5 items-center">
                     <div className="h-9 sm:h-7 px-3 bg-base-300/50 border border-base-content/10 rounded-xl flex items-center font-mono text-[12px] text-base-content/40 w-full">
-                      {v}
+                      {String(v)}
                     </div>
                   </div>
                   <span className="text-[10px] uppercase tracking-wider text-base-content/30 w-7 text-center hidden sm:block">

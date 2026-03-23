@@ -67,7 +67,7 @@ export function NodeFleetOverview(props: NodeFleetOverviewProps) {
               <div className="mt-2.5 pt-2 border-t border-base-content/5">
                 <div className="text-[9px] font-mono text-base-content/25 uppercase tracking-widest mb-1.5">Projects</div>
                 <div className="flex flex-wrap gap-1">
-                  {node.projects.map(function (p) {
+                  {node.projects.map(function (p: typeof node.projects[number]) {
                     return (
                       <span
                         key={p.slug}

@@ -46,7 +46,7 @@ export function ProjectSkills({ settings, projectSlug }: ProjectSkillsProps) {
         <div>
           <div className="text-[12px] font-semibold text-base-content/40 mb-2">Global Skills</div>
           <div className="space-y-2">
-            {globalSkills.map(function (skill) {
+            {globalSkills.map(function (skill: typeof globalSkills[number]) {
               return (
                 <SkillItem
                   key={skill.path}
@@ -64,7 +64,7 @@ export function ProjectSkills({ settings, projectSlug }: ProjectSkillsProps) {
         <div>
           <div className="text-[12px] font-semibold text-base-content/40 mb-2">Project Skills</div>
           <div className="space-y-2">
-            {projectSkills.map(function (skill) {
+            {projectSkills.map(function (skill: typeof projectSkills[number]) {
               return (
                 <SkillItem
                   key={skill.path}

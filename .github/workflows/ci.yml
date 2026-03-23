@@ -37,8 +37,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Typecheck
-        run: bunx tsc --noEmit -p tsconfig.json
+      - name: Typecheck shared
+        run: bunx tsc --noEmit -p shared/tsconfig.json
+
+      - name: Typecheck server
+        run: bunx tsc --noEmit -p server/tsconfig.json
+
+      - name: Typecheck client
+        run: bunx tsc --noEmit -p client/tsconfig.json
 
   build:
     name: Build

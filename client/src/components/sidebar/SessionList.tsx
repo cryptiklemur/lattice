@@ -204,14 +204,14 @@ export function SessionList(props: SessionListProps) {
       if (msg.type === "session:list") {
         var listMsg = msg as SessionListMessage;
         if (listMsg.projectSlug === props.projectSlug) {
-          var incoming = listMsg.sessions.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+          var incoming = listMsg.sessions.slice().sort(function (a: typeof listMsg.sessions[number], b: typeof listMsg.sessions[number]) { return b.updatedAt - a.updatedAt; });
           var listOffset = listMsg.offset || 0;
           var listTotal = listMsg.totalCount || incoming.length;
 
           if (listOffset > 0) {
             setSessions(function (prev) {
-              var existingIds = new Set(prev.map(function (s) { return s.id; }));
-              var newSessions = incoming.filter(function (s) { return !existingIds.has(s.id); });
+              var existingIds = new Set(prev.map(function (s: typeof prev[number]) { return s.id; }));
+              var newSessions = incoming.filter(function (s: typeof incoming[number]) { return !existingIds.has(s.id); });
               return prev.concat(newSessions);
             });
             setLoadingMore(false);
@@ -228,9 +228,9 @@ export function SessionList(props: SessionListProps) {
             }
             setSessions(function (existing) {
               if (existing.length <= PAGE_SIZE) return incoming;
-              var incomingIds = new Set(incoming.map(function (s) { return s.id; }));
-              var kept = existing.filter(function (s) { return !incomingIds.has(s.id); });
-              return incoming.concat(kept).sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+              var incomingIds = new Set(incoming.map(function (s: typeof incoming[number]) { return s.id; }));
+              var kept = existing.filter(function (s: typeof existing[number]) { return !incomingIds.has(s.id); });
+              return incoming.concat(kept).sort(function (a: typeof incoming[number], b: typeof incoming[number]) { return b.updatedAt - a.updatedAt; });
             });
             setLoading(false);
             if (hadChanges) {

@@ -415,7 +415,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       percentage: (val.cost / totalModelCost) * 100,
     });
   });
-  modelUsage.sort(function (a, b) { return b.cost - a.cost; });
+  modelUsage.sort(function (a: typeof modelUsage[number], b: typeof modelUsage[number]) { return b.cost - a.cost; });
 
   var projectBreakdown: AnalyticsPayload["projectBreakdown"] = [];
   projectStats.forEach(function (val, key) {
@@ -426,7 +426,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       tokens: val.tokens,
     });
   });
-  projectBreakdown.sort(function (a, b) { return b.cost - a.cost; });
+  projectBreakdown.sort(function (a: typeof projectBreakdown[number], b: typeof projectBreakdown[number]) { return b.cost - a.cost; });
 
   var toolUsage: AnalyticsPayload["toolUsage"] = [];
   toolStats.forEach(function (val, key) {
@@ -436,7 +436,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       avgCost: val.sessions > 0 ? val.totalCost / val.sessions : 0,
     });
   });
-  toolUsage.sort(function (a, b) { return b.count - a.count; });
+  toolUsage.sort(function (a: typeof toolUsage[number], b: typeof toolUsage[number]) { return b.count - a.count; });
 
   var responseTimeData: AnalyticsPayload["responseTimeData"] = [];
   for (var rti = 0; rti < filtered.length; rti++) {
@@ -646,7 +646,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       avgCost: val.sessions > 0 ? val.totalCost / val.sessions : 0,
     });
   });
-  toolTreemap.sort(function (a, b) { return b.count - a.count; });
+  toolTreemap.sort(function (a: typeof toolTreemap[number], b: typeof toolTreemap[number]) { return b.count - a.count; });
 
   var toolCategoryMap: Record<string, string> = {
     Read: "Read", Glob: "Read", Grep: "Read", LS: "Read",
@@ -659,7 +659,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     var category = toolCategoryMap[key] || "Other";
     toolSunburst.push({ name: key, category: category, count: val.count });
   });
-  toolSunburst.sort(function (a, b) { return b.count - a.count; });
+  toolSunburst.sort(function (a: typeof toolSunburst[number], b: typeof toolSunburst[number]) { return b.count - a.count; });
 
   var totalToolCalls = 0;
   toolStats.forEach(function (val) { totalToolCalls += val.count; });
@@ -697,7 +697,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       tokensPerSession: val.sessions > 0 ? val.totalTokens / val.sessions : 0,
     });
   });
-  projectRadar.sort(function (a, b) { return b.cost - a.cost; });
+  projectRadar.sort(function (a: typeof projectRadar[number], b: typeof projectRadar[number]) { return b.cost - a.cost; });
   if (projectRadar.length > 5) projectRadar.length = 5;
 
   var contextWindowSizesForComplexity: Record<string, number> = { opus: 200000, sonnet: 200000, haiku: 200000, other: 200000 };
@@ -727,7 +727,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       contextPercent: Math.round(scContextPercent * 10) / 10,
     });
   }
-  sessionComplexity.sort(function (a, b) { return b.score - a.score; });
+  sessionComplexity.sort(function (a: typeof sessionComplexity[number], b: typeof sessionComplexity[number]) { return b.score - a.score; });
   if (sessionComplexity.length > 20) sessionComplexity.length = 20;
 
   return {
@@ -797,7 +797,7 @@ export function getAnalytics(
       }
     }
   } else if (scope === "project" && projectSlug) {
-    var project = config.projects.find(function (p) { return p.slug === projectSlug; });
+    var project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
     if (project) {
       var projFiles = getSessionFilesForProject(project.path);
       for (var pf = 0; pf < projFiles.length; pf++) {
@@ -806,7 +806,7 @@ export function getAnalytics(
       }
     }
   } else if (scope === "session" && projectSlug && sessionId) {
-    var sessProject = config.projects.find(function (p) { return p.slug === projectSlug; });
+    var sessProject = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
     if (sessProject) {
       var hash = projectPathToHash(sessProject.path);
       var filePath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");

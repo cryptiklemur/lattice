@@ -74,7 +74,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     });
     sendTo(clientId, {
       type: "projects:list",
-      projects: config.projects.map(function (p) {
+      projects: config.projects.map(function (p: typeof config.projects[number]) {
         return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id, nodeName: config.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
       }),
     });
@@ -134,7 +134,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     var updatedIdentity = loadOrCreateIdentity();
     broadcast({
       type: "projects:list",
-      projects: updated.projects.map(function (p) {
+      projects: updated.projects.map(function (p: typeof updated.projects[number]) {
         return { slug: p.slug, path: p.path, title: p.title, nodeId: updatedIdentity.id, nodeName: updated.name, isRemote: false };
       }),
     });

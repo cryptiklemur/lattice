@@ -19,7 +19,7 @@ export function TodoCard(props: TodoCardProps) {
   var todos = props.message.todos || [];
   if (todos.length === 0) return null;
 
-  var completed = todos.filter(function (t) { return t.status === "completed"; }).length;
+  var completed = todos.filter(function (t: typeof todos[number]) { return t.status === "completed"; }).length;
   var total = todos.length;
 
   return (
@@ -32,7 +32,7 @@ export function TodoCard(props: TodoCardProps) {
         </div>
 
         <div className="px-3 py-2">
-          {todos.map(function (todo) {
+          {todos.map(function (todo: typeof todos[number]) {
             return (
               <div
                 key={todo.id}

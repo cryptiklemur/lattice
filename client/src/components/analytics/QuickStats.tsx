@@ -51,9 +51,9 @@ export function QuickStats() {
   var d = analytics.data;
   var colors = getChartColors();
 
-  var costSparkData = d.costOverTime.slice(-7).map(function (e) { return { v: e.total }; });
-  var sessionsSparkData = d.sessionsOverTime.slice(-7).map(function (e) { return { v: e.count }; });
-  var tokensSparkData = d.tokensOverTime.slice(-7).map(function (e) { return { v: e.input + e.output }; });
+  var costSparkData = d.costOverTime.slice(-7).map(function (e: typeof d.costOverTime[number]) { return { v: e.total }; });
+  var sessionsSparkData = d.sessionsOverTime.slice(-7).map(function (e: typeof d.sessionsOverTime[number]) { return { v: e.count }; });
+  var tokensSparkData = d.tokensOverTime.slice(-7).map(function (e: typeof d.tokensOverTime[number]) { return { v: e.input + e.output }; });
 
   var totalTokens = d.totalTokens.input + d.totalTokens.output;
   var cacheHitPct = Math.round(d.cacheHitRate * 100);

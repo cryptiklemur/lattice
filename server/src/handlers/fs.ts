@@ -214,7 +214,7 @@ registerHandler("browse", function (clientId: string, message: ClientMessage) {
   if (message.type === "browse:suggestions") {
     var claudeProjectsDir = join(homedir(), ".claude", "projects");
     var config = loadConfig();
-    var existingPaths = new Set(config.projects.map(function (p) { return p.path; }));
+    var existingPaths = new Set(config.projects.map(function (p: typeof config.projects[number]) { return p.path; }));
     var suggestions: Array<{ path: string; name: string; hasClaudeMd: boolean }> = [];
 
     if (existsSync(claudeProjectsDir)) {

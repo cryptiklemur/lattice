@@ -263,7 +263,7 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
     var cwd = homedir();
     if (installMsg.scope === "project" && installMsg.projectSlug) {
       var installConfig = loadConfig();
-      var installProject = installConfig.projects.find(function (p) { return p.slug === installMsg.projectSlug; });
+      var installProject = installConfig.projects.find(function (p: typeof installConfig.projects[number]) { return p.slug === installMsg.projectSlug; });
       if (installProject) {
         cwd = installProject.path;
       }

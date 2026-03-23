@@ -2,7 +2,7 @@ import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
-import type { MessageParam } from "@anthropic-ai/sdk/resources";
+type MessageParam = SDKUserMessage["message"];
 import type { Attachment } from "@lattice/shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -657,6 +657,7 @@ export function startChatStream(options: ChatStreamOptions): void {
       type: "user",
       message: { role: "user", content: contentBlocks } as MessageParam,
       parent_tool_use_id: null,
+      session_id: sessionId,
     };
 
     queryPrompt = (async function* () {
@@ -816,7 +817,7 @@ export function startChatStream(options: ChatStreamOptions): void {
         if (stoppedBlock) {
           if (stoppedBlock.name === "TodoWrite" && stoppedBlock.inputJson) {
             try {
-              var todoInput = JSON.parse(stoppedBlock.inputJson) as { todos?: Array<{ id?: string; content: string; status: string }> };
+              var todoInput = JSON.parse(stoppedBlock.inputJson) as { todos?: Array<{ id?: string; content: string; status: string; activeForm?: string }> };
               if (todoInput.todos) {
                 sendTo(clientId, {
                   type: "chat:todo_update",

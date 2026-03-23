@@ -19,7 +19,7 @@ export function ProjectRules({
   var globalRules = settings.global.rules ?? [];
 
   var [rules, setRules] = useState<RuleEntry[]>(function () {
-    return (settings.rules ?? []).map(function (r) {
+    return (settings.rules ?? []).map(function (r: { filename: string; content: string }) {
       return { filename: r.filename, content: r.content };
     });
   });
@@ -34,7 +34,7 @@ export function ProjectRules({
     if (save.saving) {
       save.confirmSave();
     } else {
-      setRules((settings.rules ?? []).map(function (r) {
+      setRules((settings.rules ?? []).map(function (r: { filename: string; content: string }) {
         return { filename: r.filename, content: r.content };
       }));
       save.resetFromServer();
@@ -136,7 +136,7 @@ export function ProjectRules({
         )}
         {globalRules.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            {globalRules.map(function (rule, idx) {
+            {globalRules.map(function (rule: typeof globalRules[number], idx: number) {
               var isExpanded = expandedGlobal.has(idx);
               return (
                 <div key={rule.filename + "-" + idx} className="border border-base-content/10 rounded-xl overflow-hidden">

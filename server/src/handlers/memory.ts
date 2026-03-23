@@ -11,7 +11,7 @@ function getMemoryDir(projectSlug: string): string | null {
     return join(homedir(), ".claude", "memory");
   }
   var config = loadConfig();
-  var project = config.projects.find(function (p) { return p.slug === projectSlug; });
+  var project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
   if (!project) return null;
   var hash = "-" + project.path.replace(/\//g, "-").replace(/^-/, "");
   return join(homedir(), ".claude", "projects", hash, "memory");

@@ -41,7 +41,7 @@ function projectPathToHash(projectPath: string): string {
 
 function getProjectPath(projectSlug: string): string | null {
   var config = loadConfig();
-  var project = config.projects.find(function (p) { return p.slug === projectSlug; });
+  var project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
   return project ? project.path : null;
 }
 

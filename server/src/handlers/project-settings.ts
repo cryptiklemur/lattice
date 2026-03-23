@@ -115,7 +115,7 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
       if (section === "general") {
         invalidateConfigCache();
         var config = loadConfig();
-        var idx = config.projects.findIndex(function (p) { return p.slug === projectSlug; });
+        var idx = config.projects.findIndex(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
         if (idx !== -1) {
           if (typeof settings.title === "string") {
             config.projects[idx].title = settings.title;
@@ -140,7 +140,7 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
       } else if (section === "environment") {
         invalidateConfigCache();
         var config = loadConfig();
-        var idx = config.projects.findIndex(function (p) { return p.slug === projectSlug; });
+        var idx = config.projects.findIndex(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
         if (idx !== -1) {
           config.projects[idx].env = (settings.env as Record<string, string>) ?? {};
           saveConfig(config);

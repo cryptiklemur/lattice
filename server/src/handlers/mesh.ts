@@ -19,7 +19,7 @@ export function buildNodesMessage(): NodeInfo[] {
     port: config.port,
     online: true,
     isLocal: true,
-    projects: config.projects.map(function (p) {
+    projects: config.projects.map(function (p: typeof config.projects[number]) {
       return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id };
     }),
   };

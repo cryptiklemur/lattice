@@ -90,7 +90,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
             )}
             <span className="text-[12px] text-base-content/50">{firstAnswer ? firstAnswer[0] : ""}</span>
             <span className="flex-1" />
-            <span className="text-[12px] font-medium text-base-content/70">{firstAnswer ? firstAnswer[1] : ""}</span>
+            <span className="text-[12px] font-medium text-base-content/70">{firstAnswer ? String(firstAnswer[1]) : ""}</span>
             <ChevronDown
               size={12}
               className={"text-base-content/25 transition-transform duration-200 " + (expanded ? "rotate-180" : "")}
@@ -100,7 +100,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
           {expanded && answeredQuestion && (
             <div className="px-4 pb-3 border-t border-base-content/5">
               <div className="flex flex-col gap-1 pt-2">
-                {answeredQuestion.options.map(function (opt, oi) {
+                {answeredQuestion.options.map(function (opt: typeof answeredQuestion.options[number], oi: number) {
                   var isChosen = firstAnswer && firstAnswer[1] === opt.label;
                   return (
                     <div
@@ -142,7 +142,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
 
   return (
     <div className="px-5 py-2" aria-live="polite">
-      {questions.map(function (q, qi) {
+      {questions.map(function (q: typeof questions[number], qi: number) {
         return (
           <div
             key={qi}
@@ -165,7 +165,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
                 aria-label={q.question}
                 onKeyDown={function (e) { handleKeyDown(e, q.options.length, q, q.options); }}
               >
-                {q.options.map(function (opt, oi) {
+                {q.options.map(function (opt: typeof q.options[number], oi: number) {
                   var isSelected = selectedMulti.has(opt.label);
                   var isFocused = focusIndex === oi;
                   return (

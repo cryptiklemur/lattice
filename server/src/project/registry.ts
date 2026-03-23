@@ -5,7 +5,7 @@ import type { ProjectSummary } from "@lattice/shared";
 
 export function listProjects(nodeId: string): ProjectSummary[] {
   var config = loadConfig();
-  return config.projects.map(function(p) {
+  return config.projects.map(function(p: typeof config.projects[number]) {
     return {
       slug: p.slug,
       path: p.path,
@@ -20,9 +20,9 @@ export function addProject(path: string, title?: string): ProjectSummary | null 
 
   var config = loadConfig();
 
-  if (config.projects.some(function(p) { return p.path === path; })) return null;
+  if (config.projects.some(function(p: typeof config.projects[number]) { return p.path === path; })) return null;
 
-  var slug = generateSlug(basename(path), config.projects.map(function(p) { return p.slug; }));
+  var slug = generateSlug(basename(path), config.projects.map(function(p: typeof config.projects[number]) { return p.slug; }));
   var project = { path: path, slug: slug, title: title || basename(path), env: {} };
   config.projects.push(project);
   saveConfig(config);
@@ -32,7 +32,7 @@ export function addProject(path: string, title?: string): ProjectSummary | null 
 
 export function removeProject(slug: string): boolean {
   var config = loadConfig();
-  var idx = config.projects.findIndex(function(p) { return p.slug === slug; });
+  var idx = config.projects.findIndex(function(p: typeof config.projects[number]) { return p.slug === slug; });
   if (idx === -1) return false;
   config.projects.splice(idx, 1);
   saveConfig(config);
@@ -41,7 +41,7 @@ export function removeProject(slug: string): boolean {
 
 export function getProjectBySlug(slug: string): { path: string; slug: string; title: string; env: Record<string, string> } | undefined {
   var config = loadConfig();
-  return config.projects.find(function(p) { return p.slug === slug; });
+  return config.projects.find(function(p: typeof config.projects[number]) { return p.slug === slug; });
 }
 
 export function generateSlug(name: string, existing: string[]): string {

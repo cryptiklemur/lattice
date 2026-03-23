@@ -1,5 +1,19 @@
 import { useState, useCallback, useRef } from "react";
 
+interface SpeechRecognitionLike extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  onspeechstart: (() => void) | null;
+  onspeechend: (() => void) | null;
+}
+
 export interface UseVoiceRecorderReturn {
   isRecording: boolean;
   isSupported: boolean;
@@ -17,14 +31,14 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   var [elapsed, setElapsed] = useState(0);
   var [interimTranscript, setInterimTranscript] = useState("");
 
-  var recognitionRef = useRef<SpeechRecognition | null>(null);
+  var recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   var timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   var finalTranscriptRef = useRef("");
   var startTimeRef = useRef(0);
 
   var SpeechRecognitionClass = typeof window !== "undefined"
-    ? (window as unknown as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
-      || (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+    ? (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition
+      || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition
     : undefined;
 
   var isSupported = !!SpeechRecognitionClass;

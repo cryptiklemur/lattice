@@ -27,7 +27,7 @@ export function useProjects(): UseProjectsResult {
         var storeState = getSidebarStore().state;
         var currentSlug = storeState.activeProjectSlug;
         if (currentSlug !== null) {
-          var found = list.find(function (p) { return p.slug === currentSlug; });
+          var found = list.find(function (p: typeof list[number]) { return p.slug === currentSlug; });
           if (!found && list.length > 0) {
             setActiveProjectSlug(list[0].slug);
           }

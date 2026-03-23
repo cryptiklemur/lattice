@@ -58,7 +58,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
 
   if (message.type === "session:list_all_request") {
     var config = loadConfig();
-    var allPromises = config.projects.map(function (p) {
+    var allPromises = config.projects.map(function (p: typeof config.projects[number]) {
       return listSessions(p.slug);
     });
     void Promise.all(allPromises).then(function (results) {
@@ -68,7 +68,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
           merged.push(results[i][j]);
         }
       }
-      merged.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+      merged.sort(function (a: typeof merged[number], b: typeof merged[number]) { return b.updatedAt - a.updatedAt; });
       sendTo(clientId, {
         type: "session:list_all",
         sessions: merged.slice(0, 20),

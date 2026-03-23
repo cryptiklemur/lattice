@@ -34,7 +34,7 @@ export function Environment() {
       }
 
       var rows = Object.entries(env).map(function ([k, v]) {
-        return { id: genId(), key: k, value: v };
+        return { id: genId(), key: k, value: String(v) };
       });
       setEntries(rows);
       if (!save.saving) {
