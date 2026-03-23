@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import type { SessionSummary, SessionListMessage, SessionCreatedMessage } from "@lattice/shared";
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -251,6 +251,15 @@ export function SessionList(props: SessionListProps) {
     }
   }
 
+  var grouped = useMemo(function () {
+    var displayed = props.filter
+      ? sessions.filter(function (s) {
+          return s.title.toLowerCase().includes(props.filter!.toLowerCase());
+        })
+      : sessions;
+    return groupByTime(displayed);
+  }, [sessions, props.filter]);
+
   if (!props.projectSlug) {
     return (
       <div className="flex-1 flex items-start px-3 py-1.5">
@@ -268,14 +277,6 @@ export function SessionList(props: SessionListProps) {
       </div>
     );
   }
-
-  var displayed = props.filter
-    ? sessions.filter(function (s) {
-        return s.title.toLowerCase().includes(props.filter!.toLowerCase());
-      })
-    : sessions;
-
-  var grouped = groupByTime(displayed);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
