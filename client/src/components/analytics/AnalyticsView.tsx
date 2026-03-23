@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { BarChart3 } from "lucide-react";
 import { useAnalytics } from "../../hooks/useAnalytics";
 import { useMesh } from "../../hooks/useMesh";
 
@@ -21,8 +22,20 @@ class ChartErrorBoundary extends Component<{ children: React.ReactNode; name: st
     return this.props.children;
   }
 }
+
+function SectionHeader(props: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-4 pb-1">
+      <div className="h-px flex-1 bg-base-content/6" />
+      <span className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-base-content/20">{props.label}</span>
+      <div className="h-px flex-1 bg-base-content/6" />
+    </div>
+  );
+}
+
 import { PeriodSelector } from "./PeriodSelector";
 import { ChartCard } from "./ChartCard";
+import { QuickStats } from "./QuickStats";
 import { CostAreaChart } from "./charts/CostAreaChart";
 import { CumulativeCostChart } from "./charts/CumulativeCostChart";
 import { CostDonutChart } from "./charts/CostDonutChart";
@@ -58,7 +71,18 @@ export function AnalyticsView() {
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
         {analytics.loading && !analytics.data && (
-          <div className="text-center text-base-content/30 py-20 font-mono text-[13px]">Loading analytics...</div>
+          <div className="flex flex-col gap-4 max-w-[1200px] mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[0, 1, 2, 3].map(function (i) {
+                return <div key={i} className="h-24 rounded-xl bg-base-content/[0.03] animate-pulse" />;
+              })}
+            </div>
+            <div className="h-[240px] rounded-xl bg-base-content/[0.03] animate-pulse" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-[240px] rounded-xl bg-base-content/[0.03] animate-pulse" />
+              <div className="h-[240px] rounded-xl bg-base-content/[0.03] animate-pulse" />
+            </div>
+          </div>
         )}
 
         {analytics.error && (
@@ -67,6 +91,10 @@ export function AnalyticsView() {
 
         {analytics.data && (
           <div className="flex flex-col gap-4 max-w-[1200px] mx-auto pb-8">
+            <QuickStats />
+
+            <SectionHeader label="Cost" />
+
             <ChartCard title="Cost Over Time">
               <CostAreaChart data={analytics.data.costOverTime} />
             </ChartCard>
@@ -88,6 +116,8 @@ export function AnalyticsView() {
                 <SessionBubbleChart data={analytics.data.sessionBubbles} />
               </ChartCard>
             </div>
+
+            <SectionHeader label="Tokens & Performance" />
 
             <ChartCard title="Token Flow">
               <ChartErrorBoundary name="TokenFlow">
@@ -121,6 +151,8 @@ export function AnalyticsView() {
               </ChartCard>
             </div>
 
+            <SectionHeader label="Activity" />
+
             <ChartCard title="Activity Calendar">
               <ChartErrorBoundary name="Calendar">
                 <ActivityCalendar data={analytics.data.activityCalendar} />
@@ -145,6 +177,8 @@ export function AnalyticsView() {
                 <DailySummaryCards data={analytics.data.dailySummaries} />
               </ChartErrorBoundary>
             </ChartCard>
+
+            <SectionHeader label="Tools & Projects" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ChartCard title="Tool Usage (Treemap)">
@@ -178,6 +212,8 @@ export function AnalyticsView() {
               </ChartErrorBoundary>
             </ChartCard>
 
+            <SectionHeader label="Fleet" />
+
             <ChartCard title="Node Fleet">
               <ChartErrorBoundary name="Fleet">
                 <NodeFleetOverview nodes={nodes} />
@@ -187,7 +223,13 @@ export function AnalyticsView() {
         )}
 
         {!analytics.loading && !analytics.error && !analytics.data && (
-          <div className="text-center text-base-content/30 py-20 font-mono text-[13px]">No analytics data yet</div>
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <BarChart3 size={40} className="text-base-content/10" />
+            <div className="text-center">
+              <p className="text-[14px] font-mono text-base-content/40">No analytics data yet</p>
+              <p className="text-[12px] text-base-content/25 mt-1">Start a Claude session to begin tracking usage</p>
+            </div>
+          </div>
         )}
       </div>
     </div>

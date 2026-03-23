@@ -77,7 +77,7 @@ export function ChartCard(props: ChartCardProps) {
                 openFullscreen();
               }
             }}
-            className="text-base-content/20 hover:text-base-content/50 transition-colors cursor-pointer p-0.5 rounded hover:bg-base-content/5"
+            className="opacity-0 group-hover:opacity-100 text-base-content/20 hover:text-base-content/50 transition-all duration-200 cursor-pointer p-0.5 rounded hover:bg-base-content/5"
             aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             title={isFullscreen ? "Exit fullscreen (Esc)" : "Fullscreen"}
           >
@@ -164,7 +164,7 @@ export function ChartCard(props: ChartCardProps) {
   return (
     <div
       ref={cardRef}
-      className={"rounded-xl border border-base-content/8 bg-base-300/50 p-4 " + (props.className || "")}
+      className={"group rounded-xl border border-base-content/8 bg-base-300/50 p-4 cursor-pointer hover:border-base-content/12 transition-all duration-200 " + (props.className || "")}
     >
       {cardContent}
     </div>
