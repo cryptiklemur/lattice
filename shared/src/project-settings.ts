@@ -1,6 +1,5 @@
 export type ProjectIcon =
   | { type: "lucide"; name: string }
-  | { type: "emoji"; value: string }
   | { type: "text"; value: string; color?: string }
   | { type: "image"; path: string };
 

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { icons } from "lucide-react";
 import type { ProjectIcon } from "@lattice/shared";
 
-type Tab = "lucide" | "emoji" | "text" | "upload";
+type Tab = "lucide" | "text" | "upload";
 
 interface IconPickerProps {
   value?: ProjectIcon;
@@ -28,14 +28,6 @@ function renderPreview(value?: ProjectIcon) {
     );
   }
 
-  if (value.type === "emoji") {
-    return (
-      <div className="w-8 h-8 rounded-lg bg-base-300 border border-base-content/15 flex items-center justify-center text-[18px]">
-        {value.value}
-      </div>
-    );
-  }
-
   if (value.type === "text") {
     return (
       <div
@@ -57,11 +49,11 @@ function renderPreview(value?: ProjectIcon) {
 }
 
 export function IconPicker({ value, onChange }: IconPickerProps) {
-  var [tab, setTab] = useState<Tab>(value?.type === "emoji" ? "emoji" : value?.type === "text" ? "text" : value?.type === "image" ? "upload" : "lucide");
+  var normalizedValue = value && (value as { type: string }).type === "emoji" ? undefined : value;
+  var [tab, setTab] = useState<Tab>(normalizedValue?.type === "text" ? "text" : normalizedValue?.type === "image" ? "upload" : "lucide");
   var [search, setSearch] = useState("");
-  var [emojiValue, setEmojiValue] = useState(value?.type === "emoji" ? value.value : "");
-  var [textValue, setTextValue] = useState(value?.type === "text" ? value.value : "");
-  var [textColor, setTextColor] = useState(value?.type === "text" ? (value.color || "#ffffff") : "#ffffff");
+  var [textValue, setTextValue] = useState(normalizedValue?.type === "text" ? normalizedValue.value : "");
+  var [textColor, setTextColor] = useState(normalizedValue?.type === "text" ? (normalizedValue.color || "#ffffff") : "#ffffff");
 
   var iconNames = useMemo(function () {
     var allNames = Object.keys(icons);
@@ -74,7 +66,6 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 
   var tabs: { id: Tab; label: string }[] = [
     { id: "lucide", label: "Lucide" },
-    { id: "emoji", label: "Emoji" },
     { id: "text", label: "Text" },
     { id: "upload", label: "Upload" },
   ];
@@ -93,7 +84,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        {renderPreview(value)}
+        {renderPreview(normalizedValue)}
         <span className="text-[11px] text-base-content/40">Current icon</span>
       </div>
 
@@ -124,7 +115,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           <div className="grid grid-cols-10 gap-1 max-h-48 overflow-y-auto">
             {iconNames.map(function (name) {
               var Icon = icons[name as keyof typeof icons];
-              var selected = value?.type === "lucide" && value.name === name;
+              var selected = normalizedValue?.type === "lucide" && normalizedValue.name === name;
               return (
                 <button
                   key={name}
@@ -141,24 +132,6 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
               );
             })}
           </div>
-        </div>
-      )}
-
-      {tab === "emoji" && (
-        <div>
-          <input
-            type="text"
-            value={emojiValue}
-            maxLength={2}
-            onChange={function (e) {
-              setEmojiValue(e.target.value);
-              if (e.target.value) {
-                onChange({ type: "emoji", value: e.target.value });
-              }
-            }}
-            placeholder="Enter emoji"
-            className="w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
-          />
         </div>
       )}
 
@@ -199,8 +172,8 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
             onChange={handleFileChange}
             className="w-full text-[12px] text-base-content/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12px] file:bg-base-300 file:text-base-content/60 file:cursor-pointer"
           />
-          {value?.type === "image" && (
-            <img src={value.path} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-base-content/15" loading="lazy" />
+          {normalizedValue?.type === "image" && (
+            <img src={normalizedValue.path} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-base-content/15" loading="lazy" />
           )}
         </div>
       )}

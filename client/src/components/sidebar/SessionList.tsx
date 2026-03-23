@@ -66,12 +66,18 @@ interface ContextMenu {
   session: SessionSummary;
 }
 
+export interface DateRange {
+  from?: number;
+  to?: number;
+}
+
 interface SessionListProps {
   projectSlug: string | null;
   activeSessionId: string | null;
   onSessionActivate: (session: SessionSummary) => void;
   onSessionDeactivate?: () => void;
   filter?: string;
+  dateRange?: DateRange;
 }
 
 function formatDate(ts: number): string {
@@ -424,13 +430,26 @@ export function SessionList(props: SessionListProps) {
   }
 
   var grouped = useMemo(function () {
-    var displayed = props.filter
-      ? sessions.filter(function (s) {
-          return s.title.toLowerCase().includes(props.filter!.toLowerCase());
-        })
-      : sessions;
+    var displayed = sessions;
+    if (props.filter) {
+      var term = props.filter.toLowerCase();
+      displayed = displayed.filter(function (s) {
+        return s.title.toLowerCase().includes(term);
+      });
+    }
+    if (props.dateRange) {
+      var from = props.dateRange.from;
+      var to = props.dateRange.to;
+      if (from !== undefined || to !== undefined) {
+        displayed = displayed.filter(function (s) {
+          if (from !== undefined && s.updatedAt < from) return false;
+          if (to !== undefined && s.updatedAt > to) return false;
+          return true;
+        });
+      }
+    }
     return groupByTime(displayed);
-  }, [sessions, props.filter]);
+  }, [sessions, props.filter, props.dateRange]);
 
   if (!props.projectSlug) {
     return (
