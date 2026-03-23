@@ -25,6 +25,9 @@ function getModKey(): string {
   return "Ctrl";
 }
 
+var inputHistory: string[] = [];
+var MAX_HISTORY = 100;
+
 export function ChatInput(props: ChatInputProps) {
   var textareaRef = useRef<HTMLTextAreaElement>(null);
   var popupRef = useRef<HTMLDivElement>(null);
@@ -35,6 +38,8 @@ export function ChatInput(props: ChatInputProps) {
   var [selectedIndex, setSelectedIndex] = useState(0);
   var [showMobileSettings, setShowMobileSettings] = useState(false);
   var modKey = useMemo(getModKey, []);
+  var [historyIndex, setHistoryIndex] = useState(-1);
+  var savedCurrentRef = useRef("");
 
   var attachmentsHook = useAttachments();
   var voice = useVoiceRecorder();
@@ -161,6 +166,53 @@ export function ChatInput(props: ChatInputProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submit();
+      return;
+    }
+
+    if (e.key === "ArrowUp" && inputHistory.length > 0) {
+      var el = textareaRef.current;
+      if (!el) return;
+      var val = el.value;
+      var cursorPos = el.selectionStart;
+      var isAtTop = cursorPos === 0 || val.indexOf("\n") === -1 || cursorPos <= val.indexOf("\n");
+      if (isAtTop) {
+        e.preventDefault();
+        if (historyIndex === -1) {
+          savedCurrentRef.current = val;
+        }
+        var newIdx = historyIndex === -1 ? inputHistory.length - 1 : Math.max(0, historyIndex - 1);
+        setHistoryIndex(newIdx);
+        el.value = inputHistory[newIdx];
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 160) + "px";
+        el.setSelectionRange(0, 0);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown" && historyIndex >= 0) {
+      var el = textareaRef.current;
+      if (!el) return;
+      var val = el.value;
+      var cursorPos = el.selectionStart;
+      var lastNewline = val.lastIndexOf("\n");
+      var isAtBottom = lastNewline === -1 || cursorPos > lastNewline;
+      if (isAtBottom) {
+        e.preventDefault();
+        if (historyIndex >= inputHistory.length - 1) {
+          setHistoryIndex(-1);
+          el.value = savedCurrentRef.current;
+        } else {
+          var newIdx = historyIndex + 1;
+          setHistoryIndex(newIdx);
+          el.value = inputHistory[newIdx];
+        }
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 160) + "px";
+        var len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+      return;
     }
   }
 
@@ -253,6 +305,14 @@ export function ChatInput(props: ChatInputProps) {
     if (!el) return;
     var text = el.value.trim();
     if ((!text && attachmentsHook.attachments.length === 0) || props.disabled || attachmentsHook.hasUploading) return;
+    if (text) {
+      if (inputHistory.length === 0 || inputHistory[inputHistory.length - 1] !== text) {
+        inputHistory.push(text);
+        if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
+      }
+    }
+    setHistoryIndex(-1);
+    savedCurrentRef.current = "";
     props.onSend(text, attachmentsHook.readyIds);
     el.value = "";
     el.style.height = "auto";
