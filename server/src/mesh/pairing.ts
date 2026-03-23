@@ -3,7 +3,10 @@ import QRCode from "qrcode";
 
 var BASE62_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
 
-var pendingTokens = new Set<string>();
+var PAIRING_TOKEN_TTL = 300000;
+var CLEANUP_INTERVAL = 60000;
+
+var pendingTokens = new Map<string, number>();
 
 function base62Encode(buf: Buffer): string {
   var n = BigInt("0x" + buf.toString("hex"));
@@ -55,7 +58,7 @@ export async function generateInviteCode(
   var encoded = base62Encode(payload);
   var code = formatCode(encoded);
 
-  pendingTokens.add(token);
+  pendingTokens.set(token, Date.now());
 
   var qrDataUrl = await QRCode.toString(code, { type: "svg" });
 
@@ -86,9 +89,26 @@ export function parseInviteCode(
 }
 
 export function validatePairingToken(token: string): boolean {
-  return pendingTokens.has(token);
+  var createdAt = pendingTokens.get(token);
+  if (createdAt === undefined) {
+    return false;
+  }
+  if (Date.now() - createdAt > PAIRING_TOKEN_TTL) {
+    pendingTokens.delete(token);
+    return false;
+  }
+  return true;
 }
 
 export function consumePairingToken(token: string): void {
   pendingTokens.delete(token);
 }
+
+setInterval(function () {
+  var now = Date.now();
+  pendingTokens.forEach(function (createdAt, token) {
+    if (now - createdAt > PAIRING_TOKEN_TTL) {
+      pendingTokens.delete(token);
+    }
+  });
+}, CLEANUP_INTERVAL);

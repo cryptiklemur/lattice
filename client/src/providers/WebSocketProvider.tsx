@@ -80,7 +80,8 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
             cb(msg);
           });
         }
-      } catch {
+      } catch (err) {
+        console.warn("[lattice] Failed to parse WebSocket message:", err);
       }
     };
 
@@ -91,7 +92,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       setStatus("disconnected");
       wsRef.current = null;
       if (hasConnectedRef.current) {
-        showToast("Disconnected from daemon. Reconnecting...", "warning");
+        showToast("Disconnected from daemon. Reconnecting automatically...", "warning");
         sendNotification("Lattice", "Lost connection to daemon", "connection");
       }
       scheduleReconnect();
@@ -111,6 +112,19 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF);
       connect();
     }, delay);
+  }
+
+  function reconnectNow() {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    backoffRef.current = 1000;
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    connect();
   }
 
   function send(msg: ClientMessage) {
@@ -157,7 +171,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
   }, []);
 
   return (
-    <WebSocketContext.Provider value={{ status, send, subscribe, unsubscribe }}>
+    <WebSocketContext.Provider value={{ status, send, subscribe, unsubscribe, reconnectNow }}>
       {props.children}
     </WebSocketContext.Provider>
   );

@@ -92,7 +92,7 @@ export function ChatView() {
       if (msg.type === "user") return 100;
       return 200;
     },
-    overscan: 30,
+    overscan: isMobile ? 10 : 20,
   });
 
   var scrollToBottom = useCallback(function () {
@@ -122,18 +122,12 @@ export function ChatView() {
           requestAnimationFrame(function () {
             var el = scrollParentRef.current;
             if (el) el.scrollTop = el.scrollHeight;
-            requestAnimationFrame(function () {
-              if (el) el.scrollTop = el.scrollHeight;
-            });
           });
         } else {
           var count = messages.length;
           var virt = virtualizer;
           requestAnimationFrame(function () {
             virt.scrollToIndex(count - 1, { align: "end" });
-            requestAnimationFrame(function () {
-              virt.scrollToIndex(count - 1, { align: "end" });
-            });
           });
         }
         return;
@@ -252,7 +246,7 @@ export function ChatView() {
       filled = contextUsage.inputTokens + contextUsage.cacheReadTokens + contextUsage.cacheCreationTokens;
       percent = Math.min(100, Math.round((filled / contextUsage.contextWindow) * 100));
     }
-    var autocompact = contextBreakdown ? Math.round((contextBreakdown.autocompactAt / contextBreakdown.contextWindow) * 100) : 90;
+    var autocompact = contextBreakdown && contextBreakdown.contextWindow > 0 ? Math.round((contextBreakdown.autocompactAt / contextBreakdown.contextWindow) * 100) : 90;
     return {
       contextPercent: percent,
       contextFilled: filled,

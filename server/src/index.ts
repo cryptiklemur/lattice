@@ -82,14 +82,33 @@ switch (command) {
 async function runDaemon(): Promise<void> {
   var { startDaemon } = await import("./daemon");
   writePid(process.pid);
-  process.on("SIGTERM", function () {
-    removePid();
-    process.exit(0);
-  });
-  process.on("SIGINT", function () {
-    removePid();
-    process.exit(0);
-  });
+  var shutdownInProgress = false;
+  function gracefulShutdown(): void {
+    if (shutdownInProgress) return;
+    shutdownInProgress = true;
+    console.log("[lattice] Shutting down gracefully...");
+
+    var { broadcast, closeAllClients } = require("./ws/broadcast") as typeof import("./ws/broadcast");
+    var { getActiveStreamCount } = require("./project/sdk-bridge") as typeof import("./project/sdk-bridge");
+    var { stopMeshConnections } = require("./mesh/connector") as typeof import("./mesh/connector");
+
+    broadcast({ type: "chat:error", message: "Server is shutting down" });
+    stopMeshConnections();
+
+    var waited = 0;
+    var checkInterval = setInterval(function () {
+      var activeCount = getActiveStreamCount();
+      waited += 500;
+      if (activeCount === 0 || waited >= 5000) {
+        clearInterval(checkInterval);
+        closeAllClients();
+        removePid();
+        process.exit(0);
+      }
+    }, 500);
+  }
+  process.on("SIGTERM", gracefulShutdown);
+  process.on("SIGINT", gracefulShutdown);
   await startDaemon(portOverride);
 }
 

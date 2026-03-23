@@ -29,3 +29,10 @@ export function sendTo(id: string, message: object): void {
 export function getClientCount(): number {
   return clients.size;
 }
+
+export function closeAllClients(): void {
+  for (var [, ws] of clients) {
+    ws.close();
+  }
+  clients.clear();
+}

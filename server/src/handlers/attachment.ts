@@ -3,10 +3,13 @@ import type { AttachmentChunkMessage, AttachmentCompleteMessage, ClientMessage }
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 
+var MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+
 interface PendingUpload {
   chunks: Map<number, Buffer>;
   totalChunks: number;
   receivedCount: number;
+  totalBytes: number;
   createdAt: number;
 }
 
@@ -45,6 +48,7 @@ registerHandler("attachment", function (clientId: string, message: ClientMessage
         chunks: new Map(),
         totalChunks: msg.totalChunks,
         receivedCount: 0,
+        totalBytes: 0,
         createdAt: Date.now(),
       };
       store.set(msg.attachmentId, pending);
@@ -59,8 +63,20 @@ registerHandler("attachment", function (clientId: string, message: ClientMessage
       return;
     }
 
-    pending.chunks.set(msg.chunkIndex, Buffer.from(msg.data, "base64"));
+    var chunkBuffer = Buffer.from(msg.data, "base64");
+    if (pending.totalBytes + chunkBuffer.length > MAX_ATTACHMENT_SIZE) {
+      store.delete(msg.attachmentId);
+      sendTo(clientId, {
+        type: "attachment:error",
+        attachmentId: msg.attachmentId,
+        error: "Attachment exceeds maximum size of " + (MAX_ATTACHMENT_SIZE / 1024 / 1024) + "MB",
+      });
+      return;
+    }
+
+    pending.chunks.set(msg.chunkIndex, chunkBuffer);
     pending.receivedCount++;
+    pending.totalBytes += chunkBuffer.length;
 
     sendTo(clientId, {
       type: "attachment:progress",

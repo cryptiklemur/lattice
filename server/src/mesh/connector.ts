@@ -22,6 +22,17 @@ var messageCallbacks: Array<(nodeId: string, msg: MeshMessage) => void> = [];
 
 var MIN_BACKOFF_MS = 1000;
 var MAX_BACKOFF_MS = 30000;
+var CONNECTION_TIMEOUT_MS = 10000;
+var CIRCUIT_BREAKER_THRESHOLD = 5;
+var CIRCUIT_BREAKER_COOLDOWN = 60000;
+
+interface CircuitState {
+  failures: number;
+  openUntil: number;
+  halfOpen: boolean;
+}
+
+var circuitBreakers = new Map<string, CircuitState>();
 
 export function startMeshConnections(): void {
   var peers = loadPeers();
@@ -72,15 +83,38 @@ export function connectToPeer(nodeId: string, address: string): void {
 }
 
 function openConnection(conn: PeerConnection, url: string): void {
+  var circuit = circuitBreakers.get(conn.nodeId);
+  if (circuit && circuit.failures >= CIRCUIT_BREAKER_THRESHOLD && !circuit.halfOpen) {
+    if (Date.now() < circuit.openUntil) {
+      conn.retryTimer = setTimeout(function () {
+        if (conn.dead) return;
+        conn.retryTimer = null;
+        circuit!.halfOpen = true;
+        openConnection(conn, url);
+      }, circuit.openUntil - Date.now());
+      return;
+    }
+    circuit.halfOpen = true;
+  }
+
   var ws = new WebSocket(url);
   conn.ws = ws;
 
+  var connectionTimer = setTimeout(function () {
+    if (ws.readyState !== WebSocket.OPEN) {
+      console.error("[mesh] Connection timeout for peer: " + conn.nodeId);
+      ws.close();
+    }
+  }, CONNECTION_TIMEOUT_MS);
+
   ws.addEventListener("open", function () {
+    clearTimeout(connectionTimer);
     if (conn.dead) {
       ws.close();
       return;
     }
 
+    circuitBreakers.delete(conn.nodeId);
     conn.backoffMs = MIN_BACKOFF_MS;
 
     var identity = loadOrCreateIdentity();
@@ -134,11 +168,26 @@ function openConnection(conn: PeerConnection, url: string): void {
   });
 
   ws.addEventListener("close", function () {
+    clearTimeout(connectionTimer);
     if (conn.dead) {
       return;
     }
 
-    console.log("[mesh] Disconnected from peer: " + conn.nodeId + ", reconnecting in " + conn.backoffMs + "ms");
+    var circuit = circuitBreakers.get(conn.nodeId);
+    if (!circuit) {
+      circuit = { failures: 0, openUntil: 0, halfOpen: false };
+      circuitBreakers.set(conn.nodeId, circuit);
+    }
+    circuit.failures++;
+
+    if (circuit.halfOpen) {
+      circuit.halfOpen = false;
+      circuit.openUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN;
+      console.log("[mesh] Circuit breaker open for peer: " + conn.nodeId + " (half-open attempt failed)");
+    } else if (circuit.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+      circuit.openUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN;
+      console.log("[mesh] Circuit breaker open for peer: " + conn.nodeId + " after " + circuit.failures + " consecutive failures");
+    }
 
     for (var i = 0; i < disconnectedCallbacks.length; i++) {
       disconnectedCallbacks[i](conn.nodeId);

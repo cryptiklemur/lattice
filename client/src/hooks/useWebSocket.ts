@@ -8,6 +8,7 @@ export interface WebSocketContextValue {
   send: (msg: ClientMessage) => void;
   subscribe: (type: string, callback: (msg: ServerMessage) => void) => void;
   unsubscribe: (type: string, callback: (msg: ServerMessage) => void) => void;
+  reconnectNow: () => void;
 }
 
 export var WebSocketContext = createContext<WebSocketContextValue | null>(null);

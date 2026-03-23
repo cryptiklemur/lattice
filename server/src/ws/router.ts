@@ -1,6 +1,31 @@
 import type { ClientMessage } from "@lattice/shared";
 import { sendTo } from "./broadcast";
 
+var _registry: typeof import("../project/registry") | null = null;
+var _connector: typeof import("../mesh/connector") | null = null;
+var _proxy: typeof import("../mesh/proxy") | null = null;
+
+function getRegistry(): typeof import("../project/registry") {
+  if (!_registry) {
+    _registry = require("../project/registry") as typeof import("../project/registry");
+  }
+  return _registry;
+}
+
+function getConnector(): typeof import("../mesh/connector") {
+  if (!_connector) {
+    _connector = require("../mesh/connector") as typeof import("../mesh/connector");
+  }
+  return _connector;
+}
+
+function getProxy(): typeof import("../mesh/proxy") {
+  if (!_proxy) {
+    _proxy = require("../mesh/proxy") as typeof import("../mesh/proxy");
+  }
+  return _proxy;
+}
+
 type Handler = (clientId: string, message: ClientMessage) => void | Promise<void>;
 
 var handlers = new Map<string, Handler>();
@@ -72,31 +97,20 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
 }
 
 function getLocalProject(slug: string): boolean {
-  try {
-    var { getProjectBySlug } = require("../project/registry") as typeof import("../project/registry");
-    return getProjectBySlug(slug) !== undefined;
-  } catch {
-    return false;
-  }
+  return getRegistry().getProjectBySlug(slug) !== undefined;
 }
 
 function getRemoteNodeForProject(slug: string): { nodeId: string } | undefined {
-  try {
-    var { findNodeForProject } = require("../mesh/connector") as typeof import("../mesh/connector");
-    var nodeId = findNodeForProject(slug);
-    if (nodeId) {
-      return { nodeId: nodeId };
-    }
-    return undefined;
-  } catch {
-    return undefined;
+  var nodeId = getConnector().findNodeForProject(slug);
+  if (nodeId) {
+    return { nodeId: nodeId };
   }
+  return undefined;
 }
 
 function proxyMessage(clientId: string, nodeId: string, projectSlug: string, message: ClientMessage): void {
   try {
-    var { proxyToRemoteNode } = require("../mesh/proxy") as typeof import("../mesh/proxy");
-    proxyToRemoteNode(nodeId, projectSlug, clientId, message);
+    getProxy().proxyToRemoteNode(nodeId, projectSlug, clientId, message);
   } catch (err) {
     console.error("[router] Failed to proxy message:", err);
     sendTo(clientId, { type: "chat:error", message: "Failed to proxy message to remote node" });

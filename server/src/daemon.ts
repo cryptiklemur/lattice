@@ -17,6 +17,8 @@ import "./handlers/chat";
 import "./handlers/attachment";
 import { loadInterruptedSessions, unwatchSessionLock, cleanupClientPermissions } from "./project/sdk-bridge";
 import { clearActiveSession, getActiveSession } from "./handlers/chat";
+import { clearActiveProject } from "./handlers/fs";
+import { clearClientRemoteNode } from "./ws/router";
 import "./handlers/fs";
 import "./handlers/terminal";
 import "./handlers/settings";
@@ -37,6 +39,10 @@ import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment
 interface WsData {
   id: string;
 }
+
+var RATE_LIMIT_WINDOW = 10000;
+var RATE_LIMIT_MAX = 100;
+var clientRateLimits = new Map<string, { count: number; windowStart: number }>();
 
 function parseCookies(cookieHeader: string): Map<string, string> {
   var map = new Map<string, string>();
@@ -295,6 +301,18 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         sendTo(ws.data.id, { type: "mesh:nodes", nodes: buildNodesMessage() });
       },
       message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
+        var now = Date.now();
+        var limit = clientRateLimits.get(ws.data.id);
+        if (!limit || now - limit.windowStart > RATE_LIMIT_WINDOW) {
+          limit = { count: 0, windowStart: now };
+          clientRateLimits.set(ws.data.id, limit);
+        }
+        limit.count++;
+        if (limit.count > RATE_LIMIT_MAX) {
+          sendTo(ws.data.id, { type: "chat:error", message: "Rate limit exceeded, please slow down" });
+          return;
+        }
+
         var text = typeof message === "string" ? message : message.toString();
         try {
           var msg = JSON.parse(text) as ClientMessage;
@@ -309,10 +327,13 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
           unwatchSessionLock(activeSession.sessionId);
         }
         clearActiveSession(ws.data.id);
+        clearActiveProject(ws.data.id);
+        clearClientRemoteNode(ws.data.id);
         removeClient(ws.data.id);
         cleanupClientTerminals(ws.data.id);
         cleanupClientAttachments(ws.data.id);
         cleanupClientPermissions(ws.data.id);
+        clientRateLimits.delete(ws.data.id);
         console.log(`[lattice] Client disconnected: ${ws.data.id}`);
       },
     },

@@ -5,7 +5,7 @@ import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } f
 import type { MessageParam } from "@anthropic-ai/sdk/resources";
 import type { Attachment } from "@lattice/shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
@@ -58,6 +58,7 @@ export function getAvailableModels(): ModelEntry[] {
 }
 
 var activeStreams = new Map<string, Query>();
+var pendingStreams = new Set<string>();
 var streamMetadata = new Map<string, { projectSlug: string; clientId: string; startedAt: number }>();
 var interruptedSessions = new Set<string>();
 
@@ -172,6 +173,10 @@ export function setSessionPermissionOverride(sessionId: string, mode: Permission
 
 export function getActiveStream(sessionId: string): Query | undefined {
   return activeStreams.get(sessionId);
+}
+
+export function getActiveStreamCount(): number {
+  return activeStreams.size;
 }
 
 /**
@@ -339,10 +344,12 @@ export function startChatStream(options: ChatStreamOptions): void {
   var { projectSlug, sessionId, text, attachments, clientId, cwd, env, model, effort, isNewSession } = options;
   var startTime = Date.now();
 
-  if (activeStreams.has(sessionId)) {
+  if (activeStreams.has(sessionId) || pendingStreams.has(sessionId)) {
     sendTo(clientId, { type: "chat:error", message: "Session already has an active stream." });
     return;
   }
+
+  pendingStreams.add(sessionId);
 
   var projectSettingsPath = join(cwd, ".claude", "settings.json");
   var savedAdditionalDirs: string[] = [];
@@ -442,7 +449,15 @@ export function startChatStream(options: ChatStreamOptions): void {
     if (toolName === "Bash") {
       var cmd = ((input.command || "") as string).trim();
       if (cmd.startsWith("cd ")) {
-        return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
+        var cdTarget = cmd.slice(3).trim().replace(/^["']|["']$/g, "");
+        if (cdTarget.startsWith("~")) {
+          cdTarget = join(homedir(), cdTarget.slice(1));
+        }
+        var cdResolved = resolve(cwd, cdTarget);
+        var home = homedir();
+        if (cdResolved.startsWith(cwd) || cdResolved === cwd || cdResolved.startsWith(home) || cdResolved === home) {
+          return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
+        }
       }
     }
 
@@ -606,6 +621,7 @@ export function startChatStream(options: ChatStreamOptions): void {
   }
 
   var stream = query({ prompt: queryPrompt, options: queryOptions });
+  pendingStreams.delete(sessionId);
   activeStreams.set(sessionId, stream);
   streamMetadata.set(sessionId, { projectSlug, clientId, startedAt: Date.now() });
   persistStreamState();
@@ -621,6 +637,7 @@ export function startChatStream(options: ChatStreamOptions): void {
       console.error("[lattice] SDK stream error: " + errMsg);
       sendTo(clientId, { type: "chat:error", message: errMsg });
     } finally {
+      pendingStreams.delete(sessionId);
       activeStreams.delete(sessionId);
       streamMetadata.delete(sessionId);
       persistStreamState();

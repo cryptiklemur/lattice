@@ -89,45 +89,73 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     setActiveProject(clientId, activateMsg.projectSlug);
     watchSessionLock(activateMsg.sessionId);
     void Promise.all([
-      loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId),
-      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId),
-      getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId),
-      getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId),
+      loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
+        console.error("[lattice] Failed to load session history:", err);
+        return null;
+      }),
+      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
+        console.error("[lattice] Failed to load session title:", err);
+        return null;
+      }),
+      getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
+        console.error("[lattice] Failed to load session usage:", err);
+        return null;
+      }),
+      getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
+        console.error("[lattice] Failed to load context breakdown:", err);
+        return null;
+      }),
     ]).then(function (results) {
-      var interrupted = wasSessionInterrupted(activateMsg.sessionId);
-      if (interrupted) {
-        clearInterruptedFlag(activateMsg.sessionId);
-      }
-      var busy = isSessionBusy(activateMsg.sessionId);
-      sendTo(clientId, {
-        type: "session:history",
-        projectSlug: activateMsg.projectSlug,
-        sessionId: activateMsg.sessionId,
-        messages: results[0],
-        title: results[1],
-        interrupted: interrupted || undefined,
-        busy: busy || undefined,
-      });
-      var usage = results[2];
-      if (usage) {
+      try {
+        var interrupted = wasSessionInterrupted(activateMsg.sessionId);
+        if (interrupted) {
+          clearInterruptedFlag(activateMsg.sessionId);
+        }
+        var busy = isSessionBusy(activateMsg.sessionId);
         sendTo(clientId, {
-          type: "chat:context_usage",
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
-          cacheReadTokens: usage.cacheReadTokens,
-          cacheCreationTokens: usage.cacheCreationTokens,
-          contextWindow: usage.contextWindow,
+          type: "session:history",
+          projectSlug: activateMsg.projectSlug,
+          sessionId: activateMsg.sessionId,
+          messages: results[0] || [],
+          title: results[1],
+          interrupted: interrupted || undefined,
+          busy: busy || undefined,
         });
+      } catch (err) {
+        console.error("[lattice] Error sending session history:", err);
+        sendTo(clientId, { type: "chat:error", message: "Failed to load session history" });
       }
-      var breakdown = results[3];
-      if (breakdown) {
-        sendTo(clientId, {
-          type: "chat:context_breakdown",
-          segments: breakdown.segments,
-          contextWindow: breakdown.contextWindow,
-          autocompactAt: breakdown.autocompactAt,
-        });
+      try {
+        var usage = results[2];
+        if (usage) {
+          sendTo(clientId, {
+            type: "chat:context_usage",
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            cacheReadTokens: usage.cacheReadTokens,
+            cacheCreationTokens: usage.cacheCreationTokens,
+            contextWindow: usage.contextWindow,
+          });
+        }
+      } catch (err) {
+        console.error("[lattice] Error sending context usage:", err);
       }
+      try {
+        var breakdown = results[3];
+        if (breakdown) {
+          sendTo(clientId, {
+            type: "chat:context_breakdown",
+            segments: breakdown.segments,
+            contextWindow: breakdown.contextWindow,
+            autocompactAt: breakdown.autocompactAt,
+          });
+        }
+      } catch (err) {
+        console.error("[lattice] Error sending context breakdown:", err);
+      }
+    }).catch(function (err) {
+      console.error("[lattice] Failed to activate session:", err);
+      sendTo(clientId, { type: "chat:error", message: "Failed to activate session" });
     });
     return;
   }

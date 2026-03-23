@@ -248,6 +248,10 @@ export function SessionList(props: SessionListProps) {
         var previewMsg = msg as SessionPreviewMessage;
         setPreviews(function (prev3) {
           var next = new Map(prev3);
+          if (next.size >= 100 && !next.has(previewMsg.sessionId)) {
+            var oldest = next.keys().next().value;
+            if (oldest !== undefined) next.delete(oldest);
+          }
           next.set(previewMsg.sessionId, previewMsg.preview);
           return next;
         });
