@@ -1,6 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import type { ReactNode } from "react";
+
+var ChartFullscreenContext = createContext(false);
+
+export function useChartFullscreen(): boolean {
+  return useContext(ChartFullscreenContext);
+}
 
 interface ChartCardProps {
   title: string;
@@ -145,7 +151,9 @@ export function ChartCard(props: ChartCardProps) {
               </div>
             </div>
             <div className="flex-1 p-6 overflow-auto min-h-0 fullscreen-chart-container">
-              {props.children}
+              <ChartFullscreenContext.Provider value={true}>
+                {props.children}
+              </ChartFullscreenContext.Provider>
             </div>
           </div>
         </div>

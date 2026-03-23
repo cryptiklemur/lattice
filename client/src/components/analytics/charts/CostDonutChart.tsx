@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { useChartFullscreen } from "../ChartCard";
 
 var MODEL_COLORS: Record<string, string> = {
   opus: "#a855f7",
@@ -52,9 +53,10 @@ function CenterLabel({ totalCost }: { totalCost: number }) {
 }
 
 export function CostDonutChart({ modelUsage, totalCost }: CostDonutChartProps) {
+  var isFullscreen = useChartFullscreen();
   return (
     <div>
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={isFullscreen ? "100%" : 200}>
         <PieChart>
           <Pie
             data={modelUsage}

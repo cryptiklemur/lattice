@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useChartFullscreen } from "../ChartCard";
 
 var TICK_STYLE = {
   fontSize: 10,
@@ -36,12 +37,13 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function CacheEfficiencyChart({ data }: CacheEfficiencyChartProps) {
+  var isFullscreen = useChartFullscreen();
   var displayData = data.map(function (d) {
     return { date: d.date, rate: d.rate * 100 };
   });
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={isFullscreen ? "100%" : 200}>
       <AreaChart data={displayData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="cacheEffGrad" x1="0" y1="0" x2="0" y2="1">

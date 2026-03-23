@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   ZAxis,
 } from "recharts";
+import { useChartFullscreen } from "../ChartCard";
 
 var TICK_STYLE = {
   fontSize: 10,
@@ -62,6 +63,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function SessionBubbleChart({ data }: SessionBubbleChartProps) {
+  var isFullscreen = useChartFullscreen();
   var projects = Array.from(new Set(data.map(function (d) { return d.project; })));
 
   function getColor(project: string): string {
@@ -83,7 +85,7 @@ export function SessionBubbleChart({ data }: SessionBubbleChartProps) {
   var maxTs = Math.max(...data.map(function (d) { return d.timestamp; }));
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={isFullscreen ? "100%" : 200}>
       <ScatterChart margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
         <XAxis
