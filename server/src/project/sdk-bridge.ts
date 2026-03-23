@@ -439,6 +439,13 @@ export function startChatStream(options: ChatStreamOptions): void {
       }
     }
 
+    if (toolName === "Bash") {
+      var cmd = ((input.command || "") as string).trim();
+      if (cmd.startsWith("cd ")) {
+        return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
+      }
+    }
+
     var allowRules: string[] = [];
     if (existsSync(projectSettingsPath)) {
       try {

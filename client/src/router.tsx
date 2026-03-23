@@ -83,7 +83,10 @@ function LoadingScreen() {
     var logoRight = centerX + logoHalf;
     var logoBottom = centerY + logoHalf;
 
-    var primary = "oklch(55% 0.25 280)";
+    var computedPrimary = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim();
+    var primary = computedPrimary ? "oklch(" + computedPrimary + ")" : "oklch(55% 0.25 280)";
+
+    var prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     type Dot = { x: number; y: number; col: number; row: number; hidden: boolean; brightness: number };
     var dots: Dot[] = [];
@@ -121,6 +124,37 @@ function LoadingScreen() {
         }
       }
       return result;
+    }
+
+    function drawStatic() {
+      ctx!.clearRect(0, 0, canvasSize, canvasSize);
+      for (var di = 0; di < dots.length; di++) {
+        var dot = dots[di];
+        if (dot.hidden) continue;
+        ctx!.beginPath();
+        ctx!.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
+        ctx!.fillStyle = primary;
+        ctx!.globalAlpha = 0.15;
+        ctx!.fill();
+        ctx!.globalAlpha = 1.0;
+      }
+      var squares = [
+        [logoLeft, logoTop],
+        [logoLeft + logoSquare + logoGap, logoTop],
+        [logoLeft, logoTop + logoSquare + logoGap],
+        [logoLeft + logoSquare + logoGap, logoTop + logoSquare + logoGap],
+      ];
+      for (var si = 0; si < squares.length; si++) {
+        ctx!.fillStyle = primary;
+        ctx!.globalAlpha = 0.9;
+        ctx!.fillRect(squares[si][0], squares[si][1], logoSquare, logoSquare);
+        ctx!.globalAlpha = 1.0;
+      }
+    }
+
+    if (prefersReducedMotion) {
+      drawStatic();
+      return;
     }
 
     function animate() {
@@ -277,8 +311,17 @@ function RemoveProjectConfirm() {
     }
   })();
 
+  useEffect(function () {
+    if (!slug) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") sidebar.closeConfirmRemove();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return function () { document.removeEventListener("keydown", handleKeyDown); };
+  }, [slug]);
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Remove Project">
       <div className="absolute inset-0 bg-black/50" onClick={sidebar.closeConfirmRemove} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="px-5 py-4 border-b border-base-content/15">
@@ -369,6 +412,9 @@ function RootLayout() {
 
   return (
     <div className="flex w-full h-full overflow-hidden bg-base-100">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[99999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-content focus:rounded-lg focus:text-sm focus:font-semibold">
+        Skip to content
+      </a>
       <LoadingScreen />
       <div className="drawer lg:drawer-open h-full w-full">
         <input
@@ -376,12 +422,12 @@ function RootLayout() {
           type="checkbox"
           className="drawer-toggle"
           checked={sidebar.drawerOpen}
-          onChange={function () {}}
+          readOnly
         />
 
-        <div className="drawer-content flex flex-col h-full min-w-0 overflow-hidden">
+        <main id="main-content" className="drawer-content flex flex-col h-full min-w-0 overflow-hidden">
           <Outlet />
-        </div>
+        </main>
 
         <div ref={drawerSideRef} className="drawer-side z-50 h-full">
           <label
@@ -390,9 +436,9 @@ function RootLayout() {
             className="drawer-overlay"
             onClick={closeDrawer}
           />
-          <div className="h-full w-full lg:w-[284px] flex flex-col overflow-hidden">
+          <nav aria-label="Sidebar navigation" className="h-full w-full lg:w-[284px] flex flex-col overflow-hidden">
             <Sidebar onSessionSelect={closeDrawer} />
-          </div>
+          </nav>
         </div>
       </div>
       <NodeSettingsModal
@@ -408,24 +454,71 @@ function RootLayout() {
   );
 }
 
+import { Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+
+class ViewErrorBoundary extends Component<{ children: ReactNode; viewName: string }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode; viewName: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[lattice] View error in " + this.props.viewName + ":", error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      var self = this;
+      return (
+        <div className="flex flex-col items-center justify-center h-full bg-base-100 bg-lattice-grid gap-4 p-8">
+          <AlertTriangle size={32} className="text-warning/50" />
+          <div className="text-center max-w-[500px]">
+            <p className="text-[14px] font-mono text-base-content/60 mb-1">
+              Error in {this.props.viewName}
+            </p>
+            <p className="text-[12px] text-base-content/30 mb-4 font-mono break-all">
+              {this.state.error?.message || "Unknown error"}
+            </p>
+            <button
+              onClick={function () { self.setState({ hasError: false, error: null }); }}
+              className="btn btn-ghost btn-sm text-[12px] gap-1.5"
+            >
+              <RefreshCw size={12} />
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function IndexPage() {
   var sidebar = useSidebar();
-  if (sidebar.activeView.type === "dashboard") {
-    return <DashboardView />;
+  var viewName = sidebar.activeView.type;
+  var content;
+  if (viewName === "dashboard") {
+    content = <DashboardView />;
+  } else if (viewName === "settings") {
+    content = <SettingsView />;
+  } else if (viewName === "project-settings") {
+    content = <ProjectSettingsView />;
+  } else if (viewName === "project-dashboard") {
+    content = <ProjectDashboardView />;
+  } else if (viewName === "analytics") {
+    content = <AnalyticsView />;
+  } else {
+    content = <WorkspaceView />;
   }
-  if (sidebar.activeView.type === "settings") {
-    return <SettingsView />;
-  }
-  if (sidebar.activeView.type === "project-settings") {
-    return <ProjectSettingsView />;
-  }
-  if (sidebar.activeView.type === "project-dashboard") {
-    return <ProjectDashboardView />;
-  }
-  if (sidebar.activeView.type === "analytics") {
-    return <AnalyticsView />;
-  }
-  return <WorkspaceView />;
+  return (
+    <ViewErrorBoundary viewName={viewName}>
+      {content}
+    </ViewErrorBoundary>
+  );
 }
 
 var rootRoute = createRootRoute({
