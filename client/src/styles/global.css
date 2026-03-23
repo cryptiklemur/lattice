@@ -207,6 +207,21 @@ html, body {
   }
 }
 
+.fullscreen-chart-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.fullscreen-chart-container > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.fullscreen-chart-container .recharts-responsive-container {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
 @keyframes pulse {
   0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
   40% { opacity: 1; transform: scale(1); }

@@ -144,10 +144,8 @@ export function ChartCard(props: ChartCardProps) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 p-6 overflow-auto min-h-0 [&_.recharts-wrapper]:!h-full [&_.recharts-responsive-container]:!h-full">
-              <div style={{ height: "100%" }}>
-                {props.children}
-              </div>
+            <div className="flex-1 p-6 overflow-auto min-h-0 fullscreen-chart-container">
+              {props.children}
             </div>
           </div>
         </div>
