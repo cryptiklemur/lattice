@@ -8,29 +8,34 @@ export function useChartFullscreen(): number | false {
   return useContext(ChartFullscreenContext);
 }
 
-function FullscreenChartArea(props: { children: ReactNode }) {
+function FullscreenChartArea(props: { children: ReactNode; ready: boolean }) {
   var containerRef = useRef<HTMLDivElement>(null);
-  var [height, setHeight] = useState(400);
+  var [height, setHeight] = useState(0);
 
   useEffect(function () {
-    if (!containerRef.current) return;
+    if (!props.ready || !containerRef.current) return;
+    var h = containerRef.current.clientHeight;
+    if (h > 0) setHeight(h - 48);
+
     var observer = new ResizeObserver(function (entries) {
       for (var i = 0; i < entries.length; i++) {
-        var h = entries[i].contentRect.height;
-        if (h > 0) setHeight(h);
+        var newH = entries[i].contentRect.height;
+        if (newH > 0) setHeight(newH - 48);
       }
     });
     observer.observe(containerRef.current);
-    var h = containerRef.current.clientHeight;
-    if (h > 0) setHeight(h);
     return function () { observer.disconnect(); };
-  }, []);
+  }, [props.ready]);
 
   return (
     <div ref={containerRef} className="flex-1 p-6 overflow-auto min-h-0">
-      <ChartFullscreenContext.Provider value={height - 48}>
-        {props.children}
-      </ChartFullscreenContext.Provider>
+      {height > 0 ? (
+        <ChartFullscreenContext.Provider value={height}>
+          {props.children}
+        </ChartFullscreenContext.Provider>
+      ) : (
+        <div className="flex items-center justify-center h-full text-base-content/20 font-mono text-[11px]">Expanding...</div>
+      )}
     </div>
   );
 }
@@ -177,7 +182,7 @@ export function ChartCard(props: ChartCardProps) {
                 </button>
               </div>
             </div>
-            <FullscreenChartArea>
+            <FullscreenChartArea ready={!animating}>
               {props.children}
             </FullscreenChartArea>
           </div>
