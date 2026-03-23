@@ -65,7 +65,7 @@ function SankeyNode({ x, y, width, height, index, payload }: { x: number; y: num
 }
 
 export function TokenSankeyChart({ data }: TokenSankeyChartProps) {
-  var isFullscreen = useChartFullscreen();
+  var fullscreenHeight = useChartFullscreen();
   if (!data.links || data.links.length === 0) {
     return (
       <div className="flex items-center justify-center h-[250px] text-base-content/30 font-mono text-[12px]">
@@ -75,7 +75,7 @@ export function TokenSankeyChart({ data }: TokenSankeyChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={isFullscreen ? "100%" : 250}>
+    <ResponsiveContainer width="100%" height={fullscreenHeight || 250}>
       <Sankey
         data={data}
         node={<SankeyNode x={0} y={0} width={0} height={0} index={0} payload={{ name: "" }} />}

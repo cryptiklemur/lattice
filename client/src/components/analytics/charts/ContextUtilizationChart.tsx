@@ -54,7 +54,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function ContextUtilizationChart({ data }: ContextUtilizationChartProps) {
-  var isFullscreen = useChartFullscreen();
+  var fullscreenHeight = useChartFullscreen();
   var sessionMap = new Map<string, { title: string; points: Array<{ messageIndex: number; contextPercent: number }> }>();
   for (var i = 0; i < data.length; i++) {
     var d = data[i];
@@ -86,7 +86,7 @@ export function ContextUtilizationChart({ data }: ContextUtilizationChartProps) 
   }
 
   return (
-    <ResponsiveContainer width="100%" height={isFullscreen ? "100%" : 200}>
+    <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
       <LineChart data={merged} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
         <XAxis dataKey="messageIndex" tick={TICK_STYLE} axisLine={false} tickLine={false} />

@@ -77,7 +77,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function ToolTreemap({ data }: ToolTreemapProps) {
-  var isFullscreen = useChartFullscreen();
+  var fullscreenHeight = useChartFullscreen();
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[250px] text-base-content/25 font-mono text-[11px]">
@@ -96,7 +96,7 @@ export function ToolTreemap({ data }: ToolTreemapProps) {
   });
 
   return (
-    <ResponsiveContainer width="100%" height={isFullscreen ? "100%" : 250}>
+    <ResponsiveContainer width="100%" height={fullscreenHeight || 250}>
       <Treemap
         data={treemapData}
         dataKey="size"

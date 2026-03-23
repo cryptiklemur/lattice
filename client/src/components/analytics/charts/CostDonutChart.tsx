@@ -53,10 +53,10 @@ function CenterLabel({ totalCost }: { totalCost: number }) {
 }
 
 export function CostDonutChart({ modelUsage, totalCost }: CostDonutChartProps) {
-  var isFullscreen = useChartFullscreen();
+  var fullscreenHeight = useChartFullscreen();
   return (
     <div>
-      <ResponsiveContainer width="100%" height={isFullscreen ? "100%" : 200}>
+      <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
         <PieChart>
           <Pie
             data={modelUsage}

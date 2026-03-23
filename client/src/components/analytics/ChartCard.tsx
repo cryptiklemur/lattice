@@ -2,10 +2,37 @@ import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-var ChartFullscreenContext = createContext(false);
+var ChartFullscreenContext = createContext<number | false>(false);
 
-export function useChartFullscreen(): boolean {
+export function useChartFullscreen(): number | false {
   return useContext(ChartFullscreenContext);
+}
+
+function FullscreenChartArea(props: { children: ReactNode }) {
+  var containerRef = useRef<HTMLDivElement>(null);
+  var [height, setHeight] = useState(400);
+
+  useEffect(function () {
+    if (!containerRef.current) return;
+    var observer = new ResizeObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        var h = entries[i].contentRect.height;
+        if (h > 0) setHeight(h);
+      }
+    });
+    observer.observe(containerRef.current);
+    var h = containerRef.current.clientHeight;
+    if (h > 0) setHeight(h);
+    return function () { observer.disconnect(); };
+  }, []);
+
+  return (
+    <div ref={containerRef} className="flex-1 p-6 overflow-auto min-h-0">
+      <ChartFullscreenContext.Provider value={height - 48}>
+        {props.children}
+      </ChartFullscreenContext.Provider>
+    </div>
+  );
 }
 
 interface ChartCardProps {
@@ -150,11 +177,9 @@ export function ChartCard(props: ChartCardProps) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 p-6 overflow-auto min-h-0 fullscreen-chart-container">
-              <ChartFullscreenContext.Provider value={true}>
-                {props.children}
-              </ChartFullscreenContext.Provider>
-            </div>
+            <FullscreenChartArea>
+              {props.children}
+            </FullscreenChartArea>
           </div>
         </div>
       </>
