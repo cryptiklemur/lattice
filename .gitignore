@@ -8,4 +8,4 @@ bun.lockb
 .claude
 node_modules
 docs
-test-results
+test-results.idea/
