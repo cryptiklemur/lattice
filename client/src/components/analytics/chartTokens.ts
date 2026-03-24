@@ -72,17 +72,26 @@ var _cacheKey: string = "";
  * the same render cycle are cheap.
  */
 export function getChartColors(): ChartColors {
-  var key = css("--color-primary") + css("--color-base-content");
+  var key = css("--color-primary") + css("--color-base-content") + css("--base0D");
   if (_cache && _cacheKey === key) return _cache;
 
-  var primary = oklch(css("--color-primary"));
-  var secondary = oklch(css("--color-secondary"));
-  var accent = oklch(css("--color-accent"));
-  var success = oklch(css("--color-success"));
-  var warning = oklch(css("--color-warning"));
-  var error = oklch(css("--color-error"));
-  var orange = css("--base09") ? "#" + css("--base09") : warning;
-  var magenta = css("--base0F") ? "#" + css("--base0F") : secondary;
+  var b08 = css("--base08");
+  var b09 = css("--base09");
+  var b0A = css("--base0A");
+  var b0B = css("--base0B");
+  var b0C = css("--base0C");
+  var b0D = css("--base0D");
+  var b0E = css("--base0E");
+  var b0F = css("--base0F");
+
+  var primary = b0D || oklch(css("--color-primary"));
+  var secondary = b0E || oklch(css("--color-secondary"));
+  var accent = b0C || oklch(css("--color-accent"));
+  var success = b0B || oklch(css("--color-success"));
+  var warning = b0A || oklch(css("--color-warning"));
+  var error = b08 || oklch(css("--color-error"));
+  var orange = b09 || warning;
+  var magenta = b0F || secondary;
   var contentRaw = css("--color-base-content");
 
   var tickFill = contentRaw
