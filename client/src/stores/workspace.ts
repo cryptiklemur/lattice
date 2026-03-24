@@ -78,11 +78,22 @@ export function openTab(type: TabType): void {
       label: labels[type],
       closeable: type !== "chat",
     };
+
+    var defaultChat = state.tabs.find(function (t) { return t.id === "chat" && !t.sessionId; });
+    var hasOnlyDefaultChat = defaultChat && state.tabs.length === 1;
+
+    var newTabs = hasOnlyDefaultChat
+      ? [tab]
+      : [...state.tabs, tab];
+
     var newPanes = state.panes.map(function (p) {
       if (p.id === state.activePaneId) {
+        var updatedTabIds = hasOnlyDefaultChat
+          ? p.tabIds.map(function (id) { return id === "chat" ? tab.id : id; })
+          : [...p.tabIds, tab.id];
         return {
           ...p,
-          tabIds: [...p.tabIds, tab.id],
+          tabIds: updatedTabIds,
           activeTabId: tab.id,
         };
       }
@@ -90,7 +101,7 @@ export function openTab(type: TabType): void {
     });
     return {
       ...state,
-      tabs: [...state.tabs, tab],
+      tabs: newTabs,
       panes: newPanes,
     };
   });
@@ -218,6 +229,18 @@ export function closeTab(tabId: string): void {
         tabs: filteredTabs,
         panes: remainingPanes,
         activePaneId: remainingPanes[0].id,
+        splitDirection: null,
+        splitRatio: 0.5,
+      };
+    }
+
+    var hasEmptySinglePane = newPanes.length === 1 && newPanes[0].tabIds.length === 0;
+    if (hasEmptySinglePane) {
+      var defaultTab: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false };
+      return {
+        tabs: [defaultTab],
+        panes: [{ ...newPanes[0], tabIds: ["chat"], activeTabId: "chat" }],
+        activePaneId: newPanes[0].id,
         splitDirection: null,
         splitRatio: 0.5,
       };
