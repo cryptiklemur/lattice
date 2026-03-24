@@ -13,6 +13,7 @@ import { verifyPassphrase, generateSessionToken, addSession, isValidSession } fr
 import { ensureCerts } from "./tls";
 import type { ClientMessage, MeshMessage } from "@lattice/shared";
 import { log } from "./logger";
+import { detectIdeProjectName } from "./handlers/settings";
 import "./handlers/session";
 import "./handlers/chat";
 import "./handlers/attachment";
@@ -381,7 +382,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     broadcast({
       type: "projects:list",
       projects: currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
-        return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false };
+        return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
       }),
     });
   }, 10000);

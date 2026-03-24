@@ -5,6 +5,9 @@ import type { ClientMessage, EditorDetectMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";
+import { loadOrCreateIdentity } from "../identity";
+import { broadcast } from "../ws/broadcast";
+import { detectIdeProjectName } from "./settings";
 
 var binaryNames: Record<string, string[]> = {
   "vscode": ["code"],
@@ -60,6 +63,13 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
     if (project) {
       var name = ensureIdeaProject(project.path, project.title);
       sendTo(clientId, { type: "editor:ensure-project_result", projectSlug: ensureMsg.projectSlug, ideProjectName: name });
+      var identity = loadOrCreateIdentity();
+      broadcast({
+        type: "projects:list",
+        projects: config.projects.map(function (p: typeof config.projects[number]) {
+          return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id, nodeName: config.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
+        }),
+      });
     }
     return;
   }

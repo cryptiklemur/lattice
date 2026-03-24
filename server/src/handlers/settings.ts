@@ -11,7 +11,7 @@ import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills, readGlob
 import { sendBudgetStatus } from "./chat";
 import { buildNodesMessage } from "./mesh";
 
-function detectIdeProjectName(projectPath: string): string | undefined {
+export function detectIdeProjectName(projectPath: string): string | undefined {
   try {
     var ideDir = join(projectPath, ".idea");
     if (!existsSync(ideDir)) return undefined;
