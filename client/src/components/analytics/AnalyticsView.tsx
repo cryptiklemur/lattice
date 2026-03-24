@@ -64,8 +64,8 @@ export function AnalyticsView() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-base-100 bg-lattice-grid">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 flex-shrink-0">
-        <h1 className="text-[16px] font-mono font-bold text-base-content">Analytics</h1>
+      <div className="flex items-center justify-between px-2 sm:px-4 min-h-10 sm:min-h-12 border-b border-base-300 flex-shrink-0">
+        <h1 className="text-sm font-mono font-semibold text-base-content">Analytics</h1>
         <PeriodSelector value={analytics.period} onChange={analytics.setPeriod} />
       </div>
 
