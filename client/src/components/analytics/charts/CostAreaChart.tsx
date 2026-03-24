@@ -49,20 +49,20 @@ export function CostAreaChart({ data }: CostAreaChartProps) {
       <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="opusGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.4} />
-            <stop offset="95%" stopColor={colors.secondary} stopOpacity={0.05} />
+            <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.8} />
+            <stop offset="95%" stopColor={colors.secondary} stopOpacity={0.2} />
           </linearGradient>
           <linearGradient id="sonnetGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={colors.primary} stopOpacity={0.4} />
-            <stop offset="95%" stopColor={colors.primary} stopOpacity={0.05} />
+            <stop offset="5%" stopColor={colors.primary} stopOpacity={0.8} />
+            <stop offset="95%" stopColor={colors.primary} stopOpacity={0.2} />
           </linearGradient>
           <linearGradient id="haikuGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={colors.success} stopOpacity={0.4} />
-            <stop offset="95%" stopColor={colors.success} stopOpacity={0.05} />
+            <stop offset="5%" stopColor={colors.success} stopOpacity={0.8} />
+            <stop offset="95%" stopColor={colors.success} stopOpacity={0.2} />
           </linearGradient>
           <linearGradient id="otherGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={colors.warning} stopOpacity={0.4} />
-            <stop offset="95%" stopColor={colors.warning} stopOpacity={0.05} />
+            <stop offset="5%" stopColor={colors.warning} stopOpacity={0.8} />
+            <stop offset="95%" stopColor={colors.warning} stopOpacity={0.2} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} vertical={false} />

@@ -37,8 +37,8 @@ export function CostDistributionChart({ data }: CostDistributionChartProps) {
       <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="distGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={colors.primary} stopOpacity={0.35} />
-            <stop offset="95%" stopColor={colors.primary} stopOpacity={0.02} />
+            <stop offset="5%" stopColor={colors.primary} stopOpacity={0.8} />
+            <stop offset="95%" stopColor={colors.primary} stopOpacity={0.2} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} vertical={false} />

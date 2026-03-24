@@ -41,15 +41,15 @@ export function CacheEfficiencyChart({ data }: CacheEfficiencyChartProps) {
       <AreaChart data={displayData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="cacheEffGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={colors.success} stopOpacity={0.4} />
-            <stop offset="95%" stopColor={colors.success} stopOpacity={0.02} />
+            <stop offset="5%" stopColor={colors.success} stopOpacity={0.8} />
+            <stop offset="95%" stopColor={colors.success} stopOpacity={0.2} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} vertical={false} />
         <XAxis dataKey="date" tick={getTickStyle()} axisLine={false} tickLine={false} />
         <YAxis domain={[0, 100]} tick={getTickStyle()} axisLine={false} tickLine={false} tickFormatter={function (v) { return v + "%"; }} />
         <Tooltip content={<CustomTooltip />} />
-        <Area type="monotone" dataKey="rate" stroke={colors.success} fill="url(#cacheEffGrad)" strokeWidth={1.5} />
+        <Area type="monotone" dataKey="rate" stroke={colors.success} fill="url(#cacheEffGrad)" strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   );
