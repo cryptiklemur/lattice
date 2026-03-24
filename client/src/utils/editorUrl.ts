@@ -1,8 +1,8 @@
 var JETBRAINS_IDS: Record<string, string> = {
-  webstorm: "webstorm",
+  webstorm: "web-storm",
   intellij: "idea",
-  pycharm: "pycharm",
-  goland: "goland",
+  pycharm: "py-charm",
+  goland: "go-land",
 };
 
 function toWindowsPath(linuxPath: string, wslDistro: string): string {
