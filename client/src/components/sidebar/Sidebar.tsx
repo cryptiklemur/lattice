@@ -274,6 +274,9 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                       onClick={function () {
                         setAnalyticsScope("global");
                         openTab("analytics");
+                        getSidebarStore().setState(function (s) {
+                          return { ...s, activeView: { type: "chat" } };
+                        });
                       }}
                       className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
                     >
