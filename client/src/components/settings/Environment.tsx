@@ -29,7 +29,7 @@ export function Environment() {
       var data = msg as SettingsDataMessage;
       var env = data.config.globalEnv ?? {};
 
-      if (save.saving) {
+      if (save.savingRef.current) {
         save.confirmSave();
       }
 
@@ -37,7 +37,7 @@ export function Environment() {
         return { id: genId(), key: k, value: String(v) };
       });
       setEntries(rows);
-      if (!save.saving) {
+      if (!save.savingRef.current) {
         save.resetFromServer();
       }
     }

@@ -35,7 +35,7 @@ export function Editor() {
       var newType = editor?.type ?? "vscode";
       var newCustomCommand = editor?.customCommand ?? "";
 
-      if (saveRef.current.saving) {
+      if (saveRef.current.savingRef.current) {
         saveRef.current.confirmSave();
       } else {
         setIdeType(newType);

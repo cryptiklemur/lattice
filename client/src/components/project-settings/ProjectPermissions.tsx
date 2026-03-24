@@ -118,7 +118,7 @@ export function ProjectPermissions({
   var save = useSaveState();
 
   useEffect(function () {
-    if (save.saving) {
+    if (save.savingRef.current) {
       save.confirmSave();
     } else {
       setAllow([...(settings.permissions.allow ?? [])]);

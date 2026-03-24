@@ -15,7 +15,7 @@ export function ProjectGeneral({ settings, updateSection }: ProjectGeneralProps)
   var save = useSaveState();
 
   useEffect(function () {
-    if (save.saving) {
+    if (save.savingRef.current) {
       save.confirmSave();
     } else {
       setTitle(settings.title);

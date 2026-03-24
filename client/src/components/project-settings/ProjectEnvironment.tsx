@@ -47,7 +47,7 @@ export function ProjectEnvironment({
   var save = useSaveState();
 
   useEffect(function () {
-    if (save.saving) {
+    if (save.savingRef.current) {
       save.confirmSave();
     } else {
       setEntries(envToEntries(settings.env ?? {}));

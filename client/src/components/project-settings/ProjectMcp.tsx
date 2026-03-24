@@ -35,7 +35,7 @@ export function ProjectMcp({
   var [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(function () {
-    if (save.saving) {
+    if (save.savingRef.current) {
       save.confirmSave();
     } else {
       setServers({ ...(settings.mcpServers ?? {}) });

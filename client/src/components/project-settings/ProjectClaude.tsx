@@ -62,7 +62,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
   var save = useSaveState();
 
   useEffect(function () {
-    if (save.saving) {
+    if (save.savingRef.current) {
       save.confirmSave();
     } else {
       setClaudeMd(settings.claudeMd ?? "");

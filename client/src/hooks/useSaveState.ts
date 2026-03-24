@@ -5,6 +5,7 @@ export type SaveState = "idle" | "saved" | "error";
 export interface UseSaveStateReturn {
   dirty: boolean;
   saving: boolean;
+  savingRef: React.RefObject<boolean>;
   saveState: SaveState;
   markDirty: () => void;
   startSave: () => void;
@@ -17,6 +18,7 @@ export function useSaveState(): UseSaveStateReturn {
   var [saving, setSaving] = useState(false);
   var [saveState, setSaveState] = useState<SaveState>("idle");
   var saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  var savingRef = useRef(false);
 
   useEffect(function () {
     return function () {
@@ -31,11 +33,13 @@ export function useSaveState(): UseSaveStateReturn {
 
   function startSave() {
     setSaving(true);
+    savingRef.current = true;
     setSaveState("idle");
 
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(function () {
       setSaving(false);
+      savingRef.current = false;
       setSaveState("error");
       setTimeout(function () { setSaveState("idle"); }, 3000);
     }, 5000);
@@ -43,6 +47,7 @@ export function useSaveState(): UseSaveStateReturn {
 
   function confirmSave() {
     setSaving(false);
+    savingRef.current = false;
     setSaveState("saved");
     setDirty(false);
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
@@ -53,7 +58,8 @@ export function useSaveState(): UseSaveStateReturn {
     setDirty(false);
     setSaveState("idle");
     setSaving(false);
+    savingRef.current = false;
   }
 
-  return { dirty, saving, saveState, markDirty, startSave, confirmSave, resetFromServer };
+  return { dirty, saving, savingRef, saveState, markDirty, startSave, confirmSave, resetFromServer };
 }

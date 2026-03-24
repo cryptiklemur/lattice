@@ -26,7 +26,7 @@ export function BudgetSettings() {
       var data = msg as SettingsDataMessage;
       var cfg = data.config;
 
-      if (save.saving) {
+      if (save.savingRef.current) {
         save.confirmSave();
       } else {
         if (cfg.costBudget) {

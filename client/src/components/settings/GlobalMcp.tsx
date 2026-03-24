@@ -33,7 +33,7 @@ export function GlobalMcp() {
       var data = msg as SettingsDataMessage;
       var mcpServers = data.mcpServers ?? {};
 
-      if (save.saving) {
+      if (save.savingRef.current) {
         save.confirmSave();
       } else {
         setServers({ ...mcpServers });

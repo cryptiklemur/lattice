@@ -31,7 +31,7 @@ export function ProjectRules({
   var save = useSaveState();
 
   useEffect(function () {
-    if (save.saving) {
+    if (save.savingRef.current) {
       save.confirmSave();
     } else {
       setRules((settings.rules ?? []).map(function (r: { filename: string; content: string }) {

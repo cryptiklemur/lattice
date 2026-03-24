@@ -39,7 +39,7 @@ export function ClaudeSettings() {
       var newModel = cfg.defaultModel ? String(cfg.defaultModel) : CLAUDE_MODELS[0].id;
       var newEffort = cfg.defaultEffort ? String(cfg.defaultEffort) : "normal";
 
-      if (save.saving) {
+      if (save.savingRef.current) {
         save.confirmSave();
       } else {
         setClaudeMd(newClaudeMd);
