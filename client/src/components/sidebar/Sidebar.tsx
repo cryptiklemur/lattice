@@ -10,7 +10,7 @@ import { useSidebar } from "../../hooks/useSidebar";
 import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
 import { useOnline } from "../../hooks/useOnline";
-import { openTab, openSessionTab, getWorkspaceStore } from "../../stores/workspace";
+import { openTab, openSessionTab, closeTab, getWorkspaceStore } from "../../stores/workspace";
 import { getSidebarStore, goToAnalytics, openSettings } from "../../stores/sidebar";
 import { setAnalyticsScope } from "../../stores/analytics";
 import { ProjectRail } from "./ProjectRail";
@@ -269,6 +269,22 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                 </div>
                 <div className="flex-1 overflow-auto px-4 py-3 pb-16">
                   <div className="flex flex-col gap-0.5 mb-3">
+                    <button
+                      type="button"
+                      onClick={function () {
+                        var store = getWorkspaceStore();
+                        var state = store.state;
+                        var activePane = state.panes.find(function (p) { return p.id === state.activePaneId; });
+                        var activeTab = activePane ? state.tabs.find(function (t) { return t.id === activePane!.activeTabId; }) : null;
+                        if (activeTab && activeTab.id !== "chat") {
+                          closeTab(activeTab.id);
+                        }
+                      }}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                    >
+                      <LayoutDashboard size={12} />
+                      <span className="font-mono tracking-wide">Dashboard</span>
+                    </button>
                     <button
                       type="button"
                       onClick={function () {
