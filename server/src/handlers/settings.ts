@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { readGlobalMcpServers, writeGlobalMcpServers, readGlobalSkills, readGlobalRules } from "../project/project-files";
 import { sendBudgetStatus } from "./chat";
+import { buildNodesMessage } from "./mesh";
 
 function detectIdeProjectName(projectPath: string): string | undefined {
   try {
@@ -78,6 +79,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
         return { slug: p.slug, path: p.path, title: p.title, nodeId: identity.id, nodeName: config.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
       }),
     });
+    sendTo(clientId, { type: "mesh:nodes", nodes: buildNodesMessage() });
     sendBudgetStatus(clientId);
     return;
   }
