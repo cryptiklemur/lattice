@@ -7,7 +7,7 @@ test.beforeEach(async function ({ page }) {
         registrations.forEach(function (r) { r.unregister(); });
       });
     }
-    caches.keys().then(function (names) {
+    if (typeof caches !== "undefined") caches.keys().then(function (names) {
       names.forEach(function (name) { caches.delete(name); });
     });
   });
@@ -48,9 +48,7 @@ test.describe("Keyboard interactions", function () {
     await page.keyboard.press("Control+k");
     await page.waitForTimeout(300);
 
-    var paletteInput = page.locator("input[placeholder*='Search']").or(
-      page.locator("[role='dialog'] input[type='text']")
-    );
+    var paletteInput = page.locator("input[placeholder*='command']");
     await expect(paletteInput.first()).toBeVisible({ timeout: 5000 });
   });
 
@@ -61,9 +59,7 @@ test.describe("Keyboard interactions", function () {
     await page.keyboard.press("Control+k");
     await page.waitForTimeout(300);
 
-    var paletteInput = page.locator("input[placeholder*='Search']").or(
-      page.locator("[role='dialog'] input[type='text']")
-    );
+    var paletteInput = page.locator("input[placeholder*='command']");
     await expect(paletteInput.first()).toBeVisible({ timeout: 5000 });
 
     await page.keyboard.press("Escape");

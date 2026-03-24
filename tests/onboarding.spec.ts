@@ -7,7 +7,7 @@ test.beforeEach(async function ({ page }) {
         registrations.forEach(function (r) { r.unregister(); });
       });
     }
-    caches.keys().then(function (names) {
+    if (typeof caches !== "undefined") caches.keys().then(function (names) {
       names.forEach(function (name) { caches.delete(name); });
     });
   });
