@@ -64,8 +64,9 @@ function formatDate(ts: number): string {
   return year + "-" + month + "-" + day;
 }
 
-function getCostBucket(cost: number): string {
-  if (cost < 0.01) return "$0-0.01";
+function getCostBucket(cost: number): string | null {
+  if (cost <= 0) return null;
+  if (cost < 0.01) return "<$0.01";
   if (cost < 0.05) return "$0.01-0.05";
   if (cost < 0.10) return "$0.05-0.10";
   if (cost < 0.50) return "$0.10-0.50";
@@ -254,7 +255,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   var toolStats = new Map<string, { count: number; totalCost: number; sessions: number }>();
 
   var costBuckets = new Map<string, number>();
-  var bucketOrder = ["$0-0.01", "$0.01-0.05", "$0.05-0.10", "$0.10-0.50", "$0.50-1.00", "$1.00-5.00", "$5.00+"];
+  var bucketOrder = ["<$0.01", "$0.01-0.05", "$0.05-0.10", "$0.10-0.50", "$0.50-1.00", "$1.00-5.00", "$5.00+"];
   for (var b = 0; b < bucketOrder.length; b++) {
     costBuckets.set(bucketOrder[b], 0);
   }
@@ -335,7 +336,9 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     });
 
     var bucket = getCostBucket(sess.cost);
-    costBuckets.set(bucket, (costBuckets.get(bucket) || 0) + 1);
+    if (bucket) {
+      costBuckets.set(bucket, (costBuckets.get(bucket) || 0) + 1);
+    }
   }
 
   var totalTokensAll = totalInput + totalOutput + totalCacheRead + totalCacheCreation;
@@ -388,7 +391,8 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   }
 
   var sessionBubbles: AnalyticsPayload["sessionBubbles"] = [];
-  var sorted = filtered.slice().sort(function (a, b) {
+  var nonZeroCost = filtered.filter(function (s) { return s.cost > 0; });
+  var sorted = nonZeroCost.slice().sort(function (a, b) {
     return (b.endTime || b.startTime) - (a.endTime || a.startTime);
   });
   var bubbleCap = Math.min(sorted.length, 200);
@@ -572,7 +576,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
 
   var sessionTimeline: AnalyticsPayload["sessionTimeline"] = [];
   var tlSorted = filtered
-    .filter(function (s) { return s.startTime > 0 && s.endTime > 0; })
+    .filter(function (s) { return s.startTime > 0 && s.endTime > 0 && s.cost > 0; })
     .sort(function (a, b) { return b.startTime - a.startTime; });
   var tlCap = Math.min(tlSorted.length, 50);
   for (var tli = 0; tli < tlCap; tli++) {
