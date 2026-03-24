@@ -7,7 +7,8 @@ import {
 import { useProjects } from "../../hooks/useProjects";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useEditorConfig } from "../../hooks/useEditorConfig";
-import { getEditorUrl } from "../../utils/editorUrl";
+import { getEditorUrl, isJetBrainsEditor } from "../../utils/editorUrl";
+import { useWebSocket } from "../../hooks/useWebSocket";
 import { openTab } from "../../stores/workspace";
 import { getSidebarStore } from "../../stores/sidebar";
 import { useState } from "react";
@@ -69,7 +70,26 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
     }
   }
 
+  var ws = useWebSocket();
   var ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".", undefined, wslDistro, activeProject.ideProjectName) : null;
+
+  function handleOpenInIde() {
+    if (!activeProject || !ideUrl) return;
+    if (isJetBrainsEditor(editorType) && !activeProject.ideProjectName) {
+      var handler = function (msg: { type: string; projectSlug?: string; ideProjectName?: string }) {
+        if (msg.type !== "editor:ensure-project_result") return;
+        if (msg.projectSlug !== activeProject!.slug) return;
+        ws.unsubscribe("editor:ensure-project_result", handler as any);
+        var updatedUrl = getEditorUrl(editorType, activeProject!.path, ".", undefined, wslDistro, msg.ideProjectName);
+        if (updatedUrl) window.location.href = updatedUrl;
+      };
+      ws.subscribe("editor:ensure-project_result", handler as any);
+      ws.send({ type: "editor:ensure-project", projectSlug: activeProject.slug } as any);
+    } else {
+      window.location.href = ideUrl;
+    }
+    props.onClose();
+  }
 
   function handleOpenTerminal() {
     openTab("terminal");
@@ -113,15 +133,14 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
           Actions
         </div>
         {ideUrl && (
-          <a
+          <button
             role="menuitem"
-            href={ideUrl}
-            onClick={function () { props.onClose(); }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] text-base-content/60 hover:text-base-content hover:bg-base-content/5 transition-colors"
+            onClick={handleOpenInIde}
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] text-base-content/60 hover:text-base-content hover:bg-base-content/5 transition-colors cursor-pointer"
           >
             <ExternalLink size={13} className="flex-shrink-0 text-base-content/30" />
             Open in IDE
-          </a>
+          </button>
         )}
         <button
           role="menuitem"

@@ -1,4 +1,4 @@
-var JETBRAINS_IDS: Record<string, string> = {
+export var JETBRAINS_IDS: Record<string, string> = {
   webstorm: "web-storm",
   intellij: "idea",
   pycharm: "py-charm",
@@ -9,13 +9,11 @@ function toWindowsPath(linuxPath: string, wslDistro: string): string {
   return "\\\\" + "wsl.localhost\\" + wslDistro + linuxPath.replace(/\//g, "\\");
 }
 
-function buildJetBrainsUrl(ideId: string, relativePath: string, line?: number, projectName?: string, projectRoot?: string): string {
+function buildJetBrainsUrl(ideId: string, relativePath: string, line?: number, projectName?: string): string {
   var url = "jetbrains://" + ideId + "/navigate/reference?";
   var params: string[] = [];
   if (projectName) {
     params.push("project=" + encodeURIComponent(projectName));
-  } else if (projectRoot) {
-    params.push("origin=" + encodeURIComponent(projectRoot));
   }
   if (relativePath) {
     params.push("path=" + encodeURIComponent(relativePath));
@@ -26,13 +24,8 @@ function buildJetBrainsUrl(ideId: string, relativePath: string, line?: number, p
   return url + params.join("&");
 }
 
-export interface EditorUrlOptions {
-  editorType: string;
-  projectPath: string;
-  filePath: string;
-  line?: number;
-  wslDistro?: string;
-  ideProjectName?: string;
+export function isJetBrainsEditor(editorType: string): boolean {
+  return editorType in JETBRAINS_IDS;
 }
 
 export function getEditorUrl(editorType: string, projectPath: string, filePath: string, line?: number, wslDistro?: string, ideProjectName?: string): string | null {
@@ -42,8 +35,7 @@ export function getEditorUrl(editorType: string, projectPath: string, filePath: 
   var jetbrainsId = JETBRAINS_IDS[editorType];
   if (jetbrainsId) {
     var jbRelativePath = filePath === "." ? "" : filePath;
-    var jbProjectRoot = wslDistro ? toWindowsPath(projectPath, wslDistro) : projectPath;
-    return buildJetBrainsUrl(jetbrainsId, jbRelativePath, line, ideProjectName || undefined, ideProjectName ? undefined : jbProjectRoot);
+    return buildJetBrainsUrl(jetbrainsId, jbRelativePath, line, ideProjectName || undefined);
   }
 
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
