@@ -10,6 +10,7 @@ import { FileBrowser } from "./FileBrowser";
 import { NotesView } from "./NotesView";
 import { ScheduledTasksView } from "./ScheduledTasksView";
 import { BookmarksView } from "./BookmarksView";
+import { AnalyticsView } from "../analytics/AnalyticsView";
 import type { Pane, Tab } from "../../stores/workspace";
 
 var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
@@ -18,6 +19,7 @@ var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
   notes: NotesView,
   tasks: ScheduledTasksView,
   bookmarks: BookmarksView,
+  analytics: AnalyticsView,
 };
 
 function PaneContent({ pane, tabs, isActive, onFocus }: {

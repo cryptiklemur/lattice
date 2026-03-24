@@ -322,7 +322,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                   })}
                   <button
                     type="button"
-                    onClick={goToAnalytics}
+                    onClick={function () { openTab("analytics"); }}
                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
                   >
                     <BarChart3 size={12} />

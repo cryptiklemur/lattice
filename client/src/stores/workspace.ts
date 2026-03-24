@@ -1,6 +1,6 @@
 import { Store } from "@tanstack/react-store";
 
-export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks";
+export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks" | "analytics";
 
 export interface Tab {
   id: string;
@@ -69,6 +69,7 @@ export function openTab(type: TabType): void {
       notes: "Notes",
       tasks: "Tasks",
       bookmarks: "Bookmarks",
+      analytics: "Analytics",
     };
     var tab: Tab = {
       id: type,

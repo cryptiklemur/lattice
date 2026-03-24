@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark } from "lucide-react";
+import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3 } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
 import type { Tab, TabType } from "../../stores/workspace";
@@ -23,6 +23,7 @@ var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
   notes: StickyNote,
   tasks: Calendar,
   bookmarks: Bookmark,
+  analytics: BarChart3,
 };
 
 export function TabBar({ paneId, isActivePane }: TabBarProps) {
@@ -69,7 +70,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     activeTabId = workspace.activeTabId;
   }
 
-  var shouldShow = paneTabs.length > 1 || paneTabs.some(function (t) { return t.closeable; });
+  var shouldShow = paneTabs.length > 1 || workspace.panes.length > 1;
 
   function getTabLabel(tab: Tab): string {
     if (tab.type === "chat" && tab.sessionId) {
