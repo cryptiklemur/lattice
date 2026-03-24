@@ -373,4 +373,16 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       return;
     }
   });
+
+  setInterval(function () {
+    var currentConfig = loadConfig();
+    var currentIdentity = loadOrCreateIdentity();
+    broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
+    broadcast({
+      type: "projects:list",
+      projects: currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
+        return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false };
+      }),
+    });
+  }, 10000);
 }
