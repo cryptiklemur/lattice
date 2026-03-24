@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { getChartColors } from "../chartTokens";
 
 interface CalendarDatum {
@@ -12,11 +12,8 @@ interface ActivityCalendarProps {
   data: CalendarDatum[];
 }
 
-var CELL_SIZE = 11;
-var CELL_GAP = 2;
-var CELL_STEP = CELL_SIZE + CELL_GAP;
 var DAY_LABEL_WIDTH = 28;
-var MONTH_LABEL_HEIGHT = 14;
+var MONTH_LABEL_HEIGHT = 16;
 
 var INTENSITY_OPACITIES = [0.05, 0.15, 0.3, 0.5, 0.8];
 
@@ -46,6 +43,18 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
   var colors = getChartColors();
   var PRIMARY_COLOR = colors.primary;
   var [hover, setHover] = useState<{ x: number; y: number; datum: CalendarDatum } | null>(null);
+  var containerRef = useRef<HTMLDivElement>(null);
+  var [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(function () {
+    if (!containerRef.current) return;
+    let ro = new ResizeObserver(function (entries) {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    ro.observe(containerRef.current);
+    setContainerWidth(containerRef.current.clientWidth);
+    return function () { ro.disconnect(); };
+  }, []);
 
   if (!data || data.length === 0) {
     return (
@@ -101,12 +110,17 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
     }
   }
 
+  var availableWidth = (containerWidth || 800) - DAY_LABEL_WIDTH;
+  var CELL_STEP = Math.max(3, Math.floor(availableWidth / weeks.length));
+  var CELL_GAP = Math.max(1, Math.round(CELL_STEP * 0.15));
+  var CELL_SIZE = CELL_STEP - CELL_GAP;
+
   var svgWidth = DAY_LABEL_WIDTH + weeks.length * CELL_STEP;
   var svgHeight = MONTH_LABEL_HEIGHT + 7 * CELL_STEP;
 
   return (
-    <div className="relative overflow-x-auto">
-      <svg width={svgWidth} height={svgHeight} className="block">
+    <div ref={containerRef} className="relative w-full">
+      <svg width="100%" height={svgHeight} viewBox={"0 0 " + svgWidth + " " + svgHeight} className="block">
         {monthLabels.map(function (ml, idx) {
           return (
             <text

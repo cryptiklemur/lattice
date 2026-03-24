@@ -50,9 +50,6 @@ import { ActivityCalendar } from "./charts/ActivityCalendar";
 import { HourlyHeatmap } from "./charts/HourlyHeatmap";
 import { SessionTimeline } from "./charts/SessionTimeline";
 import { DailySummaryCards } from "./charts/DailySummaryCards";
-import { ToolTreemap } from "./charts/ToolTreemap";
-import { ToolSunburst } from "./charts/ToolSunburst";
-import { PermissionBreakdown } from "./charts/PermissionBreakdown";
 import { ProjectRadar } from "./charts/ProjectRadar";
 import { SessionComplexityList } from "./charts/SessionComplexityList";
 import { NodeFleetOverview } from "./charts/NodeFleetOverview";
@@ -183,27 +180,9 @@ export function AnalyticsView() {
               </ChartErrorBoundary>
             </ChartCard>
 
-            <SectionHeader label="Tools & Projects" />
+            <SectionHeader label="Projects" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Tool Usage (Treemap)">
-                <ChartErrorBoundary name="Treemap">
-                  <ToolTreemap data={analytics.data.toolTreemap} />
-                </ChartErrorBoundary>
-              </ChartCard>
-              <ChartCard title="Tool Categories">
-                <ChartErrorBoundary name="Sunburst">
-                  <ToolSunburst data={analytics.data.toolSunburst} />
-                </ChartErrorBoundary>
-              </ChartCard>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Permissions">
-                <ChartErrorBoundary name="Permissions">
-                  <PermissionBreakdown data={analytics.data.permissionStats} />
-                </ChartErrorBoundary>
-              </ChartCard>
               <ChartCard title="Project Comparison">
                 <ChartErrorBoundary name="Radar">
                   <ProjectRadar data={analytics.data.projectRadar} />
