@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark } from "lucide-react";
+import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark, Settings, Network } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import type { SessionSummary, ServerMessage, SettingsDataMessage } from "@lattice/shared";
 import type { DateRange } from "./SessionList";
@@ -11,7 +11,7 @@ import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
 import { useOnline } from "../../hooks/useOnline";
 import { openTab, openSessionTab, getWorkspaceStore } from "../../stores/workspace";
-import { getSidebarStore, goToAnalytics } from "../../stores/sidebar";
+import { getSidebarStore, goToAnalytics, openSettings } from "../../stores/sidebar";
 import { setAnalyticsScope } from "../../stores/analytics";
 import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
@@ -268,17 +268,35 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                   </span>
                 </div>
                 <div className="flex-1 overflow-auto px-4 py-3 pb-16">
-                  <button
-                    type="button"
-                    onClick={function () {
-                      setAnalyticsScope("global");
-                      openTab("analytics");
-                    }}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 mb-2 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
-                  >
-                    <BarChart3 size={12} />
-                    <span className="font-mono tracking-wide">Global Analytics</span>
-                  </button>
+                  <div className="flex flex-col gap-0.5 mb-3">
+                    <button
+                      type="button"
+                      onClick={function () {
+                        setAnalyticsScope("global");
+                        openTab("analytics");
+                      }}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                    >
+                      <BarChart3 size={12} />
+                      <span className="font-mono tracking-wide">Global Analytics</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={function () { openSettings("nodes"); }}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                    >
+                      <Network size={12} />
+                      <span className="font-mono tracking-wide">Nodes</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={function () { openSettings("appearance"); }}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                    >
+                      <Settings size={12} />
+                      <span className="font-mono tracking-wide">Settings</span>
+                    </button>
+                  </div>
                   <SectionLabel label="Projects" />
                   <div className="text-[12px] text-base-content/40 px-4">
                     Select a project from the rail to view sessions.
