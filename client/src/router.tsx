@@ -13,6 +13,7 @@ import { AnalyticsView } from "./components/analytics/AnalyticsView";
 import { NodeSettingsModal } from "./components/sidebar/NodeSettingsModal";
 import { AddProjectModal } from "./components/sidebar/AddProjectModal";
 import { useSidebar } from "./hooks/useSidebar";
+import { useWorkspace } from "./hooks/useWorkspace";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useSwipeDrawer } from "./hooks/useSwipeDrawer";
 import { exitSettings, getSidebarStore, handlePopState, closeDrawer, toggleDrawer } from "./stores/sidebar";
@@ -494,14 +495,24 @@ class ViewErrorBoundary extends Component<{ children: ReactNode; viewName: strin
 
 function IndexPage() {
   var sidebar = useSidebar();
+  var workspace = useWorkspace();
   var viewName = sidebar.activeView.type;
+
+  var activePane = workspace.panes.find(function (p) { return p.id === workspace.activePaneId; });
+  var activeTab = activePane
+    ? workspace.tabs.find(function (t) { return t.id === activePane!.activeTabId; })
+    : null;
+  var hasWorkspaceTab = activeTab && activeTab.id !== "chat";
+
   var content;
-  if (viewName === "dashboard") {
-    content = <DashboardView />;
-  } else if (viewName === "settings") {
+  if (viewName === "settings") {
     content = <SettingsView />;
   } else if (viewName === "project-settings") {
     content = <ProjectSettingsView />;
+  } else if (hasWorkspaceTab) {
+    content = <WorkspaceView />;
+  } else if (viewName === "dashboard") {
+    content = <DashboardView />;
   } else if (viewName === "project-dashboard") {
     content = <ProjectDashboardView />;
   } else if (viewName === "analytics") {
