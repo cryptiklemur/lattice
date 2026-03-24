@@ -65,11 +65,16 @@ export function AnalyticsView() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-base-100 bg-lattice-grid">
       <div className="flex items-center justify-between px-2 sm:px-4 min-h-10 sm:min-h-12 border-b border-base-300 flex-shrink-0">
-        <h1 className="text-sm font-mono font-semibold text-base-content">Analytics</h1>
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-sm font-mono font-semibold text-base-content">Analytics</h1>
+          {analytics.loading && analytics.data && (
+            <span className="w-3.5 h-3.5 border-2 border-base-content/15 border-t-primary/60 rounded-full animate-spin" />
+          )}
+        </div>
         <PeriodSelector value={analytics.period} onChange={analytics.setPeriod} />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className={"flex-1 overflow-y-auto px-6 py-4 transition-opacity duration-200 " + (analytics.loading && analytics.data ? "opacity-50" : "opacity-100")}>
         {analytics.loading && !analytics.data && (
           <div className="flex flex-col gap-4 max-w-[1200px] mx-auto">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
