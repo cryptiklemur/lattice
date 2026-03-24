@@ -532,12 +532,6 @@ var projectRoute = createRoute({
   component: IndexPage,
 });
 
-var sessionRoute = createRoute({
-  getParentRoute: function () { return rootRoute; },
-  path: "/$projectSlug/$sessionId",
-  component: IndexPage,
-});
-
 var settingsRoute = createRoute({
   getParentRoute: function () { return rootRoute; },
   path: "/settings/$section",
@@ -562,7 +556,7 @@ var projectSettingsIndexRoute = createRoute({
   component: IndexPage,
 });
 
-var routeTree = rootRoute.addChildren([indexRoute, settingsIndexRoute, settingsRoute, projectSettingsIndexRoute, projectSettingsRoute, projectRoute, sessionRoute]);
+var routeTree = rootRoute.addChildren([indexRoute, settingsIndexRoute, settingsRoute, projectSettingsIndexRoute, projectSettingsRoute, projectRoute]);
 
 export var router = createRouter({ routeTree });
 

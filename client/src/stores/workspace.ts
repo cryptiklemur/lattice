@@ -1,4 +1,5 @@
 import { Store } from "@tanstack/react-store";
+import type { DecodedWorkspace } from "../lib/workspace-url";
 
 export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks" | "analytics";
 
@@ -364,3 +365,34 @@ export function getActiveSessionTab(): Tab | null {
   if (!activeTab || activeTab.type !== "chat") return null;
   return activeTab;
 }
+
+let urlSyncCallback: (() => void) | null = null;
+let urlSyncSuppressed = false;
+
+export function setUrlSyncCallback(cb: () => void): void {
+  urlSyncCallback = cb;
+}
+
+function notifyUrlSync(): void {
+  if (!urlSyncSuppressed && urlSyncCallback) {
+    urlSyncCallback();
+  }
+}
+
+export function restoreWorkspace(data: DecodedWorkspace): void {
+  urlSyncSuppressed = true;
+  workspaceStore.setState(function (state) {
+    return {
+      ...state,
+      tabs: data.tabs,
+      panes: data.panes,
+      activePaneId: data.activePaneId,
+      splitDirection: data.splitDirection,
+    };
+  });
+  urlSyncSuppressed = false;
+}
+
+workspaceStore.subscribe(function () {
+  notifyUrlSync();
+});

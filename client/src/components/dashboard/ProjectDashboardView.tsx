@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { ProjectSettingsSection } from "../../stores/sidebar";
 import type { SessionSummary, ServerMessage } from "@lattice/shared";
+import { openSessionTab } from "../../stores/workspace";
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
   return (
@@ -74,9 +75,10 @@ export function ProjectDashboardView() {
     sidebar.openProjectSettings(section);
   }
 
-  function goToSession(sessionId: string) {
+  function goToSession(s: SessionSummary) {
     if (activeProject) {
-      sidebar.setActiveSessionId(sessionId);
+      openSessionTab(s.id, activeProject.slug, s.title);
+      sidebar.setActiveSessionId(s.id);
     }
   }
 
@@ -130,7 +132,7 @@ export function ProjectDashboardView() {
                   return (
                     <button
                       key={s.id}
-                      onClick={function () { goToSession(s.id); }}
+                      onClick={function () { goToSession(s); }}
                       className="flex items-center gap-3 px-3 py-2 rounded-xl border border-base-content/15 bg-base-300 hover:border-base-content/30 transition-colors duration-[120ms] cursor-pointer text-left focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <MessageSquare size={12} className="text-base-content/30 flex-shrink-0" />

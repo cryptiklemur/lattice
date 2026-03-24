@@ -10,7 +10,7 @@ import { useSidebar } from "../../hooks/useSidebar";
 import { useSession } from "../../hooks/useSession";
 import { clearSession } from "../../stores/session";
 import { useOnline } from "../../hooks/useOnline";
-import { openTab, openSessionTab } from "../../stores/workspace";
+import { openTab, openSessionTab, getWorkspaceStore } from "../../stores/workspace";
 import { getSidebarStore, goToAnalytics } from "../../stores/sidebar";
 import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
@@ -214,7 +214,13 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
     if (!sidebar.activeProjectSlug || !sidebar.activeSessionId) return;
     if (!activeProject) return;
     initialActivatedRef.current = true;
-    openSessionTab(sidebar.activeSessionId, sidebar.activeProjectSlug, "Session");
+    const wsState = getWorkspaceStore().state;
+    const alreadyHasTab = wsState.tabs.some(function (t) {
+      return t.type === "chat" && t.sessionId === sidebar.activeSessionId;
+    });
+    if (!alreadyHasTab) {
+      openSessionTab(sidebar.activeSessionId, sidebar.activeProjectSlug, "Session");
+    }
     session.activateSession(sidebar.activeProjectSlug, sidebar.activeSessionId);
   }, [sidebar.activeProjectSlug, sidebar.activeSessionId, activeProject]);
 

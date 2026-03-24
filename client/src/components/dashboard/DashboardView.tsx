@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { ServerMessage, SessionSummary, LatticeConfig } from "@lattice/shared";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
+import { openSessionTab } from "../../stores/workspace";
 
 function relativeTime(ts: number): string {
   var diff = Date.now() - ts;
@@ -157,7 +158,7 @@ export function DashboardView() {
                 return (
                   <button
                     key={s.id}
-                    onClick={function () { sidebar.navigateToSession(s.projectSlug, s.id); }}
+                    onClick={function () { openSessionTab(s.id, s.projectSlug, s.title); sidebar.navigateToSession(s.projectSlug, s.id); }}
                     className="flex items-center gap-3 px-3 py-2 rounded-xl border border-base-content/15 bg-base-200 hover:border-base-content/30 transition-colors duration-[120ms] cursor-pointer text-left focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <MessageSquare size={12} className="text-base-content/30 flex-shrink-0" />

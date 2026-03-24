@@ -1,5 +1,8 @@
 import { Store } from "@tanstack/react-store";
 import type { ProjectSettingsSection } from "@lattice/shared";
+import { encodeWorkspaceUrl, decodeWorkspaceUrl, isLegacySessionUrl, shortSessionId } from "../lib/workspace-url";
+import type { DecodedWorkspace } from "../lib/workspace-url";
+import { getWorkspaceStore, restoreWorkspace, setUrlSyncCallback } from "./workspace";
 
 export type { ProjectSettingsSection };
 
@@ -32,33 +35,82 @@ export interface SidebarState {
   confirmRemoveSlug: string | null;
 }
 
-var SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes", "editor", "rules", "memory", "notifications", "budget"];
+const SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes", "editor", "rules", "memory", "notifications", "budget"];
 
-function parseInitialUrl(): { projectSlug: string | null; sessionId: string | null; settingsSection: SettingsSection | null; projectSettingsSection: ProjectSettingsSection | null } {
-  var path = window.location.pathname;
-  var parts = path.split("/").filter(function (p) { return p.length > 0; });
-  if (parts[0] === "settings") {
-    var section = parts[1] as SettingsSection;
-    if (section && SETTINGS_SECTIONS.indexOf(section) !== -1) {
-      return { projectSlug: null, sessionId: null, settingsSection: section, projectSettingsSection: null };
-    }
-    return { projectSlug: null, sessionId: null, settingsSection: "appearance", projectSettingsSection: null };
-  }
-  if (parts.length >= 2 && parts[1] === "settings") {
-    return { projectSlug: parts[0], sessionId: null, settingsSection: null, projectSettingsSection: (parts[2] || "general") as ProjectSettingsSection };
-  }
-  if (parts.length >= 2) {
-    return { projectSlug: parts[0], sessionId: parts[1], settingsSection: null, projectSettingsSection: null };
-  }
-  if (parts.length === 1) {
-    return { projectSlug: parts[0], sessionId: null, settingsSection: null, projectSettingsSection: null };
-  }
-  return { projectSlug: null, sessionId: null, settingsSection: null, projectSettingsSection: null };
+interface ParsedUrl {
+  projectSlug: string | null;
+  sessionId: string | null;
+  settingsSection: SettingsSection | null;
+  projectSettingsSection: ProjectSettingsSection | null;
+  tParam: string | null;
+  decodedWorkspace: DecodedWorkspace | null;
 }
 
-var initialUrl = parseInitialUrl();
+function resolveFullIdFromNothing(_shortId: string, _projectSlug: string): string | null {
+  return null;
+}
 
-var sidebarStore = new Store<SidebarState>({
+function parseInitialUrl(): ParsedUrl {
+  const path = window.location.pathname;
+  const parts = path.split("/").filter(function (p) { return p.length > 0; });
+  const searchParams = new URLSearchParams(window.location.search);
+  const tParam = searchParams.get("t");
+
+  if (parts[0] === "settings") {
+    const section = parts[1] as SettingsSection;
+    if (section && SETTINGS_SECTIONS.indexOf(section) !== -1) {
+      return { projectSlug: null, sessionId: null, settingsSection: section, projectSettingsSection: null, tParam: null, decodedWorkspace: null };
+    }
+    return { projectSlug: null, sessionId: null, settingsSection: "appearance", projectSettingsSection: null, tParam: null, decodedWorkspace: null };
+  }
+
+  if (parts.length >= 2 && parts[1] === "settings") {
+    return { projectSlug: parts[0], sessionId: null, settingsSection: null, projectSettingsSection: (parts[2] || "general") as ProjectSettingsSection, tParam: null, decodedWorkspace: null };
+  }
+
+  const legacy = isLegacySessionUrl(path);
+  if (legacy && !tParam) {
+    const shortId = shortSessionId(legacy.sessionId);
+    const newUrl = "/" + legacy.projectSlug + "?t=chat:" + shortId + "*";
+    window.history.replaceState(null, "", newUrl);
+    const decoded = decodeWorkspaceUrl("chat:" + shortId + "*", legacy.projectSlug, resolveFullIdFromNothing);
+    return {
+      projectSlug: legacy.projectSlug,
+      sessionId: legacy.sessionId,
+      settingsSection: null,
+      projectSettingsSection: null,
+      tParam: "chat:" + shortId + "*",
+      decodedWorkspace: decoded,
+    };
+  }
+
+  if (parts.length >= 1 && parts[0] !== "settings") {
+    const projectSlug = parts[0];
+    if (tParam) {
+      const decoded = decodeWorkspaceUrl(tParam, projectSlug, resolveFullIdFromNothing);
+      let sessionId: string | null = null;
+      const activePane = decoded.panes.find(function (p) { return p.id === decoded.activePaneId; });
+      if (activePane) {
+        const activeTab = decoded.tabs.find(function (t) { return t.id === activePane.activeTabId; });
+        if (activeTab && activeTab.type === "chat" && activeTab.sessionId) {
+          sessionId = activeTab.sessionId;
+        }
+      }
+      return { projectSlug, sessionId, settingsSection: null, projectSettingsSection: null, tParam, decodedWorkspace: decoded };
+    }
+    return { projectSlug, sessionId: null, settingsSection: null, projectSettingsSection: null, tParam: null, decodedWorkspace: null };
+  }
+
+  return { projectSlug: null, sessionId: null, settingsSection: null, projectSettingsSection: null, tParam: null, decodedWorkspace: null };
+}
+
+const initialUrl = parseInitialUrl();
+
+if (initialUrl.decodedWorkspace) {
+  restoreWorkspace(initialUrl.decodedWorkspace);
+}
+
+const sidebarStore = new Store<SidebarState>({
   activeProjectSlug: initialUrl.settingsSection ? null : initialUrl.projectSlug,
   activeSessionId: initialUrl.settingsSection ? null : initialUrl.sessionId,
   sidebarMode: (initialUrl.settingsSection || initialUrl.projectSettingsSection) ? "settings" : "project",
@@ -67,7 +119,7 @@ var sidebarStore = new Store<SidebarState>({
     : initialUrl.projectSettingsSection
     ? { type: "project-settings", section: initialUrl.projectSettingsSection }
     : initialUrl.projectSlug
-    ? (initialUrl.sessionId ? { type: "chat" } : { type: "project-dashboard" })
+    ? (initialUrl.sessionId || initialUrl.tParam ? { type: "chat" } : { type: "project-dashboard" })
     : { type: "dashboard" },
   previousView: null,
   userMenuOpen: false,
@@ -78,18 +130,66 @@ var sidebarStore = new Store<SidebarState>({
   confirmRemoveSlug: null,
 });
 
-function pushUrl(projectSlug: string | null, sessionId: string | null): void {
-  var path = "/";
+let lastEncodedUrl = "";
+
+function pushUrl(projectSlug: string | null, replace: boolean = false): void {
+  const wsState = getWorkspaceStore().state;
+  const encoded = encodeWorkspaceUrl(wsState, wsState.tabs, projectSlug);
+  let path = "/";
   if (projectSlug) {
     path = "/" + projectSlug;
-    if (sessionId) {
-      path = path + "/" + sessionId;
+    if (encoded) {
+      path += "?t=" + encoded;
     }
   }
-  if (window.location.pathname !== path) {
-    window.history.pushState(null, "", path);
+  const hash = window.location.hash;
+  const fullUrl = path + hash;
+  if (window.location.pathname + window.location.search !== path) {
+    if (replace) {
+      window.history.replaceState(null, "", fullUrl);
+    } else {
+      window.history.pushState(null, "", fullUrl);
+    }
+  }
+  lastEncodedUrl = encoded;
+}
+
+export function syncUrlFromWorkspace(): void {
+  const state = sidebarStore.state;
+  if (state.sidebarMode === "settings") return;
+  if (!state.activeProjectSlug) return;
+
+  const wsState = getWorkspaceStore().state;
+  const encoded = encodeWorkspaceUrl(wsState, wsState.tabs, state.activeProjectSlug);
+
+  if (encoded === lastEncodedUrl) return;
+
+  const isActiveTabChangeOnly = detectActiveTabChangeOnly(lastEncodedUrl, encoded);
+  lastEncodedUrl = encoded;
+
+  let path = "/" + state.activeProjectSlug;
+  if (encoded) {
+    path += "?t=" + encoded;
+  }
+  const hash = window.location.hash;
+  const fullUrl = path + hash;
+
+  if (window.location.pathname + window.location.search !== path) {
+    if (isActiveTabChangeOnly) {
+      window.history.replaceState(null, "", fullUrl);
+    } else {
+      window.history.pushState(null, "", fullUrl);
+    }
   }
 }
+
+function detectActiveTabChangeOnly(oldEncoded: string, newEncoded: string): boolean {
+  const oldStripped = oldEncoded.replace(/\*/g, "");
+  const newStripped = newEncoded.replace(/\*/g, "");
+  return oldStripped === newStripped;
+}
+
+setUrlSyncCallback(syncUrlFromWorkspace);
 
 export function getSidebarStore(): Store<SidebarState> {
   return sidebarStore;
@@ -107,11 +207,17 @@ export function setActiveProjectSlug(slug: string | null): void {
       projectDropdownOpen: false,
     };
   });
-  pushUrl(slug, null);
+  let path = "/";
+  if (slug) {
+    path = "/" + slug;
+  }
+  if (window.location.pathname + window.location.search !== path) {
+    window.history.pushState(null, "", path);
+  }
+  lastEncodedUrl = "";
 }
 
 export function setActiveSessionId(sessionId: string | null): void {
-  var state = sidebarStore.state;
   sidebarStore.setState(function (s) {
     return {
       ...s,
@@ -119,7 +225,6 @@ export function setActiveSessionId(sessionId: string | null): void {
       activeView: sessionId ? { type: "chat" } : s.activeView,
     };
   });
-  pushUrl(state.activeProjectSlug, sessionId);
 }
 
 export function navigateToSession(projectSlug: string, sessionId: string): void {
@@ -134,7 +239,6 @@ export function navigateToSession(projectSlug: string, sessionId: string): void 
       projectDropdownOpen: false,
     };
   });
-  pushUrl(projectSlug, sessionId);
 }
 
 export function openSettings(section: SettingsSection): void {
@@ -148,7 +252,7 @@ export function openSettings(section: SettingsSection): void {
       projectDropdownOpen: false,
     };
   });
-  var path = "/settings/" + section;
+  const path = "/settings/" + section;
   if (window.location.pathname !== path) {
     window.history.pushState(null, "", path);
   }
@@ -161,7 +265,7 @@ export function setSettingsSection(section: SettingsSection): void {
       activeView: { type: "settings", section: section },
     };
   });
-  var path = "/settings/" + section;
+  const path = "/settings/" + section;
   if (window.location.pathname !== path) {
     window.history.replaceState(null, "", path);
   }
@@ -178,8 +282,8 @@ export function openProjectSettings(section: ProjectSettingsSection): void {
       projectDropdownOpen: false,
     };
   });
-  var state = sidebarStore.state;
-  var path = "/" + state.activeProjectSlug + "/settings/" + section;
+  const state = sidebarStore.state;
+  const path = "/" + state.activeProjectSlug + "/settings/" + section;
   if (window.location.pathname !== path) {
     window.history.pushState(null, "", path);
   }
@@ -192,16 +296,16 @@ export function setProjectSettingsSection(section: ProjectSettingsSection): void
       activeView: { type: "project-settings", section: section },
     };
   });
-  var state = sidebarStore.state;
-  var path = "/" + state.activeProjectSlug + "/settings/" + section;
+  const state = sidebarStore.state;
+  const path = "/" + state.activeProjectSlug + "/settings/" + section;
   if (window.location.pathname !== path) {
     window.history.replaceState(null, "", path);
   }
 }
 
 export function exitSettings(): void {
-  var state = sidebarStore.state;
-  var restored = state.previousView ?? { type: "chat" } as ActiveView;
+  const state = sidebarStore.state;
+  const restored = state.previousView ?? { type: "chat" } as ActiveView;
   sidebarStore.setState(function (s) {
     return {
       ...s,
@@ -210,11 +314,7 @@ export function exitSettings(): void {
       previousView: null,
     };
   });
-  if (state.activeView.type === "project-settings") {
-    pushUrl(state.activeProjectSlug, null);
-  } else {
-    pushUrl(state.activeProjectSlug, state.activeSessionId);
-  }
+  pushUrl(state.activeProjectSlug);
 }
 
 export function goToProjectDashboard(): void {
@@ -228,8 +328,15 @@ export function goToProjectDashboard(): void {
       projectDropdownOpen: false,
     };
   });
-  var state = sidebarStore.state;
-  pushUrl(state.activeProjectSlug, null);
+  const state = sidebarStore.state;
+  let path = "/";
+  if (state.activeProjectSlug) {
+    path = "/" + state.activeProjectSlug;
+  }
+  if (window.location.pathname + window.location.search !== path) {
+    window.history.pushState(null, "", path);
+  }
+  lastEncodedUrl = "";
 }
 
 export function goToDashboard(): void {
@@ -244,54 +351,96 @@ export function goToDashboard(): void {
       projectDropdownOpen: false,
     };
   });
-  pushUrl(null, null);
+  if (window.location.pathname + window.location.search !== "/") {
+    window.history.pushState(null, "", "/");
+  }
+  lastEncodedUrl = "";
 }
 
 export function goToAnalytics(): void {
   sidebarStore.setState(function (state) {
     return { ...state, activeView: { type: "analytics" }, sidebarMode: "project" };
   });
-  pushUrl(sidebarStore.state.activeProjectSlug, null);
+  pushUrl(sidebarStore.state.activeProjectSlug);
 }
 
 export function handlePopState(): void {
-  var url = parseInitialUrl();
-  if (url.settingsSection) {
+  const path = window.location.pathname;
+  const parts = path.split("/").filter(function (p) { return p.length > 0; });
+  const searchParams = new URLSearchParams(window.location.search);
+  const tParam = searchParams.get("t");
+
+  if (parts[0] === "settings") {
+    const section = (parts[1] || "appearance") as SettingsSection;
     sidebarStore.setState(function (state) {
       return {
         ...state,
         sidebarMode: "settings",
-        activeView: { type: "settings", section: url.settingsSection! },
+        activeView: { type: "settings", section: section },
         userMenuOpen: false,
         projectDropdownOpen: false,
       };
     });
-  } else if (url.projectSettingsSection) {
-    sidebarStore.setState(function (state) {
-      return {
-        ...state,
-        activeProjectSlug: url.projectSlug,
-        sidebarMode: "settings",
-        activeView: { type: "project-settings", section: url.projectSettingsSection! },
-        userMenuOpen: false,
-        projectDropdownOpen: false,
-      };
-    });
-  } else {
-    sidebarStore.setState(function (state) {
-      return {
-        ...state,
-        activeProjectSlug: url.projectSlug,
-        activeSessionId: url.sessionId,
-        sidebarMode: "project",
-        activeView: url.projectSlug
-          ? (url.sessionId ? { type: "chat" } : { type: "project-dashboard" })
-          : { type: "dashboard" },
-        userMenuOpen: false,
-        projectDropdownOpen: false,
-      };
-    });
+    return;
   }
+
+  if (parts.length >= 2 && parts[1] === "settings") {
+    const projectSettingsSection = (parts[2] || "general") as ProjectSettingsSection;
+    sidebarStore.setState(function (state) {
+      return {
+        ...state,
+        activeProjectSlug: parts[0],
+        sidebarMode: "settings",
+        activeView: { type: "project-settings", section: projectSettingsSection },
+        userMenuOpen: false,
+        projectDropdownOpen: false,
+      };
+    });
+    return;
+  }
+
+  const projectSlug = parts.length > 0 ? parts[0] : null;
+
+  if (tParam && projectSlug) {
+    const decoded = decodeWorkspaceUrl(tParam, projectSlug, resolveFullIdFromNothing);
+    restoreWorkspace(decoded);
+    lastEncodedUrl = tParam;
+
+    let sessionId: string | null = null;
+    const activePane = decoded.panes.find(function (p) { return p.id === decoded.activePaneId; });
+    if (activePane) {
+      const activeTab = decoded.tabs.find(function (t) { return t.id === activePane.activeTabId; });
+      if (activeTab && activeTab.type === "chat" && activeTab.sessionId) {
+        sessionId = activeTab.sessionId;
+      }
+    }
+
+    sidebarStore.setState(function (state) {
+      return {
+        ...state,
+        activeProjectSlug: projectSlug,
+        activeSessionId: sessionId,
+        sidebarMode: "project",
+        activeView: sessionId || decoded.tabs.length > 0 ? { type: "chat" } : { type: "project-dashboard" },
+        userMenuOpen: false,
+        projectDropdownOpen: false,
+      };
+    });
+    return;
+  }
+
+  sidebarStore.setState(function (state) {
+    return {
+      ...state,
+      activeProjectSlug: projectSlug,
+      activeSessionId: null,
+      sidebarMode: "project",
+      activeView: projectSlug ? { type: "project-dashboard" } : { type: "dashboard" },
+      userMenuOpen: false,
+      projectDropdownOpen: false,
+    };
+  });
+  lastEncodedUrl = "";
 }
 
 export function toggleUserMenu(): void {
