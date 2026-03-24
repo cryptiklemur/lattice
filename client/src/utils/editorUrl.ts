@@ -9,18 +9,21 @@ function toWindowsPath(linuxPath: string, wslDistro: string): string {
   return "\\\\" + "wsl.localhost\\" + wslDistro + linuxPath.replace(/\//g, "\\");
 }
 
-function buildJetBrainsUrl(ideId: string, filePath: string, line?: number, projectName?: string): string {
+function buildJetBrainsUrl(ideId: string, relativePath: string, line?: number, projectName?: string, projectRoot?: string): string {
   var url = "jetbrains://" + ideId + "/navigate/reference?";
+  var params: string[] = [];
   if (projectName) {
-    url += "project=" + encodeURIComponent(projectName);
+    params.push("project=" + encodeURIComponent(projectName));
+  } else if (projectRoot) {
+    params.push("origin=" + encodeURIComponent(projectRoot));
   }
-  if (filePath) {
-    url += (projectName ? "&" : "") + "path=" + encodeURIComponent(filePath);
-    if (line) {
-      url += "&line=" + line;
-    }
+  if (relativePath) {
+    params.push("path=" + encodeURIComponent(relativePath));
   }
-  return url;
+  if (line) {
+    params.push("line=" + String(line));
+  }
+  return url + params.join("&");
 }
 
 export interface EditorUrlOptions {
@@ -38,11 +41,9 @@ export function getEditorUrl(editorType: string, projectPath: string, filePath: 
 
   var jetbrainsId = JETBRAINS_IDS[editorType];
   if (jetbrainsId) {
-    if (ideProjectName) {
-      var jbPath = filePath === "." ? "" : filePath;
-      return buildJetBrainsUrl(jetbrainsId, jbPath, line, ideProjectName);
-    }
-    return buildJetBrainsUrl(jetbrainsId, resolvedPath, line);
+    var jbRelativePath = filePath === "." ? "" : filePath;
+    var jbProjectRoot = wslDistro ? toWindowsPath(projectPath, wslDistro) : projectPath;
+    return buildJetBrainsUrl(jetbrainsId, jbRelativePath, line, ideProjectName || undefined, ideProjectName ? undefined : jbProjectRoot);
   }
 
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
