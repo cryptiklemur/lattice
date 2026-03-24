@@ -360,10 +360,21 @@ export interface EditorDetectMessage {
   editorType: string;
 }
 
+export interface EditorEnsureProjectMessage {
+  type: "editor:ensure-project";
+  projectSlug: string;
+}
+
 export interface EditorDetectResultMessage {
   type: "editor:detect_result";
   editorType: string;
   path: string | null;
+}
+
+export interface EditorEnsureProjectResultMessage {
+  type: "editor:ensure-project_result";
+  projectSlug: string;
+  ideProjectName: string;
 }
 
 export interface ProjectSettingsGetMessage {
@@ -498,6 +509,7 @@ export type ClientMessage =
   | BrowseSuggestionsMessage
   | EditorOpenMessage
   | EditorDetectMessage
+  | EditorEnsureProjectMessage
   | ChatPromptResponseMessage
   | AnalyticsRequestMessage
   | SessionPreviewRequestMessage
@@ -902,6 +914,7 @@ export type ServerMessage =
   | MemoryDeleteResultMessage
   | BrowseSuggestionsResultMessage
   | EditorDetectResultMessage
+  | EditorEnsureProjectResultMessage
   | AttachmentProgressMessage
   | AttachmentErrorMessage
   | ChatPromptRequestMessage

@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ClientMessage, EditorDetectMessage } from "@lattice/shared";
+import type { ClientMessage, EditorDetectMessage, EditorEnsureProjectMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";
@@ -57,7 +57,7 @@ registerHandler("editor", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "editor:ensure-project") {
-    var ensureMsg = message as { type: string; projectSlug: string };
+    var ensureMsg = message as EditorEnsureProjectMessage;
     var config = loadConfig();
     var project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === ensureMsg.projectSlug; });
     if (project) {
