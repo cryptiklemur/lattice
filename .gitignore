@@ -8,4 +8,6 @@ bun.lockb
 .claude
 node_modules
 docs
-test-results.idea/
+test-results
+.idea/
+server/src/_generated/

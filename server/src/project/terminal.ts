@@ -2,6 +2,9 @@ import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
 import { join } from "node:path";
+import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { IS_COMPILED } from "../runtime";
 
 interface TerminalWorker {
   process: ChildProcess;
@@ -10,21 +13,33 @@ interface TerminalWorker {
 
 var terminals = new Map<string, TerminalWorker>();
 
-// node-pty doesn't work under Bun (child gets SIGHUP immediately).
-// We run it in a Node.js subprocess instead, communicating via JSON over stdio.
-var WORKER_PATH = join(import.meta.dir, "pty-worker.cjs");
+function getWorkerPath(): string {
+  if (!IS_COMPILED) {
+    return join(import.meta.dir, "pty-worker.cjs");
+  }
+  var extractedPath = join(homedir(), ".lattice", "pty-worker.cjs");
+  if (!existsSync(extractedPath)) {
+    var srcPath = join(import.meta.dir, "pty-worker.cjs");
+    if (existsSync(srcPath)) {
+      mkdirSync(join(homedir(), ".lattice"), { recursive: true });
+      writeFileSync(extractedPath, readFileSync(srcPath));
+    }
+  }
+  return extractedPath;
+}
 
-// node-pty lives in Bun's module cache — resolve the path so Node can find it.
+var WORKER_PATH = getWorkerPath();
+
 var NODE_MODULES_PATH = (function () {
-  // Bun can resolve the module — use it to find the actual path
   try {
     var resolved = require.resolve("node-pty");
-    // resolved = .../node_modules/.bun/node-pty@X.Y.Z/node_modules/node-pty/lib/index.js
-    // We need: .../node_modules/.bun/node-pty@X.Y.Z/node_modules
     var parts = resolved.split("/node_modules/");
-    parts.pop(); // remove node-pty/lib/index.js
+    parts.pop();
     return parts.join("/node_modules/") + "/node_modules";
   } catch {
+    if (IS_COMPILED) {
+      return "";
+    }
     return join(import.meta.dir, "..", "..", "..", "node_modules");
   }
 })();

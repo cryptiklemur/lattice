@@ -29,7 +29,9 @@
     "dev": "bun run --filter '*' dev",
     "build": "bun run --filter '*' build",
     "lint": "bun run --filter '*' lint",
-    "typecheck": "bunx tsc --noEmit -p tsconfig.json"
+    "typecheck": "bunx tsc --noEmit -p tsconfig.json",
+    "build:binary": "bun scripts/build-binary.ts",
+    "build:binary:all": "bun scripts/build-binary.ts --all"
   },
   "workspaces": [
     "shared",

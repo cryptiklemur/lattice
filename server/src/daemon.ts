@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { initAssets, serveStaticAsset, hasEmbeddedAssets, getClientDir } from "./assets";
 import { readFileSync, existsSync } from "node:fs";
 import type { ServerWebSocket } from "bun";
 import { getLatticeHome, loadConfig } from "./config";
@@ -35,8 +36,10 @@ import "./handlers/editor";
 import "./handlers/analytics";
 import "./handlers/bookmarks";
 import "./handlers/plugins";
+import "./handlers/update";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
+import { startPeriodicUpdateCheck, getCachedUpdateInfo } from "./update-checker";
 import { loadBookmarks } from "./project/bookmarks";
 import { cleanupClientTerminals } from "./handlers/terminal";
 import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
@@ -202,7 +205,8 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   log.server("Node: %s (%s)", config.name, identity.id);
   log.server("Home: %s", getLatticeHome());
 
-  var clientDir = join(import.meta.dir, "../../client/dist");
+  await initAssets();
+  var clientDir = getClientDir();
 
   var tlsOptions: { cert: Buffer; key: Buffer } | undefined;
   if (config.tls) {
@@ -286,6 +290,15 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       }
 
       var staticPath = url.pathname === "/" ? "/index.html" : url.pathname;
+
+      if (hasEmbeddedAssets()) {
+        var embedded = serveStaticAsset(staticPath);
+        if (embedded) return embedded;
+        var embeddedIndex = serveStaticAsset("/index.html");
+        if (embeddedIndex) return embeddedIndex;
+        return new Response("Not found", { status: 404 });
+      }
+
       var file = Bun.file(join(clientDir, staticPath));
       if (await file.exists()) {
         return new Response(file);
@@ -355,6 +368,8 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   loadNotes();
   loadBookmarks();
 
+  startPeriodicUpdateCheck();
+
   loadInterruptedSessions();
 
   onPeerConnected(function (nodeId: string) {
@@ -386,5 +401,16 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
       }),
     });
+    var updateInfo = getCachedUpdateInfo();
+    if (updateInfo && updateInfo.updateAvailable) {
+      broadcast({
+        type: "update:status",
+        currentVersion: updateInfo.currentVersion,
+        latestVersion: updateInfo.latestVersion,
+        updateAvailable: updateInfo.updateAvailable,
+        releaseUrl: updateInfo.releaseUrl,
+        installMode: updateInfo.installMode,
+      });
+    }
   }, 10000);
 }

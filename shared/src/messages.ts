@@ -505,6 +505,15 @@ export interface PluginErrorsMessage {
   type: "plugin:errors";
 }
 
+export interface UpdateCheckMessage {
+  type: "update:check";
+  force?: boolean;
+}
+
+export interface UpdateApplyMessage {
+  type: "update:apply";
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
@@ -576,7 +585,9 @@ export type ClientMessage =
   | PluginUpdateMessage
   | PluginDetailsMessage
   | PluginDiscoverMessage
-  | PluginErrorsMessage;
+  | PluginErrorsMessage
+  | UpdateCheckMessage
+  | UpdateApplyMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -971,6 +982,21 @@ export interface PluginErrorsResultMessage {
   errors: PluginError[];
 }
 
+export interface UpdateStatusMessage {
+  type: "update:status";
+  currentVersion: string;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  releaseUrl: string | null;
+  installMode: "binary" | "npm";
+}
+
+export interface UpdateApplyResultMessage {
+  type: "update:apply_result";
+  success: boolean;
+  message?: string;
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -1047,7 +1073,9 @@ export type ServerMessage =
   | PluginUpdateResultMessage
   | PluginDetailsResultMessage
   | PluginDiscoverResultMessage
-  | PluginErrorsResultMessage;
+  | PluginErrorsResultMessage
+  | UpdateStatusMessage
+  | UpdateApplyResultMessage;
 
 export interface BudgetStatusMessage {
   type: "budget:status";

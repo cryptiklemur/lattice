@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { Sun, Moon, Settings, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sun, Moon, Settings, Download, ArrowUpCircle } from "lucide-react";
 import { useStore } from "@tanstack/react-store";
 import { useTheme } from "../../hooks/useTheme";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useInstallPrompt } from "../../hooks/useInstallPrompt";
+import { useWebSocket } from "../../hooks/useWebSocket";
 import { getSessionStore } from "../../stores/session";
 import pkg from "../../../package.json";
+import type { ServerMessage } from "@lattice/shared";
 
 interface UserIslandProps {
   nodeName: string;
@@ -18,6 +20,20 @@ export function UserIsland(props: UserIslandProps) {
   var { canInstall, install } = useInstallPrompt();
   var budgetStatus = useStore(getSessionStore(), function (s) { return s.budgetStatus; });
   var [showTooltip, setShowTooltip] = useState(false);
+  var ws = useWebSocket();
+  var [updateAvailable, setUpdateAvailable] = useState(false);
+  var [latestVersion, setLatestVersion] = useState<string | null>(null);
+
+  useEffect(function () {
+    function handleUpdateStatus(msg: ServerMessage) {
+      if (msg.type !== "update:status") return;
+      var data = msg as { type: string; updateAvailable: boolean; latestVersion: string | null };
+      setUpdateAvailable(data.updateAvailable);
+      setLatestVersion(data.latestVersion);
+    }
+    ws.subscribe("update:status", handleUpdateStatus);
+    return function () { ws.unsubscribe("update:status", handleUpdateStatus); };
+  }, []);
 
   var initial = props.nodeName.charAt(0).toUpperCase();
 
@@ -72,8 +88,14 @@ export function UserIsland(props: UserIslandProps) {
             <div className="text-[13px] font-semibold text-base-content truncate">
               {props.nodeName}
             </div>
-            <div className="text-[10px] text-base-content/30 font-mono">
-              {"v" + pkg.version}
+            <div className="text-[10px] font-mono flex items-center gap-1">
+              <span className="text-base-content/30">{"v" + pkg.version}</span>
+              {updateAvailable && latestVersion && (
+                <span className="flex items-center gap-0.5 text-primary/70">
+                  <ArrowUpCircle size={9} />
+                  {latestVersion}
+                </span>
+              )}
             </div>
           </div>
         </button>
