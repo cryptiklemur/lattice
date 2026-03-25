@@ -2,7 +2,7 @@ import { Store } from "@tanstack/react-store";
 import type { ProjectSettingsSection } from "@lattice/shared";
 import { encodeWorkspaceUrl, decodeWorkspaceUrl, isLegacySessionUrl, shortSessionId } from "../lib/workspace-url";
 import type { DecodedWorkspace } from "../lib/workspace-url";
-import { getWorkspaceStore, restoreWorkspace, setUrlSyncCallback } from "./workspace";
+import { getWorkspaceStore, restoreWorkspace, setUrlSyncCallback, switchProjectWorkspace, setCurrentProjectKey } from "./workspace";
 
 export type { ProjectSettingsSection };
 
@@ -106,6 +106,7 @@ function parseInitialUrl(): ParsedUrl {
 
 const initialUrl = parseInitialUrl();
 
+setCurrentProjectKey(initialUrl.settingsSection ? null : initialUrl.projectSlug);
 if (initialUrl.decodedWorkspace) {
   restoreWorkspace(initialUrl.decodedWorkspace);
 }
@@ -196,6 +197,8 @@ export function getSidebarStore(): Store<SidebarState> {
 }
 
 export function setActiveProjectSlug(slug: string | null): void {
+  let prevSlug = sidebarStore.state.activeProjectSlug;
+  switchProjectWorkspace(prevSlug, slug);
   sidebarStore.setState(function (state) {
     return {
       ...state,

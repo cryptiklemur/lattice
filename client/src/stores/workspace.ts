@@ -416,6 +416,77 @@ export function restoreWorkspace(data: DecodedWorkspace): void {
   urlSyncSuppressed = false;
 }
 
+var currentProjectKey: string = "__global__";
+
+export function setCurrentProjectKey(slug: string | null): void {
+  currentProjectKey = slug || "__global__";
+}
+
+function storageKey(projectSlug: string | null): string {
+  return "lattice:workspace:" + (projectSlug || "__global__");
+}
+
+export function saveWorkspaceForProject(projectSlug: string | null): void {
+  let key = storageKey(projectSlug);
+  let state = workspaceStore.state;
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      tabs: state.tabs,
+      panes: state.panes,
+      activePaneId: state.activePaneId,
+      splitDirection: state.splitDirection,
+      splitRatio: state.splitRatio,
+    }));
+  } catch {}
+}
+
+export function loadWorkspaceForProject(projectSlug: string | null): void {
+  let key = storageKey(projectSlug);
+  currentProjectKey = projectSlug || "__global__";
+
+  try {
+    let raw = localStorage.getItem(key);
+    if (raw) {
+      let saved = JSON.parse(raw) as WorkspaceState;
+      if (saved.tabs && saved.panes && saved.tabs.length > 0 && saved.panes.length > 0) {
+        urlSyncSuppressed = true;
+        workspaceStore.setState(function () {
+          return {
+            tabs: saved.tabs,
+            panes: saved.panes,
+            activePaneId: saved.activePaneId || saved.panes[0].id,
+            splitDirection: saved.splitDirection || null,
+            splitRatio: saved.splitRatio || 0.5,
+          };
+        });
+        urlSyncSuppressed = false;
+        return;
+      }
+    }
+  } catch {}
+
+  urlSyncSuppressed = true;
+  workspaceStore.setState(function () {
+    return {
+      tabs: [{ id: "chat", type: "chat" as TabType, label: "Chat", closeable: false }],
+      panes: [{ id: "pane-1", tabIds: ["chat"], activeTabId: "chat" }],
+      activePaneId: "pane-1",
+      splitDirection: null,
+      splitRatio: 0.5,
+    };
+  });
+  urlSyncSuppressed = false;
+}
+
+export function switchProjectWorkspace(fromSlug: string | null, toSlug: string | null): void {
+  saveWorkspaceForProject(fromSlug);
+  loadWorkspaceForProject(toSlug);
+}
+
 workspaceStore.subscribe(function () {
   notifyUrlSync();
+  // Auto-save on every state change
+  try {
+    saveWorkspaceForProject(currentProjectKey === "__global__" ? null : currentProjectKey);
+  } catch {}
 });
