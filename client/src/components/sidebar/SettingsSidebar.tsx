@@ -90,7 +90,7 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-base-200">
-      <div className="px-4 py-3 border-b border-base-300 flex-shrink-0">
+      <div className="px-4 h-11 border-b border-base-300 flex-shrink-0 flex items-center">
         <span className="text-[13px] font-mono font-bold text-base-content">{headerLabel}</span>
       </div>
 

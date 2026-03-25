@@ -327,7 +327,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                   onClick={sidebar.toggleProjectDropdown}
                   aria-label="Switch project"
                   aria-expanded={sidebar.projectDropdownOpen}
-                  className="w-full px-4 py-3 border-b border-base-300 flex-shrink-0 flex items-center justify-between cursor-pointer hover:bg-base-300/30 transition-colors text-left"
+                  className="w-full px-4 h-11 border-b border-base-300 flex-shrink-0 flex items-center justify-between cursor-pointer hover:bg-base-300/30 transition-colors text-left"
                 >
                   <span className="text-[13px] font-mono font-bold text-base-content/90">
                     {activeProject?.title ?? "No Project"}

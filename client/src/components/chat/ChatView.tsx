@@ -419,7 +419,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
   return (
     <div className="flex flex-col h-full w-full bg-base-100 overflow-hidden relative">
       <div className="bg-base-100 border-b border-base-300 flex-shrink-0 px-2 sm:px-4">
-        <div className="flex items-center min-h-10 sm:min-h-12 gap-1.5">
+        <div className="flex items-center h-11 gap-1.5">
           <button
             className="btn btn-ghost btn-sm btn-square lg:hidden"
             aria-label="Toggle sidebar"
