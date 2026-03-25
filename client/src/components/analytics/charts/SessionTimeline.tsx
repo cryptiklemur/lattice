@@ -32,8 +32,9 @@ export function SessionTimeline({ data }: SessionTimelineProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[200px] text-base-content/25 font-mono text-[11px]">
-        No data for this period
+      <div className="flex flex-col items-center justify-center h-[200px] gap-1">
+        <span className="text-base-content/25 font-mono text-[11px]">No sessions in this period</span>
+        <span className="text-base-content/15 text-[10px]">Session durations will appear as bars on a timeline</span>
       </div>
     );
   }

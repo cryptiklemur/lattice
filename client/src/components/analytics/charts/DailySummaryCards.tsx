@@ -29,8 +29,9 @@ export function DailySummaryCards({ data }: DailySummaryCardsProps) {
   };
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[100px] text-base-content/25 font-mono text-[11px]">
-        No data for this period
+      <div className="flex flex-col items-center justify-center h-[100px] gap-1">
+        <span className="text-base-content/25 font-mono text-[11px]">No daily data</span>
+        <span className="text-base-content/15 text-[10px]">Day-by-day cost, session, and model breakdown</span>
       </div>
     );
   }

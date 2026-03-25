@@ -58,8 +58,9 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[120px] text-base-content/25 font-mono text-[11px]">
-        No data for this period
+      <div className="flex flex-col items-center justify-center h-[120px] gap-1">
+        <span className="text-base-content/25 font-mono text-[11px]">No activity recorded</span>
+        <span className="text-base-content/15 text-[10px]">Sessions will appear as colored cells by day</span>
       </div>
     );
   }

@@ -220,11 +220,29 @@ export function AnalyticsView() {
         )}
 
         {!analytics.loading && !analytics.error && !analytics.data && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <BarChart3 size={40} className="text-base-content/10" />
+          <div className="flex flex-col items-center justify-center py-20 gap-6 max-w-[400px] mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-primary/8 flex items-center justify-center">
+              <BarChart3 size={28} className="text-primary/40" />
+            </div>
             <div className="text-center">
-              <p className="text-[14px] font-mono text-base-content/40">No analytics data yet</p>
-              <p className="text-[12px] text-base-content/25 mt-1">Start a Claude session to begin tracking usage</p>
+              <p className="text-[15px] font-mono font-semibold text-base-content/60 mb-2">No analytics data yet</p>
+              <p className="text-[13px] text-base-content/30 leading-relaxed">
+                Analytics tracks your spending, token usage, cache efficiency, and session patterns across all projects. Start a Claude session to see your first data here.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 text-[11px] text-base-content/25 font-mono">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-primary/40" />
+                <span>Spending trends and cost breakdowns</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-primary/40" />
+                <span>Cache hit rates and response speed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-primary/40" />
+                <span>Activity patterns and session complexity</span>
+              </div>
             </div>
           </div>
         )}
