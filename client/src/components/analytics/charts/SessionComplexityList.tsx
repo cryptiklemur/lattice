@@ -13,11 +13,11 @@ export function SessionComplexityList({ data }: SessionComplexityListProps) {
     );
   }
 
-  var maxScore = data.length > 0 ? data[0].score : 1;
+  const maxScore = data.length > 0 ? data[0].score : 1;
 
   return (
     <div className="flex flex-col gap-1 max-h-[400px] overflow-y-auto">
-      <div className="grid grid-cols-[2.5rem_1fr_4rem_3rem_3rem_3.5rem] gap-2 px-2 py-1 text-[9px] font-mono text-base-content/30 uppercase tracking-wider">
+      <div className="grid grid-cols-[2.5rem_1fr_4rem_3rem_3rem_3.5rem] gap-2 px-2 py-1 text-[10px] font-mono text-base-content/30 uppercase tracking-wider">
         <span>Rank</span>
         <span>Session</span>
         <span className="text-right">Score</span>

@@ -70,7 +70,7 @@ export function ChartCard(props: ChartCardProps) {
   const cardContent = (
     <>
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-base-content/35">
+        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-base-content/40">
           {props.title}
         </span>
         <div className="flex items-center gap-2">
