@@ -95,12 +95,12 @@ export function getChartColors(): ChartColors {
   var contentRaw = css("--color-base-content");
 
   var tickFill = contentRaw
-    ? "oklch(" + contentRaw + " / 0.3)"
-    : "oklch(0.9 0.02 280 / 0.3)";
+    ? "oklch(" + contentRaw + " / 0.5)"
+    : "oklch(0.9 0.02 280 / 0.5)";
 
   var gridStroke = contentRaw
-    ? "oklch(" + contentRaw + " / 0.06)"
-    : "oklch(0.9 0.02 280 / 0.06)";
+    ? "oklch(" + contentRaw + " / 0.12)"
+    : "oklch(0.9 0.02 280 / 0.12)";
 
   _cache = {
     primary,

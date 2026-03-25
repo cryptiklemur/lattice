@@ -67,9 +67,9 @@ export function AnalyticsView() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-base-100 bg-lattice-grid">
-      <div className="flex items-center justify-between px-2 sm:px-4 min-h-10 sm:min-h-12 border-b border-base-300 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-base-300 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-[17px] font-mono font-bold text-base-content">Analytics</h1>
+          <h1 className="text-[13px] font-mono font-bold text-base-content/90">Analytics</h1>
           {analytics.loading && analytics.data && (
             <span className="w-3.5 h-3.5 border-2 border-base-content/15 border-t-primary/60 rounded-full animate-spin" />
           )}
