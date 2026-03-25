@@ -9,6 +9,7 @@ import { GlobalSkills } from "./GlobalSkills";
 import { Editor } from "./Editor";
 import { GlobalRules } from "./GlobalRules";
 import { GlobalMemory } from "./GlobalMemory";
+import { GlobalPlugins } from "./GlobalPlugins";
 import { Notifications } from "./Notifications";
 import { BudgetSettings } from "./BudgetSettings";
 import type { SettingsSection } from "../../stores/sidebar";
@@ -21,6 +22,7 @@ var SECTION_CONFIG: Record<string, { title: string }> = {
   environment: { title: "Environment" },
   mcp: { title: "MCP Servers" },
   skills: { title: "Skills" },
+  plugins: { title: "Plugins" },
   nodes: { title: "Mesh Nodes" },
   editor: { title: "Editor" },
   rules: { title: "Rules" },
@@ -35,6 +37,7 @@ function renderSection(section: SettingsSection) {
   if (section === "environment") return <Environment />;
   if (section === "mcp") return <GlobalMcp />;
   if (section === "skills") return <GlobalSkills />;
+  if (section === "plugins") return <GlobalPlugins />;
   if (section === "nodes") return <MeshStatus />;
   if (section === "editor") return <Editor />;
   if (section === "rules") return <GlobalRules />;

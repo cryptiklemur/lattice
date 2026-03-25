@@ -14,7 +14,7 @@ export type McpServerConfig =
   | { type: "sse"; url: string; headers?: Record<string, string> };
 
 export type ProjectSettingsSection =
-  | "general" | "claude" | "environment" | "mcp" | "skills" | "rules" | "permissions" | "memory" | "notifications";
+  | "general" | "claude" | "environment" | "mcp" | "skills" | "plugins" | "rules" | "permissions" | "memory" | "notifications";
 
 export interface ProjectSettings {
   title: string;
@@ -30,6 +30,7 @@ export interface ProjectSettings {
   mcpServers: Record<string, McpServerConfig>;
   rules: Array<{ filename: string; content: string }>;
   skills: Array<{ name: string; description: string; path: string }>;
+  disabledPlugins: string[];
   global: {
     claudeMd: string;
     defaultModel: string;

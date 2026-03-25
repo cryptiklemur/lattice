@@ -1,4 +1,4 @@
-import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Network, Settings, ScrollText, Shield, Brain, MonitorCog, Bell, Wallet } from "lucide-react";
+import { ArrowLeft, Palette, FileText, Terminal, Plug, Puzzle, Blocks, Network, Settings, ScrollText, Shield, Brain, MonitorCog, Bell, Wallet } from "lucide-react";
 import { useSidebar } from "../../hooks/useSidebar";
 import type { SettingsSection, ProjectSettingsSection } from "../../stores/sidebar";
 
@@ -31,6 +31,7 @@ var SETTINGS_NAV = [
     items: [
       { id: "mcp" as SettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
       { id: "skills" as SettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
+      { id: "plugins" as SettingsSection, label: "Plugins", icon: <Blocks size={14} /> },
     ],
   },
   {
@@ -56,6 +57,7 @@ var PROJECT_SETTINGS_NAV = [
     items: [
       { id: "mcp" as ProjectSettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
       { id: "skills" as ProjectSettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
+      { id: "plugins" as ProjectSettingsSection, label: "Plugins", icon: <Blocks size={14} /> },
     ],
   },
   {

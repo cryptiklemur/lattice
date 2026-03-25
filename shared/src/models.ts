@@ -185,3 +185,62 @@ export interface LoopStatus {
   finishedAt: number | null;
 }
 
+export interface PluginInfo {
+  name: string;
+  marketplace: string;
+  key: string;
+  version: string;
+  scope: string;
+  installPath: string;
+  installedAt: string;
+  lastUpdated: string;
+  gitCommitSha: string;
+  description: string;
+  skillCount: number;
+  hookCount: number;
+  ruleCount: number;
+  installs?: number;
+}
+
+export interface PluginMarketplaceInfo {
+  name: string;
+  source: { source: string; repo: string };
+  installLocation: string;
+  lastUpdated: string;
+}
+
+export interface PluginDetails {
+  name: string;
+  marketplace: string;
+  version: string;
+  description: string;
+  author?: { name: string; email?: string };
+  homepage?: string;
+  license?: string;
+  keywords?: string[];
+  skills: Array<{ name: string; description: string }>;
+  hooks: Record<string, unknown>;
+  rules: string[];
+  installPath: string;
+  installedAt: string;
+  lastUpdated: string;
+  gitCommitSha: string;
+}
+
+export interface PluginError {
+  key: string;
+  name: string;
+  marketplace: string;
+  errors: string[];
+}
+
+export interface MarketplacePluginEntry {
+  name: string;
+  marketplace: string;
+  description: string;
+  author?: { name: string; email?: string };
+  installed: boolean;
+  installedVersion?: string;
+  installs?: number;
+}
+

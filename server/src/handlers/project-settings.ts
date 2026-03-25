@@ -68,6 +68,7 @@ function buildProjectSettings(projectSlug: string): ProjectSettings | { error: s
     mcpServers,
     rules,
     skills,
+    disabledPlugins: Array.isArray(lattice.disabledPlugins) ? lattice.disabledPlugins as string[] : [],
     global: {
       claudeMd: loadGlobalClaudeMd(),
       defaultModel: "",
@@ -149,6 +150,11 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
         writeProjectMcpServers(project.path, (settings.mcpServers as Record<string, unknown>) ?? {});
       } else if (section === "rules") {
         writeProjectRules(project.path, (settings.rules as Array<{ filename: string; content: string }>) ?? []);
+      } else if (section === "plugins") {
+        var disabledPlugins = Array.isArray(settings.disabledPlugins) ? settings.disabledPlugins : [];
+        mergeProjectClaudeSettings(project.path, {
+          lattice: { disabledPlugins: disabledPlugins },
+        });
       } else if (section === "permissions") {
         mergeProjectClaudeSettings(project.path, {
           permissions: {

@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import type { ContextBreakdownSegment } from "@lattice/shared";
 import { guessContextWindow } from "./session";
 import { loadConfig } from "../config";
+import { getInstalledPluginCount, getPluginSkillRuleTokenEstimate } from "../handlers/plugins";
 
 var encoder = encodingForModel("gpt-4o");
 
@@ -276,6 +277,17 @@ export async function getContextBreakdown(projectSlug: string, sessionId: string
       estimated: true,
     });
   });
+
+  var pluginCount = getInstalledPluginCount();
+  if (pluginCount > 0) {
+    var pluginTokens = getPluginSkillRuleTokenEstimate();
+    segments.push({
+      label: "Plugins (" + pluginCount + ")",
+      tokens: pluginTokens,
+      id: "plugins",
+      estimated: true,
+    });
+  }
 
   segments.push(
     { label: "Instructions", tokens: instructionsTokens, id: "instructions", estimated: false },

@@ -8,7 +8,7 @@ export type { ProjectSettingsSection };
 
 export type SettingsSection =
   | "appearance" | "claude" | "environment"
-  | "mcp" | "skills" | "nodes" | "editor"
+  | "mcp" | "skills" | "plugins" | "nodes" | "editor"
   | "rules" | "memory" | "notifications" | "budget";
 
 export type SidebarMode = "project" | "settings";
@@ -35,7 +35,7 @@ export interface SidebarState {
   confirmRemoveSlug: string | null;
 }
 
-const SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "nodes", "editor", "rules", "memory", "notifications", "budget"];
+const SETTINGS_SECTIONS: SettingsSection[] = ["appearance", "claude", "environment", "mcp", "skills", "plugins", "nodes", "editor", "rules", "memory", "notifications", "budget"];
 
 interface ParsedUrl {
   projectSlug: string | null;

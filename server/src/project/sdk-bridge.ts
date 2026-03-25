@@ -10,6 +10,7 @@ import { homedir } from "node:os";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
 import { resolveSkillContent } from "../handlers/skills";
+import { getPluginMcpServers } from "../handlers/plugins";
 import { guessContextWindow, getSessionTitle, renameSession, listSessions } from "./session";
 import { getLatticeHome, loadConfig } from "../config";
 import { log } from "../logger";
@@ -426,6 +427,11 @@ export function startChatStream(options: ChatStreamOptions): void {
         mcpServers = claudeJson.mcpServers;
       }
     } catch {}
+  }
+
+  var pluginMcpServers = getPluginMcpServers();
+  if (Object.keys(pluginMcpServers).length > 0) {
+    mcpServers = { ...mcpServers, ...pluginMcpServers };
   }
 
   var projectMcpPath = join(cwd, ".mcp.json");

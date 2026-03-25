@@ -4,9 +4,14 @@ import type {
   HistoryMessage,
   LatticeConfig,
   LoopStatus,
+  MarketplacePluginEntry,
+  PluginError,
   MarketplaceSkill,
   MessageBookmark,
   NodeInfo,
+  PluginDetails,
+  PluginInfo,
+  PluginMarketplaceInfo,
   ProjectInfo,
   ScheduledTask,
   SessionPreview,
@@ -454,6 +459,52 @@ export interface BookmarkRemoveMessage {
   id: string;
 }
 
+export interface PluginListMessage {
+  type: "plugin:list";
+}
+
+export interface PluginMarketplacesMessage {
+  type: "plugin:marketplaces";
+}
+
+export interface PluginSearchMessage {
+  type: "plugin:search";
+  query: string;
+  marketplace?: string;
+}
+
+export interface PluginInstallMessage {
+  type: "plugin:install";
+  name: string;
+  marketplace: string;
+}
+
+export interface PluginUninstallMessage {
+  type: "plugin:uninstall";
+  name: string;
+  marketplace: string;
+}
+
+export interface PluginUpdateMessage {
+  type: "plugin:update";
+  name: string;
+  marketplace: string;
+}
+
+export interface PluginDetailsMessage {
+  type: "plugin:details";
+  name: string;
+  marketplace: string;
+}
+
+export interface PluginDiscoverMessage {
+  type: "plugin:discover";
+}
+
+export interface PluginErrorsMessage {
+  type: "plugin:errors";
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
@@ -516,7 +567,16 @@ export type ClientMessage =
   | BookmarkListMessage
   | BookmarkAddMessage
   | BookmarkRemoveMessage
-  | BudgetOverrideMessage;
+  | BudgetOverrideMessage
+  | PluginListMessage
+  | PluginMarketplacesMessage
+  | PluginSearchMessage
+  | PluginInstallMessage
+  | PluginUninstallMessage
+  | PluginUpdateMessage
+  | PluginDetailsMessage
+  | PluginDiscoverMessage
+  | PluginErrorsMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -859,6 +919,58 @@ export interface BookmarkListResultMessage {
   bookmarks: MessageBookmark[];
 }
 
+export interface PluginListResultMessage {
+  type: "plugin:list_result";
+  plugins: PluginInfo[];
+}
+
+export interface PluginMarketplacesResultMessage {
+  type: "plugin:marketplaces_result";
+  marketplaces: PluginMarketplaceInfo[];
+}
+
+export interface PluginSearchResultMessage {
+  type: "plugin:search_result";
+  query: string;
+  plugins: MarketplacePluginEntry[];
+  count: number;
+  error?: string;
+}
+
+export interface PluginInstallResultMessage {
+  type: "plugin:install_result";
+  success: boolean;
+  message?: string;
+}
+
+export interface PluginUninstallResultMessage {
+  type: "plugin:uninstall_result";
+  success: boolean;
+  message?: string;
+}
+
+export interface PluginUpdateResultMessage {
+  type: "plugin:update_result";
+  success: boolean;
+  message?: string;
+}
+
+export interface PluginDetailsResultMessage {
+  type: "plugin:details_result";
+  plugin: PluginDetails | null;
+  error?: string;
+}
+
+export interface PluginDiscoverResultMessage {
+  type: "plugin:discover_result";
+  plugins: MarketplacePluginEntry[];
+}
+
+export interface PluginErrorsResultMessage {
+  type: "plugin:errors_result";
+  errors: PluginError[];
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -926,7 +1038,16 @@ export type ServerMessage =
   | SessionPreviewMessage
   | BookmarkListResultMessage
   | BudgetStatusMessage
-  | BudgetExceededMessage;
+  | BudgetExceededMessage
+  | PluginListResultMessage
+  | PluginMarketplacesResultMessage
+  | PluginSearchResultMessage
+  | PluginInstallResultMessage
+  | PluginUninstallResultMessage
+  | PluginUpdateResultMessage
+  | PluginDetailsResultMessage
+  | PluginDiscoverResultMessage
+  | PluginErrorsResultMessage;
 
 export interface BudgetStatusMessage {
   type: "budget:status";

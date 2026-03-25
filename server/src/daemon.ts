@@ -34,6 +34,7 @@ import "./handlers/memory";
 import "./handlers/editor";
 import "./handlers/analytics";
 import "./handlers/bookmarks";
+import "./handlers/plugins";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
 import { loadBookmarks } from "./project/bookmarks";

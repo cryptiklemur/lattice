@@ -12,6 +12,7 @@ import { ProjectRules } from "./ProjectRules";
 import { ProjectMcp } from "./ProjectMcp";
 import { ProjectMemory } from "./ProjectMemory";
 import { ProjectNotifications } from "./ProjectNotifications";
+import { ProjectPlugins } from "./ProjectPlugins";
 
 var SECTION_CONFIG: Record<string, { title: string }> = {
   general: { title: "General" },
@@ -20,6 +21,7 @@ var SECTION_CONFIG: Record<string, { title: string }> = {
   environment: { title: "Environment" },
   mcp: { title: "MCP Servers" },
   skills: { title: "Skills" },
+  plugins: { title: "Plugins" },
   rules: { title: "Rules" },
   permissions: { title: "Permissions" },
   memory: { title: "Memory" },
@@ -49,6 +51,10 @@ function renderSection(
 
   if (section === "skills") {
     return <ProjectSkills settings={settings} projectSlug={projectSlug} />;
+  }
+
+  if (section === "plugins") {
+    return <ProjectPlugins settings={settings} updateSection={updateSection} />;
   }
 
   if (section === "rules") {
