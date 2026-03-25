@@ -69,7 +69,7 @@ export function ChartCard(props: ChartCardProps) {
 
   const cardContent = (
     <>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-base-content/40">
           {props.title}
         </span>
@@ -121,7 +121,7 @@ export function ChartCard(props: ChartCardProps) {
         <div
           ref={cardRef}
           aria-label={props.title}
-          className={"rounded-xl border border-base-content/8 bg-base-300/50 p-4 invisible " + (props.className || "")}
+          className={"rounded-xl border border-base-content/8 bg-base-300/50 p-3 sm:p-4 invisible " + (props.className || "")}
         >
           {cardContent}
         </div>
@@ -180,7 +180,7 @@ export function ChartCard(props: ChartCardProps) {
     <div
       ref={cardRef}
       aria-label={props.title}
-      className={"group rounded-xl border border-base-content/8 bg-base-300/50 p-4 cursor-pointer hover:border-base-content/12 transition-all duration-200 " + (props.className || "")}
+      className={"group rounded-xl border border-base-content/8 bg-base-300/50 p-3 sm:p-4 cursor-pointer hover:border-base-content/12 transition-all duration-200 " + (props.className || "")}
     >
       {cardContent}
     </div>

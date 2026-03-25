@@ -77,7 +77,7 @@ export function AnalyticsView() {
         <PeriodSelector value={analytics.period} onChange={analytics.setPeriod} />
       </div>
 
-      <div className={"flex-1 overflow-y-auto px-6 py-4 transition-opacity duration-200 " + (analytics.loading && analytics.data ? "opacity-50" : "opacity-100")}>
+      <div className={"flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 transition-opacity duration-200 " + (analytics.loading && analytics.data ? "opacity-50" : "opacity-100")}>
         {analytics.loading && !analytics.data && (
           <div className="flex flex-col gap-4 max-w-[1200px] mx-auto">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

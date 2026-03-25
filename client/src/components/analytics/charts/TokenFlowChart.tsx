@@ -46,11 +46,11 @@ function formatTokens(v: number): string {
 }
 
 export function TokenFlowChart({ data }: TokenFlowChartProps) {
-  var fullscreenHeight = useChartFullscreen();
-  var colors = getChartColors();
+  constfullscreenHeight = useChartFullscreen();
+  constcolors = getChartColors();
   return (
     <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
-      <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 4, right: 4, left: -15, bottom: 0 }}>
         <defs>
           <linearGradient id="inputGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor={colors.primary} stopOpacity={0.8} />
