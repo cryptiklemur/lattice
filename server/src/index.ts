@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { DAEMON_PID_FILE } from "@lattice/shared";
