@@ -3,14 +3,14 @@ import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { Maximize2, Minimize2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-var ChartFullscreenContext = createContext<number | false>(false);
+const ChartFullscreenContext = createContext<number | false>(false);
 
 export function useChartFullscreen(): number | false {
   return useContext(ChartFullscreenContext);
 }
 
 function useViewportChartHeight(): number {
-  var [h, setH] = useState(Math.round(window.innerHeight * 0.5));
+  const [h, setH] = useState(Math.round(window.innerHeight * 0.5));
   useEffect(function () {
     function onResize() { setH(Math.round(window.innerHeight * 0.5)); }
     window.addEventListener("resize", onResize);
@@ -27,13 +27,13 @@ interface ChartCardProps {
 }
 
 export function ChartCard(props: ChartCardProps) {
-  var [isFullscreen, setIsFullscreen] = useState(false);
-  var chartHeight = useViewportChartHeight();
-  var cardRef = useRef<HTMLDivElement>(null);
-  var [originRect, setOriginRect] = useState<DOMRect | null>(null);
-  var [animating, setAnimating] = useState(false);
-  var fullscreenModalRef = useRef<HTMLDivElement>(null);
-  var closeFullscreenCb = useCallback(function () { closeFullscreen(); }, []);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const chartHeight = useViewportChartHeight();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [originRect, setOriginRect] = useState<DOMRect | null>(null);
+  const [animating, setAnimating] = useState(false);
+  const fullscreenModalRef = useRef<HTMLDivElement>(null);
+  const closeFullscreenCb = useCallback(function () { closeFullscreen(); }, []);
   useFocusTrap(fullscreenModalRef, closeFullscreenCb, isFullscreen);
 
   function openFullscreen() {
@@ -67,7 +67,7 @@ export function ChartCard(props: ChartCardProps) {
     return function () { document.body.style.overflow = ""; };
   }, [isFullscreen]);
 
-  var cardContent = (
+  const cardContent = (
     <>
       <div className="flex items-center justify-between mb-4">
         <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-base-content/35">
@@ -91,17 +91,19 @@ export function ChartCard(props: ChartCardProps) {
           </button>
         </div>
       </div>
-      {props.children}
+      <div role="img" aria-label={props.title}>
+        {props.children}
+      </div>
     </>
   );
 
   if (isFullscreen) {
-    var overlayStyle: React.CSSProperties = {
+    const overlayStyle: React.CSSProperties = {
       transition: "opacity 250ms cubic-bezier(0.4, 0, 0.2, 1)",
       opacity: animating ? 0 : 1,
     };
 
-    var modalStyle: React.CSSProperties = {
+    const modalStyle: React.CSSProperties = {
       transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
     };
 
@@ -118,6 +120,7 @@ export function ChartCard(props: ChartCardProps) {
       <>
         <div
           ref={cardRef}
+          aria-label={props.title}
           className={"rounded-xl border border-base-content/8 bg-base-300/50 p-4 invisible " + (props.className || "")}
         >
           {cardContent}
@@ -176,6 +179,7 @@ export function ChartCard(props: ChartCardProps) {
   return (
     <div
       ref={cardRef}
+      aria-label={props.title}
       className={"group rounded-xl border border-base-content/8 bg-base-300/50 p-4 cursor-pointer hover:border-base-content/12 transition-all duration-200 " + (props.className || "")}
     >
       {cardContent}

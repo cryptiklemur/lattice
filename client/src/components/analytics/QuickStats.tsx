@@ -31,7 +31,7 @@ function Sparkline({ data, stroke }: SparklineProps) {
 }
 
 export function QuickStats() {
-  var analytics = useAnalytics();
+  const analytics = useAnalytics();
 
   if (!analytics.data) {
     return (
@@ -48,22 +48,26 @@ export function QuickStats() {
     );
   }
 
-  var d = analytics.data;
-  var colors = getChartColors();
+  const d = analytics.data;
+  const colors = getChartColors();
 
-  var costSparkData = d.costOverTime.slice(-7).map(function (e: typeof d.costOverTime[number]) { return { v: e.total }; });
-  var sessionsSparkData = d.sessionsOverTime.slice(-7).map(function (e: typeof d.sessionsOverTime[number]) { return { v: e.count }; });
-  var tokensSparkData = d.tokensOverTime.slice(-7).map(function (e: typeof d.tokensOverTime[number]) { return { v: e.input + e.output }; });
+  const costSparkData = d.costOverTime.slice(-7).map(function (e: typeof d.costOverTime[number]) { return { v: e.total }; });
+  const sessionsSparkData = d.sessionsOverTime.slice(-7).map(function (e: typeof d.sessionsOverTime[number]) { return { v: e.count }; });
+  const tokensSparkData = d.tokensOverTime.slice(-7).map(function (e: typeof d.tokensOverTime[number]) { return { v: e.input + e.output }; });
 
-  var totalTokens = d.totalTokens.input + d.totalTokens.output;
-  var cacheHitPct = Math.round(d.cacheHitRate * 100);
+  const totalTokens = d.totalTokens.input + d.totalTokens.output;
+  const cacheHitPct = Math.round(d.cacheHitRate * 100);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-base-content/35">Cost</span>
-          {costSparkData.length > 1 && <Sparkline data={costSparkData} stroke={colors.primary} />}
+          {costSparkData.length > 1 && (
+            <div role="img" aria-label={"Cost trend: " + (costSparkData[costSparkData.length - 1].v > costSparkData[0].v ? "increasing" : costSparkData[costSparkData.length - 1].v < costSparkData[0].v ? "decreasing" : "stable")}>
+              <Sparkline data={costSparkData} stroke={colors.primary} />
+            </div>
+          )}
         </div>
         <div className="text-[22px] font-mono text-base-content/85">${d.totalCost.toFixed(2)}</div>
       </div>
@@ -71,7 +75,11 @@ export function QuickStats() {
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-base-content/35">Sessions</span>
-          {sessionsSparkData.length > 1 && <Sparkline data={sessionsSparkData} stroke={colors.success} />}
+          {sessionsSparkData.length > 1 && (
+            <div role="img" aria-label={"Sessions trend: " + (sessionsSparkData[sessionsSparkData.length - 1].v > sessionsSparkData[0].v ? "increasing" : sessionsSparkData[sessionsSparkData.length - 1].v < sessionsSparkData[0].v ? "decreasing" : "stable")}>
+              <Sparkline data={sessionsSparkData} stroke={colors.success} />
+            </div>
+          )}
         </div>
         <div className="text-[22px] font-mono text-base-content/85">{d.totalSessions}</div>
       </div>
@@ -79,7 +87,11 @@ export function QuickStats() {
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-base-content/35">Tokens</span>
-          {tokensSparkData.length > 1 && <Sparkline data={tokensSparkData} stroke={colors.warning} />}
+          {tokensSparkData.length > 1 && (
+            <div role="img" aria-label={"Tokens trend: " + (tokensSparkData[tokensSparkData.length - 1].v > tokensSparkData[0].v ? "increasing" : tokensSparkData[tokensSparkData.length - 1].v < tokensSparkData[0].v ? "decreasing" : "stable")}>
+              <Sparkline data={tokensSparkData} stroke={colors.warning} />
+            </div>
+          )}
         </div>
         <div className="text-[22px] font-mono text-base-content/85">{formatTokens(totalTokens)}</div>
       </div>
@@ -89,7 +101,14 @@ export function QuickStats() {
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-base-content/35">Cache Hit</span>
         </div>
         <div className="text-[22px] font-mono text-base-content/85 mb-2">{cacheHitPct}%</div>
-        <div className="w-full h-1 rounded-full bg-base-content/10 overflow-hidden">
+        <div
+          className="w-full h-1 rounded-full bg-base-content/10 overflow-hidden"
+          role="progressbar"
+          aria-valuenow={cacheHitPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Cache hit rate"
+        >
           <div
             className="h-full rounded-full bg-primary transition-all duration-300"
             style={{ width: cacheHitPct + "%" }}

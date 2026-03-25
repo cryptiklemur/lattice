@@ -3,19 +3,25 @@ import { BarChart3 } from "lucide-react";
 import { useAnalytics } from "../../hooks/useAnalytics";
 import { useMesh } from "../../hooks/useMesh";
 
-class ChartErrorBoundary extends Component<{ children: React.ReactNode; name: string }, { error: Error | null }> {
+class ChartErrorBoundary extends Component<{ children: React.ReactNode; name: string }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode; name: string }) {
     super(props);
-    this.state = { error: null };
+    this.state = { hasError: false };
   }
-  static getDerivedStateFromError(error: Error) {
-    return { error: error };
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
   render() {
-    if (this.state.error) {
+    if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center h-[200px] text-base-content/25 font-mono text-[11px]">
-          Chart error: {this.props.name}
+        <div className="flex flex-col items-center justify-center h-[200px] gap-3">
+          <span className="text-base-content/30 font-mono text-[12px]">Unable to load chart</span>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="text-[11px] font-mono text-primary/60 hover:text-primary transition-colors cursor-pointer px-3 py-1 rounded-md border border-primary/20 hover:border-primary/40"
+          >
+            Retry
+          </button>
         </div>
       );
     }
@@ -26,9 +32,9 @@ class ChartErrorBoundary extends Component<{ children: React.ReactNode; name: st
 function SectionHeader(props: { label: string }) {
   return (
     <div className="flex items-center gap-3 pt-4 pb-1">
-      <div className="h-px flex-1 bg-base-content/6" />
-      <span className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-base-content/20">{props.label}</span>
-      <div className="h-px flex-1 bg-base-content/6" />
+      <div className="h-px flex-1 bg-base-content/10" />
+      <span className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-base-content/40">{props.label}</span>
+      <div className="h-px flex-1 bg-base-content/10" />
     </div>
   );
 }
@@ -55,9 +61,9 @@ import { SessionComplexityList } from "./charts/SessionComplexityList";
 import { NodeFleetOverview } from "./charts/NodeFleetOverview";
 
 export function AnalyticsView() {
-  var analytics = useAnalytics();
-  var mesh = useMesh();
-  var nodes = mesh.nodes;
+  const analytics = useAnalytics();
+  const mesh = useMesh();
+  const nodes = mesh.nodes;
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-base-100 bg-lattice-grid">
@@ -98,24 +104,34 @@ export function AnalyticsView() {
             <SectionHeader label="Cost" />
 
             <ChartCard title="Cost Over Time">
-              <CostAreaChart data={analytics.data.costOverTime} />
+              <ChartErrorBoundary name="CostArea">
+                <CostAreaChart data={analytics.data.costOverTime} />
+              </ChartErrorBoundary>
             </ChartCard>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ChartCard title="Cost Breakdown">
-                <CostDonutChart modelUsage={analytics.data.modelUsage} totalCost={analytics.data.totalCost} />
+                <ChartErrorBoundary name="CostDonut">
+                  <CostDonutChart modelUsage={analytics.data.modelUsage} totalCost={analytics.data.totalCost} />
+                </ChartErrorBoundary>
               </ChartCard>
               <ChartCard title="Cumulative Cost">
-                <CumulativeCostChart data={analytics.data.cumulativeCost} />
+                <ChartErrorBoundary name="CumulativeCost">
+                  <CumulativeCostChart data={analytics.data.cumulativeCost} />
+                </ChartErrorBoundary>
               </ChartCard>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ChartCard title="Cost Distribution">
-                <CostDistributionChart data={analytics.data.costDistribution} />
+                <ChartErrorBoundary name="CostDistribution">
+                  <CostDistributionChart data={analytics.data.costDistribution} />
+                </ChartErrorBoundary>
               </ChartCard>
               <ChartCard title="Session Costs">
-                <SessionBubbleChart data={analytics.data.sessionBubbles} />
+                <ChartErrorBoundary name="SessionBubble">
+                  <SessionBubbleChart data={analytics.data.sessionBubbles} />
+                </ChartErrorBoundary>
               </ChartCard>
             </div>
 
@@ -182,13 +198,11 @@ export function AnalyticsView() {
 
             <SectionHeader label="Projects" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Project Comparison">
-                <ChartErrorBoundary name="Radar">
-                  <ProjectRadar data={analytics.data.projectRadar} />
-                </ChartErrorBoundary>
-              </ChartCard>
-            </div>
+            <ChartCard title="Project Comparison">
+              <ChartErrorBoundary name="Radar">
+                <ProjectRadar data={analytics.data.projectRadar} />
+              </ChartErrorBoundary>
+            </ChartCard>
 
             <ChartCard title="Session Complexity">
               <ChartErrorBoundary name="Complexity">
