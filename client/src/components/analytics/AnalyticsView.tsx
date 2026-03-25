@@ -31,7 +31,7 @@ class ChartErrorBoundary extends Component<{ children: React.ReactNode; name: st
 
 function SectionHeader(props: { label: string }) {
   return (
-    <div className="flex items-center gap-3 pt-4 pb-1">
+    <div className="flex items-center gap-3 mb-1">
       <div className="h-px flex-1 bg-base-content/10" />
       <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-base-content/40">{props.label}</span>
       <div className="h-px flex-1 bg-base-content/10" />
@@ -98,117 +98,116 @@ export function AnalyticsView() {
         )}
 
         {analytics.data && (
-          <div className="flex flex-col gap-4 max-w-[1200px] mx-auto pb-8">
+          <div className="flex flex-col max-w-[1200px] mx-auto pb-12">
             <QuickStats />
 
-            <SectionHeader label="Cost" />
-
-            <ChartCard title="Cost Over Time">
-              <ChartErrorBoundary name="CostArea">
-                <CostAreaChart data={analytics.data.costOverTime} />
-              </ChartErrorBoundary>
-            </ChartCard>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Cost Breakdown">
-                <ChartErrorBoundary name="CostDonut">
-                  <CostDonutChart modelUsage={analytics.data.modelUsage} totalCost={analytics.data.totalCost} />
+            <section className="flex flex-col gap-3 mt-8">
+              <SectionHeader label="Cost" />
+              <ChartCard title="Cost Over Time">
+                <ChartErrorBoundary name="CostArea">
+                  <CostAreaChart data={analytics.data.costOverTime} />
                 </ChartErrorBoundary>
               </ChartCard>
-              <ChartCard title="Cumulative Cost">
-                <ChartErrorBoundary name="CumulativeCost">
-                  <CumulativeCostChart data={analytics.data.cumulativeCost} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Cost Breakdown">
+                  <ChartErrorBoundary name="CostDonut">
+                    <CostDonutChart modelUsage={analytics.data.modelUsage} totalCost={analytics.data.totalCost} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Cumulative Cost">
+                  <ChartErrorBoundary name="CumulativeCost">
+                    <CumulativeCostChart data={analytics.data.cumulativeCost} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Cost Distribution">
+                  <ChartErrorBoundary name="CostDistribution">
+                    <CostDistributionChart data={analytics.data.costDistribution} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Session Costs">
+                  <ChartErrorBoundary name="SessionBubble">
+                    <SessionBubbleChart data={analytics.data.sessionBubbles} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3 mt-10">
+              <SectionHeader label="Tokens & Performance" />
+              <ChartCard title="Token Flow">
+                <ChartErrorBoundary name="TokenFlow">
+                  <TokenFlowChart data={analytics.data.tokensOverTime} />
                 </ChartErrorBoundary>
               </ChartCard>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Cache Efficiency">
+                  <ChartErrorBoundary name="CacheEfficiency">
+                    <CacheEfficiencyChart data={analytics.data.cacheHitRateOverTime} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Response Time vs Tokens">
+                  <ChartErrorBoundary name="ResponseTime">
+                    <ResponseTimeScatter data={analytics.data.responseTimeData} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Context Window Usage">
+                  <ChartErrorBoundary name="ContextUtilization">
+                    <ContextUtilizationChart data={analytics.data.contextUtilization} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Token Flow (Sankey)">
+                  <ChartErrorBoundary name="Sankey">
+                    <TokenSankeyChart data={analytics.data.tokenFlowSankey} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+            </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Cost Distribution">
-                <ChartErrorBoundary name="CostDistribution">
-                  <CostDistributionChart data={analytics.data.costDistribution} />
+            <section className="flex flex-col gap-3 mt-10">
+              <SectionHeader label="Activity" />
+              <ChartCard title="Activity Calendar">
+                <ChartErrorBoundary name="Calendar">
+                  <ActivityCalendar data={analytics.data.activityCalendar} />
                 </ChartErrorBoundary>
               </ChartCard>
-              <ChartCard title="Session Costs">
-                <ChartErrorBoundary name="SessionBubble">
-                  <SessionBubbleChart data={analytics.data.sessionBubbles} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Hourly Activity">
+                  <ChartErrorBoundary name="HourlyHeatmap">
+                    <HourlyHeatmap data={analytics.data.hourlyHeatmap} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Session Timeline">
+                  <ChartErrorBoundary name="Timeline">
+                    <SessionTimeline data={analytics.data.sessionTimeline} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+              <ChartCard title="Daily Summary">
+                <ChartErrorBoundary name="DailySummary">
+                  <DailySummaryCards data={analytics.data.dailySummaries} />
                 </ChartErrorBoundary>
               </ChartCard>
-            </div>
+            </section>
 
-            <SectionHeader label="Tokens & Performance" />
-
-            <ChartCard title="Token Flow">
-              <ChartErrorBoundary name="TokenFlow">
-                <TokenFlowChart data={analytics.data.tokensOverTime} />
-              </ChartErrorBoundary>
-            </ChartCard>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Cache Efficiency">
-                <ChartErrorBoundary name="CacheEfficiency">
-                  <CacheEfficiencyChart data={analytics.data.cacheHitRateOverTime} />
-                </ChartErrorBoundary>
-              </ChartCard>
-              <ChartCard title="Response Time vs Tokens">
-                <ChartErrorBoundary name="ResponseTime">
-                  <ResponseTimeScatter data={analytics.data.responseTimeData} />
-                </ChartErrorBoundary>
-              </ChartCard>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Context Window Usage">
-                <ChartErrorBoundary name="ContextUtilization">
-                  <ContextUtilizationChart data={analytics.data.contextUtilization} />
-                </ChartErrorBoundary>
-              </ChartCard>
-              <ChartCard title="Token Flow (Sankey)">
-                <ChartErrorBoundary name="Sankey">
-                  <TokenSankeyChart data={analytics.data.tokenFlowSankey} />
-                </ChartErrorBoundary>
-              </ChartCard>
-            </div>
-
-            <SectionHeader label="Activity" />
-
-            <ChartCard title="Activity Calendar">
-              <ChartErrorBoundary name="Calendar">
-                <ActivityCalendar data={analytics.data.activityCalendar} />
-              </ChartErrorBoundary>
-            </ChartCard>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ChartCard title="Hourly Activity">
-                <ChartErrorBoundary name="HourlyHeatmap">
-                  <HourlyHeatmap data={analytics.data.hourlyHeatmap} />
-                </ChartErrorBoundary>
-              </ChartCard>
-              <ChartCard title="Session Timeline">
-                <ChartErrorBoundary name="Timeline">
-                  <SessionTimeline data={analytics.data.sessionTimeline} />
-                </ChartErrorBoundary>
-              </ChartCard>
-            </div>
-
-            <ChartCard title="Daily Summary">
-              <ChartErrorBoundary name="DailySummary">
-                <DailySummaryCards data={analytics.data.dailySummaries} />
-              </ChartErrorBoundary>
-            </ChartCard>
-
-            <SectionHeader label="Projects" />
-
-            <ChartCard title="Project Comparison">
-              <ChartErrorBoundary name="Radar">
-                <ProjectRadar data={analytics.data.projectRadar} />
-              </ChartErrorBoundary>
-            </ChartCard>
-
-            <ChartCard title="Session Complexity">
-              <ChartErrorBoundary name="Complexity">
-                <SessionComplexityList data={analytics.data.sessionComplexity} />
-              </ChartErrorBoundary>
-            </ChartCard>
+            <section className="flex flex-col gap-3 mt-10">
+              <SectionHeader label="Projects" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Project Comparison">
+                  <ChartErrorBoundary name="Radar">
+                    <ProjectRadar data={analytics.data.projectRadar} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Session Complexity">
+                  <ChartErrorBoundary name="Complexity">
+                    <SessionComplexityList data={analytics.data.sessionComplexity} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+            </section>
 
             <SectionHeader label="Fleet" />
 
