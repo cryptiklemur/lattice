@@ -478,15 +478,20 @@ export function loadWorkspaceForProject(projectSlug: string | null): void {
   urlSyncSuppressed = false;
 }
 
+var saveSuppressed = false;
+
 export function switchProjectWorkspace(fromSlug: string | null, toSlug: string | null): void {
+  saveSuppressed = true;
   saveWorkspaceForProject(fromSlug);
   loadWorkspaceForProject(toSlug);
+  saveSuppressed = false;
 }
 
 workspaceStore.subscribe(function () {
   notifyUrlSync();
-  // Auto-save on every state change
-  try {
-    saveWorkspaceForProject(currentProjectKey === "__global__" ? null : currentProjectKey);
-  } catch {}
+  if (!saveSuppressed) {
+    try {
+      saveWorkspaceForProject(currentProjectKey === "__global__" ? null : currentProjectKey);
+    } catch {}
+  }
 });

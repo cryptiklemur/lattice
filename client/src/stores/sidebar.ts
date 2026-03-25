@@ -198,7 +198,6 @@ export function getSidebarStore(): Store<SidebarState> {
 
 export function setActiveProjectSlug(slug: string | null): void {
   let prevSlug = sidebarStore.state.activeProjectSlug;
-  switchProjectWorkspace(prevSlug, slug);
   sidebarStore.setState(function (state) {
     return {
       ...state,
@@ -218,6 +217,8 @@ export function setActiveProjectSlug(slug: string | null): void {
     window.history.pushState(null, "", path);
   }
   lastEncodedUrl = "";
+  // Switch workspace AFTER sidebar state is set so React sees both in same render
+  switchProjectWorkspace(prevSlug, slug);
 }
 
 export function setActiveSessionId(sessionId: string | null): void {
@@ -343,6 +344,7 @@ export function goToProjectDashboard(): void {
 }
 
 export function goToDashboard(): void {
+  let prevSlug = sidebarStore.state.activeProjectSlug;
   sidebarStore.setState(function (state) {
     return {
       ...state,
@@ -357,6 +359,7 @@ export function goToDashboard(): void {
   if (window.location.pathname + window.location.search !== "/") {
     window.history.pushState(null, "", "/");
   }
+  switchProjectWorkspace(prevSlug, null);
   lastEncodedUrl = "";
 }
 
