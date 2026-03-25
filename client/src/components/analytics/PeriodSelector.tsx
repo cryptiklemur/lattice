@@ -25,7 +25,7 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
             aria-checked={isActive}
             onClick={function () { onChange(period.value); }}
             className={[
-              "px-2.5 py-1 rounded-md border text-[10px] font-mono font-bold uppercase tracking-widest transition-colors cursor-pointer",
+              "px-2 py-0.5 rounded border text-[10px] font-mono font-bold uppercase tracking-widest transition-colors cursor-pointer",
               isActive
                 ? "bg-primary/15 text-primary border-primary/30"
                 : "text-base-content/35 border-base-content/8 hover:text-base-content/60 hover:border-base-content/20",
