@@ -6,43 +6,37 @@ Multi-machine agentic dashboard for Claude Code. Monitor sessions, manage projec
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
-## What is Lattice?
+## Features
 
-Lattice is a web dashboard that sits alongside your Claude Code sessions. It gives you a unified view across projects, machines, and sessions — with real-time monitoring, cost tracking, and configuration management.
+### Chat & Sessions
 
-### Core Features
-
-- **Multi-project dashboard** — Fleet overview with node status, session counts, cost stats, and recent activity across all projects
-- **Real-time chat** — Send messages, approve tool use, monitor context window usage and costs with per-message token counts
-- **Session management** — Browse, rename, delete, search, and resume sessions with date range filtering and hover previews
-- **Analytics** — Cost over time, token flow, cache efficiency, session complexity, activity calendar, and 15+ chart types
-- **Cost budget** — Daily spend tracking with configurable enforcement (warning, confirm, or hard block)
-- **Theme system** — 23 base16 themes (12 dark, 11 light) with OKLCH color space for perceptual consistency
+Send messages, approve tool use, and monitor context window usage with per-message token counts. Browse, rename, delete, and search sessions with date range filtering and hover previews. Sessions automatically get descriptive titles from the first exchange.
 
 ![Chat View](docs/screenshots/chat-view.png)
 
-### Productivity
+### Analytics & Cost Tracking
 
-- **Session tabs** — Open multiple sessions as tabs, switch between them, split-pane via right-click
-- **Message bookmarks** — Pin important messages, jump between bookmarks, global bookmarks view across all sessions
-- **Keyboard shortcuts** — Press `?` to see all shortcuts, `Ctrl+K` for command palette
-- **Message actions** — Copy messages (raw markdown or plain text), start new sessions from any message
-- **Auto-titling** — Sessions automatically get descriptive titles from the first exchange
-- **Session hover previews** — Hover any session to see cost, duration, message count, model, and last message
+Track spending, token usage, cache efficiency, and session patterns with 15+ chart types. Set daily cost budgets with configurable enforcement (warning, confirm, or hard block).
 
 ![Analytics](docs/screenshots/analytics.png)
 
-### Infrastructure
+### Workspace
 
-- **MCP server management** — Add, edit, and remove MCP servers at global or project level
-- **Skill marketplace** — Search and install skills from [skills.sh](https://skills.sh)
-- **Mesh networking** — Connect multiple machines, proxy sessions across nodes with automatic discovery
-- **Configuration editor** — Edit CLAUDE.md, environment variables, rules, and permissions through the UI
-- **Memory management** — View and edit Claude's project memories with frontmatter metadata
+Open multiple sessions as tabs and switch between them. Split-pane via right-click context menu. Pin important messages with bookmarks — jump between them per-session or browse the global bookmarks view. Press `?` for keyboard shortcuts, `Ctrl+K` for the command palette.
+
+![Keyboard Shortcuts](docs/screenshots/keyboard-shortcuts.png)
+
+### Themes & Settings
+
+23 base16 themes (12 dark, 11 light) with OKLCH color space. Configure MCP servers, environment variables, rules, permissions, and Claude settings through the UI. View and edit project memories.
 
 ![Settings](docs/screenshots/settings.png)
 
-### Mobile Support
+### Infrastructure
+
+Mesh networking connects multiple machines with automatic discovery and session proxying. Manage MCP servers and install skills from [skills.sh](https://skills.sh). Edit CLAUDE.md, environment variables, rules, and permissions through the UI.
+
+### Mobile
 
 Responsive design with touch targets, swipe-to-open sidebar, and optimized layouts for mobile devices.
 
@@ -54,10 +48,10 @@ Responsive design with touch targets, swipe-to-open sidebar, and optimized layou
 
 ```bash
 # With npm
-npm install -g lattice-ai
+npm install -g @cryptiklemur/lattice
 
 # With bun
-bun install -g lattice-ai
+bun install -g @cryptiklemur/lattice
 ```
 
 ### Run
