@@ -30,9 +30,9 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function CacheEfficiencyChart({ data }: CacheEfficiencyChartProps) {
-  constfullscreenHeight = useChartFullscreen();
-  constcolors = getChartColors();
-  constdisplayData = data.map(function (d) {
+  const fullscreenHeight = useChartFullscreen();
+  const colors = getChartColors();
+  const displayData = data.map(function (d) {
     return { date: d.date, rate: d.rate * 100 };
   });
 

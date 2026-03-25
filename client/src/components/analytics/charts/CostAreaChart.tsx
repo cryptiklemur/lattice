@@ -42,8 +42,8 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function CostAreaChart({ data }: CostAreaChartProps) {
-  constfullscreenHeight = useChartFullscreen();
-  constcolors = getChartColors();
+  const fullscreenHeight = useChartFullscreen();
+  const colors = getChartColors();
   return (
     <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
       <AreaChart data={data} margin={{ top: 4, right: 4, left: -15, bottom: 0 }}>
