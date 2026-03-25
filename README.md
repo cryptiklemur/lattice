@@ -1,10 +1,59 @@
-# Lattice
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Lattice Dashboard" width="720" />
+</p>
 
-Multi-machine agentic dashboard for Claude Code. Monitor sessions, manage projects, track costs, and orchestrate across mesh-networked nodes.
+<h1 align="center">Lattice</h1>
+
+<p align="center">
+  Multi-machine agentic dashboard for Claude Code.<br/>
+  Monitor sessions, manage projects, track costs, and orchestrate across mesh-networked nodes.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@cryptiklemur/lattice"><img src="https://img.shields.io/npm/v/@cryptiklemur/lattice?style=flat-square&color=blue" alt="npm version" /></a>
+  <a href="https://github.com/cryptiklemur/lattice/actions"><img src="https://img.shields.io/github/actions/workflow/status/cryptiklemur/lattice/ci.yml?style=flat-square&label=CI" alt="CI" /></a>
+  <a href="https://github.com/cryptiklemur/lattice/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cryptiklemur/lattice?style=flat-square" alt="License" /></a>
+  <a href="https://github.com/cryptiklemur/lattice"><img src="https://img.shields.io/github/stars/cryptiklemur/lattice?style=flat-square" alt="Stars" /></a>
+</p>
 
 > **Alpha** — Lattice is under active development. APIs and features may change.
 
-![Dashboard](docs/screenshots/dashboard.png)
+---
+
+## Quick Start
+
+```bash
+npm install -g @cryptiklemur/lattice
+lattice
+```
+
+Opens at `http://localhost:7654`. Add projects through the UI or point it at a directory with a `CLAUDE.md` file.
+
+<details>
+<summary>Install with Bun</summary>
+
+```bash
+bun install -g @cryptiklemur/lattice
+lattice
+```
+
+</details>
+
+<details>
+<summary>Development setup</summary>
+
+```bash
+git clone https://github.com/cryptiklemur/lattice.git
+cd lattice
+bun install
+bun run dev
+```
+
+Hot-reloads both server and client automatically.
+
+</details>
+
+---
 
 ## Features
 
@@ -22,96 +71,66 @@ Track spending, token usage, cache efficiency, and session patterns with 15+ cha
 
 ### Workspace
 
-Open multiple sessions as tabs and switch between them. Split-pane via right-click context menu. Pin important messages with bookmarks — jump between them per-session or browse the global bookmarks view. Press `?` for keyboard shortcuts, `Ctrl+K` for the command palette.
+Open multiple sessions as tabs and switch between them. Split-pane via right-click context menu. Pin important messages with bookmarks — jump between them per-session or browse the global bookmarks view. Per-project tab state persists across navigation.
+
+Press `?` for keyboard shortcuts, `Ctrl+K` for the command palette.
 
 ![Keyboard Shortcuts](docs/screenshots/keyboard-shortcuts.png)
 
 ### Themes & Settings
 
-23 base16 themes (12 dark, 11 light) with OKLCH color space. Configure MCP servers, environment variables, rules, permissions, and Claude settings through the UI. View and edit project memories.
+23 base16 themes (12 dark, 11 light) with OKLCH color space. Configure MCP servers, environment variables, rules, permissions, and Claude settings through the UI.
 
 ![Settings](docs/screenshots/settings.png)
 
 ### Infrastructure
 
-Mesh networking connects multiple machines with automatic discovery and session proxying. Manage MCP servers and install skills from [skills.sh](https://skills.sh). Edit CLAUDE.md, environment variables, rules, and permissions through the UI.
+- **Mesh networking** — Connect multiple machines with automatic discovery and session proxying
+- **MCP servers** — Add, edit, and remove at global or project level
+- **Skill marketplace** — Search and install from [skills.sh](https://skills.sh)
+- **Memory management** — View and edit Claude's project memories
 
 ### Mobile
 
-Responsive design with touch targets, swipe-to-open sidebar, and optimized layouts for mobile devices.
+Responsive design with touch targets, swipe-to-open sidebar, and optimized layouts.
 
 <img src="docs/screenshots/mobile-chat.png" width="300" alt="Mobile chat view" />
 
-## Quick Start
-
-### Install
-
-```bash
-# With npm
-npm install -g @cryptiklemur/lattice
-
-# With bun
-bun install -g @cryptiklemur/lattice
-```
-
-### Run
-
-```bash
-lattice
-```
-
-Opens the dashboard at `http://localhost:7654`. Add projects through the UI or by navigating to a directory with a `CLAUDE.md` file.
-
-### Development
-
-```bash
-git clone https://github.com/cryptiklemur/lattice.git
-cd lattice
-bun install
-bun run dev
-```
-
-The dev server hot-reloads both the Bun server and the Vite client automatically.
+---
 
 ## Architecture
 
-Lattice is a Bun monorepo with three packages:
+Bun monorepo with three packages:
 
-| Package | Description |
-|---------|------------|
-| `shared/` | TypeScript types, message protocol definitions, constants |
-| `server/` | Bun WebSocket server — session management, analytics engine, mesh networking, structured logging |
-| `client/` | React 19 + Vite + Tailwind + daisyUI — UI components, state management, 23 themes |
+| Package | Stack |
+|---------|-------|
+| `shared/` | TypeScript types, message protocol, constants |
+| `server/` | Bun WebSocket server, analytics engine, mesh networking |
+| `client/` | React 19, Vite, Tailwind, daisyUI, 23 themes |
 
-The server communicates with clients via WebSocket using a typed message protocol defined in `shared/`. Sessions are managed through the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk). The client uses Tanstack Store for state and Tanstack Router for routing.
+Communication via typed WebSocket messages. Sessions managed through the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk). Client state via Tanstack Store + Router.
 
 ### Security
 
-- Authentication via passphrase with scrypt hashing and 24-hour token expiration
-- Per-client WebSocket rate limiting (100 messages per 10-second window)
-- Attachment upload size limits (10MB max)
-- Bash `cd` commands boundary-checked against project directory
-- Mesh pairing tokens expire after 5 minutes
-- Graceful server shutdown with active stream draining
+| Feature | Detail |
+|---------|--------|
+| Authentication | Passphrase with scrypt hashing, 24-hour token expiration |
+| Rate limiting | 100 messages per 10-second window per client |
+| Attachments | 10MB upload limit |
+| Bash commands | `cd` boundary-checked against project directory |
+| Mesh pairing | Tokens expire after 5 minutes |
+| Shutdown | Graceful drain of active streams |
 
 ### Testing
 
-Playwright test suite covering onboarding, session flow, keyboard shortcuts, accessibility, message actions, and session previews.
-
 ```bash
-# Start the server first
-bun run dev
-
-# Run tests
-bunx playwright test
-
-# Single test file
-bunx playwright test tests/session-flow.spec.ts
+bun run dev            # start server
+bunx playwright test   # run tests
 ```
 
-## Configuration
+Playwright suite covers onboarding, session flow, keyboard shortcuts, accessibility, message actions, and session previews.
 
-Lattice stores its config at `~/.lattice/config.json`. Global Claude settings are read from `~/.claude/` and `~/.claude.json`.
+## Configuration
 
 | Path | Purpose |
 |------|---------|
@@ -119,15 +138,12 @@ Lattice stores its config at `~/.lattice/config.json`. Global Claude settings ar
 | `~/.lattice/bookmarks.json` | Message bookmarks across all sessions |
 | `~/.claude/CLAUDE.md` | Global Claude instructions |
 | `~/.claude.json` | Global MCP server configuration |
-| `~/.claude/skills/` | Global skills directory |
 
-Project-level settings are stored in each project's `.claude/` directory and `.mcp.json`.
+**Environment variables:**
 
-### Environment
-
-- `ANTHROPIC_API_KEY` — Optional. Server uses the token from `claude setup-token` if not set.
-- `DEBUG=lattice:*` — Enable structured debug logging (namespaces: server, ws, chat, session, mesh, auth, fs, analytics)
-- Server binds to `0.0.0.0:7654` by default. Override with `lattice --port <port>`.
+- `ANTHROPIC_API_KEY` — Optional. Uses `claude setup-token` if not set.
+- `DEBUG=lattice:*` — Structured debug logging.
+- Server binds to `0.0.0.0:7654`. Override with `lattice --port <port>`.
 
 ## Contributing
 
