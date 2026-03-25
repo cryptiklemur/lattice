@@ -62,7 +62,7 @@ export function QuickStats() {
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Cost</span>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Total Spend</span>
           {costSparkData.length > 1 && (
             <div role="img" aria-label={"Cost trend: " + (costSparkData[costSparkData.length - 1].v > costSparkData[0].v ? "increasing" : costSparkData[costSparkData.length - 1].v < costSparkData[0].v ? "decreasing" : "stable")}>
               <Sparkline data={costSparkData} stroke={colors.primary} />
@@ -86,7 +86,7 @@ export function QuickStats() {
 
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Tokens</span>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Total Tokens</span>
           {tokensSparkData.length > 1 && (
             <div role="img" aria-label={"Tokens trend: " + (tokensSparkData[tokensSparkData.length - 1].v > tokensSparkData[0].v ? "increasing" : tokensSparkData[tokensSparkData.length - 1].v < tokensSparkData[0].v ? "decreasing" : "stable")}>
               <Sparkline data={tokensSparkData} stroke={colors.warning} />
@@ -98,7 +98,7 @@ export function QuickStats() {
 
       <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
         <div className="mb-1">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Cache Hit</span>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Cache Rate</span>
         </div>
         <div className="text-[20px] font-mono text-base-content mb-2">{cacheHitPct}%</div>
         <div

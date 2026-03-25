@@ -8,7 +8,7 @@ export function SessionComplexityList({ data }: SessionComplexityListProps) {
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[200px] text-base-content/25 font-mono text-[11px]">
-        No session data
+        No session data for this period
       </div>
     );
   }

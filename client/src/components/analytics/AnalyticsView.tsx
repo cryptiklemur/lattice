@@ -102,31 +102,31 @@ export function AnalyticsView() {
             <QuickStats />
 
             <section className="flex flex-col gap-3 mt-8">
-              <SectionHeader label="Cost" />
-              <ChartCard title="Cost Over Time">
+              <SectionHeader label="Spending" />
+              <ChartCard title="Spending Over Time">
                 <ChartErrorBoundary name="CostArea">
                   <CostAreaChart data={analytics.data.costOverTime} />
                 </ChartErrorBoundary>
               </ChartCard>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Cost Breakdown">
+                <ChartCard title="Spend by Model">
                   <ChartErrorBoundary name="CostDonut">
                     <CostDonutChart modelUsage={analytics.data.modelUsage} totalCost={analytics.data.totalCost} />
                   </ChartErrorBoundary>
                 </ChartCard>
-                <ChartCard title="Cumulative Cost">
+                <ChartCard title="Running Total">
                   <ChartErrorBoundary name="CumulativeCost">
                     <CumulativeCostChart data={analytics.data.cumulativeCost} />
                   </ChartErrorBoundary>
                 </ChartCard>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Cost Distribution">
+                <ChartCard title="Session Cost Ranges">
                   <ChartErrorBoundary name="CostDistribution">
                     <CostDistributionChart data={analytics.data.costDistribution} />
                   </ChartErrorBoundary>
                 </ChartCard>
-                <ChartCard title="Session Costs">
+                <ChartCard title="Cost per Session">
                   <ChartErrorBoundary name="SessionBubble">
                     <SessionBubbleChart data={analytics.data.sessionBubbles} />
                   </ChartErrorBoundary>
@@ -135,31 +135,31 @@ export function AnalyticsView() {
             </section>
 
             <section className="flex flex-col gap-3 mt-10">
-              <SectionHeader label="Tokens & Performance" />
-              <ChartCard title="Token Flow">
+              <SectionHeader label="Usage & Speed" />
+              <ChartCard title="Token Usage Over Time">
                 <ChartErrorBoundary name="TokenFlow">
                   <TokenFlowChart data={analytics.data.tokensOverTime} />
                 </ChartErrorBoundary>
               </ChartCard>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Cache Efficiency">
+                <ChartCard title="Cache Hit Rate">
                   <ChartErrorBoundary name="CacheEfficiency">
                     <CacheEfficiencyChart data={analytics.data.cacheHitRateOverTime} />
                   </ChartErrorBoundary>
                 </ChartCard>
-                <ChartCard title="Response Time vs Tokens">
+                <ChartCard title="Response Speed">
                   <ChartErrorBoundary name="ResponseTime">
                     <ResponseTimeScatter data={analytics.data.responseTimeData} />
                   </ChartErrorBoundary>
                 </ChartCard>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Context Window Usage">
+                <ChartCard title="Context Utilization">
                   <ChartErrorBoundary name="ContextUtilization">
                     <ContextUtilizationChart data={analytics.data.contextUtilization} />
                   </ChartErrorBoundary>
                 </ChartCard>
-                <ChartCard title="Token Flow (Sankey)">
+                <ChartCard title="Token Breakdown">
                   <ChartErrorBoundary name="Sankey">
                     <TokenSankeyChart data={analytics.data.tokenFlowSankey} />
                   </ChartErrorBoundary>
@@ -175,7 +175,7 @@ export function AnalyticsView() {
                 </ChartErrorBoundary>
               </ChartCard>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Hourly Activity">
+                <ChartCard title="Peak Hours">
                   <ChartErrorBoundary name="HourlyHeatmap">
                     <HourlyHeatmap data={analytics.data.hourlyHeatmap} />
                   </ChartErrorBoundary>
