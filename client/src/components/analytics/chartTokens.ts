@@ -92,15 +92,12 @@ export function getChartColors(): ChartColors {
   var error = b08 || oklch(css("--color-error"));
   var orange = b09 || warning;
   var magenta = b0F || secondary;
-  var contentRaw = css("--color-base-content");
+  var b03 = css("--base03");
+  var b04 = css("--base04");
+  var b02 = css("--base02");
 
-  var tickFill = contentRaw
-    ? "oklch(" + contentRaw + " / 0.5)"
-    : "oklch(0.9 0.02 280 / 0.5)";
-
-  var gridStroke = contentRaw
-    ? "oklch(" + contentRaw + " / 0.12)"
-    : "oklch(0.9 0.02 280 / 0.12)";
+  var tickFill = b04 || b03 || "#9ea8c7";
+  var gridStroke = b02 || "#44475a";
 
   _cache = {
     primary,
