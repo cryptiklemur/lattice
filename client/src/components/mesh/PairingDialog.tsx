@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { X, Copy, Check } from "lucide-react";
+import { X, Copy, Check, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { clearInvite } from "../../stores/mesh";
@@ -22,9 +21,9 @@ export function PairingDialog(props: PairingDialogProps) {
   var [pairStatus, setPairStatus] = useState<PairStatus>("idle");
   var [pairError, setPairError] = useState<string | null>(null);
   var [copied, setCopied] = useState(false);
+  var [generating, setGenerating] = useState(false);
   var modalRef = useRef<HTMLDivElement>(null);
-  var stableOnClose = useCallback(function () { props.onClose(); }, [props.onClose]);
-  useFocusTrap(modalRef, stableOnClose, props.isOpen);
+  var inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(function () {
     if (!props.isOpen) {
@@ -33,30 +32,42 @@ export function PairingDialog(props: PairingDialogProps) {
       setPairStatus("idle");
       setPairError(null);
       setCopied(false);
+      setGenerating(false);
       setTab("generate");
+      return;
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") props.onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return function () { document.removeEventListener("keydown", handleKeyDown); };
   }, [props.isOpen]);
 
   useEffect(function () {
-    if (pairStatus !== "connecting") {
-      return;
+    function handleInvite(msg: ServerMessage) {
+      if (msg.type === "mesh:invite_code") {
+        setGenerating(false);
+      }
     }
 
-    function handler(msg: ServerMessage) {
+    function handlePaired(msg: ServerMessage) {
       if (msg.type === "mesh:paired") {
         setPairStatus("paired");
         setPairError(null);
       }
     }
 
-    ws.subscribe("mesh:paired", handler);
+    ws.subscribe("mesh:invite_code", handleInvite);
+    ws.subscribe("mesh:paired", handlePaired);
     return function () {
-      ws.unsubscribe("mesh:paired", handler);
+      ws.unsubscribe("mesh:invite_code", handleInvite);
+      ws.unsubscribe("mesh:paired", handlePaired);
     };
-  }, [ws, pairStatus]);
+  }, []);
 
   function handleGenerateInvite() {
     clearInvite();
+    setGenerating(true);
     mesh.generateInvite();
   }
 
@@ -152,13 +163,20 @@ export function PairingDialog(props: PairingDialogProps) {
                 The code encodes this node&apos;s address and a one-time auth token.
               </div>
 
-              {!mesh.inviteCode && (
+              {!mesh.inviteCode && !generating && (
                 <button
                   onClick={handleGenerateInvite}
                   className="btn btn-primary btn-sm"
                 >
                   Generate Invite Code
                 </button>
+              )}
+
+              {generating && !mesh.inviteCode && (
+                <div className="flex items-center gap-2 text-[13px] text-base-content/40">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  Generating invite code...
+                </div>
               )}
 
               {mesh.inviteCode && (
@@ -209,6 +227,7 @@ export function PairingDialog(props: PairingDialogProps) {
               </div>
 
               <input
+                ref={inputRef}
                 type="text"
                 value={pairCode}
                 onChange={function (e) {
@@ -224,6 +243,7 @@ export function PairingDialog(props: PairingDialogProps) {
                   }
                 }}
                 placeholder="LTCE-XXXX-XXXX"
+                autoFocus
                 disabled={pairStatus === "connecting" || pairStatus === "paired"}
                 className="input input-bordered w-full bg-base-100 text-base-content font-mono text-[14px] tracking-[0.06em] mb-3 focus:border-primary"
               />

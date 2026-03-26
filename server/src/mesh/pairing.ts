@@ -60,7 +60,8 @@ export async function generateInviteCode(
 
   pendingTokens.set(token, Date.now());
 
-  var qrDataUrl = await QRCode.toString(code, { type: "svg" });
+  var qrSvg = await QRCode.toString(code, { type: "svg" });
+  var qrDataUrl = "data:image/svg+xml;base64," + Buffer.from(qrSvg).toString("base64");
 
   return { code, token, qrDataUrl };
 }

@@ -4,6 +4,22 @@ import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
+import { networkInterfaces } from "node:os";
+
+function getLocalAddress(): string {
+  var interfaces = networkInterfaces();
+  var keys = Object.keys(interfaces);
+  for (var i = 0; i < keys.length; i++) {
+    var addrs = interfaces[keys[i]];
+    if (!addrs) continue;
+    for (var j = 0; j < addrs.length; j++) {
+      if (!addrs[j].internal && addrs[j].family === "IPv4") {
+        return addrs[j].address;
+      }
+    }
+  }
+  return "localhost";
+}
 import { addPeer, removePeer, loadPeers } from "../mesh/peers";
 import type { PeerInfo } from "@lattice/shared";
 
@@ -42,7 +58,8 @@ export function buildNodesMessage(): NodeInfo[] {
 registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   if (message.type === "mesh:generate_invite") {
     var config = loadConfig();
-    generateInviteCode("localhost", config.port).then(function (result) {
+    var address = getLocalAddress();
+    generateInviteCode(address, config.port).then(function (result) {
       sendTo(clientId, {
         type: "mesh:invite_code",
         code: result.code,
@@ -58,11 +75,11 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     var pairMsg = message as MeshPairMessage;
     var parsed = parseInviteCode(pairMsg.code);
     if (!parsed) {
-      console.warn("[lattice] mesh:pair — invalid invite code");
+      sendTo(clientId, { type: "chat:error", message: "Invalid invite code format" });
       return;
     }
     if (!validatePairingToken(parsed.token)) {
-      console.warn("[lattice] mesh:pair — invalid or expired token");
+      sendTo(clientId, { type: "chat:error", message: "Invite code is invalid or expired" });
       return;
     }
     consumePairingToken(parsed.token);
@@ -110,6 +127,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     });
     ws.addEventListener("error", function () {
       console.error("[lattice] mesh:pair — failed to connect to", wsUrl);
+      sendTo(clientId, { type: "chat:error", message: "Failed to connect to " + parsed!.address + ":" + parsed!.port });
     });
     return;
   }
