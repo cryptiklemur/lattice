@@ -23,15 +23,20 @@ export function UserIsland(props: UserIslandProps) {
   var ws = useWebSocket();
   var [updateAvailable, setUpdateAvailable] = useState(false);
   var [latestVersion, setLatestVersion] = useState<string | null>(null);
+  var [currentVersion, setCurrentVersion] = useState(pkg.version);
 
   useEffect(function () {
     function handleUpdateStatus(msg: ServerMessage) {
       if (msg.type !== "update:status") return;
-      var data = msg as { type: string; updateAvailable: boolean; latestVersion: string | null };
+      var data = msg as { type: string; updateAvailable: boolean; latestVersion: string | null; currentVersion: string };
       setUpdateAvailable(data.updateAvailable);
       setLatestVersion(data.latestVersion);
+      if (data.currentVersion && data.currentVersion !== "0.0.0") {
+        setCurrentVersion(data.currentVersion);
+      }
     }
     ws.subscribe("update:status", handleUpdateStatus);
+    ws.send({ type: "update:check" } as any);
     return function () { ws.unsubscribe("update:status", handleUpdateStatus); };
   }, []);
 
@@ -89,7 +94,7 @@ export function UserIsland(props: UserIslandProps) {
               {props.nodeName}
             </div>
             <div className="text-[10px] font-mono flex items-center gap-1">
-              <span className="text-base-content/30">{"v" + pkg.version}</span>
+              <span className="text-base-content/30">{"v" + currentVersion}</span>
               {updateAvailable && latestVersion && (
                 <span className="flex items-center gap-0.5 text-primary/70">
                   <ArrowUpCircle size={9} />
