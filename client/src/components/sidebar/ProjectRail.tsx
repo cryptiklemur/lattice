@@ -111,7 +111,7 @@ function ProjectButton(props: ProjectButtonProps) {
 
       {hovered && (
         <div
-          className="pointer-events-none z-[9000] bg-base-300 border border-base-content/20 rounded px-2 py-1 text-xs text-base-content whitespace-nowrap shadow-xl"
+          className="pointer-events-none z-[9000] bg-base-300 border border-base-content/20 rounded-lg px-2.5 py-1.5 shadow-xl"
           style={{
             position: "fixed",
             left: "calc(64px + 8px)",
@@ -119,7 +119,18 @@ function ProjectButton(props: ProjectButtonProps) {
             transform: "translateY(-50%)",
           }}
         >
-          {props.group.title}
+          <div className="text-[12px] font-bold text-base-content whitespace-nowrap">{props.group.title}</div>
+          {props.group.nodes.map(function (n) {
+            return (
+              <div key={n.nodeId} className="flex items-center gap-1.5 mt-0.5">
+                <div className={"w-[6px] h-[6px] rounded-full flex-shrink-0 " + (n.online ? "bg-success" : "bg-error")} />
+                <span className="text-[10px] text-base-content/50 whitespace-nowrap">
+                  {n.nodeName}
+                  {n.path ? " \u00B7 " + n.path : ""}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

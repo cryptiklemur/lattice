@@ -295,6 +295,33 @@ export function onPeerMessage(callback: (nodeId: string, msg: MeshMessage) => vo
   messageCallbacks.push(callback);
 }
 
+export function getConnectedPeerProjects(nodeId: string): Array<{ slug: string; title: string }> {
+  var conn = connections.get(nodeId);
+  if (!conn || conn.ws.readyState !== WebSocket.OPEN) return [];
+  return conn.projects;
+}
+
+export function getAllRemoteProjects(localNodeId: string): Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean }> {
+  var results: Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean }> = [];
+  for (var [nodeId, conn] of connections) {
+    if (conn.ws.readyState !== WebSocket.OPEN) continue;
+    var peers = require("./peers") as typeof import("./peers");
+    var peer = peers.getPeer(nodeId);
+    var peerName = peer ? peer.name : nodeId;
+    for (var i = 0; i < conn.projects.length; i++) {
+      results.push({
+        slug: conn.projects[i].slug,
+        path: "",
+        title: conn.projects[i].title,
+        nodeId: nodeId,
+        nodeName: peerName,
+        isRemote: true,
+      });
+    }
+  }
+  return results;
+}
+
 export function findNodeForProject(projectSlug: string): string | undefined {
   for (var [nodeId, conn] of connections) {
     if (conn.ws.readyState !== WebSocket.OPEN) {

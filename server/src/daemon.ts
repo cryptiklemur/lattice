@@ -8,7 +8,7 @@ import { addClient, removeClient, routeMessage } from "./ws/server";
 import { broadcast, sendTo } from "./ws/broadcast";
 import { buildNodesMessage } from "./handlers/mesh";
 import { startDiscovery } from "./mesh/discovery";
-import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessage } from "./mesh/connector";
+import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessage, getAllRemoteProjects } from "./mesh/connector";
 import { handleProxyRequest, handleProxyResponse } from "./mesh/proxy";
 import { verifyPassphrase, generateSessionToken, addSession, isValidSession } from "./auth/passphrase";
 import { ensureCerts } from "./tls";
@@ -395,11 +395,13 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     var currentConfig = loadConfig();
     var currentIdentity = loadOrCreateIdentity();
     broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
+    var localProjects = currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
+      return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
+    });
+    var remoteProjects = getAllRemoteProjects(currentIdentity.id);
     broadcast({
       type: "projects:list",
-      projects: currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
-        return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
-      }),
+      projects: localProjects.concat(remoteProjects as typeof localProjects),
     });
     var updateInfo = getCachedUpdateInfo();
     if (updateInfo && updateInfo.updateAvailable) {

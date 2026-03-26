@@ -331,6 +331,11 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                 >
                   <span className="text-[13px] font-mono font-bold text-base-content/90">
                     {activeProject?.title ?? "No Project"}
+                    {activeProject?.isRemote && (
+                      <span className="ml-1.5 text-[10px] font-normal text-base-content/30">
+                        on {activeProject.nodeName}
+                      </span>
+                    )}
                   </span>
                   <ChevronDown size={14} className="text-base-content/30" />
                 </button>

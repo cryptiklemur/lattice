@@ -5,7 +5,7 @@ import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
-import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer } from "../mesh/connector";
+import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer, getConnectedPeerProjects } from "../mesh/connector";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
@@ -74,6 +74,13 @@ function getWindowsHostAddresses(): Array<{ name: string; address: string }> {
   return results;
 }
 
+function getLocalProjectsList(): Array<{ slug: string; title: string }> {
+  var config = loadConfig();
+  return config.projects.map(function (p: typeof config.projects[number]) {
+    return { slug: p.slug, title: p.title };
+  });
+}
+
 export function buildNodesMessage(): NodeInfo[] {
   var peers = loadPeers();
   var config = loadConfig();
@@ -95,6 +102,7 @@ export function buildNodesMessage(): NodeInfo[] {
   };
 
   var remotes: NodeInfo[] = peers.map(function (peer) {
+    var peerProjects = getConnectedPeerProjects(peer.id);
     return {
       id: peer.id,
       name: peer.name,
@@ -103,7 +111,9 @@ export function buildNodesMessage(): NodeInfo[] {
       port: 0,
       online: connectedIds.has(peer.id),
       isLocal: false,
-      projects: [],
+      projects: peerProjects.map(function (p) {
+        return { slug: p.slug, path: "", title: p.title, nodeId: peer.id };
+      }),
     };
   });
 
@@ -159,7 +169,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
         token: parsed!.token,
         port: pairConfig.port,
         addresses: getAllAddresses().map(function (a) { return a.address + ":" + pairConfig.port; }),
-        projects: [],
+        projects: getLocalProjectsList(),
       }));
     });
 
@@ -189,6 +199,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
           connectToPeer(peer.id, peerAddr);
 
+          var remoteProjectsList = (data as any).projects ?? [];
           var nodeInfo: NodeInfo = {
             id: peer.id,
             name: peer.name,
@@ -197,7 +208,9 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
             port: parsed!.port,
             online: true,
             isLocal: false,
-            projects: [],
+            projects: remoteProjectsList.map(function (rp: { slug: string; title: string }) {
+              return { slug: rp.slug, path: "", title: rp.title, nodeId: peer.id };
+            }),
           };
           sendTo(clientId, { type: "mesh:paired", node: nodeInfo });
           broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
@@ -230,7 +243,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
         nodeId: identity.id,
         name: loadConfig().name,
         publicKey: identity.publicKey,
-        projects: [],
+        projects: getLocalProjectsList(),
       });
       broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
       return;
