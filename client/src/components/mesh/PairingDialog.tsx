@@ -74,6 +74,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
       if (msg.type === "mesh:paired") {
         setPairStatus("paired");
         setPairError(null);
+        setTimeout(function () { props.onClose(); }, 3000);
       }
     }
 
