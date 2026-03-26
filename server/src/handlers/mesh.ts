@@ -5,7 +5,7 @@ import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
-import { getConnectedPeerIds, connectToPeer, reconnectPeer } from "../mesh/connector";
+import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer } from "../mesh/connector";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 
@@ -237,8 +237,24 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
   if (message.type === "mesh:unpair") {
     var unpairMsg = message as MeshUnpairMessage;
+    var identity = loadOrCreateIdentity();
+    var peerWs = getPeerConnection(unpairMsg.nodeId);
+    if (peerWs) {
+      peerWs.send(JSON.stringify({ type: "mesh:unpaired", nodeId: identity.id }));
+    }
+    disconnectPeer(unpairMsg.nodeId);
     var removed = removePeer(unpairMsg.nodeId);
     if (removed) {
+      broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
+    }
+    return;
+  }
+
+  if ((message as any).type === "mesh:unpaired") {
+    var unpaired = message as any as { type: "mesh:unpaired"; nodeId: string };
+    disconnectPeer(unpaired.nodeId);
+    var wasRemoved = removePeer(unpaired.nodeId);
+    if (wasRemoved) {
       broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
     }
     return;

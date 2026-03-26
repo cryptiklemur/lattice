@@ -239,6 +239,20 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
   return conn.ws;
 }
 
+export function disconnectPeer(nodeId: string): void {
+  var existing = connections.get(nodeId);
+  if (existing) {
+    existing.dead = true;
+    if (existing.retryTimer !== null) {
+      clearTimeout(existing.retryTimer);
+      existing.retryTimer = null;
+    }
+    existing.ws.close();
+    connections.delete(nodeId);
+  }
+  circuitBreakers.delete(nodeId);
+}
+
 export function reconnectPeer(nodeId: string): void {
   var existing = connections.get(nodeId);
   if (existing) {
