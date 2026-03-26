@@ -1,5 +1,7 @@
-import Bonjour from "bonjour-service";
+import BonjourImport from "bonjour-service";
 import type { Service, Browser } from "bonjour-service";
+
+var Bonjour = (typeof BonjourImport === "function" ? BonjourImport : (BonjourImport as any).default) as typeof BonjourImport;
 
 export interface DiscoveredNode {
   nodeId: string;
