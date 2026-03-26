@@ -39,11 +39,18 @@ function NodeRow(props: NodeRowProps) {
             </span>
           )}
         </div>
-        <div className="text-[11px] text-base-content/40 truncate">
-          {props.node.address}:{props.node.port}
-          {!props.node.online && (
-            <span className="ml-2 text-base-content/30 italic">offline</span>
-          )}
+        <div className="text-[11px] text-base-content/40">
+          {(props.node.addresses && props.node.addresses.length > 0
+            ? props.node.addresses
+            : [props.node.address + (props.node.port ? ":" + props.node.port : "")]
+          ).map(function (addr, i) {
+            return (
+              <span key={addr} className="mr-2">
+                {i > 0 && <span className="text-base-content/20 mr-2">/</span>}
+                {addr}
+              </span>
+            );
+          })}
         </div>
       </div>
 

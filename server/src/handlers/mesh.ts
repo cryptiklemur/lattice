@@ -5,6 +5,7 @@ import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers } from "../mesh/peers";
+import { getConnectedPeerIds } from "../mesh/connector";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 
@@ -33,11 +34,14 @@ export function buildNodesMessage(): NodeInfo[] {
   var peers = loadPeers();
   var config = loadConfig();
   var identity = loadOrCreateIdentity();
+  var connectedIds = new Set(getConnectedPeerIds());
+  var localAddrs = getAllAddresses().map(function (a) { return a.address + ":" + config.port; });
 
   var local: NodeInfo = {
     id: identity.id,
     name: config.name,
-    address: "localhost",
+    address: localAddrs[0] ?? "localhost:" + config.port,
+    addresses: localAddrs.length > 0 ? localAddrs : ["localhost:" + config.port],
     port: config.port,
     online: true,
     isLocal: true,
@@ -51,8 +55,9 @@ export function buildNodesMessage(): NodeInfo[] {
       id: peer.id,
       name: peer.name,
       address: peer.addresses[0] ?? "",
+      addresses: peer.addresses,
       port: 0,
-      online: false,
+      online: connectedIds.has(peer.id),
       isLocal: false,
       projects: [],
     };
@@ -137,6 +142,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
             id: peer.id,
             name: peer.name,
             address: parsed!.address,
+            addresses: [parsed!.address + ":" + parsed!.port],
             port: parsed!.port,
             online: true,
             isLocal: false,

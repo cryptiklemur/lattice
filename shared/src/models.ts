@@ -4,6 +4,7 @@ export interface NodeInfo {
   id: string;
   name: string;
   address: string;
+  addresses: string[];
   port: number;
   online: boolean;
   isLocal: boolean;
