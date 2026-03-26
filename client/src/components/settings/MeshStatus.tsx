@@ -1,5 +1,5 @@
 import { useState, useCallback, memo } from "react";
-import { Plus, CircleDot, Circle } from "lucide-react";
+import { Plus, CircleDot, Circle, RefreshCw } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { PairingDialog } from "../mesh/PairingDialog";
@@ -8,6 +8,7 @@ import type { NodeInfo } from "@lattice/shared";
 interface NodeRowProps {
   node: NodeInfo;
   onUnpair: (nodeId: string) => void;
+  onReconnect: (nodeId: string) => void;
 }
 
 function NodeRow(props: NodeRowProps) {
@@ -56,6 +57,16 @@ function NodeRow(props: NodeRowProps) {
 
       {!props.node.isLocal && (
         <div className="flex gap-1.5 flex-shrink-0">
+          {!props.node.online && (
+            <button
+              onClick={function () { props.onReconnect(props.node.id); }}
+              className="btn btn-ghost btn-xs border border-base-content/20 hover:btn-info hover:border-info gap-1"
+              title="Attempt to reconnect"
+            >
+              <RefreshCw size={10} />
+              Reconnect
+            </button>
+          )}
           {confirming ? (
             <>
               <button
@@ -96,6 +107,10 @@ export function MeshStatus() {
     ws.send({ type: "mesh:unpair", nodeId });
   }
 
+  function handleReconnect(nodeId: string) {
+    ws.send({ type: "mesh:reconnect", nodeId } as any);
+  }
+
   var localNode = nodes.find(function (n) { return n.isLocal; });
   var remoteNodes = nodes.filter(function (n) { return !n.isLocal; });
 
@@ -106,7 +121,7 @@ export function MeshStatus() {
           This Node
         </div>
         {localNode ? (
-          <NodeRow node={localNode} onUnpair={handleUnpair} />
+          <NodeRow node={localNode} onUnpair={handleUnpair} onReconnect={handleReconnect} />
         ) : (
           <div className="text-[12px] text-base-content/40 italic">
             Waiting for node info...
@@ -139,6 +154,7 @@ export function MeshStatus() {
                 key={node.id}
                 node={node}
                 onUnpair={handleUnpair}
+                onReconnect={handleReconnect}
               />
             );
           })

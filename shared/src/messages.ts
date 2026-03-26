@@ -218,6 +218,11 @@ export interface MeshUnpairMessage {
   nodeId: string;
 }
 
+export interface MeshReconnectMessage {
+  type: "mesh:reconnect";
+  nodeId: string;
+}
+
 export interface LoopStartMessage {
   type: "loop:start";
   projectSlug: string;
@@ -537,6 +542,7 @@ export type ClientMessage =
   | MeshPairMessage
   | MeshGenerateInviteMessage
   | MeshUnpairMessage
+  | MeshReconnectMessage
   | LoopStartMessage
   | LoopStopMessage
   | LoopStatusRequestMessage

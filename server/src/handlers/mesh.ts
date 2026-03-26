@@ -5,7 +5,7 @@ import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers } from "../mesh/peers";
-import { getConnectedPeerIds, connectToPeer } from "../mesh/connector";
+import { getConnectedPeerIds, connectToPeer, reconnectPeer } from "../mesh/connector";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 
@@ -202,6 +202,15 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     });
 
     broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
+    return;
+  }
+
+  if (message.type === "mesh:reconnect") {
+    var reconnectMsg = message as { type: "mesh:reconnect"; nodeId: string };
+    reconnectPeer(reconnectMsg.nodeId);
+    setTimeout(function () {
+      broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
+    }, 2000);
     return;
   }
 

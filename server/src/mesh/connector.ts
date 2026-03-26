@@ -35,10 +35,25 @@ interface CircuitState {
 
 var circuitBreakers = new Map<string, CircuitState>();
 
+var RECONNECT_INTERVAL_MS = 15000;
+
 export function startMeshConnections(): void {
+  reconcilePeers();
+  setInterval(reconcilePeers, RECONNECT_INTERVAL_MS);
+}
+
+function reconcilePeers(): void {
   var peers = loadPeers();
   for (var i = 0; i < peers.length; i++) {
-    connectToPeer(peers[i].id, peers[i].addresses[0]);
+    var peer = peers[i];
+    if (!peer.addresses || peer.addresses.length === 0) continue;
+    var existing = connections.get(peer.id);
+    if (existing && !existing.dead && existing.ws.readyState === WebSocket.OPEN) continue;
+    if (existing && !existing.dead && existing.retryTimer !== null) continue;
+    if (!existing || existing.dead) {
+      connections.delete(peer.id);
+      connectToPeer(peer.id, peer.addresses[0]);
+    }
   }
 }
 
@@ -221,6 +236,26 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
     return undefined;
   }
   return conn.ws;
+}
+
+export function reconnectPeer(nodeId: string): void {
+  var existing = connections.get(nodeId);
+  if (existing) {
+    existing.dead = true;
+    if (existing.retryTimer !== null) {
+      clearTimeout(existing.retryTimer);
+      existing.retryTimer = null;
+    }
+    existing.ws.close();
+    connections.delete(nodeId);
+  }
+  circuitBreakers.delete(nodeId);
+
+  var peers = loadPeers();
+  var peer = peers.find(function (p) { return p.id === nodeId; });
+  if (peer && peer.addresses && peer.addresses.length > 0) {
+    connectToPeer(nodeId, peer.addresses[0]);
+  }
 }
 
 export function getConnectedPeerIds(): string[] {
