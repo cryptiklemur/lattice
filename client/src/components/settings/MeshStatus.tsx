@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { Plus, CircleDot, Circle } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
@@ -83,6 +83,8 @@ export function MeshStatus() {
   var { nodes } = useMesh();
   var [pairingOpen, setPairingOpen] = useState(false);
 
+  var handleClosePairing = useCallback(function () { setPairingOpen(false); }, []);
+
   function handleUnpair(nodeId: string) {
     ws.send({ type: "mesh:unpair", nodeId });
   }
@@ -138,7 +140,7 @@ export function MeshStatus() {
 
       <PairingDialog
         isOpen={pairingOpen}
-        onClose={function () { setPairingOpen(false); }}
+        onClose={handleClosePairing}
       />
     </div>
   );

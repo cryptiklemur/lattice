@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import { X, Copy, Check, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
@@ -13,7 +13,7 @@ interface PairingDialogProps {
   onClose: () => void;
 }
 
-export function PairingDialog(props: PairingDialogProps) {
+export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps) {
   var ws = useWebSocket();
   var mesh = useMesh();
   var [tab, setTab] = useState<Tab>("generate");
@@ -276,4 +276,4 @@ export function PairingDialog(props: PairingDialogProps) {
       </div>
     </div>
   );
-}
+});
