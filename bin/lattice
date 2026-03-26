@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENTRY="$SCRIPT_DIR/../server/src/index.ts"
+
+if command -v bun >/dev/null 2>&1; then
+  exec bun "$ENTRY" "$@"
+else
+  echo "[lattice] Error: bun is required to run lattice from npm."
+  echo "[lattice] Install bun: https://bun.sh"
+  echo "[lattice] Or download a standalone binary from:"
+  echo "[lattice]   https://github.com/cryptiklemur/lattice/releases"
+  exit 1
+fi

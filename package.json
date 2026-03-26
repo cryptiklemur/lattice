@@ -23,7 +23,7 @@
     "lattice"
   ],
   "bin": {
-    "lattice": "./server/src/index.ts"
+    "lattice": "./bin/lattice"
   },
   "scripts": {
     "dev": "bun run --filter '*' dev",
