@@ -1,6 +1,15 @@
 import type { ServerWebSocket } from "bun";
 
 var clients = new Map<string, ServerWebSocket<{ id: string }>>();
+var virtualSendHandlers = new Map<string, (message: object) => void>();
+
+export function registerVirtualClient(id: string, handler: (message: object) => void): void {
+  virtualSendHandlers.set(id, handler);
+}
+
+export function removeVirtualClient(id: string): void {
+  virtualSendHandlers.delete(id);
+}
 
 export function addClient(ws: ServerWebSocket<{ id: string }>): void {
   clients.set(ws.data.id, ws);
@@ -23,6 +32,11 @@ export function sendTo(id: string, message: object): void {
   var ws = clients.get(id);
   if (ws) {
     ws.send(JSON.stringify(message));
+    return;
+  }
+  var virtualHandler = virtualSendHandlers.get(id);
+  if (virtualHandler) {
+    virtualHandler(message);
   }
 }
 

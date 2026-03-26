@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ClientMessage, MeshProxyRequestMessage, MeshProxyResponseMessage, ServerMessage } from "@lattice/shared";
 import { getPeerConnection } from "./connector";
-import { sendTo, broadcast } from "../ws/broadcast";
+import { sendTo, broadcast, registerVirtualClient, removeVirtualClient } from "../ws/broadcast";
 import { routeMessage } from "../ws/router";
 
 var pendingRequests = new Map<string, string>();
@@ -30,29 +30,26 @@ export function proxyToRemoteNode(nodeId: string, projectSlug: string, clientId:
 export function handleProxyRequest(sourceNodeId: string, msg: MeshProxyRequestMessage): void {
   var proxyClientId = "mesh-proxy:" + sourceNodeId + ":" + msg.requestId;
 
-  var originalBroadcast = broadcast;
-  void originalBroadcast;
-
-  var interceptedSendTo = function (targetId: string, response: object): void {
-    if (targetId === proxyClientId) {
-      var ws = getPeerConnection(sourceNodeId);
-      if (!ws) {
-        console.warn("[mesh/proxy] Cannot send response, no connection to: " + sourceNodeId);
-        return;
-      }
-
-      var envelope: MeshProxyResponseMessage = {
-        type: "mesh:proxy_response",
-        projectSlug: msg.projectSlug,
-        requestId: msg.requestId,
-        payload: response as ServerMessage,
-      };
-
-      ws.send(JSON.stringify(envelope));
+  registerVirtualClient(proxyClientId, function (response: object) {
+    var ws = getPeerConnection(sourceNodeId);
+    if (!ws) {
+      console.warn("[mesh/proxy] Cannot send response, no connection to: " + sourceNodeId);
+      removeVirtualClient(proxyClientId);
+      return;
     }
-  };
 
-  proxyRouteMessage(proxyClientId, msg.payload, interceptedSendTo);
+    var envelope: MeshProxyResponseMessage = {
+      type: "mesh:proxy_response",
+      projectSlug: msg.projectSlug,
+      requestId: msg.requestId,
+      payload: response as ServerMessage,
+    };
+
+    ws.send(JSON.stringify(envelope));
+    removeVirtualClient(proxyClientId);
+  });
+
+  routeMessage(proxyClientId, msg.payload);
 }
 
 export function handleProxyResponse(msg: MeshProxyResponseMessage): void {
