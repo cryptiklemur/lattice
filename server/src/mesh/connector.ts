@@ -66,9 +66,10 @@ export function connectToPeer(nodeId: string, address: string): void {
   }
 
   var config = loadConfig();
-  var port = config.port;
   var protocol = config.tls ? "wss" : "ws";
-  var url = protocol + "://" + address + ":" + port + "/ws";
+  var url = address.includes(":")
+    ? protocol + "://" + address + "/ws"
+    : protocol + "://" + address + ":" + config.port + "/ws";
 
   var conn: PeerConnection = {
     nodeId: nodeId,

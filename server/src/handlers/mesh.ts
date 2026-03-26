@@ -5,7 +5,7 @@ import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers } from "../mesh/peers";
-import { getConnectedPeerIds } from "../mesh/connector";
+import { getConnectedPeerIds, connectToPeer } from "../mesh/connector";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 
@@ -106,11 +106,14 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
     pairWs.addEventListener("open", function () {
       var identity = loadOrCreateIdentity();
+      var pairConfig = loadConfig();
       pairWs.send(JSON.stringify({
         type: "mesh:hello",
         nodeId: identity.id,
-        name: loadConfig().name,
+        name: pairConfig.name,
         token: parsed!.token,
+        port: pairConfig.port,
+        addresses: getAllAddresses().map(function (a) { return a.address + ":" + pairConfig.port; }),
         projects: [],
       }));
     });
@@ -128,21 +131,24 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
         if (data.type === "mesh:hello" && data.nodeId && data.name) {
           clearTimeout(pairTimeout);
+          var peerAddr = parsed!.address + ":" + parsed!.port;
           var peer: PeerInfo = {
             id: data.nodeId,
             name: data.name,
-            addresses: [parsed!.address],
+            addresses: [peerAddr],
             publicKey: "",
             pairedAt: Date.now(),
           };
           addPeer(peer);
           pairWs.close();
 
+          connectToPeer(peer.id, peerAddr);
+
           var nodeInfo: NodeInfo = {
             id: peer.id,
             name: peer.name,
-            address: parsed!.address,
-            addresses: [parsed!.address + ":" + parsed!.port],
+            address: peerAddr,
+            addresses: [peerAddr],
             port: parsed!.port,
             online: true,
             isLocal: false,
@@ -164,7 +170,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "mesh:hello") {
-    var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; token?: string; projects: Array<{ slug: string; title: string }> };
+    var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; token?: string; port?: number; addresses?: string[]; projects: Array<{ slug: string; title: string }> };
 
     if (!hello.token || !validatePairingToken(hello.token)) {
       sendTo(clientId, { type: "mesh:hello_rejected" as any, error: "Invalid or expired invite code" });
@@ -172,14 +178,20 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     }
     consumePairingToken(hello.token);
 
+    var peerAddresses = hello.addresses ?? [];
+
     var peer: PeerInfo = {
       id: hello.nodeId,
       name: hello.name,
-      addresses: [],
+      addresses: peerAddresses,
       publicKey: "",
       pairedAt: Date.now(),
     };
     addPeer(peer);
+
+    if (peerAddresses.length > 0) {
+      connectToPeer(peer.id, peerAddresses[0]);
+    }
 
     var identity = loadOrCreateIdentity();
     sendTo(clientId, {
