@@ -220,7 +220,15 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
                 type="text"
                 value={pairCode}
                 onChange={function (e) {
-                  setPairCode(e.target.value);
+                  var raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                  if (raw.startsWith("LTCE")) raw = raw.slice(4);
+                  if (raw.length > 16) raw = raw.slice(0, 16);
+                  var chunks: string[] = [];
+                  for (var i = 0; i < raw.length; i += 4) {
+                    chunks.push(raw.slice(i, i + 4));
+                  }
+                  var formatted = chunks.length > 0 ? "LTCE-" + chunks.join("-") : "";
+                  setPairCode(formatted);
                   if (pairStatus !== "idle") {
                     setPairStatus("idle");
                     setPairError(null);
@@ -231,7 +239,8 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
                     handlePair();
                   }
                 }}
-                placeholder="LTCE-XXXX-XXXX"
+                placeholder="LTCE-XXXX-XXXX-XXXX-XXXX"
+                maxLength={24}
                 autoFocus
                 disabled={pairStatus === "connecting" || pairStatus === "paired"}
                 className="input input-bordered w-full bg-base-100 text-base-content font-mono text-[14px] tracking-[0.06em] mb-3 focus:border-primary"
