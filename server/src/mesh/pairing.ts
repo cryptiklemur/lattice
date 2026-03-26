@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
-import QRCode from "qrcode";
 
 var BASE62_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
+var CODE_LENGTH = 16;
 
 var PAIRING_TOKEN_TTL = 300000;
 var CLEANUP_INTERVAL = 60000;
@@ -16,7 +16,10 @@ function base62Encode(buf: Buffer): string {
     result = BASE62_CHARS[Number(n % base)] + result;
     n = n / base;
   }
-  return result || BASE62_CHARS[0];
+  while (result.length < CODE_LENGTH) {
+    result = BASE62_CHARS[0] + result;
+  }
+  return result;
 }
 
 function base62Decode(s: string): Buffer {
@@ -36,11 +39,29 @@ function base62Decode(s: string): Buffer {
   return Buffer.from(hex, "hex");
 }
 
+function packPayload(address: string, port: number, token: Buffer): Buffer {
+  var parts = address.split(".");
+  var buf = Buffer.alloc(4 + 2 + token.length);
+  for (var i = 0; i < 4; i++) {
+    buf[i] = parseInt(parts[i] || "0", 10);
+  }
+  buf.writeUInt16BE(port, 4);
+  token.copy(buf, 6);
+  return buf;
+}
+
+function unpackPayload(buf: Buffer): { address: string; port: number; token: string } | null {
+  if (buf.length < 8) return null;
+  var address = buf[0] + "." + buf[1] + "." + buf[2] + "." + buf[3];
+  var port = buf.readUInt16BE(4);
+  var token = buf.subarray(6).toString("hex");
+  return { address, port, token };
+}
+
 function formatCode(raw: string): string {
-  var upper = raw.toUpperCase();
   var chunks: string[] = [];
-  for (var i = 0; i < upper.length; i += 4) {
-    chunks.push(upper.slice(i, i + 4));
+  for (var i = 0; i < raw.length; i += 4) {
+    chunks.push(raw.slice(i, i + 4));
   }
   return "LTCE-" + chunks.join("-");
 }
@@ -53,17 +74,15 @@ export async function generateInviteCode(
   address: string,
   port: number
 ): Promise<{ code: string; token: string; qrDataUrl: string }> {
-  var token = randomBytes(8).toString("hex");
-  var payload = Buffer.from(address + ":" + port + ":" + token, "utf-8");
+  var tokenBuf = randomBytes(4);
+  var token = tokenBuf.toString("hex");
+  var payload = packPayload(address, port, tokenBuf);
   var encoded = base62Encode(payload);
   var code = formatCode(encoded);
 
   pendingTokens.set(token, Date.now());
 
-  var qrSvg = await QRCode.toString(code, { type: "svg" });
-  var qrDataUrl = "data:image/svg+xml;base64," + Buffer.from(qrSvg).toString("base64");
-
-  return { code, token, qrDataUrl };
+  return { code, token, qrDataUrl: "" };
 }
 
 export function parseInviteCode(
@@ -71,19 +90,8 @@ export function parseInviteCode(
 ): { address: string; port: number; token: string } | null {
   try {
     var stripped = stripCode(code);
-    var decoded = base62Decode(stripped).toString("utf-8");
-    var parts = decoded.split(":");
-    if (parts.length < 3) {
-      return null;
-    }
-    var token = parts[parts.length - 1];
-    var portStr = parts[parts.length - 2];
-    var address = parts.slice(0, parts.length - 2).join(":");
-    var port = parseInt(portStr, 10);
-    if (isNaN(port)) {
-      return null;
-    }
-    return { address, port, token };
+    var decoded = base62Decode(stripped);
+    return unpackPayload(decoded);
   } catch {
     return null;
   }
