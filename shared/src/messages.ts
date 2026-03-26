@@ -761,6 +761,11 @@ export interface MeshPairedMessage {
   node: NodeInfo;
 }
 
+export interface MeshPairFailedMessage {
+  type: "mesh:pair_failed";
+  message: string;
+}
+
 export interface MeshNodeOnlineMessage {
   type: "mesh:node_online";
   nodeId: string;
@@ -1022,6 +1027,7 @@ export type ServerMessage =
   | MeshNodesMessage
   | MeshInviteCodeMessage
   | MeshPairedMessage
+  | MeshPairFailedMessage
   | MeshNodeOnlineMessage
   | MeshNodeOfflineMessage
   | ProjectsListMessage

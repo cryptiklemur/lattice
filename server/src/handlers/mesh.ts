@@ -75,11 +75,11 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     var pairMsg = message as MeshPairMessage;
     var parsed = parseInviteCode(pairMsg.code);
     if (!parsed) {
-      sendTo(clientId, { type: "chat:error", message: "Invalid invite code format" });
+      sendTo(clientId, { type: "mesh:pair_failed", message: "Invalid invite code format" });
       return;
     }
     if (!validatePairingToken(parsed.token)) {
-      sendTo(clientId, { type: "chat:error", message: "Invite code is invalid or expired" });
+      sendTo(clientId, { type: "mesh:pair_failed", message: "Invite code is invalid or expired" });
       return;
     }
     consumePairingToken(parsed.token);
@@ -127,7 +127,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     });
     ws.addEventListener("error", function () {
       console.error("[lattice] mesh:pair — failed to connect to", wsUrl);
-      sendTo(clientId, { type: "chat:error", message: "Failed to connect to " + parsed!.address + ":" + parsed!.port });
+      sendTo(clientId, { type: "mesh:pair_failed", message: "Failed to connect to " + parsed!.address + ":" + parsed!.port });
     });
     return;
   }

@@ -57,11 +57,20 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
       }
     }
 
+    function handlePairFailed(msg: ServerMessage) {
+      if (msg.type !== "mesh:pair_failed") return;
+      var data = msg as { type: string; message: string };
+      setPairStatus("failed");
+      setPairError(data.message);
+    }
+
     ws.subscribe("mesh:invite_code", handleInvite);
     ws.subscribe("mesh:paired", handlePaired);
+    ws.subscribe("mesh:pair_failed", handlePairFailed);
     return function () {
       ws.unsubscribe("mesh:invite_code", handleInvite);
       ws.unsubscribe("mesh:paired", handlePaired);
+      ws.unsubscribe("mesh:pair_failed", handlePairFailed);
     };
   }, []);
 
@@ -220,8 +229,9 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
                 type="text"
                 value={pairCode}
                 onChange={function (e) {
-                  var raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-                  if (raw.startsWith("LTCE")) raw = raw.slice(4);
+                  var raw = e.target.value.replace(/[^A-Za-z0-9]/g, "");
+                  var upper = raw.toUpperCase();
+                  if (upper.startsWith("LTCE")) raw = raw.slice(4);
                   if (raw.length > 16) raw = raw.slice(0, 16);
                   var chunks: string[] = [];
                   for (var i = 0; i < raw.length; i += 4) {
