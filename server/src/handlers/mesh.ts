@@ -4,6 +4,8 @@ import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
+import { addPeer, removePeer, loadPeers } from "../mesh/peers";
+import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 
 function getLocalAddress(): string {
@@ -20,8 +22,6 @@ function getLocalAddress(): string {
   }
   return "localhost";
 }
-import { addPeer, removePeer, loadPeers } from "../mesh/peers";
-import type { PeerInfo } from "@lattice/shared";
 
 export function buildNodesMessage(): NodeInfo[] {
   var peers = loadPeers();
@@ -78,27 +78,38 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
       sendTo(clientId, { type: "mesh:pair_failed", message: "Invalid invite code format" });
       return;
     }
-    if (!validatePairingToken(parsed.token)) {
-      sendTo(clientId, { type: "mesh:pair_failed", message: "Invite code is invalid or expired" });
-      return;
-    }
-    consumePairingToken(parsed.token);
 
     var wsUrl = "ws://" + parsed.address + ":" + parsed.port + "/ws";
-    var ws = new WebSocket(wsUrl);
-    ws.addEventListener("open", function () {
+    var pairWs = new WebSocket(wsUrl);
+    var pairTimeout = setTimeout(function () {
+      pairWs.close();
+      sendTo(clientId, { type: "mesh:pair_failed", message: "Connection timed out" });
+    }, 15000);
+
+    pairWs.addEventListener("open", function () {
       var identity = loadOrCreateIdentity();
-      ws.send(JSON.stringify({
+      pairWs.send(JSON.stringify({
         type: "mesh:hello",
         nodeId: identity.id,
         name: loadConfig().name,
+        token: parsed!.token,
         projects: [],
       }));
     });
-    ws.addEventListener("message", function (event: MessageEvent) {
+
+    pairWs.addEventListener("message", function (event: MessageEvent) {
       try {
-        var data = JSON.parse(event.data as string) as { type: string; nodeId?: string; name?: string };
+        var data = JSON.parse(event.data as string) as { type: string; nodeId?: string; name?: string; error?: string };
+
+        if (data.type === "mesh:hello_rejected") {
+          clearTimeout(pairTimeout);
+          pairWs.close();
+          sendTo(clientId, { type: "mesh:pair_failed", message: data.error ?? "Pairing rejected by remote node" });
+          return;
+        }
+
         if (data.type === "mesh:hello" && data.nodeId && data.name) {
+          clearTimeout(pairTimeout);
           var peer: PeerInfo = {
             id: data.nodeId,
             name: data.name,
@@ -107,7 +118,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
             pairedAt: Date.now(),
           };
           addPeer(peer);
-          ws.close();
+          pairWs.close();
 
           var nodeInfo: NodeInfo = {
             id: peer.id,
@@ -125,10 +136,41 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
         console.error("[lattice] mesh:pair — invalid handshake response");
       }
     });
-    ws.addEventListener("error", function () {
-      console.error("[lattice] mesh:pair — failed to connect to", wsUrl);
+
+    pairWs.addEventListener("error", function () {
+      clearTimeout(pairTimeout);
       sendTo(clientId, { type: "mesh:pair_failed", message: "Failed to connect to " + parsed!.address + ":" + parsed!.port });
     });
+    return;
+  }
+
+  if ((message as any).type === "mesh:hello") {
+    var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; token?: string; projects: Array<{ slug: string; title: string }> };
+
+    if (!hello.token || !validatePairingToken(hello.token)) {
+      sendTo(clientId, { type: "mesh:hello_rejected" as any, error: "Invalid or expired invite code" });
+      return;
+    }
+    consumePairingToken(hello.token);
+
+    var peer: PeerInfo = {
+      id: hello.nodeId,
+      name: hello.name,
+      addresses: [],
+      publicKey: "",
+      pairedAt: Date.now(),
+    };
+    addPeer(peer);
+
+    var identity = loadOrCreateIdentity();
+    sendTo(clientId, {
+      type: "mesh:hello" as any,
+      nodeId: identity.id,
+      name: loadConfig().name,
+      projects: [],
+    });
+
+    broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
     return;
   }
 
