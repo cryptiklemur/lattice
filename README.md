@@ -23,19 +23,31 @@
 ## Quick Start
 
 ```bash
-npm install -g @cryptiklemur/lattice
+curl -fsSL https://raw.githubusercontent.com/cryptiklemur/lattice/main/install.sh | bash
 lattice
 ```
 
-Opens at `http://localhost:7654`. Add projects through the UI or point it at a directory with a `CLAUDE.md` file.
+Opens at `http://localhost:7654`. No runtime dependencies — the binary includes everything.
 
 <details>
-<summary>Install with Bun</summary>
+<summary>Other install methods</summary>
+
+**Custom install directory:**
+
+```bash
+LATTICE_INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/cryptiklemur/lattice/main/install.sh | bash
+```
+
+**Via npm** (requires [Bun](https://bun.sh)):
 
 ```bash
 bun install -g @cryptiklemur/lattice
 lattice
 ```
+
+**Manual download:**
+
+Download the binary for your platform from [GitHub Releases](https://github.com/cryptiklemur/lattice/releases), `chmod +x`, and run it.
 
 </details>
 
@@ -50,6 +62,17 @@ bun run dev
 ```
 
 Hot-reloads both server and client automatically.
+
+</details>
+
+<details>
+<summary>Updating</summary>
+
+```bash
+lattice update
+```
+
+The server also checks for updates automatically and shows a banner in the UI when a new version is available.
 
 </details>
 
@@ -83,12 +106,17 @@ Press `?` for keyboard shortcuts, `Ctrl+K` for the command palette.
 
 ![Settings](docs/screenshots/settings.png)
 
+### Plugin Management
+
+Install, update, and remove Claude Code plugins from the UI. Browse all plugins across registered marketplaces sorted by popularity, view details (skills, hooks, rules, author info), and enable/disable plugins per project.
+
 ### Infrastructure
 
 - **Mesh networking** — Connect multiple machines with automatic discovery and session proxying
 - **MCP servers** — Add, edit, and remove at global or project level
-- **Skill marketplace** — Search and install from [skills.sh](https://skills.sh)
+- **Plugins & skills** — Browse marketplaces, install plugins, manage per-project
 - **Memory management** — View and edit Claude's project memories
+- **Self-updating** — Automatic update checks with in-app banner and `lattice update` CLI
 
 ### Mobile
 
@@ -100,13 +128,15 @@ Responsive design with touch targets, swipe-to-open sidebar, and optimized layou
 
 ## Architecture
 
-Bun monorepo with three packages:
+Bun monorepo with three packages, compiled into a standalone binary via `bun build --compile`:
 
 | Package | Stack |
 |---------|-------|
 | `shared/` | TypeScript types, message protocol, constants |
 | `server/` | Bun WebSocket server, analytics engine, mesh networking |
 | `client/` | React 19, Vite, Tailwind, daisyUI, 23 themes |
+
+The client is built by Vite, then embedded into the server binary as base64-encoded assets. The result is a single executable with zero runtime dependencies.
 
 Communication via typed WebSocket messages. Sessions managed through the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk). Client state via Tanstack Store + Router.
 
