@@ -56,17 +56,18 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
   if (PROXIED_PREFIXES.has(prefix)) {
     var remote = clientRemoteNode.get(clientId);
 
-    if (message.type === "session:activate") {
-      var activateMsg = message as { type: string; projectSlug: string; sessionId: string };
-      var localProject = getLocalProject(activateMsg.projectSlug);
+    var msgSlug = (message as any).projectSlug as string | undefined;
+
+    if (msgSlug) {
+      var localProject = getLocalProject(msgSlug);
       if (!localProject) {
-        var remoteEntry = getRemoteNodeForProject(activateMsg.projectSlug);
+        var remoteEntry = getRemoteNodeForProject(msgSlug);
         if (remoteEntry) {
-          setClientRemoteNode(clientId, remoteEntry.nodeId, activateMsg.projectSlug);
-          proxyMessage(clientId, remoteEntry.nodeId, activateMsg.projectSlug, message);
+          setClientRemoteNode(clientId, remoteEntry.nodeId, msgSlug);
+          proxyMessage(clientId, remoteEntry.nodeId, msgSlug, message);
           return;
         }
-      } else {
+      } else if (message.type === "session:activate" || message.type === "session:list_request") {
         clearClientRemoteNode(clientId);
       }
     } else if (remote) {

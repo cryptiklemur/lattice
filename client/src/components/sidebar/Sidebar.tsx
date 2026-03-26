@@ -351,17 +351,20 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
 
                 <div className="flex flex-col gap-0.5 mx-3 mt-1">
                   {[
-                    { type: "files" as const, icon: FolderOpen, label: "Files" },
-                    { type: "terminal" as const, icon: TerminalSquare, label: "Terminal" },
-                    { type: "notes" as const, icon: StickyNote, label: "Notes" },
-                    { type: "tasks" as const, icon: Calendar, label: "Tasks" },
-                    { type: "bookmarks" as const, icon: Bookmark, label: "Bookmarks" },
+                    { type: "files" as const, icon: FolderOpen, label: "Files", localOnly: true },
+                    { type: "terminal" as const, icon: TerminalSquare, label: "Terminal", localOnly: true },
+                    { type: "notes" as const, icon: StickyNote, label: "Notes", localOnly: false },
+                    { type: "tasks" as const, icon: Calendar, label: "Tasks", localOnly: false },
+                    { type: "bookmarks" as const, icon: Bookmark, label: "Bookmarks", localOnly: false },
                   ].map(function (item) {
+                    var isDisabled = item.localOnly && activeProject?.isRemote;
                     return (
                       <button
                         key={item.type}
                         type="button"
+                        disabled={!!isDisabled}
                         onClick={function () {
+                          if (isDisabled) return;
                           openTab(item.type);
                           var state = getSidebarStore().state;
                           if (state.activeView.type !== "chat") {
@@ -370,7 +373,13 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                             });
                           }
                         }}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                        className={
+                          "flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] transition-colors " +
+                          (isDisabled
+                            ? "text-base-content/15 cursor-not-allowed"
+                            : "text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30")
+                        }
+                        title={isDisabled ? "Not available for remote projects" : undefined}
                       >
                         <item.icon size={12} />
                         <span className="font-mono tracking-wide">{item.label}</span>
