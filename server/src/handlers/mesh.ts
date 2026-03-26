@@ -8,6 +8,8 @@ import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
 import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer } from "../mesh/connector";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 
 function getLocalAddress(): string {
   var all = getAllAddresses();
@@ -27,6 +29,48 @@ function getAllAddresses(): Array<{ name: string; address: string }> {
       }
     }
   }
+
+  if (isWSL()) {
+    var windowsAddrs = getWindowsHostAddresses();
+    for (var w = 0; w < windowsAddrs.length; w++) {
+      var exists = results.some(function (r) { return r.address === windowsAddrs[w].address; });
+      if (!exists) {
+        results.push(windowsAddrs[w]);
+      }
+    }
+  }
+
+  return results;
+}
+
+function isWSL(): boolean {
+  try {
+    if (existsSync("/proc/version")) {
+      var version = readFileSync("/proc/version", "utf-8");
+      return version.toLowerCase().includes("microsoft");
+    }
+  } catch {}
+  return false;
+}
+
+function getWindowsHostAddresses(): Array<{ name: string; address: string }> {
+  var results: Array<{ name: string; address: string }> = [];
+  try {
+    var output = execSync(
+      "powershell.exe -NoProfile -Command \"Get-NetIPAddress -AddressFamily IPv4 | ForEach-Object { \\$_.IPAddress + '|' + \\$_.InterfaceAlias }\"",
+      { encoding: "utf-8", timeout: 5000, stdio: ["pipe", "pipe", "pipe"] }
+    );
+    var lines = output.trim().split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var parts = lines[i].trim().split("|");
+      var ip = parts[0];
+      var iface = parts[1] || "windows";
+      if (!ip || ip === "127.0.0.1") continue;
+      if (ip.startsWith("169.254.")) continue;
+      if (iface.includes("WSL")) continue;
+      results.push({ name: iface.toLowerCase().replace(/\s+/g, "-"), address: ip });
+    }
+  } catch {}
   return results;
 }
 
