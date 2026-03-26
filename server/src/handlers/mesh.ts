@@ -9,18 +9,24 @@ import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 
 function getLocalAddress(): string {
+  var all = getAllAddresses();
+  return all.length > 0 ? all[0].address : "localhost";
+}
+
+function getAllAddresses(): Array<{ name: string; address: string }> {
   var interfaces = networkInterfaces();
   var keys = Object.keys(interfaces);
+  var results: Array<{ name: string; address: string }> = [];
   for (var i = 0; i < keys.length; i++) {
     var addrs = interfaces[keys[i]];
     if (!addrs) continue;
     for (var j = 0; j < addrs.length; j++) {
       if (!addrs[j].internal && addrs[j].family === "IPv4") {
-        return addrs[j].address;
+        results.push({ name: keys[i], address: addrs[j].address });
       }
     }
   }
-  return "localhost";
+  return results;
 }
 
 export function buildNodesMessage(): NodeInfo[] {
@@ -57,8 +63,9 @@ export function buildNodesMessage(): NodeInfo[] {
 
 registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   if (message.type === "mesh:generate_invite") {
+    var genMsg = message as any as { type: "mesh:generate_invite"; address?: string };
     var config = loadConfig();
-    var address = getLocalAddress();
+    var address = genMsg.address || getLocalAddress();
     generateInviteCode(address, config.port).then(function (result) {
       sendTo(clientId, {
         type: "mesh:invite_code",
@@ -68,6 +75,12 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     }).catch(function (err) {
       console.error("[lattice] Failed to generate invite code:", err);
     });
+    return;
+  }
+
+  if ((message as any).type === "mesh:addresses") {
+    var addresses = getAllAddresses();
+    sendTo(clientId, { type: "mesh:addresses_result" as any, addresses: addresses });
     return;
   }
 

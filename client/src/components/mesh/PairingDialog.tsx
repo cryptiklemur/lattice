@@ -22,6 +22,8 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
   var [pairError, setPairError] = useState<string | null>(null);
   var [copied, setCopied] = useState(false);
   var [generating, setGenerating] = useState(false);
+  var [addresses, setAddresses] = useState<Array<{ name: string; address: string }>>([]);
+  var [selectedAddress, setSelectedAddress] = useState("");
   var modalRef = useRef<HTMLDivElement>(null);
   var inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,14 +35,32 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
       setPairError(null);
       setCopied(false);
       setGenerating(false);
+      setAddresses([]);
+      setSelectedAddress("");
       setTab("generate");
       return;
     }
+
+    function handleAddresses(msg: ServerMessage) {
+      if ((msg as any).type !== "mesh:addresses_result") return;
+      var data = msg as any as { addresses: Array<{ name: string; address: string }> };
+      setAddresses(data.addresses);
+      if (data.addresses.length > 0) {
+        setSelectedAddress(data.addresses[0].address);
+      }
+    }
+
+    ws.subscribe("mesh:addresses_result", handleAddresses);
+    ws.send({ type: "mesh:addresses" } as any);
+
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") props.onClose();
     }
     document.addEventListener("keydown", handleKeyDown);
-    return function () { document.removeEventListener("keydown", handleKeyDown); };
+    return function () {
+      document.removeEventListener("keydown", handleKeyDown);
+      ws.unsubscribe("mesh:addresses_result", handleAddresses);
+    };
   }, [props.isOpen]);
 
   useEffect(function () {
@@ -77,7 +97,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
   function handleGenerateInvite() {
     clearInvite();
     setGenerating(true);
-    mesh.generateInvite();
+    ws.send({ type: "mesh:generate_invite", address: selectedAddress } as any);
   }
 
   function handlePair() {
@@ -172,9 +192,31 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
                 The code encodes this node&apos;s address and a one-time auth token.
               </div>
 
+              {!mesh.inviteCode && !generating && addresses.length > 1 && (
+                <div className="mb-3">
+                  <label className="text-[11px] font-mono text-base-content/35 uppercase tracking-wider mb-1.5 block">
+                    Network interface
+                  </label>
+                  <select
+                    value={selectedAddress}
+                    onChange={function (e) { setSelectedAddress(e.target.value); }}
+                    className="select select-bordered select-sm w-full bg-base-100 text-base-content text-[13px] font-mono"
+                  >
+                    {addresses.map(function (a) {
+                      return (
+                        <option key={a.address} value={a.address}>
+                          {a.address} ({a.name})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
               {!mesh.inviteCode && !generating && (
                 <button
                   onClick={handleGenerateInvite}
+                  disabled={!selectedAddress && addresses.length > 0}
                   className="btn btn-primary btn-sm"
                 >
                   Generate Invite Code
