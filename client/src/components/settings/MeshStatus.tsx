@@ -1,5 +1,5 @@
 import { useState, useCallback, memo } from "react";
-import { Plus, CircleDot, Circle, RefreshCw } from "lucide-react";
+import { Plus, CircleDot, Circle, RefreshCw, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { PairingDialog } from "../mesh/PairingDialog";
@@ -13,6 +13,7 @@ interface NodeRowProps {
 
 function NodeRow(props: NodeRowProps) {
   var [confirming, setConfirming] = useState(false);
+  var [reconnecting, setReconnecting] = useState(false);
 
   function handleUnpair() {
     if (!confirming) {
@@ -58,14 +59,25 @@ function NodeRow(props: NodeRowProps) {
       {!props.node.isLocal && (
         <div className="flex gap-1.5 flex-shrink-0">
           {!props.node.online && (
-            <button
-              onClick={function () { props.onReconnect(props.node.id); }}
-              className="btn btn-ghost btn-xs border border-base-content/20 hover:btn-info hover:border-info gap-1"
-              title="Attempt to reconnect"
-            >
-              <RefreshCw size={10} />
-              Reconnect
-            </button>
+            reconnecting ? (
+              <span className="flex items-center gap-1 text-[11px] text-base-content/40">
+                <Loader2 size={10} className="animate-spin" />
+                Connecting...
+              </span>
+            ) : (
+              <button
+                onClick={function () {
+                  setReconnecting(true);
+                  props.onReconnect(props.node.id);
+                  setTimeout(function () { setReconnecting(false); }, 5000);
+                }}
+                className="btn btn-ghost btn-xs border border-base-content/20 hover:btn-info hover:border-info gap-1"
+                title="Attempt to reconnect"
+              >
+                <RefreshCw size={10} />
+                Reconnect
+              </button>
+            )
           )}
           {confirming ? (
             <>

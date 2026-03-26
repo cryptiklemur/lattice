@@ -4,7 +4,7 @@ import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
-import { addPeer, removePeer, loadPeers } from "../mesh/peers";
+import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
 import { getConnectedPeerIds, connectToPeer, reconnectPeer } from "../mesh/connector";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
@@ -172,6 +172,20 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   if ((message as any).type === "mesh:hello") {
     var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; token?: string; port?: number; addresses?: string[]; projects: Array<{ slug: string; title: string }> };
 
+    var knownPeer = hello.nodeId ? getPeer(hello.nodeId) : undefined;
+
+    if (knownPeer) {
+      var identity = loadOrCreateIdentity();
+      sendTo(clientId, {
+        type: "mesh:hello" as any,
+        nodeId: identity.id,
+        name: loadConfig().name,
+        projects: [],
+      });
+      broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
+      return;
+    }
+
     if (!hello.token || !validatePairingToken(hello.token)) {
       sendTo(clientId, { type: "mesh:hello_rejected" as any, error: "Invalid or expired invite code" });
       return;
@@ -193,10 +207,10 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
       connectToPeer(peer.id, peerAddresses[0]);
     }
 
-    var identity = loadOrCreateIdentity();
+    var identity2 = loadOrCreateIdentity();
     sendTo(clientId, {
       type: "mesh:hello" as any,
-      nodeId: identity.id,
+      nodeId: identity2.id,
       name: loadConfig().name,
       projects: [],
     });
