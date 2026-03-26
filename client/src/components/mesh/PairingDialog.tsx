@@ -198,17 +198,6 @@ export function PairingDialog(props: PairingDialogProps) {
                     </button>
                   </div>
 
-                  {mesh.inviteQr && (
-                    <div className="flex justify-center mb-4">
-                      <img
-                        src={mesh.inviteQr}
-                        alt="QR code for invite"
-                        className="w-40 h-40 rounded border border-base-300"
-                        style={{ imageRendering: "pixelated" }}
-                      />
-                    </div>
-                  )}
-
                   <button
                     onClick={handleGenerateInvite}
                     className="text-[12px] text-base-content/40 underline cursor-pointer"
