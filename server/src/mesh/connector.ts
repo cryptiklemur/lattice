@@ -138,10 +138,11 @@ function openConnection(conn: PeerConnection, url: string): void {
     var config = loadConfig();
     var projects = listProjects(identity.id);
 
-    var hello: MeshHelloMessage = {
+    var hello: MeshHelloMessage & { publicKey?: string } = {
       type: "mesh:hello",
       nodeId: identity.id,
       name: config.name,
+      publicKey: identity.publicKey,
       projects: projects.map(function (p) {
         return { slug: p.slug, title: p.title };
       }),

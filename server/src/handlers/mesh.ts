@@ -111,6 +111,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
         type: "mesh:hello",
         nodeId: identity.id,
         name: pairConfig.name,
+        publicKey: identity.publicKey,
         token: parsed!.token,
         port: pairConfig.port,
         addresses: getAllAddresses().map(function (a) { return a.address + ":" + pairConfig.port; }),
@@ -120,7 +121,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
     pairWs.addEventListener("message", function (event: MessageEvent) {
       try {
-        var data = JSON.parse(event.data as string) as { type: string; nodeId?: string; name?: string; error?: string };
+        var data = JSON.parse(event.data as string) as { type: string; nodeId?: string; name?: string; publicKey?: string; error?: string };
 
         if (data.type === "mesh:hello_rejected") {
           clearTimeout(pairTimeout);
@@ -136,7 +137,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
             id: data.nodeId,
             name: data.name,
             addresses: [peerAddr],
-            publicKey: "",
+            publicKey: data.publicKey ?? "",
             pairedAt: Date.now(),
           };
           addPeer(peer);
@@ -170,16 +171,21 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "mesh:hello") {
-    var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; token?: string; port?: number; addresses?: string[]; projects: Array<{ slug: string; title: string }> };
+    var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; publicKey?: string; token?: string; port?: number; addresses?: string[]; projects: Array<{ slug: string; title: string }> };
 
     var knownPeer = hello.nodeId ? getPeer(hello.nodeId) : undefined;
 
     if (knownPeer) {
+      if (knownPeer.publicKey && hello.publicKey && knownPeer.publicKey !== hello.publicKey) {
+        sendTo(clientId, { type: "mesh:hello_rejected" as any, error: "Public key mismatch — possible impersonation" });
+        return;
+      }
       var identity = loadOrCreateIdentity();
       sendTo(clientId, {
         type: "mesh:hello" as any,
         nodeId: identity.id,
         name: loadConfig().name,
+        publicKey: identity.publicKey,
         projects: [],
       });
       broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
@@ -198,7 +204,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
       id: hello.nodeId,
       name: hello.name,
       addresses: peerAddresses,
-      publicKey: "",
+      publicKey: hello.publicKey ?? "",
       pairedAt: Date.now(),
     };
     addPeer(peer);
@@ -212,6 +218,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
       type: "mesh:hello" as any,
       nodeId: identity2.id,
       name: loadConfig().name,
+      publicKey: identity2.publicKey,
       projects: [],
     });
 

@@ -211,15 +211,6 @@ All available in Node.js `crypto` module (and Bun):
 | **Replay protection** | Monotonic nonce counter per connection |
 | **MITM prevention** | Public key pinning from initial pairing |
 
-## Migration
-
-Existing paired nodes (pre-security) have empty `publicKey` fields. On upgrade:
-
-1. Generate keypair if missing from `identity.json`
-2. On next reconnection, if peer's stored `publicKey` is empty, exchange keys (trust-on-first-use)
-3. After first authenticated connection, pin the key — reject mismatches going forward
-4. Log a warning for trust-on-first-use events so users are aware
-
 ## Estimated Effort
 
 | Phase | Effort | Dependencies |
