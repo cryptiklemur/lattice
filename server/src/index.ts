@@ -243,10 +243,27 @@ async function runUpdate(): Promise<void> {
       console.log("[lattice] Downloading " + assetName + "...");
       var downloadRes = await fetch(asset.browser_download_url);
       var binary = new Uint8Array(await downloadRes.arrayBuffer());
-      var tmpPath = process.execPath + ".update";
+      var { tmpdir } = await import("node:os");
+      var tmpPath = join(tmpdir(), "lattice-update-" + Date.now());
       writeFileSync(tmpPath, binary);
       chmodSync(tmpPath, 0o755);
-      renameSync(tmpPath, process.execPath);
+
+      var needsSudo = false;
+      try {
+        var { accessSync, constants: fsConstants } = await import("node:fs");
+        accessSync(process.execPath, fsConstants.W_OK);
+      } catch {
+        needsSudo = true;
+      }
+
+      if (needsSudo) {
+        console.log("[lattice] Needs elevated permissions to replace binary...");
+        var { execSync } = await import("node:child_process");
+        execSync("sudo mv " + JSON.stringify(tmpPath) + " " + JSON.stringify(process.execPath), { stdio: "inherit" });
+        execSync("sudo chmod +x " + JSON.stringify(process.execPath), { stdio: "inherit" });
+      } else {
+        renameSync(tmpPath, process.execPath);
+      }
       code = 0;
     } catch (err) {
       console.error("[lattice] Download failed:", err instanceof Error ? err.message : String(err));

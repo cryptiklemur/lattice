@@ -1,4 +1,7 @@
-import { chmodSync, renameSync, writeFileSync } from "node:fs";
+import { chmodSync, renameSync, writeFileSync, accessSync, constants as fsConstants } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execSync } from "node:child_process";
 import type { ClientMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
@@ -43,11 +46,28 @@ async function downloadBinaryUpdate(): Promise<{ success: boolean; message: stri
 
     var binary = new Uint8Array(await downloadRes.arrayBuffer());
     var execPath = process.execPath;
-    var tmpPath = execPath + ".update";
+    var tmpPath = join(tmpdir(), "lattice-update-" + Date.now());
 
     writeFileSync(tmpPath, binary);
     chmodSync(tmpPath, 0o755);
-    renameSync(tmpPath, execPath);
+
+    var needsSudo = false;
+    try {
+      accessSync(execPath, fsConstants.W_OK);
+    } catch {
+      needsSudo = true;
+    }
+
+    if (needsSudo) {
+      try {
+        execSync("sudo mv " + JSON.stringify(tmpPath) + " " + JSON.stringify(execPath), { stdio: "pipe", timeout: 10000 });
+        execSync("sudo chmod +x " + JSON.stringify(execPath), { stdio: "pipe", timeout: 5000 });
+      } catch {
+        return { success: false, message: "Update downloaded but needs sudo to install. Run: sudo mv " + tmpPath + " " + execPath };
+      }
+    } else {
+      renameSync(tmpPath, execPath);
+    }
 
     return { success: true, message: "Updated successfully. Restart the server to apply." };
   } catch (err) {
