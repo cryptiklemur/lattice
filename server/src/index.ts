@@ -259,10 +259,13 @@ async function runUpdate(): Promise<void> {
       if (needsSudo) {
         console.log("[lattice] Needs elevated permissions to replace binary...");
         var { execSync } = await import("node:child_process");
-        execSync("sudo mv " + JSON.stringify(tmpPath) + " " + JSON.stringify(process.execPath), { stdio: "inherit" });
+        execSync("sudo cp " + JSON.stringify(tmpPath) + " " + JSON.stringify(process.execPath), { stdio: "inherit" });
         execSync("sudo chmod +x " + JSON.stringify(process.execPath), { stdio: "inherit" });
       } else {
-        renameSync(tmpPath, process.execPath);
+        var { copyFileSync: cpSync, unlinkSync: rmSync } = await import("node:fs");
+        cpSync(tmpPath, process.execPath);
+        chmodSync(process.execPath, 0o755);
+        rmSync(tmpPath);
       }
       code = 0;
     } catch (err) {
