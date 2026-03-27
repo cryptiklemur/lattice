@@ -224,6 +224,9 @@ function runHelp(): void {
   console.log("  Environment:");
   console.log("    LATTICE_HOME   Data directory (default: ~/.lattice)");
   console.log("    LATTICE_PORT   Server port (default: 7654)");
+  console.log("    DEBUG          Enable debug logging (e.g. DEBUG=lattice:*)");
+  console.log("                   Scopes: server,ws,router,mesh,mesh:connect,mesh:hello,");
+  console.log("                   mesh:proxy,broadcast,chat,session,plugins,update");
   console.log("");
 }
 

@@ -37,6 +37,11 @@ export function sendTo(id: string, message: object): void {
   var virtualHandler = virtualSendHandlers.get(id);
   if (virtualHandler) {
     virtualHandler(message);
+    return;
+  }
+  if (id.startsWith("mesh-proxy:")) {
+    var { log } = require("../logger");
+    log.broadcast("  ✗ sendTo %s but no virtual handler registered (msg=%s)", id.slice(0, 30), (message as any).type);
   }
 }
 

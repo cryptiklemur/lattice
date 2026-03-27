@@ -3,19 +3,22 @@ import type { ClientMessage, MeshProxyRequestMessage, MeshProxyResponseMessage, 
 import { getPeerConnection } from "./connector";
 import { sendTo, broadcast, registerVirtualClient, removeVirtualClient } from "../ws/broadcast";
 import { routeMessage } from "../ws/router";
+import { log } from "../logger";
 
 var pendingRequests = new Map<string, string>();
 
 export function proxyToRemoteNode(nodeId: string, projectSlug: string, clientId: string, message: ClientMessage): void {
+  log.meshProxy("→ proxy %s to node %s for project %s", (message as any).type, nodeId.slice(0, 8), projectSlug);
   var ws = getPeerConnection(nodeId);
   if (!ws) {
-    console.warn("[mesh/proxy] No connection to peer: " + nodeId);
-    sendTo(clientId, { type: "chat:error", message: "Remote node " + nodeId + " is not connected" });
+    log.meshProxy("  ✗ no connection to node %s", nodeId.slice(0, 8));
+    sendTo(clientId, { type: "chat:error", message: "Remote node is not connected" });
     return;
   }
 
   var requestId = randomUUID();
   pendingRequests.set(requestId, clientId);
+  log.meshProxy("  envelope requestId=%s", requestId.slice(0, 8));
 
   var envelope: MeshProxyRequestMessage = {
     type: "mesh:proxy_request",
@@ -29,8 +32,10 @@ export function proxyToRemoteNode(nodeId: string, projectSlug: string, clientId:
 
 export function handleProxyRequest(sourceNodeId: string, msg: MeshProxyRequestMessage): void {
   var proxyClientId = "mesh-proxy:" + sourceNodeId + ":" + msg.requestId;
+  log.meshProxy("← proxy_request from %s: %s for %s (reqId=%s)", sourceNodeId.slice(0, 8), (msg.payload as any).type, msg.projectSlug, msg.requestId.slice(0, 8));
 
   registerVirtualClient(proxyClientId, function (response: object) {
+    log.meshProxy("  → proxy_response %s back to %s", (response as any).type, sourceNodeId.slice(0, 8));
     var ws = getPeerConnection(sourceNodeId);
     if (!ws) {
       console.warn("[mesh/proxy] Cannot send response, no connection to: " + sourceNodeId);
@@ -53,9 +58,10 @@ export function handleProxyRequest(sourceNodeId: string, msg: MeshProxyRequestMe
 }
 
 export function handleProxyResponse(msg: MeshProxyResponseMessage): void {
+  log.meshProxy("← proxy_response %s (reqId=%s)", (msg.payload as any).type, msg.requestId.slice(0, 8));
   var clientId = pendingRequests.get(msg.requestId);
   if (!clientId) {
-    console.warn("[mesh/proxy] No pending request for id: " + msg.requestId);
+    log.meshProxy("  ✗ no pending request for %s", msg.requestId.slice(0, 8));
     return;
   }
 

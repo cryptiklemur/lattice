@@ -46,11 +46,18 @@ function reconcilePeers(): void {
   var peers = loadPeers();
   for (var i = 0; i < peers.length; i++) {
     var peer = peers[i];
-    if (!peer.addresses || peer.addresses.length === 0) continue;
+    if (!peer.addresses || peer.addresses.length === 0) {
+      log.meshConnect("skip %s — no addresses", peer.name);
+      continue;
+    }
     var existing = connections.get(peer.id);
     if (existing && !existing.dead && existing.ws.readyState === WebSocket.OPEN) continue;
-    if (existing && !existing.dead && existing.retryTimer !== null) continue;
+    if (existing && !existing.dead && existing.retryTimer !== null) {
+      log.meshConnect("skip %s — retry pending", peer.name);
+      continue;
+    }
     if (!existing || existing.dead) {
+      log.meshConnect("connecting to %s at %s", peer.name, peer.addresses[0]);
       connections.delete(peer.id);
       connectToPeer(peer.id, peer.addresses[0]);
     }
@@ -103,6 +110,7 @@ function openConnection(conn: PeerConnection, url: string): void {
   var circuit = circuitBreakers.get(conn.nodeId);
   if (circuit && circuit.failures >= CIRCUIT_BREAKER_THRESHOLD && !circuit.halfOpen) {
     if (Date.now() < circuit.openUntil) {
+      log.meshConnect("circuit breaker open for %s, retry in %dms", conn.nodeId.slice(0, 8), circuit.openUntil - Date.now());
       conn.retryTimer = setTimeout(function () {
         if (conn.dead) return;
         conn.retryTimer = null;
@@ -114,12 +122,13 @@ function openConnection(conn: PeerConnection, url: string): void {
     circuit.halfOpen = true;
   }
 
+  log.meshConnect("opening WebSocket to %s", url);
   var ws = new WebSocket(url);
   conn.ws = ws;
 
   var connectionTimer = setTimeout(function () {
     if (ws.readyState !== WebSocket.OPEN) {
-      log.mesh("Connection timeout for peer: %s", conn.nodeId);
+      log.meshConnect("connection timeout for %s at %s", conn.nodeId.slice(0, 8), url);
       ws.close();
     }
   }, CONNECTION_TIMEOUT_MS);
@@ -242,8 +251,10 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
 export function registerInboundPeer(nodeId: string, ws: { send: (data: string) => void; readyState: number }): void {
   var existing = connections.get(nodeId);
   if (existing && !existing.dead && existing.ws.readyState === WebSocket.OPEN) {
+    log.meshConnect("inbound peer %s already connected, skipping", nodeId.slice(0, 8));
     return;
   }
+  log.meshConnect("registering inbound peer %s", nodeId.slice(0, 8));
 
   if (existing) {
     existing.dead = true;

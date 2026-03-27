@@ -1,4 +1,5 @@
 import type { ClientMessage, MeshPairMessage, MeshUnpairMessage, NodeInfo } from "@lattice/shared";
+import { log } from "../logger";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig } from "../config";
@@ -122,6 +123,8 @@ export function buildNodesMessage(): NodeInfo[] {
 }
 
 registerHandler("mesh", function (clientId: string, message: ClientMessage) {
+  log.meshHello("mesh message: %s from %s", (message as any).type, clientId.slice(0, 8));
+
   if (message.type === "mesh:generate_invite") {
     var genMsg = message as any as { type: "mesh:generate_invite"; address?: string };
     var config = loadConfig();
@@ -232,14 +235,17 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; publicKey?: string; token?: string; port?: number; addresses?: string[]; projects: Array<{ slug: string; title: string }> };
 
     var knownPeer = hello.nodeId ? getPeer(hello.nodeId) : undefined;
+    log.meshHello("mesh:hello from nodeId=%s name=%s known=%s", hello.nodeId?.slice(0, 8), hello.name, !!knownPeer);
 
     if (knownPeer) {
       if (knownPeer.publicKey && hello.publicKey && knownPeer.publicKey !== hello.publicKey) {
+        log.meshHello("  ✗ public key mismatch for %s", hello.name);
         sendTo(clientId, { type: "mesh:hello_rejected" as any, error: "Public key mismatch — possible impersonation" });
         return;
       }
 
       var inboundWs = getClientWebSocket(clientId);
+      log.meshHello("  registering inbound connection for %s (ws=%s)", hello.name, !!inboundWs);
       if (inboundWs) {
         registerInboundPeer(hello.nodeId, inboundWs as any);
       }

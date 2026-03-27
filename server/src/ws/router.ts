@@ -53,6 +53,8 @@ export function getClientRemoteNode(clientId: string): { nodeId: string; project
 export function routeMessage(clientId: string, message: ClientMessage): void {
   var prefix = message.type.split(":")[0];
 
+  log.router("→ %s from client %s (prefix=%s)", message.type, clientId.slice(0, 8), prefix);
+
   if (PROXIED_PREFIXES.has(prefix)) {
     var remote = clientRemoteNode.get(clientId);
 
@@ -60,17 +62,21 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
 
     if (msgSlug) {
       var localProject = getLocalProject(msgSlug);
+      log.router("  slug=%s local=%s", msgSlug, localProject);
       if (!localProject) {
         var remoteEntry = getRemoteNodeForProject(msgSlug);
         if (remoteEntry) {
+          log.router("  → proxying to remote node %s for project %s", remoteEntry.nodeId.slice(0, 8), msgSlug);
           setClientRemoteNode(clientId, remoteEntry.nodeId, msgSlug);
           proxyMessage(clientId, remoteEntry.nodeId, msgSlug, message);
           return;
         }
+        log.router("  ✗ no remote node found for slug %s", msgSlug);
       } else if (message.type === "session:activate" || message.type === "session:list_request") {
         clearClientRemoteNode(clientId);
       }
     } else if (remote) {
+      log.router("  → proxying via cached remote node %s", remote.nodeId.slice(0, 8));
       proxyMessage(clientId, remote.nodeId, remote.projectSlug, message);
       return;
     }
@@ -78,6 +84,7 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
 
   var handler = handlers.get(prefix);
   if (handler) {
+    log.router("  → dispatching to %s handler", prefix);
     try {
       var result = handler(clientId, message);
       if (result && typeof result.then === "function") {
@@ -94,7 +101,7 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
     }
     return;
   }
-  log.ws("No handler for message type: %s", message.type);
+  log.router("  ✗ no handler for %s", message.type);
   sendTo(clientId, { type: "error", message: `Unknown message type: ${message.type}` });
 }
 
