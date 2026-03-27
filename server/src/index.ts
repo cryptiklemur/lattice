@@ -121,10 +121,11 @@ async function runDaemon(): Promise<void> {
     stopMeshConnections();
 
     var waited = 0;
+    var maxWait = 2000;
     var checkInterval = setInterval(function () {
       var activeCount = getActiveStreamCount();
       waited += 500;
-      if (activeCount === 0 || waited >= 5000) {
+      if (activeCount === 0 || waited >= maxWait) {
         clearInterval(checkInterval);
         closeAllClients();
         removePid();

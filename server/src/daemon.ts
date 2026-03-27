@@ -230,6 +230,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       Bun.serve<WsData>({
     port: config.port,
     hostname: "0.0.0.0",
+    reusePort: true,
     ...(tlsOptions ? { tls: tlsOptions } : {}),
 
     async fetch(req: Request, server: ReturnType<typeof Bun.serve>) {
