@@ -239,6 +239,52 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
   return conn.ws;
 }
 
+export function registerInboundPeer(nodeId: string, ws: { send: (data: string) => void; readyState: number }): void {
+  var existing = connections.get(nodeId);
+  if (existing && !existing.dead && existing.ws.readyState === WebSocket.OPEN) {
+    return;
+  }
+
+  if (existing) {
+    existing.dead = true;
+    if (existing.retryTimer !== null) {
+      clearTimeout(existing.retryTimer);
+    }
+  }
+
+  circuitBreakers.delete(nodeId);
+
+  var conn: PeerConnection = {
+    nodeId: nodeId,
+    ws: ws as WebSocket,
+    backoffMs: 1000,
+    retryTimer: null,
+    dead: false,
+    projects: [],
+  };
+
+  connections.set(nodeId, conn);
+
+  var peers = loadPeers();
+  var peer = peers.find(function (p) { return p.id === nodeId; });
+  if (peer) {
+    var identity = loadOrCreateIdentity();
+    var config = loadConfig();
+    var projects = config.projects || [];
+    conn.projects = [];
+
+    ws.send(JSON.stringify({
+      type: "mesh:hello",
+      nodeId: identity.id,
+      name: config.name,
+      publicKey: identity.publicKey,
+      projects: projects.map(function (p: { slug: string; title: string }) {
+        return { slug: p.slug, title: p.title };
+      }),
+    }));
+  }
+}
+
 export function disconnectPeer(nodeId: string): void {
   var existing = connections.get(nodeId);
   if (existing) {

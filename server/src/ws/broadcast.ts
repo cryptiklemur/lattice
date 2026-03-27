@@ -40,6 +40,10 @@ export function sendTo(id: string, message: object): void {
   }
 }
 
+export function getClientWebSocket(id: string): ServerWebSocket<{ id: string }> | undefined {
+  return clients.get(id);
+}
+
 export function getClientCount(): number {
   return clients.size;
 }

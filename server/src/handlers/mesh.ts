@@ -5,7 +5,8 @@ import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
-import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer, getConnectedPeerProjects } from "../mesh/connector";
+import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer, getConnectedPeerProjects, registerInboundPeer } from "../mesh/connector";
+import { getClientWebSocket } from "../ws/broadcast";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
@@ -237,6 +238,12 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
         sendTo(clientId, { type: "mesh:hello_rejected" as any, error: "Public key mismatch — possible impersonation" });
         return;
       }
+
+      var inboundWs = getClientWebSocket(clientId);
+      if (inboundWs) {
+        registerInboundPeer(hello.nodeId, inboundWs as any);
+      }
+
       var identity = loadOrCreateIdentity();
       sendTo(clientId, {
         type: "mesh:hello" as any,
