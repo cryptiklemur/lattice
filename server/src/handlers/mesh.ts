@@ -1,5 +1,7 @@
 import type { ClientMessage, MeshPairMessage, MeshUnpairMessage, NodeInfo } from "@lattice/shared";
 import { log } from "../logger";
+import { handleProxyRequest, handleProxyResponse } from "../mesh/proxy";
+import type { MeshProxyRequestMessage, MeshProxyResponseMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig } from "../config";
@@ -7,7 +9,7 @@ import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
 import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer, getConnectedPeerProjects, registerInboundPeer } from "../mesh/connector";
-import { getClientWebSocket } from "../ws/broadcast";
+import { getClientWebSocket, registerVirtualClient, removeVirtualClient } from "../ws/broadcast";
 import type { PeerInfo } from "@lattice/shared";
 import { networkInterfaces } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
@@ -293,6 +295,33 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     });
 
     broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
+    return;
+  }
+
+  if ((message as any).type === "mesh:proxy_request") {
+    var proxyReq = message as unknown as MeshProxyRequestMessage;
+    log.meshProxy("received proxy_request via handler from %s: %s for %s", clientId.slice(0, 8), (proxyReq.payload as any).type, proxyReq.projectSlug);
+
+    registerVirtualClient("mesh-proxy:" + clientId + ":" + proxyReq.requestId, function (response: object) {
+      log.meshProxy("  → sending proxy_response %s back to client %s", (response as any).type, clientId.slice(0, 8));
+      sendTo(clientId, {
+        type: "mesh:proxy_response",
+        projectSlug: proxyReq.projectSlug,
+        requestId: proxyReq.requestId,
+        payload: response,
+      } as any);
+      removeVirtualClient("mesh-proxy:" + clientId + ":" + proxyReq.requestId);
+    });
+
+    var { routeMessage: routeMsg } = require("../ws/router") as typeof import("../ws/router");
+    routeMsg("mesh-proxy:" + clientId + ":" + proxyReq.requestId, proxyReq.payload);
+    return;
+  }
+
+  if ((message as any).type === "mesh:proxy_response") {
+    var proxyRes = message as unknown as MeshProxyResponseMessage;
+    log.meshProxy("received proxy_response via handler: %s", (proxyRes.payload as any).type);
+    handleProxyResponse(proxyRes);
     return;
   }
 
