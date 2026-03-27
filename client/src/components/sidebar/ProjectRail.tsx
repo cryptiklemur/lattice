@@ -254,17 +254,6 @@ export function ProjectRail(props: ProjectRailProps) {
         );
       })}
 
-      {props.nodes.filter(function (n) {
-        return !n.isLocal && n.online && n.projects.length === 0;
-      }).map(function (n) {
-        return (
-          <div
-            key={"skeleton-" + n.id}
-            className="w-[42px] h-[42px] rounded-full bg-base-200 animate-pulse flex-shrink-0"
-            title={"Loading projects from " + n.name + "..."}
-          />
-        );
-      })}
 
       {groups.length > 0 && (
         <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
