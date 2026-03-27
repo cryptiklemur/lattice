@@ -31,7 +31,7 @@ function groupProjectsBySlug(projects: ProjectInfo[], nodes: NodeInfo[]): Projec
     var nodeEntry = {
       nodeId: p.nodeId,
       nodeName: p.nodeName,
-      online: node ? node.online : false,
+      online: node ? node.online : (p.online ?? !p.isRemote),
       path: p.path,
     };
     if (existing) {

@@ -22,14 +22,30 @@ export function useProjects(): UseProjectsResult {
   useEffect(function () {
     handleRef.current = function (msg: ServerMessage) {
       if (msg.type === "projects:list") {
-        var list = (msg as ProjectsListMessage).projects;
-        setProjects(list);
+        var incoming = (msg as ProjectsListMessage).projects;
+        setProjects(function (prev) {
+          var incomingKeys = new Set(incoming.map(function (p) { return p.slug + "@" + p.nodeId; }));
+          var kept = prev.filter(function (p) {
+            if (!p.isRemote) return false;
+            return !incomingKeys.has(p.slug + "@" + p.nodeId);
+          });
+          for (var i = 0; i < kept.length; i++) {
+            (kept[i] as any).online = false;
+          }
+          return incoming.concat(kept);
+        });
         var storeState = getSidebarStore().state;
         var currentSlug = storeState.activeProjectSlug;
         if (currentSlug !== null) {
-          var found = list.find(function (p: typeof list[number]) { return p.slug === currentSlug; });
-          if (!found && list.length > 0) {
-            setActiveProjectSlug(list[0].slug);
+          var found = incoming.find(function (p: typeof incoming[number]) { return p.slug === currentSlug; });
+          if (!found) {
+            setProjects(function (current) {
+              var stillExists = current.find(function (p) { return p.slug === currentSlug; });
+              if (!stillExists && current.length > 0) {
+                setActiveProjectSlug(current[0].slug);
+              }
+              return current;
+            });
           }
         }
       }

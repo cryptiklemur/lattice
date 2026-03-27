@@ -17,6 +17,7 @@ interface PeerConnection {
 }
 
 var connections = new Map<string, PeerConnection>();
+var lastKnownProjects = new Map<string, Array<{ slug: string; title: string }>>();
 var connectedCallbacks: Array<(nodeId: string) => void> = [];
 var disconnectedCallbacks: Array<(nodeId: string) => void> = [];
 var messageCallbacks: Array<(nodeId: string, msg: MeshMessage) => void> = [];
@@ -176,6 +177,9 @@ function openConnection(conn: PeerConnection, url: string): void {
 
       if (msg.type === "mesh:hello") {
         conn.projects = msg.projects;
+        if (msg.projects.length > 0) {
+          lastKnownProjects.set(conn.nodeId, msg.projects);
+        }
       } else if (msg.type === "mesh:session_sync") {
         handleSessionSync(conn.nodeId, msg as MeshSessionSyncMessage);
       } else if (msg.type === "mesh:session_request") {
@@ -358,21 +362,33 @@ export function getConnectedPeerProjects(nodeId: string): Array<{ slug: string; 
   return conn.projects;
 }
 
-export function getAllRemoteProjects(localNodeId: string): Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean }> {
-  var results: Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean }> = [];
-  for (var [nodeId, conn] of connections) {
-    if (conn.ws.readyState !== WebSocket.OPEN) continue;
-    var peers = require("./peers") as typeof import("./peers");
-    var peer = peers.getPeer(nodeId);
-    var peerName = peer ? peer.name : nodeId;
-    for (var i = 0; i < conn.projects.length; i++) {
+export function getAllRemoteProjects(localNodeId: string): Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean; online: boolean }> {
+  var peersModule = require("./peers") as typeof import("./peers");
+  var allPeers = peersModule.loadPeers();
+  var connectedIds = new Set(getConnectedPeerIds());
+  var results: Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean; online: boolean }> = [];
+
+  for (var p = 0; p < allPeers.length; p++) {
+    var peer = allPeers[p];
+    var isOnline = connectedIds.has(peer.id);
+    var projects: Array<{ slug: string; title: string }> = [];
+
+    var conn = connections.get(peer.id);
+    if (conn && conn.projects.length > 0) {
+      projects = conn.projects;
+    } else if (lastKnownProjects.has(peer.id)) {
+      projects = lastKnownProjects.get(peer.id)!;
+    }
+
+    for (var i = 0; i < projects.length; i++) {
       results.push({
-        slug: conn.projects[i].slug,
+        slug: projects[i].slug,
         path: "",
-        title: conn.projects[i].title,
-        nodeId: nodeId,
-        nodeName: peerName,
+        title: projects[i].title,
+        nodeId: peer.id,
+        nodeName: peer.name,
         isRemote: true,
+        online: isOnline,
       });
     }
   }

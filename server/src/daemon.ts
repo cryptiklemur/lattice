@@ -401,7 +401,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     var remoteProjects = getAllRemoteProjects(currentIdentity.id);
     broadcast({
       type: "projects:list",
-      projects: localProjects.concat(remoteProjects as typeof localProjects),
+      projects: localProjects.concat(remoteProjects as unknown as typeof localProjects),
     });
     var updateInfo = getCachedUpdateInfo();
     if (updateInfo && updateInfo.updateAvailable) {

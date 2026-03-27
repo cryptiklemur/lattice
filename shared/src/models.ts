@@ -21,6 +21,7 @@ export interface ProjectSummary {
 export interface ProjectInfo extends ProjectSummary {
   nodeName: string;
   isRemote: boolean;
+  online?: boolean;
   ideProjectName?: string;
 }
 
