@@ -252,7 +252,7 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
   return conn.ws;
 }
 
-export function registerInboundPeer(nodeId: string, ws: { send: (data: string) => void; readyState: number }): void {
+export function registerInboundPeer(nodeId: string, ws: { send: (data: string) => void; readyState: number }, peerProjects?: Array<{ slug: string; title: string }>): void {
   var existing = connections.get(nodeId);
   if (existing && !existing.dead && existing.ws.readyState === WebSocket.OPEN) {
     log.meshConnect("inbound peer %s already connected, skipping", nodeId.slice(0, 8));
@@ -269,14 +269,19 @@ export function registerInboundPeer(nodeId: string, ws: { send: (data: string) =
 
   circuitBreakers.delete(nodeId);
 
+  var incomingProjects = peerProjects ?? [];
   var conn: PeerConnection = {
     nodeId: nodeId,
     ws: ws as WebSocket,
     backoffMs: 1000,
     retryTimer: null,
     dead: false,
-    projects: [],
+    projects: incomingProjects,
   };
+
+  if (incomingProjects.length > 0) {
+    lastKnownProjects.set(nodeId, incomingProjects);
+  }
 
   connections.set(nodeId, conn);
 

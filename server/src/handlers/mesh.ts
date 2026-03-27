@@ -245,9 +245,9 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
       }
 
       var inboundWs = getClientWebSocket(clientId);
-      log.meshHello("  registering inbound connection for %s (ws=%s)", hello.name, !!inboundWs);
+      log.meshHello("  registering inbound connection for %s (ws=%s, projects=%d)", hello.name, !!inboundWs, hello.projects?.length ?? 0);
       if (inboundWs) {
-        registerInboundPeer(hello.nodeId, inboundWs as any);
+        registerInboundPeer(hello.nodeId, inboundWs as any, hello.projects ?? []);
       }
 
       var identity = loadOrCreateIdentity();
