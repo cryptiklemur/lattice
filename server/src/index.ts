@@ -7,7 +7,7 @@ import { IS_COMPILED } from "./runtime";
 
 var args = process.argv.slice(2);
 var command = "start";
-var portOverride: number | null = null;
+var portOverride: number | null = process.env.LATTICE_PORT ? parseInt(process.env.LATTICE_PORT, 10) : null;
 
 for (var i = 0; i < args.length; i++) {
   if (args[i] === "--port" && i + 1 < args.length) {

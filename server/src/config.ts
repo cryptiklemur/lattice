@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DEFAULT_PORT, LATTICE_HOME_DIR } from "@lattice/shared";
 import type { LatticeConfig } from "@lattice/shared";
 
-var home = join(homedir(), LATTICE_HOME_DIR);
+var home = process.env.LATTICE_HOME || join(homedir(), LATTICE_HOME_DIR);
 var cachedConfig: LatticeConfig | null = null;
 
 export function getLatticeHome(): string {

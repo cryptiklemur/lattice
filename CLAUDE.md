@@ -44,9 +44,28 @@ DO NOT EVER LEAVE PRE-EXISTING ERRORS. FIX THEM.
 - ANTHROPIC_API_KEY is optional — server uses the token from `claude setup-token` if not set.
 - Server binds to 0.0.0.0:7654 (WSL2 compatible).
 - Client dev server runs on :5173 but production serves from server via client/dist/.
+- `LATTICE_HOME` — override data directory (default: `~/.lattice`).
+- `LATTICE_PORT` — override server port (default: 7654). Also: `--port=N`.
 
 ## Testing
 - Playwright tests live in `tests/` at the project root.
 - Tests require the server running on localhost:7654.
 - Screenshots on failure go to `test-results/`.
 - Use Playwright MCP for visual verification. Save screenshots to `.playwright-mcp/`.
+
+### Testing Mesh/Node Functionality
+Run a second Lattice instance with a separate data directory and port:
+```bash
+LATTICE_HOME=/tmp/lattice-test-node LATTICE_PORT=7655 bun server/src/index.ts daemon
+```
+Then pair the two instances via the UI or WebSocket:
+```bash
+# Generate invite on :7654, then pair from :7655:
+bun -e "
+var ws = new WebSocket('ws://localhost:7655/ws');
+ws.onopen = function() { ws.send(JSON.stringify({ type: 'mesh:pair', code: 'LTCE-XXXX-...' })); };
+ws.onmessage = function(e) { console.log(JSON.parse(e.data).type); };
+"
+```
+The test instance serves from `client/dist/` (run `bun run build` first for UI access on :7655).
+Clean up: `rm -rf /tmp/lattice-test-node`
