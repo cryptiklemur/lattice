@@ -52,7 +52,7 @@ function reconcilePeers(): void {
       continue;
     }
     var existing = connections.get(peer.id);
-    if (existing && !existing.dead && existing.ws.readyState === WebSocket.OPEN) continue;
+    if (existing && !existing.dead && isWebSocketOpen(existing.ws)) continue;
     if (existing && !existing.dead && existing.retryTimer !== null) {
       log.meshConnect("skip %s — retry pending", peer.name);
       continue;
@@ -128,7 +128,7 @@ function openConnection(conn: PeerConnection, url: string): void {
   conn.ws = ws;
 
   var connectionTimer = setTimeout(function () {
-    if (ws.readyState !== WebSocket.OPEN) {
+    if (!isWebSocketOpen(ws)) {
       log.meshConnect("connection timeout for %s at %s", conn.nodeId.slice(0, 8), url);
       ws.close();
     }
@@ -246,7 +246,7 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
   if (!conn) {
     return undefined;
   }
-  if (conn.ws.readyState !== WebSocket.OPEN) {
+  if (!isWebSocketOpen(conn.ws)) {
     return undefined;
   }
   return conn.ws;
@@ -254,7 +254,7 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
 
 export function registerInboundPeer(nodeId: string, ws: { send: (data: string) => void; readyState: number }, peerProjects?: Array<{ slug: string; title: string }>): void {
   var existing = connections.get(nodeId);
-  if (existing && !existing.dead && existing.ws.readyState === WebSocket.OPEN) {
+  if (existing && !existing.dead && isWebSocketOpen(existing.ws)) {
     log.meshConnect("inbound peer %s already connected, skipping", nodeId.slice(0, 8));
     return;
   }
@@ -342,7 +342,7 @@ export function reconnectPeer(nodeId: string): void {
 export function getConnectedPeerIds(): string[] {
   var ids: string[] = [];
   for (var [nodeId, conn] of connections) {
-    if (conn.ws.readyState === WebSocket.OPEN) {
+    if (isWebSocketOpen(conn.ws)) {
       ids.push(nodeId);
     }
   }
@@ -361,9 +361,13 @@ export function onPeerMessage(callback: (nodeId: string, msg: MeshMessage) => vo
   messageCallbacks.push(callback);
 }
 
+function isWebSocketOpen(ws: { readyState: number }): boolean {
+  return ws.readyState === WebSocket.OPEN || ws.readyState === 0;
+}
+
 export function getConnectedPeerProjects(nodeId: string): Array<{ slug: string; title: string }> {
   var conn = connections.get(nodeId);
-  if (!conn || conn.ws.readyState !== WebSocket.OPEN) return [];
+  if (!conn || !isWebSocketOpen(conn.ws)) return [];
   return conn.projects;
 }
 
@@ -402,7 +406,7 @@ export function getAllRemoteProjects(localNodeId: string): Array<{ slug: string;
 
 export function findNodeForProject(projectSlug: string): string | undefined {
   for (var [nodeId, conn] of connections) {
-    if (conn.ws.readyState !== WebSocket.OPEN) {
+    if (!isWebSocketOpen(conn.ws)) {
       continue;
     }
     for (var i = 0; i < conn.projects.length; i++) {
