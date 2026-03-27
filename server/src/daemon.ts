@@ -224,7 +224,10 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
 
   var protocol = tlsOptions ? "https" : "http";
 
-  Bun.serve<WsData>({
+  var maxRetries = 10;
+  for (var attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      Bun.serve<WsData>({
     port: config.port,
     hostname: "0.0.0.0",
     ...(tlsOptions ? { tls: tlsOptions } : {}),
@@ -356,6 +359,16 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       },
     },
   });
+      break;
+    } catch (err: unknown) {
+      if (attempt < maxRetries - 1 && err instanceof Error && (err as any).code === "EADDRINUSE") {
+        log.server("Port %d in use, retrying in 1s (%d/%d)...", config.port, attempt + 1, maxRetries);
+        await new Promise(function (r) { setTimeout(r, 1000); });
+        continue;
+      }
+      throw err;
+    }
+  }
 
   log.server("Listening on %s://0.0.0.0:%d", protocol, config.port);
 
