@@ -250,7 +250,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         }
       }
 
-      if (!isAuthenticated(req, config.passphraseHash)) {
+      if (url.pathname !== "/ws" && !isAuthenticated(req, config.passphraseHash)) {
         return new Response(buildLoginPage(), {
           status: 200,
           headers: { "Content-Type": "text/html; charset=utf-8" },
