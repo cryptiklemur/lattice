@@ -770,7 +770,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                   ? "Type a message below to begin chatting with Claude."
                   : activeProject
                   ? "Click the + button in the sidebar to start a new session."
-                  : "Choose a project from the rail to get started."}
+                  : "Choose a project from the sidebar to get started."}
               </p>
             </div>
           </div>

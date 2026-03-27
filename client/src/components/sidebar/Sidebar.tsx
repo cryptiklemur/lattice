@@ -314,9 +314,16 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     </button>
                   </div>
                   <SectionLabel label="Projects" />
-                  <div className="text-[12px] text-base-content/40 px-4">
-                    Select a project from the rail to view sessions.
-                  </div>
+                  {projects.length === 0 && nodes.some(function (n) { return !n.isLocal && n.online; }) ? (
+                    <div className="flex items-center gap-2 text-[12px] text-base-content/30 px-4">
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0" />
+                      Loading remote projects...
+                    </div>
+                  ) : (
+                    <div className="text-[12px] text-base-content/40 px-4">
+                      Select a project from the rail to view sessions.
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -330,7 +337,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                   className="w-full px-4 h-11 border-b border-base-300 flex-shrink-0 flex items-center justify-between cursor-pointer hover:bg-base-300/30 transition-colors text-left"
                 >
                   <span className="text-[13px] font-mono font-bold text-base-content/90">
-                    {activeProject?.title ?? "No Project"}
+                    {activeProject?.title ?? (projects.length === 0 ? "Loading..." : "No Project")}
                     {activeProject?.isRemote && (
                       <span className="ml-1.5 text-[10px] font-normal text-base-content/30">
                         on {activeProject.nodeName}
