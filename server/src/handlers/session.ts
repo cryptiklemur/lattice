@@ -24,7 +24,7 @@ import {
 import { getContextBreakdown } from "../project/context-breakdown";
 import { setActiveSession } from "./chat";
 import { setActiveProject } from "./fs";
-import { wasSessionInterrupted, clearInterruptedFlag, isSessionBusy, watchSessionLock, stopExternalSession } from "../project/sdk-bridge";
+import { wasSessionInterrupted, clearInterruptedFlag, isSessionBusy, watchSessionLock, stopExternalSession, getBusyOwner } from "../project/sdk-bridge";
 import { log } from "../logger";
 
 registerHandler("session", function (clientId: string, message: ClientMessage) {
@@ -113,6 +113,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
           clearInterruptedFlag(activateMsg.sessionId);
         }
         var busy = isSessionBusy(activateMsg.sessionId);
+        var busyOwner = busy ? getBusyOwner(activateMsg.sessionId) : undefined;
         sendTo(clientId, {
           type: "session:history",
           projectSlug: activateMsg.projectSlug,
@@ -121,6 +122,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
           title: results[1],
           interrupted: interrupted || undefined,
           busy: busy || undefined,
+          busyOwner: busyOwner,
         });
       } catch (err) {
         log.session("Error sending session history: %O", err);

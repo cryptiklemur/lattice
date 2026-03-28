@@ -47,6 +47,7 @@ export interface SessionState {
   failedInput: string | null;
   messageQueue: string[];
   isBusy: boolean;
+  busyOwner: "cli" | "lattice" | null;
   isPlanMode: boolean;
   pendingPrefill: string | null;
   budgetStatus: BudgetStatus | null;
@@ -72,6 +73,7 @@ var sessionStore = new Store<SessionState>({
   failedInput: null,
   messageQueue: [],
   isBusy: false,
+  busyOwner: null,
   isPlanMode: false,
   pendingPrefill: null,
   budgetStatus: null,
@@ -296,6 +298,7 @@ export function clearSession(): void {
       failedInput: null,
       messageQueue: [],
       isBusy: false,
+      busyOwner: null,
       isPlanMode: false,
       pendingPrefill: null,
       budgetStatus: null,
@@ -328,9 +331,9 @@ export function setFailedInput(text: string | null): void {
   });
 }
 
-export function setSessionBusy(busy: boolean): void {
+export function setSessionBusy(busy: boolean, owner?: "cli" | "lattice" | null): void {
   sessionStore.setState(function (state) {
-    return { ...state, isBusy: busy };
+    return { ...state, isBusy: busy, busyOwner: busy ? (owner ?? null) : null };
   });
 }
 

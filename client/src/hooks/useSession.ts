@@ -305,6 +305,7 @@ export function useSession(): UseSessionReturn {
             historyLoading: false,
             wasInterrupted: m.interrupted || false,
             isBusy: m.busy || false,
+            busyOwner: m.busyOwner ?? null,
             isPlanMode: false,
           };
         });
@@ -335,13 +336,13 @@ export function useSession(): UseSessionReturn {
     }
 
     function handleSessionBusy(msg: ServerMessage) {
-      var m = msg as { type: string; sessionId: string; busy: boolean };
+      var m = msg as { type: string; sessionId: string; busy: boolean; busyOwner?: "cli" | "lattice" };
       var sessionState = getSessionStore().state;
       if (m.sessionId === sessionState.activeSessionId) {
         if (m.busy && sessionState.isProcessing) {
           return;
         }
-        setSessionBusy(m.busy);
+        setSessionBusy(m.busy, m.busyOwner);
       }
     }
 
@@ -445,6 +446,7 @@ export function useSession(): UseSessionReturn {
     failedInput: state.failedInput,
     messageQueue: state.messageQueue,
     isBusy: state.isBusy,
+    busyOwner: state.busyOwner,
     isPlanMode: state.isPlanMode,
     pendingPrefill: state.pendingPrefill,
     budgetStatus: state.budgetStatus,

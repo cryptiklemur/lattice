@@ -23,7 +23,7 @@ import { useBookmarks } from "../../hooks/useBookmarks";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
 export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug }: { sessionId?: string; projectSlug?: string } = {}) {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, busyOwner, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
 
@@ -955,7 +955,11 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
       {isBusy && !isProcessing && (
         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-info/10 border-t border-info/20">
           <Terminal size={13} className="text-info flex-shrink-0" />
-          <span className="text-[12px] text-info flex-1">This session is being used by another client — input is disabled</span>
+          <span className="text-[12px] text-info flex-1">
+            {busyOwner === "cli"
+              ? "This session is controlled by Claude Code CLI — input is disabled"
+              : "This session is in use by another Lattice client — input is disabled"}
+          </span>
           <button
             onClick={function () { setConfirmStopExternal(true); }}
             className="btn btn-ghost btn-xs text-error/70 hover:text-error gap-1 flex-shrink-0"
@@ -1063,7 +1067,9 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           disabled={!activeSessionId || !online || isBusy || (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)}
           disabledPlaceholder={
             isBusy
-              ? "Session in use by another client..."
+              ? (busyOwner === "cli"
+                ? "Controlled by Claude Code CLI"
+                : "Session in use by another Lattice client")
               : (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)
                 ? "Daily budget exceeded ($" + budgetStatus.dailySpend.toFixed(2) + " / $" + budgetStatus.dailyLimit.toFixed(2) + ")"
                 : undefined

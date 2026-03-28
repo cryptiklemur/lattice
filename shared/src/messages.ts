@@ -622,12 +622,14 @@ export interface SessionHistoryMessage {
   title?: string;
   interrupted?: boolean;
   busy?: boolean;
+  busyOwner?: "cli" | "lattice";
 }
 
 export interface SessionBusyMessage {
   type: "session:busy";
   sessionId: string;
   busy: boolean;
+  busyOwner?: "cli" | "lattice";
 }
 
 export interface ChatUserMessage {

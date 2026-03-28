@@ -68,6 +68,7 @@ var interruptedSessions = new Set<string>();
 // Track external lock state so we only broadcast on changes
 var externalLockState = new Map<string, boolean>();
 var watchedSessions = new Set<string>();
+var remoteSessionWatchers = new Map<string, Set<string>>();
 
 /**
  * Start polling a session's lock file for external CLI usage.
@@ -85,10 +86,23 @@ export function unwatchSessionLock(sessionId: string): void {
   externalLockState.delete(sessionId);
 }
 
+export function addRemoteSessionWatcher(sessionId: string, nodeId: string): void {
+  var watchers = remoteSessionWatchers.get(sessionId);
+  if (!watchers) {
+    watchers = new Set();
+    remoteSessionWatchers.set(sessionId, watchers);
+  }
+  watchers.add(nodeId);
+}
+
+export function getBusyOwner(sessionId: string): "cli" | "lattice" | undefined {
+  if (!isSessionLockedByExternal(sessionId)) return undefined;
+  return "cli";
+}
+
 // Poll every 3 seconds for external lock changes
 setInterval(function () {
   for (var sessionId of watchedSessions) {
-    // Skip sessions with active Lattice streams — those are already tracked
     if (activeStreams.has(sessionId)) continue;
 
     var locked = isSessionLockedByExternal(sessionId);
@@ -96,7 +110,24 @@ setInterval(function () {
 
     if (locked !== prev) {
       externalLockState.set(sessionId, locked);
-      broadcast({ type: "session:busy", sessionId, busy: locked });
+      var owner = locked ? getBusyOwner(sessionId) : undefined;
+      broadcast({ type: "session:busy", sessionId, busy: locked, busyOwner: owner });
+
+      var watchers = remoteSessionWatchers.get(sessionId);
+      if (watchers) {
+        var { getPeerConnection } = require("../mesh/connector") as typeof import("../mesh/connector");
+        for (var nodeId of watchers) {
+          var peerWs = getPeerConnection(nodeId);
+          if (peerWs) {
+            peerWs.send(JSON.stringify({
+              type: "mesh:proxy_response",
+              projectSlug: "",
+              requestId: "busy-" + sessionId,
+              payload: { type: "session:busy", sessionId, busy: locked, busyOwner: owner },
+            }));
+          }
+        }
+      }
     }
   }
 }, 3000);
