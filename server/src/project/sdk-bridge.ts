@@ -4,7 +4,7 @@ import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage, SDKUserM
 import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
 type MessageParam = SDKUserMessage["message"];
 import type { Attachment } from "@lattice/shared";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { sendTo, broadcast } from "../ws/broadcast";
@@ -227,77 +227,48 @@ export function isSessionBusy(sessionId: string): boolean {
  * The SDK spawns child processes (e.g. claude-agent-sdk/cli.js) that hold
  * lock files — those are NOT external.
  */
-function isOwnProcess(pid: number): boolean {
-  var myPid = process.pid;
-  if (pid === myPid) return true;
-  // Walk up the process tree to see if pid is a descendant of us
-  var current = pid;
-  for (var i = 0; i < 10; i++) {
-    try {
-      var stat = readFileSync("/proc/" + current + "/stat", "utf-8");
-      // Format: pid (comm) state ppid ...
-      var match = stat.match(/^\d+\s+\([^)]*\)\s+\S+\s+(\d+)/);
-      if (!match) return false;
-      var ppid = parseInt(match[1], 10);
-      if (ppid === myPid) return true;
-      if (ppid <= 1) return false;
-      current = ppid;
-    } catch {
-      return false;
+function isSessionLockedByExternal(sessionId: string): boolean {
+  if (activeStreams.has(sessionId)) return false;
+
+  var config = loadConfig();
+  for (var i = 0; i < config.projects.length; i++) {
+    var projectPath = config.projects[i].path;
+    var hash = projectPath.replace(/\//g, "-");
+    var jsonlPath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+    if (existsSync(jsonlPath)) {
+      try {
+        var stat = statSync(jsonlPath);
+        var mtime = stat.mtimeMs;
+        if (Date.now() - mtime < 10000) {
+          return true;
+        }
+      } catch {}
     }
   }
+
   return false;
 }
 
-/**
- * Get PIDs holding the session lock file, excluding Lattice's own process tree.
- * Returns the list of truly external PIDs.
- */
-function getExternalLockPids(sessionId: string): number[] {
-  var lockPath = join(homedir(), ".claude", "tasks", sessionId, ".lock");
-  if (!existsSync(lockPath)) return [];
-  try {
-    var result = Bun.spawnSync(["fuser", lockPath], {
-      stderr: "ignore",
-    });
-    if (result.exitCode !== 0) return [];
-    var output = result.stdout.toString().trim();
-    var pids = output.split(/\s+/)
-      .map(function (s) { return parseInt(s, 10); })
-      .filter(function (p) { return !isNaN(p) && !isOwnProcess(p); });
-    return pids;
-  } catch {
-    return [];
-  }
-}
-
-function isSessionLockedByExternal(sessionId: string): boolean {
-  return getExternalLockPids(sessionId).length > 0;
-}
-
-/**
- * Get the first external PID holding the session lock file.
- * Used to send SIGINT to stop the external process.
- */
-function getExternalLockPid(sessionId: string): number | null {
-  var pids = getExternalLockPids(sessionId);
-  return pids.length > 0 ? pids[0] : null;
-}
-
-/**
- * Gracefully stop an external Claude Code CLI process controlling a session.
- * Sends SIGINT which triggers Claude Code's graceful shutdown.
- * Returns true if a signal was sent.
- */
 export function stopExternalSession(sessionId: string): boolean {
-  var pid = getExternalLockPid(sessionId);
-  if (pid === null) return false;
   try {
-    process.kill(pid, "SIGINT");
-    return true;
-  } catch {
-    return false;
-  }
+    var config = loadConfig();
+    for (var i = 0; i < config.projects.length; i++) {
+      var hash = config.projects[i].path.replace(/\//g, "-");
+      var jsonlPath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+      if (existsSync(jsonlPath)) {
+        var result = Bun.spawnSync(["fuser", jsonlPath], { stderr: "ignore" });
+        if (result.exitCode === 0) {
+          var output = result.stdout.toString().trim();
+          var pids = output.split(/\s+/).map(Number).filter(function (p) { return !isNaN(p) && p !== process.pid; });
+          if (pids.length > 0) {
+            process.kill(pids[0], "SIGINT");
+            return true;
+          }
+        }
+      }
+    }
+  } catch {}
+  return false;
 }
 
 export function getSessionStreamClientId(sessionId: string): string | undefined {
