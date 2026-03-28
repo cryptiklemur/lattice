@@ -4,7 +4,7 @@ import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage, SDKUserM
 import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
 type MessageParam = SDKUserMessage["message"];
 import type { Attachment } from "@lattice/shared";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync, readlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { sendTo, broadcast } from "../ws/broadcast";
@@ -227,47 +227,116 @@ export function isSessionBusy(sessionId: string): boolean {
  * The SDK spawns child processes (e.g. claude-agent-sdk/cli.js) that hold
  * lock files — those are NOT external.
  */
-function isSessionLockedByExternal(sessionId: string): boolean {
-  if (activeStreams.has(sessionId)) return false;
-
+function getProjectPathForSession(sessionId: string): string | null {
   var config = loadConfig();
   for (var i = 0; i < config.projects.length; i++) {
-    var projectPath = config.projects[i].path;
-    var hash = projectPath.replace(/\//g, "-");
+    var hash = config.projects[i].path.replace(/\//g, "-");
     var jsonlPath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
-    if (existsSync(jsonlPath)) {
+    if (existsSync(jsonlPath)) return config.projects[i].path;
+  }
+  return null;
+}
+
+function getClaudeCliPids(): Array<{ pid: number; cwd: string; cmdline: string[] }> {
+  var results: Array<{ pid: number; cwd: string; cmdline: string[] }> = [];
+  try {
+    var result = Bun.spawnSync(["pgrep", "-x", "claude"], { stderr: "ignore" });
+    if (result.exitCode !== 0) return results;
+    var pidStrs = result.stdout.toString().trim().split("\n");
+    for (var i = 0; i < pidStrs.length; i++) {
+      var pid = parseInt(pidStrs[i], 10);
+      if (isNaN(pid) || pid === process.pid) continue;
       try {
-        var stat = statSync(jsonlPath);
-        var mtime = stat.mtimeMs;
-        if (Date.now() - mtime < 10000) {
-          return true;
-        }
+        var cwd = readlinkSync("/proc/" + pid + "/cwd");
+        var cmdline = readFileSync("/proc/" + pid + "/cmdline", "utf-8").split("\0");
+        results.push({ pid, cwd, cmdline });
       } catch {}
     }
+  } catch {}
+  return results;
+}
+
+function resolveSessionName(projectPath: string, name: string): string | null {
+  var hash = projectPath.replace(/\//g, "-");
+  var dir = join(homedir(), ".claude", "projects", hash);
+  if (!existsSync(dir)) return null;
+
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(name)) {
+    if (existsSync(join(dir, name + ".jsonl"))) return name;
   }
 
-  return false;
+  var entries = readdirSync(dir).filter(function (f) { return f.endsWith(".jsonl"); });
+  for (var e = 0; e < entries.length; e++) {
+    try {
+      var result = Bun.spawnSync(["grep", "-m", "1", "custom-title", join(dir, entries[e])], { stdout: "pipe", stderr: "ignore" });
+      if (result.exitCode !== 0) continue;
+      var line = result.stdout.toString().trim();
+      if (!line) continue;
+      var parsed = JSON.parse(line);
+      if (parsed.type === "custom-title" && parsed.customTitle === name) {
+        return entries[e].replace(".jsonl", "");
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function findMostRecentSession(projectPath: string): string | null {
+  var hash = projectPath.replace(/\//g, "-");
+  var dir = join(homedir(), ".claude", "projects", hash);
+  if (!existsSync(dir)) return null;
+
+  var entries = readdirSync(dir).filter(function (f) { return f.endsWith(".jsonl"); });
+  var latest: { id: string; mtime: number } | null = null;
+  for (var e = 0; e < entries.length; e++) {
+    try {
+      var s = statSync(join(dir, entries[e]));
+      if (!latest || s.mtimeMs > latest.mtime) {
+        latest = { id: entries[e].replace(".jsonl", ""), mtime: s.mtimeMs };
+      }
+    } catch {}
+  }
+  if (latest && Date.now() - latest.mtime < 60000) return latest.id;
+  return null;
+}
+
+function getCliSessionIdForProject(projectPath: string): string | null {
+  var cliProcesses = getClaudeCliPids();
+  for (var i = 0; i < cliProcesses.length; i++) {
+    if (cliProcesses[i].cwd !== projectPath) continue;
+
+    var cmdline = cliProcesses[i].cmdline;
+    var resumeIdx = cmdline.indexOf("--resume");
+    if (resumeIdx !== -1 && resumeIdx + 1 < cmdline.length) {
+      var sessionName = cmdline[resumeIdx + 1];
+      return resolveSessionName(projectPath, sessionName);
+    }
+
+    return findMostRecentSession(projectPath);
+  }
+  return null;
+}
+
+function isSessionLockedByExternal(sessionId: string): boolean {
+  if (activeStreams.has(sessionId)) return false;
+  var projectPath = getProjectPathForSession(sessionId);
+  if (!projectPath) return false;
+  var cliSessionId = getCliSessionIdForProject(projectPath);
+  return cliSessionId === sessionId;
 }
 
 export function stopExternalSession(sessionId: string): boolean {
-  try {
-    var config = loadConfig();
-    for (var i = 0; i < config.projects.length; i++) {
-      var hash = config.projects[i].path.replace(/\//g, "-");
-      var jsonlPath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
-      if (existsSync(jsonlPath)) {
-        var result = Bun.spawnSync(["fuser", jsonlPath], { stderr: "ignore" });
-        if (result.exitCode === 0) {
-          var output = result.stdout.toString().trim();
-          var pids = output.split(/\s+/).map(Number).filter(function (p) { return !isNaN(p) && p !== process.pid; });
-          if (pids.length > 0) {
-            process.kill(pids[0], "SIGINT");
-            return true;
-          }
-        }
-      }
+  var projectPath = getProjectPathForSession(sessionId);
+  if (!projectPath) return false;
+  var cliProcesses = getClaudeCliPids();
+  for (var i = 0; i < cliProcesses.length; i++) {
+    if (cliProcesses[i].cwd === projectPath) {
+      try {
+        process.kill(cliProcesses[i].pid, "SIGINT");
+        return true;
+      } catch {}
     }
-  } catch {}
+  }
   return false;
 }
 
