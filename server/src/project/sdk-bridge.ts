@@ -96,22 +96,21 @@ export function addRemoteSessionWatcher(sessionId: string, nodeId: string): void
 }
 
 export function getBusyOwner(sessionId: string): "cli" | "lattice" | undefined {
-  if (!isSessionLockedByExternal(sessionId)) return undefined;
-  return "cli";
+  if (activeStreams.has(sessionId)) return "lattice";
+  if (isSessionLockedByExternal(sessionId)) return "cli";
+  return undefined;
 }
 
 // Poll every 3 seconds for external lock changes
 setInterval(function () {
   for (var sessionId of watchedSessions) {
-    if (activeStreams.has(sessionId)) continue;
-
-    var locked = isSessionLockedByExternal(sessionId);
+    var busy = isSessionBusy(sessionId);
     var prev = externalLockState.get(sessionId) ?? false;
 
-    if (locked !== prev) {
-      externalLockState.set(sessionId, locked);
-      var owner = locked ? getBusyOwner(sessionId) : undefined;
-      broadcast({ type: "session:busy", sessionId, busy: locked, busyOwner: owner });
+    if (busy !== prev) {
+      externalLockState.set(sessionId, busy);
+      var owner = busy ? getBusyOwner(sessionId) : undefined;
+      broadcast({ type: "session:busy", sessionId, busy: busy, busyOwner: owner });
 
       var watchers = remoteSessionWatchers.get(sessionId);
       if (watchers) {
@@ -123,7 +122,7 @@ setInterval(function () {
               type: "mesh:proxy_response",
               projectSlug: "",
               requestId: "busy-" + sessionId,
-              payload: { type: "session:busy", sessionId, busy: locked, busyOwner: owner },
+              payload: { type: "session:busy", sessionId, busy: busy, busyOwner: owner },
             }));
           }
         }
@@ -219,6 +218,7 @@ export function getActiveStreamCount(): number {
  * so this ONLY returns true for external CLI instances.
  */
 export function isSessionBusy(sessionId: string): boolean {
+  if (activeStreams.has(sessionId)) return true;
   return isSessionLockedByExternal(sessionId);
 }
 
