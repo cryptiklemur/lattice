@@ -422,7 +422,9 @@ export async function listSessions(projectSlug: string, options?: { offset?: num
   }
 
   try {
+    var sdkT0 = Date.now();
     var sdkSessions = await sdkListSessions({ dir: projectPath });
+    log.session("sdkListSessions for %s: %dms (%d sessions)", projectSlug, Date.now() - sdkT0, sdkSessions.length);
     var summaries = sdkSessions.map(function (s) {
       return mapSDKSession(s, projectSlug);
     });

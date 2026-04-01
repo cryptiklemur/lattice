@@ -221,30 +221,9 @@ export function getActiveSessionCountForProject(projectPath: string): number {
     if (existsSync(join(dir, sessionId + ".jsonl"))) count++;
   }
 
-  for (var [sessionId2] of streamMetadata) {
-    void sessionId2;
-  }
-
-  if (isClaudeCliRunningInProject(projectPath)) count++;
+  if (cliSessionsByProject.get(projectPath) !== null && cliSessionsByProject.get(projectPath) !== undefined) count++;
 
   return count;
-}
-
-function isClaudeCliRunningInProject(projectPath: string): boolean {
-  try {
-    var result = Bun.spawnSync(["pgrep", "-x", "claude"], { stderr: "ignore" });
-    if (result.exitCode !== 0) return false;
-    var pids = result.stdout.toString().trim().split("\n");
-    for (var i = 0; i < pids.length; i++) {
-      var pid = parseInt(pids[i], 10);
-      if (isNaN(pid) || pid === process.pid) continue;
-      try {
-        var cwd = readlinkSync("/proc/" + pid + "/cwd");
-        if (cwd === projectPath) return true;
-      } catch {}
-    }
-  } catch {}
-  return false;
 }
 
 /**
@@ -262,6 +241,52 @@ export function isSessionBusy(sessionId: string): boolean {
  * The SDK spawns child processes (e.g. claude-agent-sdk/cli.js) that hold
  * lock files — those are NOT external.
  */
+var cliSessionsByProject = new Map<string, string | null>();
+var sessionNameCache = new Map<string, string>();
+
+function refreshCliDetection(): void {
+  var config = loadConfig();
+  var cliPids = getClaudeCliPidsAsync();
+  for (var i = 0; i < config.projects.length; i++) {
+    var projectPath = config.projects[i].path;
+    var found: string | null = null;
+    for (var j = 0; j < cliPids.length; j++) {
+      if (cliPids[j].cwd !== projectPath) continue;
+      var cmdline = cliPids[j].cmdline;
+      var resumeIdx = cmdline.indexOf("--resume");
+      if (resumeIdx !== -1 && resumeIdx + 1 < cmdline.length) {
+        found = resolveSessionName(projectPath, cmdline[resumeIdx + 1]);
+      } else {
+        found = findMostRecentSession(projectPath);
+      }
+      break;
+    }
+    cliSessionsByProject.set(projectPath, found);
+  }
+}
+
+function getClaudeCliPidsAsync(): Array<{ pid: number; cwd: string; cmdline: string[] }> {
+  var results: Array<{ pid: number; cwd: string; cmdline: string[] }> = [];
+  try {
+    var procEntries = readdirSync("/proc").filter(function (e) { return /^\d+$/.test(e); });
+    for (var i = 0; i < procEntries.length; i++) {
+      var pid = parseInt(procEntries[i], 10);
+      if (pid === process.pid) continue;
+      try {
+        var cmdline = readFileSync("/proc/" + pid + "/cmdline", "utf-8").split("\0");
+        var exe = cmdline[0] || "";
+        if (!exe.endsWith("/claude") && exe !== "claude") continue;
+        var cwd = readlinkSync("/proc/" + pid + "/cwd");
+        results.push({ pid, cwd, cmdline });
+      } catch {}
+    }
+  } catch {}
+  return results;
+}
+
+setInterval(refreshCliDetection, 5000);
+setTimeout(refreshCliDetection, 1000);
+
 function getProjectPathForSession(sessionId: string): string | null {
   var config = loadConfig();
   for (var i = 0; i < config.projects.length; i++) {
@@ -272,44 +297,37 @@ function getProjectPathForSession(sessionId: string): string | null {
   return null;
 }
 
-function getClaudeCliPids(): Array<{ pid: number; cwd: string; cmdline: string[] }> {
-  var results: Array<{ pid: number; cwd: string; cmdline: string[] }> = [];
-  try {
-    var result = Bun.spawnSync(["pgrep", "-x", "claude"], { stderr: "ignore" });
-    if (result.exitCode !== 0) return results;
-    var pidStrs = result.stdout.toString().trim().split("\n");
-    for (var i = 0; i < pidStrs.length; i++) {
-      var pid = parseInt(pidStrs[i], 10);
-      if (isNaN(pid) || pid === process.pid) continue;
-      try {
-        var cwd = readlinkSync("/proc/" + pid + "/cwd");
-        var cmdline = readFileSync("/proc/" + pid + "/cmdline", "utf-8").split("\0");
-        results.push({ pid, cwd, cmdline });
-      } catch {}
-    }
-  } catch {}
-  return results;
-}
 
 function resolveSessionName(projectPath: string, name: string): string | null {
+  var cacheKey = projectPath + ":" + name;
+  var cached = sessionNameCache.get(cacheKey);
+  if (cached) return cached;
+
   var hash = projectPath.replace(/\//g, "-");
   var dir = join(homedir(), ".claude", "projects", hash);
   if (!existsSync(dir)) return null;
 
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(name)) {
-    if (existsSync(join(dir, name + ".jsonl"))) return name;
+    if (existsSync(join(dir, name + ".jsonl"))) {
+      sessionNameCache.set(cacheKey, name);
+      return name;
+    }
   }
 
   var entries = readdirSync(dir).filter(function (f) { return f.endsWith(".jsonl"); });
   for (var e = 0; e < entries.length; e++) {
     try {
-      var result = Bun.spawnSync(["grep", "-m", "1", "custom-title", join(dir, entries[e])], { stdout: "pipe", stderr: "ignore" });
-      if (result.exitCode !== 0) continue;
-      var line = result.stdout.toString().trim();
-      if (!line) continue;
+      var content = readFileSync(join(dir, entries[e]), "utf-8");
+      var titleIdx = content.indexOf('"custom-title"');
+      if (titleIdx === -1) continue;
+      var lineStart = content.lastIndexOf("\n", titleIdx) + 1;
+      var lineEnd = content.indexOf("\n", titleIdx);
+      var line = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
       var parsed = JSON.parse(line);
       if (parsed.type === "custom-title" && parsed.customTitle === name) {
-        return entries[e].replace(".jsonl", "");
+        var id = entries[e].replace(".jsonl", "");
+        sessionNameCache.set(cacheKey, id);
+        return id;
       }
     } catch {}
   }
@@ -335,39 +353,22 @@ function findMostRecentSession(projectPath: string): string | null {
   return null;
 }
 
-function getCliSessionIdForProject(projectPath: string): string | null {
-  var cliProcesses = getClaudeCliPids();
-  for (var i = 0; i < cliProcesses.length; i++) {
-    if (cliProcesses[i].cwd !== projectPath) continue;
-
-    var cmdline = cliProcesses[i].cmdline;
-    var resumeIdx = cmdline.indexOf("--resume");
-    if (resumeIdx !== -1 && resumeIdx + 1 < cmdline.length) {
-      var sessionName = cmdline[resumeIdx + 1];
-      return resolveSessionName(projectPath, sessionName);
-    }
-
-    return findMostRecentSession(projectPath);
-  }
-  return null;
-}
 
 function isSessionLockedByExternal(sessionId: string): boolean {
   if (activeStreams.has(sessionId)) return false;
   var projectPath = getProjectPathForSession(sessionId);
   if (!projectPath) return false;
-  var cliSessionId = getCliSessionIdForProject(projectPath);
-  return cliSessionId === sessionId;
+  return cliSessionsByProject.get(projectPath) === sessionId;
 }
 
 export function stopExternalSession(sessionId: string): boolean {
   var projectPath = getProjectPathForSession(sessionId);
   if (!projectPath) return false;
-  var cliProcesses = getClaudeCliPids();
-  for (var i = 0; i < cliProcesses.length; i++) {
-    if (cliProcesses[i].cwd === projectPath) {
+  var pids = getClaudeCliPidsAsync();
+  for (var i = 0; i < pids.length; i++) {
+    if (pids[i].cwd === projectPath) {
       try {
-        process.kill(cliProcesses[i].pid, "SIGINT");
+        process.kill(pids[i].pid, "SIGINT");
         return true;
       } catch {}
     }
