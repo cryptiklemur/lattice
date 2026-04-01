@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./router";
 import { WebSocketProvider } from "./providers/WebSocketProvider";
@@ -9,6 +10,15 @@ import { UpdatePrompt } from "./components/ui/UpdatePrompt";
 
 function AppInner() {
   var { items, dismiss } = useToastState();
+
+  useEffect(function () {
+    function blockContextMenu(e: MouseEvent) {
+      if ((e.target as HTMLElement).closest("[data-allow-context-menu]")) return;
+      e.preventDefault();
+    }
+    document.addEventListener("contextmenu", blockContextMenu);
+    return function () { document.removeEventListener("contextmenu", blockContextMenu); };
+  }, []);
 
   return (
     <>

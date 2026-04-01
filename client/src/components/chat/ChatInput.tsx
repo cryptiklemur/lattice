@@ -478,6 +478,7 @@ export function ChatInput(props: ChatInputProps) {
               <span className="absolute left-0 top-[1px] text-primary/50 font-mono text-[14px] leading-relaxed select-none pointer-events-none">›</span>
               <textarea
                 ref={textareaRef}
+                data-allow-context-menu
                 aria-label="Message input"
                 placeholder={props.disabled ? (props.disabledPlaceholder || "Claude is responding...") : "Message Claude..."}
                 disabled={props.disabled}

@@ -147,7 +147,7 @@ function ProjectButton(props: ProjectButtonProps) {
   );
 }
 
-function NodeIndicator({ node }: { node: NodeInfo }) {
+function NodeIndicator({ node, onContextMenu }: { node: NodeInfo; onContextMenu: (e: React.MouseEvent, node: NodeInfo) => void }) {
   var [hovered, setHovered] = useState(false);
   var [tooltipTop, setTooltipTop] = useState(0);
   var sidebar = useSidebar();
@@ -157,6 +157,7 @@ function NodeIndicator({ node }: { node: NodeInfo }) {
     <div className="relative flex items-center">
       <button
         onClick={function () { sidebar.openSettings("nodes"); }}
+        onContextMenu={function (e) { e.preventDefault(); onContextMenu(e, node); }}
         onMouseEnter={function (e) {
           var rect = e.currentTarget.getBoundingClientRect();
           setTooltipTop(rect.top + rect.height / 2);
@@ -225,23 +226,29 @@ export function ProjectRail(props: ProjectRailProps) {
     slug: null,
   });
   var menuRef = useRef<HTMLDivElement>(null);
+  var [nodeMenu, setNodeMenu] = useState<{ visible: boolean; x: number; y: number; node: NodeInfo | null }>({
+    visible: false, x: 0, y: 0, node: null,
+  });
 
   useEffect(
     function () {
-      if (!contextMenu.visible) return;
+      if (!contextMenu.visible && !nodeMenu.visible) return;
 
       function handleClick() {
         setContextMenu(function (prev) { return { ...prev, visible: false }; });
+        setNodeMenu(function (prev) { return { ...prev, visible: false }; });
       }
 
       function handleKeyDown(e: KeyboardEvent) {
         if (e.key === "Escape") {
           setContextMenu(function (prev) { return { ...prev, visible: false }; });
+          setNodeMenu(function (prev) { return { ...prev, visible: false }; });
         }
       }
 
       function handleScroll() {
         setContextMenu(function (prev) { return { ...prev, visible: false }; });
+        setNodeMenu(function (prev) { return { ...prev, visible: false }; });
       }
 
       window.addEventListener("click", handleClick);
@@ -254,8 +261,16 @@ export function ProjectRail(props: ProjectRailProps) {
         window.removeEventListener("scroll", handleScroll, true);
       };
     },
-    [contextMenu.visible]
+    [contextMenu.visible, nodeMenu.visible]
   );
+
+  function handleNodeContextMenu(e: React.MouseEvent, node: NodeInfo) {
+    var cx = e.clientX;
+    var cy = e.clientY;
+    if (cx + 160 > window.innerWidth - 8) cx = window.innerWidth - 168;
+    if (cy + 100 > window.innerHeight - 8) cy = window.innerHeight - 108;
+    setNodeMenu({ visible: true, x: cx, y: cy, node: node });
+  }
 
   function handleContextMenu(e: React.MouseEvent, slug: string) {
     var menuWidth = 160;
@@ -322,17 +337,9 @@ export function ProjectRail(props: ProjectRailProps) {
       })}
 
 
-      {groups.length > 0 && allMeshNodes.length > 0 && (
+      {groups.length > 0 && (
         <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
       )}
-
-      {allMeshNodes.map(function (node) {
-        return (
-          <NodeIndicator key={node.id} node={node} />
-        );
-      })}
-
-      <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
 
       <button
         onClick={function () { sidebar.openAddProject(); }}
@@ -340,6 +347,24 @@ export function ProjectRail(props: ProjectRailProps) {
         title="Add project"
       >
         <Plus size={18} />
+      </button>
+
+      {allMeshNodes.length > 0 && (
+        <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
+      )}
+
+      {allMeshNodes.map(function (node) {
+        return (
+          <NodeIndicator key={node.id} node={node} onContextMenu={handleNodeContextMenu} />
+        );
+      })}
+
+      <button
+        onClick={function () { sidebar.openSettings("nodes"); }}
+        className="w-[26px] h-[26px] flex items-center justify-center rounded-full border border-dashed border-base-content/15 text-base-content/15 hover:border-base-content/30 hover:text-base-content/30 transition-colors duration-[120ms] flex-shrink-0 cursor-pointer"
+        title="Pair a node"
+      >
+        <Plus size={12} />
       </button>
 
       <div className="flex-1" />
@@ -392,6 +417,59 @@ export function ProjectRail(props: ProjectRailProps) {
           >
             Remove Project
           </button>
+        </div>,
+        document.body
+      )}
+
+      {nodeMenu.visible && nodeMenu.node && createPortal(
+        <div
+          role="menu"
+          aria-label="Node actions"
+          onClick={function (e) { e.stopPropagation(); }}
+          className="fixed z-[99999] bg-base-300 border border-base-content/20 rounded-lg shadow-2xl py-1 min-w-[160px]"
+          style={{ left: nodeMenu.x + "px", top: nodeMenu.y + "px" }}
+        >
+          <button
+            role="menuitem"
+            className="w-full text-left px-3 py-1.5 text-sm text-base-content hover:bg-base-content/10 transition-colors"
+            onClick={function () {
+              sidebar.openSettings("nodes");
+              setNodeMenu(function (prev) { return { ...prev, visible: false }; });
+            }}
+          >
+            Node Settings
+          </button>
+          {!nodeMenu.node.isLocal && (
+            <>
+              {!nodeMenu.node.online && (
+                <button
+                  role="menuitem"
+                  className="w-full text-left px-3 py-1.5 text-sm text-base-content hover:bg-base-content/10 transition-colors"
+                  onClick={function () {
+                    if (nodeMenu.node) {
+                      ws.send({ type: "mesh:reconnect", nodeId: nodeMenu.node.id } as any);
+                    }
+                    setNodeMenu(function (prev) { return { ...prev, visible: false }; });
+                  }}
+                >
+                  Reconnect
+                </button>
+              )}
+              <div className="my-1 h-px bg-base-content/10" />
+              <button
+                role="menuitem"
+                className="w-full text-left px-3 py-1.5 text-sm text-error hover:bg-error/10 transition-colors"
+                onClick={function () {
+                  if (nodeMenu.node) {
+                    ws.send({ type: "mesh:unpair", nodeId: nodeMenu.node.id });
+                  }
+                  setNodeMenu(function (prev) { return { ...prev, visible: false }; });
+                }}
+              >
+                Unpair
+              </button>
+            </>
+          )}
         </div>,
         document.body
       )}

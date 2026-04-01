@@ -185,7 +185,7 @@ function parseSkillInvocation(text: string): { skillName: string; content: strin
 function SkillMessage(props: { skillName: string; content: string; time: string | null; uuid?: string }) {
   var [expanded, setExpanded] = useState(false);
   return (
-    <div id={props.uuid ? "msg-" + props.uuid : undefined} className="chat chat-end px-5 py-1 group/msg">
+    <div id={props.uuid ? "msg-" + props.uuid : undefined} data-allow-context-menu className="chat chat-end px-5 py-1 group/msg">
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
         <button
           type="button"
@@ -230,7 +230,7 @@ function UserMessage(props: { message: HistoryMessage }) {
     return <SkillMessage skillName={skill.skillName} content={skill.content} time={time} uuid={msg.uuid} />;
   }
   return (
-    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} className="chat chat-end px-5 py-1 group/msg">
+    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-end px-5 py-1 group/msg">
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline">
           <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
@@ -265,7 +265,7 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
   var msg = props.message;
   var time = formatTime(msg.timestamp);
   return (
-    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} className="chat chat-start px-5 py-1 group/msg">
+    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-start px-5 py-1 group/msg">
       <div className="chat-image">
         <div className="w-6 h-6 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center">
           <div className="w-2.5 h-2.5 rounded-full bg-primary" />
