@@ -20,6 +20,7 @@ import {
   getSessionUsage,
   listSessions,
   invalidateSessionCache,
+  getSessionHistoryPage,
   loadSessionHistory,
   renameSession,
 } from "../project/session";
@@ -79,6 +80,18 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     return;
   }
 
+  if (message.type === "session:history_page") {
+    var pageMsg = message as { type: "session:history_page"; sessionId: string; before: number; limit: number };
+    var page = getSessionHistoryPage(pageMsg.sessionId, pageMsg.before, pageMsg.limit);
+    sendTo(clientId, {
+      type: "session:history_page_result",
+      sessionId: pageMsg.sessionId,
+      messages: page.messages,
+      hasMore: page.hasMore,
+    });
+    return;
+  }
+
   if (message.type === "session:create") {
     var createMsg = message as SessionCreateMessage;
     var session = createSession(createMsg.projectSlug);
@@ -116,15 +129,18 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         }
         var busy = isSessionBusy(activateMsg.sessionId);
         var busyOwner = busy ? getBusyOwner(activateMsg.sessionId) : undefined;
+        var historyResult = results[0] || { messages: [], totalMessages: 0, hasMore: false };
         sendTo(clientId, {
           type: "session:history",
           projectSlug: activateMsg.projectSlug,
           sessionId: activateMsg.sessionId,
-          messages: results[0] || [],
+          messages: historyResult.messages,
           title: results[1],
           interrupted: interrupted || undefined,
           busy: busy || undefined,
           busyOwner: busyOwner,
+          totalMessages: historyResult.totalMessages,
+          hasMore: historyResult.hasMore,
         });
       } catch (err) {
         log.session("Error sending session history: %O", err);

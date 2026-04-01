@@ -50,6 +50,20 @@ export interface SessionListRequestMessage {
   limit?: number;
 }
 
+export interface SessionHistoryPageMessage {
+  type: "session:history_page";
+  sessionId: string;
+  before: number;
+  limit: number;
+}
+
+export interface SessionHistoryPageResultMessage {
+  type: "session:history_page_result";
+  sessionId: string;
+  messages: HistoryMessage[];
+  hasMore: boolean;
+}
+
 export interface SessionPreviewRequestMessage {
   type: "session:preview_request";
   projectSlug: string;
@@ -578,6 +592,7 @@ export type ClientMessage =
   | EditorEnsureProjectMessage
   | ChatPromptResponseMessage
   | AnalyticsRequestMessage
+  | SessionHistoryPageMessage
   | SessionPreviewRequestMessage
   | BookmarkListMessage
   | BookmarkAddMessage
@@ -623,6 +638,8 @@ export interface SessionHistoryMessage {
   interrupted?: boolean;
   busy?: boolean;
   busyOwner?: "cli" | "lattice";
+  totalMessages?: number;
+  hasMore?: boolean;
 }
 
 export interface SessionBusyMessage {
@@ -1076,6 +1093,7 @@ export type ServerMessage =
   | AnalyticsDataMessage
   | AnalyticsErrorMessage
   | SessionPreviewMessage
+  | SessionHistoryPageResultMessage
   | BookmarkListResultMessage
   | BudgetStatusMessage
   | BudgetExceededMessage

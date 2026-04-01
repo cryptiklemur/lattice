@@ -23,7 +23,7 @@ import { useBookmarks } from "../../hooks/useBookmarks";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
 export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug }: { sessionId?: string; projectSlug?: string } = {}) {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, busyOwner, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, busyOwner, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
 
@@ -735,6 +735,16 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         aria-relevant="additions"
         style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
       >
+        {historyHasMore && messages.length > 0 && (
+          <div className="flex justify-center py-3">
+            <button
+              onClick={loadMoreHistory}
+              className="text-[11px] text-base-content/30 hover:text-base-content/50 font-mono transition-colors"
+            >
+              Load older messages
+            </button>
+          </div>
+        )}
         {messages.length === 0 && historyLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-3">

@@ -457,17 +457,53 @@ export async function getSessionTitle(projectSlug: string, sessionId: string): P
   return "Untitled";
 }
 
-export async function loadSessionHistory(projectSlug: string, sessionId: string): Promise<HistoryMessage[]> {
+var historyCache = new Map<string, { messages: HistoryMessage[]; time: number }>();
+var HISTORY_CACHE_TTL = 30000;
+var INITIAL_MESSAGE_COUNT = 100;
+
+export async function loadSessionHistory(projectSlug: string, sessionId: string): Promise<{ messages: HistoryMessage[]; totalMessages: number; hasMore: boolean }> {
   var projectPath = getProjectPath(projectSlug);
   var options = projectPath ? { dir: projectPath } : undefined;
 
   try {
-    var messages = await getSessionMessages(sessionId, options);
-    return convertSessionMessages(messages);
+    var t0 = Date.now();
+    var cached = historyCache.get(sessionId);
+    var allMessages: HistoryMessage[];
+
+    if (cached && Date.now() - cached.time < HISTORY_CACHE_TTL) {
+      allMessages = cached.messages;
+    } else {
+      var rawMessages = await getSessionMessages(sessionId, options);
+      allMessages = convertSessionMessages(rawMessages);
+      historyCache.set(sessionId, { messages: allMessages, time: Date.now() });
+    }
+
+    log.session("loadSessionHistory %s: %dms, %d total messages", sessionId.slice(0, 8), Date.now() - t0, allMessages.length);
+
+    var tail = allMessages.length > INITIAL_MESSAGE_COUNT
+      ? allMessages.slice(allMessages.length - INITIAL_MESSAGE_COUNT)
+      : allMessages;
+
+    return {
+      messages: tail,
+      totalMessages: allMessages.length,
+      hasMore: allMessages.length > INITIAL_MESSAGE_COUNT,
+    };
   } catch (err) {
     log.session("Failed to load session history: %O", err);
-    return [];
+    return { messages: [], totalMessages: 0, hasMore: false };
   }
+}
+
+export function getSessionHistoryPage(sessionId: string, beforeIndex: number, limit: number): { messages: HistoryMessage[]; hasMore: boolean } {
+  var cached = historyCache.get(sessionId);
+  if (!cached) return { messages: [], hasMore: false };
+
+  var endIdx = Math.max(0, beforeIndex);
+  var startIdx = Math.max(0, endIdx - limit);
+  var page = cached.messages.slice(startIdx, endIdx);
+
+  return { messages: page, hasMore: startIdx > 0 };
 }
 
 export function createSession(projectSlug: string): SessionSummary {

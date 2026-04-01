@@ -78,6 +78,8 @@ export interface UseSessionReturn extends SessionState {
   clearMessageQueue: () => void;
   sendBudgetOverride: () => void;
   dismissBudgetExceeded: () => void;
+  loadMoreHistory: () => void;
+  historyHasMore: boolean;
 }
 
 export function useSession(): UseSessionReturn {
@@ -276,6 +278,19 @@ export function useSession(): UseSessionReturn {
       updatePermissionStatus(m.requestId, m.status);
     }
 
+    function handleHistoryPage(msg: ServerMessage) {
+      var m = msg as { type: string; sessionId: string; messages: HistoryMessage[]; hasMore: boolean };
+      var state = getSessionStore().state;
+      if (m.sessionId !== state.activeSessionId) return;
+      getSessionStore().setState(function (s) {
+        return {
+          ...s,
+          messages: mergeToolResults(m.messages).concat(s.messages),
+          historyHasMore: m.hasMore,
+        };
+      });
+    }
+
     function handleHistory(msg: ServerMessage) {
       var m = msg as SessionHistoryMessage;
       setCurrentAssistantUuid(null);
@@ -303,6 +318,8 @@ export function useSession(): UseSessionReturn {
             lastResponseDuration: null,
             lastReadIndex: null,
             historyLoading: false,
+            historyHasMore: m.hasMore || false,
+            historyTotalMessages: m.totalMessages || m.messages.length,
             wasInterrupted: m.interrupted || false,
             isBusy: m.busy || false,
             busyOwner: m.busyOwner ?? null,
@@ -390,6 +407,7 @@ export function useSession(): UseSessionReturn {
     subscribe("chat:context_usage", handleContextUsage);
     subscribe("chat:context_breakdown", handleContextBreakdown);
     subscribe("session:history", handleHistory);
+    subscribe("session:history_page_result", handleHistoryPage);
     subscribe("chat:prompt_suggestion", handlePromptSuggestion);
     subscribe("session:busy", handleSessionBusy);
     subscribe("chat:prompt_request", handlePromptRequest);
@@ -413,6 +431,7 @@ export function useSession(): UseSessionReturn {
       unsubscribe("chat:context_usage", handleContextUsage);
       unsubscribe("chat:context_breakdown", handleContextBreakdown);
       unsubscribe("session:history", handleHistory);
+      unsubscribe("session:history_page_result", handleHistoryPage);
       unsubscribe("chat:prompt_suggestion", handlePromptSuggestion);
       unsubscribe("session:busy", handleSessionBusy);
       unsubscribe("chat:prompt_request", handlePromptRequest);
@@ -441,6 +460,15 @@ export function useSession(): UseSessionReturn {
     lastResponseDuration: state.lastResponseDuration,
     lastReadIndex: state.lastReadIndex,
     historyLoading: state.historyLoading,
+    historyHasMore: state.historyHasMore,
+    historyTotalMessages: state.historyTotalMessages,
+    loadMoreHistory: function () {
+      if (!state.historyHasMore || !state.activeSessionId) return;
+      var totalMessages = state.historyTotalMessages;
+      var loadedCount = state.messages.length;
+      var beforeIndex = totalMessages - loadedCount;
+      sendRef.current({ type: "session:history_page", sessionId: state.activeSessionId, before: beforeIndex, limit: 100 } as any);
+    },
     wasInterrupted: state.wasInterrupted,
     promptSuggestion: state.promptSuggestion,
     failedInput: state.failedInput,

@@ -42,6 +42,8 @@ export interface SessionState {
   lastResponseDuration: number | null;
   lastReadIndex: number | null;
   historyLoading: boolean;
+  historyHasMore: boolean;
+  historyTotalMessages: number;
   wasInterrupted: boolean;
   promptSuggestion: string | null;
   failedInput: string | null;
@@ -68,6 +70,8 @@ var sessionStore = new Store<SessionState>({
   lastResponseDuration: null,
   lastReadIndex: null,
   historyLoading: false,
+  historyHasMore: false,
+  historyTotalMessages: 0,
   wasInterrupted: false,
   promptSuggestion: null,
   failedInput: null,
@@ -293,6 +297,8 @@ export function clearSession(): void {
       lastResponseDuration: null,
       lastReadIndex: null,
       historyLoading: false,
+      historyHasMore: false,
+      historyTotalMessages: 0,
       wasInterrupted: false,
       promptSuggestion: null,
       failedInput: null,
