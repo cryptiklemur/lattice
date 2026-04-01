@@ -261,7 +261,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
           <>
             {sidebar.activeView.type === "dashboard" ? (
               <>
-                <div className="px-4 h-11 border-b border-base-300 flex-shrink-0 flex items-center gap-2">
+                <div className="px-4 h-12 border-b border-base-300 flex-shrink-0 flex items-center gap-2">
                   <LatticeLogomark size={18} />
                   <span className="text-[13px] font-mono font-bold text-base-content/90">
                     Lattice
@@ -334,17 +334,19 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                   onClick={sidebar.toggleProjectDropdown}
                   aria-label="Switch project"
                   aria-expanded={sidebar.projectDropdownOpen}
-                  className="w-full px-4 h-11 border-b border-base-300 flex-shrink-0 flex items-center justify-between cursor-pointer hover:bg-base-300/30 transition-colors text-left"
+                  className={"w-full px-4 border-b border-base-300 flex-shrink-0 flex items-center justify-between cursor-pointer hover:bg-base-300/30 transition-colors text-left " + (activeProject?.isRemote ? "h-14 py-2" : "h-12 py-2.5")}
                 >
-                  <span className="text-[13px] font-mono font-bold text-base-content/90">
-                    {activeProject?.title ?? (projects.length === 0 ? "Loading..." : "No Project")}
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-mono font-bold text-base-content/90 truncate">
+                      {activeProject?.title ?? (projects.length === 0 ? "Loading..." : "No Project")}
+                    </div>
                     {activeProject?.isRemote && (
-                      <span className="ml-1.5 text-[10px] font-normal text-base-content/30">
+                      <div className="text-[10px] text-base-content/30 font-mono">
                         on {activeProject.nodeName}
-                      </span>
+                      </div>
                     )}
-                  </span>
-                  <ChevronDown size={14} className="text-base-content/30" />
+                  </div>
+                  <ChevronDown size={14} className="text-base-content/30 flex-shrink-0" />
                 </button>
 
                 <button

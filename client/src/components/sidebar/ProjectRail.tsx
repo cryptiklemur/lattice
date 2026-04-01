@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
 import type { ProjectInfo, NodeInfo } from "@lattice/shared";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
@@ -117,9 +118,9 @@ function ProjectButton(props: ProjectButtonProps) {
         })}
       </div>
 
-      {hovered && (
+      {hovered && createPortal(
         <div
-          className="pointer-events-none z-[9000] bg-base-300 border border-base-content/20 rounded-lg px-2.5 py-1.5 shadow-xl"
+          className="pointer-events-none z-[99999] bg-base-300 border border-base-content/20 rounded-lg px-2.5 py-1.5 shadow-xl"
           style={{
             position: "fixed",
             left: "calc(64px + 8px)",
@@ -139,7 +140,8 @@ function ProjectButton(props: ProjectButtonProps) {
               </div>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -170,9 +172,9 @@ function NodeIndicator({ node }: { node: NodeInfo }) {
       >
         {initial}
       </button>
-      {hovered && (
+      {hovered && createPortal(
         <div
-          className="pointer-events-none z-[9000] bg-base-300 border border-base-content/20 rounded-lg px-2.5 py-1.5 shadow-xl"
+          className="pointer-events-none z-[99999] bg-base-300 border border-base-content/20 rounded-lg px-2.5 py-1.5 shadow-xl"
           style={{
             position: "fixed",
             left: "calc(64px + 8px)",
@@ -192,7 +194,8 @@ function NodeIndicator({ node }: { node: NodeInfo }) {
           <div className="text-[10px] text-base-content/30 mt-0.5">
             {node.projects.length} project{node.projects.length !== 1 ? "s" : ""}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -339,13 +342,13 @@ export function ProjectRail(props: ProjectRailProps) {
 
       <div className="flex-1" />
 
-      {contextMenu.visible && (
+      {contextMenu.visible && createPortal(
         <div
           ref={menuRef}
           role="menu"
           aria-label="Project actions"
           onClick={function (e) { e.stopPropagation(); }}
-          className="fixed z-[9999] bg-base-300 border border-base-content/20 rounded-lg shadow-2xl py-1 min-w-[160px]"
+          className="fixed z-[99999] bg-base-300 border border-base-content/20 rounded-lg shadow-2xl py-1 min-w-[160px]"
           style={{ left: contextMenu.x + "px", top: contextMenu.y + "px" }}
         >
           <button
@@ -387,7 +390,8 @@ export function ProjectRail(props: ProjectRailProps) {
           >
             Remove Project
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
