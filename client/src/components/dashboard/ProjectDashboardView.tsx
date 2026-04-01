@@ -45,7 +45,7 @@ export function ProjectDashboardView() {
 
   var { settings, loading } = useProjectSettings(sidebar.activeProjectSlug);
   var { projects } = useProjects();
-  var { send, subscribe, unsubscribe } = useWebSocket();
+  var { send, subscribe, unsubscribe, status: wsStatus } = useWebSocket();
   var [sessions, setSessions] = useState<SessionSummary[]>([]);
 
   var activeProject = projects.find(function (p) { return p.slug === sidebar.activeProjectSlug; });
@@ -64,12 +64,14 @@ export function ProjectDashboardView() {
     }
 
     subscribe("session:list", handleSessionList);
-    send({ type: "session:list_request", projectSlug: sidebar.activeProjectSlug });
+    if (wsStatus === "connected") {
+      send({ type: "session:list_request", projectSlug: sidebar.activeProjectSlug });
+    }
 
     return function () {
       unsubscribe("session:list", handleSessionList);
     };
-  }, [sidebar.activeProjectSlug]);
+  }, [sidebar.activeProjectSlug, wsStatus]);
 
   function goToSection(section: ProjectSettingsSection) {
     sidebar.openProjectSettings(section);
