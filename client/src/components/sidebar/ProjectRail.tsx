@@ -19,6 +19,7 @@ function getProjectInitials(title: string): string {
 interface ProjectGroup {
   slug: string;
   title: string;
+  activeSessions: number;
   nodes: Array<{ nodeId: string; nodeName: string; online: boolean; path: string }>;
 }
 
@@ -36,8 +37,9 @@ function groupProjectsBySlug(projects: ProjectInfo[], nodes: NodeInfo[]): Projec
     };
     if (existing) {
       existing.nodes.push(nodeEntry);
+      existing.activeSessions += p.activeSessions ?? 0;
     } else {
-      groups.set(p.slug, { slug: p.slug, title: p.title, nodes: [nodeEntry] });
+      groups.set(p.slug, { slug: p.slug, title: p.title, activeSessions: p.activeSessions ?? 0, nodes: [nodeEntry] });
     }
   }
   return Array.from(groups.values());
@@ -95,6 +97,12 @@ function ProjectButton(props: ProjectButtonProps) {
         {initials}
       </button>
 
+      {props.group.activeSessions > 0 && (
+        <div className="absolute -top-1 -right-1 min-w-[16px] h-[16px] rounded-full bg-primary text-primary-content text-[9px] font-bold flex items-center justify-center pointer-events-none px-1">
+          {props.group.activeSessions}
+        </div>
+      )}
+
       <div className="absolute bottom-0 right-0 flex gap-[2px] pointer-events-none">
         {props.group.nodes.map(function (n) {
           return (
@@ -137,6 +145,59 @@ function ProjectButton(props: ProjectButtonProps) {
   );
 }
 
+function NodeIndicator({ node }: { node: NodeInfo }) {
+  var [hovered, setHovered] = useState(false);
+  var [tooltipTop, setTooltipTop] = useState(0);
+  var sidebar = useSidebar();
+  var initial = node.name.charAt(0).toUpperCase();
+
+  return (
+    <div className="relative flex items-center">
+      <button
+        onClick={function () { sidebar.openSettings("nodes"); }}
+        onMouseEnter={function (e) {
+          var rect = e.currentTarget.getBoundingClientRect();
+          setTooltipTop(rect.top + rect.height / 2);
+          setHovered(true);
+        }}
+        onMouseLeave={function () { setHovered(false); }}
+        className={
+          "w-[28px] h-[28px] flex items-center justify-center text-[10px] font-bold rounded-full cursor-pointer transition-all duration-[120ms] flex-shrink-0 border-2 " +
+          (node.online
+            ? "border-success/50 bg-base-200 text-base-content/50 hover:bg-base-200/80"
+            : "border-error/30 bg-base-200/50 text-base-content/25 hover:bg-base-200/60")
+        }
+      >
+        {initial}
+      </button>
+      {hovered && (
+        <div
+          className="pointer-events-none z-[9000] bg-base-300 border border-base-content/20 rounded-lg px-2.5 py-1.5 shadow-xl"
+          style={{
+            position: "fixed",
+            left: "calc(64px + 8px)",
+            top: tooltipTop + "px",
+            transform: "translateY(-50%)",
+          }}
+        >
+          <div className="flex items-center gap-1.5">
+            <div className={"w-[6px] h-[6px] rounded-full flex-shrink-0 " + (node.online ? "bg-success" : "bg-error")} />
+            <span className="text-[12px] font-bold text-base-content whitespace-nowrap">{node.name}</span>
+          </div>
+          {node.addresses && node.addresses.length > 0 && (
+            <div className="text-[10px] text-base-content/40 mt-0.5 whitespace-nowrap">
+              {node.addresses[0]}
+            </div>
+          )}
+          <div className="text-[10px] text-base-content/30 mt-0.5">
+            {node.projects.length} project{node.projects.length !== 1 ? "s" : ""}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface ProjectRailProps {
   projects: ProjectInfo[];
   nodes: NodeInfo[];
@@ -151,6 +212,7 @@ export function ProjectRail(props: ProjectRailProps) {
   var ws = useWebSocket();
   var sidebar = useSidebar();
   var groups = groupProjectsBySlug(props.projects, props.nodes);
+  var remoteNodes = props.nodes.filter(function (n) { return !n.isLocal; });
   var [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
     x: 0,
@@ -255,9 +317,17 @@ export function ProjectRail(props: ProjectRailProps) {
       })}
 
 
-      {groups.length > 0 && (
+      {groups.length > 0 && remoteNodes.length > 0 && (
         <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
       )}
+
+      {remoteNodes.map(function (node) {
+        return (
+          <NodeIndicator key={node.id} node={node} />
+        );
+      })}
+
+      <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
 
       <button
         onClick={function () { sidebar.openAddProject(); }}

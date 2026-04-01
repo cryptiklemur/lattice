@@ -23,6 +23,7 @@ export interface ProjectInfo extends ProjectSummary {
   isRemote: boolean;
   online?: boolean;
   ideProjectName?: string;
+  activeSessions?: number;
 }
 
 export interface SessionSummary {

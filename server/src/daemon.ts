@@ -18,7 +18,7 @@ import { detectIdeProjectName } from "./handlers/settings";
 import "./handlers/session";
 import "./handlers/chat";
 import "./handlers/attachment";
-import { loadInterruptedSessions, unwatchSessionLock, cleanupClientPermissions } from "./project/sdk-bridge";
+import { loadInterruptedSessions, unwatchSessionLock, cleanupClientPermissions, getActiveSessionCountForProject } from "./project/sdk-bridge";
 import { clearActiveSession, getActiveSession } from "./handlers/chat";
 import { clearActiveProject } from "./handlers/fs";
 import { clearClientRemoteNode } from "./ws/router";
@@ -410,7 +410,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     var currentIdentity = loadOrCreateIdentity();
     broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
     var localProjects = currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
-      return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path) };
+      return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveSessionCountForProject(p.path) };
     });
     var remoteProjects = getAllRemoteProjects(currentIdentity.id);
     broadcast({

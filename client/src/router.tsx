@@ -15,7 +15,6 @@ import { AddProjectModal } from "./components/sidebar/AddProjectModal";
 import { useSidebar } from "./hooks/useSidebar";
 import { useWorkspace } from "./hooks/useWorkspace";
 import { useWebSocket } from "./hooks/useWebSocket";
-import { UpdateBanner } from "./components/ui/UpdateBanner";
 import { NodeDisconnectedOverlay } from "./components/ui/NodeDisconnectedOverlay";
 import { useSwipeDrawer } from "./hooks/useSwipeDrawer";
 import { exitSettings, getSidebarStore, handlePopState, closeDrawer, toggleDrawer } from "./stores/sidebar";
@@ -424,7 +423,6 @@ function RootLayout() {
         />
 
         <main id="main-content" className="drawer-content flex flex-col h-full min-w-0 overflow-hidden relative">
-          <UpdateBanner />
           <Outlet />
           <NodeDisconnectedOverlay />
         </main>

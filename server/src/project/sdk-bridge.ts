@@ -212,6 +212,41 @@ export function getActiveStreamCount(): number {
   return activeStreams.size;
 }
 
+export function getActiveSessionCountForProject(projectPath: string): number {
+  var count = 0;
+  var hash = projectPath.replace(/\//g, "-");
+  var dir = join(homedir(), ".claude", "projects", hash);
+
+  for (var [sessionId] of activeStreams) {
+    if (existsSync(join(dir, sessionId + ".jsonl"))) count++;
+  }
+
+  for (var [sessionId2] of streamMetadata) {
+    void sessionId2;
+  }
+
+  if (isClaudeCliRunningInProject(projectPath)) count++;
+
+  return count;
+}
+
+function isClaudeCliRunningInProject(projectPath: string): boolean {
+  try {
+    var result = Bun.spawnSync(["pgrep", "-x", "claude"], { stderr: "ignore" });
+    if (result.exitCode !== 0) return false;
+    var pids = result.stdout.toString().trim().split("\n");
+    for (var i = 0; i < pids.length; i++) {
+      var pid = parseInt(pids[i], 10);
+      if (isNaN(pid) || pid === process.pid) continue;
+      try {
+        var cwd = readlinkSync("/proc/" + pid + "/cwd");
+        if (cwd === projectPath) return true;
+      } catch {}
+    }
+  } catch {}
+  return false;
+}
+
 /**
  * Check if a session is controlled by an external process (not Lattice).
  * Lattice's own active streams are handled by isProcessing on the client,
