@@ -27,7 +27,15 @@ export function addPeer(peer: PeerInfo): void {
   if (idx >= 0) {
     peers[idx] = peer;
   } else {
-    peers.push(peer);
+    var addrSet = new Set(peer.addresses);
+    var dupeIdx = peers.findIndex(function (p) {
+      return p.addresses.some(function (a) { return addrSet.has(a); });
+    });
+    if (dupeIdx >= 0) {
+      peers[dupeIdx] = peer;
+    } else {
+      peers.push(peer);
+    }
   }
   savePeers(peers);
 }
