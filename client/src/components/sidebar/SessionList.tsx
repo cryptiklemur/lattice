@@ -292,7 +292,7 @@ export function SessionList(props: SessionListProps) {
       hasMoreRef.current = true;
       sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
       var interval = setInterval(function () {
-        if (props.projectSlug) {
+        if (props.projectSlug && ws.status === "connected") {
           sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
         }
       }, 10000);

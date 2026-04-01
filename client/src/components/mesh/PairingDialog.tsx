@@ -26,6 +26,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
   var [selectedAddress, setSelectedAddress] = useState("");
   var modalRef = useRef<HTMLDivElement>(null);
   var inputRef = useRef<HTMLInputElement>(null);
+  var pairTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
     if (!props.isOpen) {
@@ -38,6 +39,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
       setAddresses([]);
       setSelectedAddress("");
       setTab("generate");
+      if (pairTimeoutRef.current) { clearTimeout(pairTimeoutRef.current); pairTimeoutRef.current = null; }
       return;
     }
 
@@ -109,7 +111,8 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
     setPairStatus("connecting");
     setPairError(null);
 
-    var timeout = setTimeout(function () {
+    if (pairTimeoutRef.current) clearTimeout(pairTimeoutRef.current);
+    pairTimeoutRef.current = setTimeout(function () {
       setPairStatus(function (prev) {
         if (prev === "connecting") {
           setPairError("Pairing timed out. Check the code and try again.");
@@ -120,10 +123,6 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
     }, 30000);
 
     ws.send({ type: "mesh:pair", code: trimmed });
-
-    return function () {
-      clearTimeout(timeout);
-    };
   }
 
   function handleCopyCode() {

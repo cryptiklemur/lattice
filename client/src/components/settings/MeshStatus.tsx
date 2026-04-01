@@ -41,14 +41,14 @@ function NodeRow(props: NodeRowProps) {
             </span>
           )}
         </div>
-        <div className="text-[11px] text-base-content/40">
+        <div className="text-[11px] text-base-content/40 truncate">
           {(props.node.addresses && props.node.addresses.length > 0
             ? props.node.addresses
             : [props.node.address + (props.node.port ? ":" + props.node.port : "")]
           ).map(function (addr, i) {
             return (
-              <span key={addr} className="mr-2">
-                {i > 0 && <span className="text-base-content/20 mr-2">/</span>}
+              <span key={addr}>
+                {i > 0 && <span className="text-base-content/20 mx-1">/</span>}
                 {addr}
               </span>
             );
