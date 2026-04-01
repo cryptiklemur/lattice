@@ -9,29 +9,29 @@ interface SettingsSidebarProps {
 
 var SETTINGS_NAV = [
   {
-    group: "GENERAL",
+    group: "",
     items: [
       { id: "appearance" as SettingsSection, label: "Appearance", icon: <Palette size={14} /> },
       { id: "notifications" as SettingsSection, label: "Notifications", icon: <Bell size={14} /> },
-      { id: "claude" as SettingsSection, label: "Claude Settings", icon: <FileText size={14} /> },
+    ],
+  },
+  {
+    group: "CLAUDE",
+    items: [
+      { id: "claude" as SettingsSection, label: "Model & Prompts", icon: <FileText size={14} /> },
       { id: "budget" as SettingsSection, label: "Budget", icon: <Wallet size={14} /> },
       { id: "environment" as SettingsSection, label: "Environment", icon: <Terminal size={14} /> },
       { id: "editor" as SettingsSection, label: "Editor", icon: <MonitorCog size={14} /> },
     ],
   },
   {
-    group: "CONFIGURATION",
+    group: "EXTENSIONS",
     items: [
+      { id: "plugins" as SettingsSection, label: "Plugins", icon: <Blocks size={14} /> },
+      { id: "skills" as SettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
+      { id: "mcp" as SettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
       { id: "rules" as SettingsSection, label: "Rules", icon: <ScrollText size={14} /> },
       { id: "memory" as SettingsSection, label: "Memory", icon: <Brain size={14} /> },
-    ],
-  },
-  {
-    group: "INTEGRATIONS",
-    items: [
-      { id: "mcp" as SettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
-      { id: "skills" as SettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
-      { id: "plugins" as SettingsSection, label: "Plugins", icon: <Blocks size={14} /> },
     ],
   },
   {
@@ -44,7 +44,7 @@ var SETTINGS_NAV = [
 
 var PROJECT_SETTINGS_NAV = [
   {
-    group: "GENERAL",
+    group: "",
     items: [
       { id: "general" as ProjectSettingsSection, label: "General", icon: <Settings size={14} /> },
       { id: "notifications" as ProjectSettingsSection, label: "Notifications", icon: <Bell size={14} /> },
@@ -53,16 +53,11 @@ var PROJECT_SETTINGS_NAV = [
     ],
   },
   {
-    group: "INTEGRATIONS",
+    group: "EXTENSIONS",
     items: [
-      { id: "mcp" as ProjectSettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
-      { id: "skills" as ProjectSettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
       { id: "plugins" as ProjectSettingsSection, label: "Plugins", icon: <Blocks size={14} /> },
-    ],
-  },
-  {
-    group: "CONFIGURATION",
-    items: [
+      { id: "skills" as ProjectSettingsSection, label: "Skills", icon: <Puzzle size={14} /> },
+      { id: "mcp" as ProjectSettingsSection, label: "MCP Servers", icon: <Plug size={14} /> },
       { id: "rules" as ProjectSettingsSection, label: "Rules", icon: <ScrollText size={14} /> },
       { id: "permissions" as ProjectSettingsSection, label: "Permissions", icon: <Shield size={14} /> },
       { id: "memory" as ProjectSettingsSection, label: "Memory", icon: <Brain size={14} /> },
@@ -99,12 +94,14 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
       <div className="flex flex-col flex-1 overflow-y-auto min-h-0 py-2 pb-16">
         {nav.map(function (group) {
           return (
-            <div key={group.group} className="mb-2">
-              <div className="px-4 pt-3 pb-1">
-                <span className="text-[10px] font-bold tracking-wider uppercase text-base-content/40">
-                  {group.group}
-                </span>
-              </div>
+            <div key={group.group || "ungrouped"} className="mb-2">
+              {group.group && (
+                <div className="px-4 pt-3 pb-1">
+                  <span className="text-[10px] font-bold tracking-wider uppercase text-base-content/40">
+                    {group.group}
+                  </span>
+                </div>
+              )}
               {group.items.map(function (item) {
                 var isActive = activeSection === item.id;
                 return (

@@ -17,7 +17,7 @@ import type { SettingsSection } from "../../stores/sidebar";
 var SECTION_CONFIG: Record<string, { title: string }> = {
   appearance: { title: "Appearance" },
   notifications: { title: "Notifications" },
-  claude: { title: "Claude Settings" },
+  claude: { title: "Claude" },
   budget: { title: "Budget" },
   environment: { title: "Environment" },
   mcp: { title: "MCP Servers" },
