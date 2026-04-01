@@ -255,7 +255,11 @@ function refreshCliDetection(): void {
       var cmdline = cliPids[j].cmdline;
       var resumeIdx = cmdline.indexOf("--resume");
       if (resumeIdx !== -1 && resumeIdx + 1 < cmdline.length) {
-        found = resolveSessionName(projectPath, cmdline[resumeIdx + 1]);
+        var sessionName = cmdline[resumeIdx + 1];
+        found = resolveSessionName(projectPath, sessionName);
+        if (!found) {
+          resolveSessionNameAsync(projectPath, sessionName);
+        }
       } else {
         found = findMostRecentSession(projectPath);
       }
@@ -303,35 +307,40 @@ function resolveSessionName(projectPath: string, name: string): string | null {
   var cached = sessionNameCache.get(cacheKey);
   if (cached) return cached;
 
-  var hash = projectPath.replace(/\//g, "-");
-  var dir = join(homedir(), ".claude", "projects", hash);
-  if (!existsSync(dir)) return null;
-
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(name)) {
-    if (existsSync(join(dir, name + ".jsonl"))) {
+    var hash = projectPath.replace(/\//g, "-");
+    if (existsSync(join(homedir(), ".claude", "projects", hash, name + ".jsonl"))) {
       sessionNameCache.set(cacheKey, name);
       return name;
     }
   }
 
-  var entries = readdirSync(dir).filter(function (f) { return f.endsWith(".jsonl"); });
-  for (var e = 0; e < entries.length; e++) {
-    try {
-      var content = readFileSync(join(dir, entries[e]), "utf-8");
-      var titleIdx = content.indexOf('"custom-title"');
-      if (titleIdx === -1) continue;
-      var lineStart = content.lastIndexOf("\n", titleIdx) + 1;
-      var lineEnd = content.indexOf("\n", titleIdx);
-      var line = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
-      var parsed = JSON.parse(line);
-      if (parsed.type === "custom-title" && parsed.customTitle === name) {
-        var id = entries[e].replace(".jsonl", "");
-        sessionNameCache.set(cacheKey, id);
-        return id;
-      }
-    } catch {}
-  }
   return null;
+}
+
+function resolveSessionNameAsync(projectPath: string, name: string): void {
+  var cacheKey = projectPath + ":" + name;
+  if (sessionNameCache.has(cacheKey)) return;
+
+  var hash = projectPath.replace(/\//g, "-");
+  var dir = join(homedir(), ".claude", "projects", hash);
+  if (!existsSync(dir)) return;
+
+  var proc = Bun.spawn(["grep", "-rl", "--include=*.jsonl", "-m", "1", name, dir], {
+    stdout: "pipe", stderr: "ignore",
+  });
+  void proc.exited.then(function () {
+    var output = new Response(proc.stdout).text();
+    return output;
+  }).then(function (text) {
+    var files = text.trim().split("\n").filter(Boolean);
+    if (files.length > 0) {
+      var match = files[0].match(/([0-9a-f-]{36})\.jsonl$/);
+      if (match) {
+        sessionNameCache.set(cacheKey, match[1]);
+      }
+    }
+  }).catch(function () {});
 }
 
 function findMostRecentSession(projectPath: string): string | null {

@@ -12,9 +12,23 @@ export interface UseProjectsResult {
   setActiveProject: (project: ProjectInfo | null) => void;
 }
 
+function loadCachedProjects(): ProjectInfo[] {
+  try {
+    var raw = localStorage.getItem("lattice:projects");
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function cacheProjects(projects: ProjectInfo[]): void {
+  try {
+    localStorage.setItem("lattice:projects", JSON.stringify(projects));
+  } catch {}
+}
+
 export function useProjects(): UseProjectsResult {
   var ws = useWebSocket();
-  var [projects, setProjects] = useState<ProjectInfo[]>([]);
+  var [projects, setProjects] = useState<ProjectInfo[]>(loadCachedProjects);
   var activeProjectSlug = useStore(getSidebarStore(), function (state) { return state.activeProjectSlug; });
 
   var handleRef = useRef<(msg: ServerMessage) => void>(function () {});
@@ -32,7 +46,9 @@ export function useProjects(): UseProjectsResult {
           for (var i = 0; i < kept.length; i++) {
             (kept[i] as any).online = false;
           }
-          return incoming.concat(kept);
+          var merged = incoming.concat(kept);
+          cacheProjects(merged);
+          return merged;
         });
         var storeState = getSidebarStore().state;
         var currentSlug = storeState.activeProjectSlug;

@@ -175,10 +175,25 @@ function PreviewPopover(props: { preview: SessionPreview | null; anchorRect: DOM
   return createPortal(content, document.body);
 }
 
+function loadCachedSessions(slug: string | null): SessionSummary[] {
+  if (!slug) return [];
+  try {
+    var raw = localStorage.getItem("lattice:sessions:" + slug);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function cacheSessions(slug: string, sessions: SessionSummary[]): void {
+  try {
+    localStorage.setItem("lattice:sessions:" + slug, JSON.stringify(sessions.slice(0, 100)));
+  } catch {}
+}
+
 export function SessionList(props: SessionListProps) {
   useTimeTick();
   var ws = useWebSocket();
-  var [sessions, setSessions] = useState<SessionSummary[]>([]);
+  var [sessions, setSessions] = useState<SessionSummary[]>(function () { return loadCachedSessions(props.projectSlug); });
   var [loading, setLoading] = useState<boolean>(false);
   var [loadingMore, setLoadingMore] = useState<boolean>(false);
   var [totalCount, setTotalCount] = useState<number>(0);
@@ -240,6 +255,9 @@ export function SessionList(props: SessionListProps) {
 
           setTotalCount(listTotal);
           offsetRef.current = listOffset + incoming.length;
+          if (props.projectSlug && listOffset === 0) {
+            cacheSessions(props.projectSlug, incoming);
+          }
           hasMoreRef.current = listOffset + incoming.length < listTotal;
         }
       } else if (msg.type === "session:created") {
@@ -286,8 +304,9 @@ export function SessionList(props: SessionListProps) {
 
   useEffect(function () {
     if (props.projectSlug && ws.status === "connected") {
-      setSessions([]);
-      setLoading(true);
+      var cached = loadCachedSessions(props.projectSlug);
+      setSessions(cached);
+      setLoading(cached.length === 0);
       offsetRef.current = 0;
       hasMoreRef.current = true;
       sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
