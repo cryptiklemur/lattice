@@ -755,22 +755,22 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center p-10 h-full">
             <div className="text-center max-w-[360px]">
-              <div className="text-primary mb-4 flex justify-center">
-                <LatticeLogomark size={48} />
+              <div className="text-base-content/10 mb-4 flex justify-center">
+                <LatticeLogomark size={40} />
               </div>
-              <p className="text-[17px] font-mono font-bold text-base-content mb-2 tracking-tight">
+              <p className="text-[15px] font-mono font-semibold text-base-content/60 mb-1.5">
                 {activeSessionId
-                  ? "Start the conversation"
+                  ? "What are you working on?"
                   : activeProject
-                  ? "Create or select a session"
+                  ? "Ready when you are"
                   : "Select a project"}
               </p>
-              <p className="text-[13px] text-base-content/40 leading-relaxed">
+              <p className="text-[12px] text-base-content/30 leading-relaxed">
                 {activeSessionId
-                  ? "Type a message below to begin chatting with Claude."
+                  ? "Type a message below or press / for commands."
                   : activeProject
-                  ? "Click the + button in the sidebar to start a new session."
-                  : "Choose a project from the sidebar to get started."}
+                  ? "Start a new session from the sidebar to chat with Claude."
+                  : "Choose a project from the rail to get started."}
               </p>
             </div>
           </div>

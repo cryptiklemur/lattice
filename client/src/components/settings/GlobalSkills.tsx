@@ -94,8 +94,9 @@ export function GlobalSkills() {
       <div>
         <div className="text-[12px] font-semibold text-base-content/40 mb-2">Installed Skills</div>
         {skills.length === 0 ? (
-          <div className="py-4 text-center text-[13px] text-base-content/30">
-            No global skills installed.
+          <div className="py-4 text-center">
+            <div className="text-[12px] text-base-content/30 mb-0.5">No skills installed</div>
+            <div className="text-[11px] text-base-content/20">Search the marketplace below to add skills.</div>
           </div>
         ) : (
           <div className="space-y-2">

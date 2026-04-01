@@ -475,8 +475,15 @@ export function SessionList(props: SessionListProps) {
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden py-0.5 pb-16">
         {grouped.length === 0 ? (
-          <div className="px-3 py-2 text-sm text-base-content/40 italic">
-            {props.filter ? "No matches" : "No sessions yet"}
+          <div className="px-4 py-6 text-center">
+            {props.filter ? (
+              <div className="text-[12px] text-base-content/30">No sessions match your search</div>
+            ) : (
+              <>
+                <div className="text-[12px] text-base-content/30 mb-1">No sessions yet</div>
+                <div className="text-[11px] text-base-content/20">Click + above to start a conversation with Claude</div>
+              </>
+            )}
           </div>
         ) : (
           grouped.map(function (group) {

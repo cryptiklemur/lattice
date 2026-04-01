@@ -315,12 +315,12 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                   </div>
                   <SectionLabel label="Projects" />
                   {projects.length === 0 && nodes.some(function (n) { return !n.isLocal && n.online; }) ? (
-                    <div className="flex items-center gap-2 text-[12px] text-base-content/30 px-4">
-                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0" />
-                      Loading remote projects...
+                    <div className="flex items-center gap-2 text-[12px] text-base-content/25 px-4">
+                      <span className="w-1.5 h-1.5 rounded-full bg-base-content/30 animate-pulse flex-shrink-0" />
+                      Syncing remote projects...
                     </div>
                   ) : (
-                    <div className="text-[12px] text-base-content/40 px-4">
+                    <div className="text-[12px] text-base-content/25 px-4">
                       Select a project from the rail to view sessions.
                     </div>
                   )}

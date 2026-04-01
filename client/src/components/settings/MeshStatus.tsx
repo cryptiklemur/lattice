@@ -135,8 +135,8 @@ export function MeshStatus() {
         {localNode ? (
           <NodeRow node={localNode} onUnpair={handleUnpair} onReconnect={handleReconnect} />
         ) : (
-          <div className="text-[12px] text-base-content/40 italic">
-            Waiting for node info...
+          <div className="text-[12px] text-base-content/30">
+            Loading node information...
           </div>
         )}
       </div>
@@ -156,8 +156,9 @@ export function MeshStatus() {
         </div>
 
         {remoteNodes.length === 0 ? (
-          <div className="p-4 rounded-lg border border-dashed border-base-content/15 text-center text-[12px] text-base-content/40 italic">
-            No paired nodes yet.
+          <div className="p-4 rounded-lg border border-dashed border-base-content/10 text-center">
+            <div className="text-[12px] text-base-content/30 mb-0.5">No paired nodes</div>
+            <div className="text-[11px] text-base-content/20">Connect another machine to view its projects and sessions here.</div>
           </div>
         ) : (
           remoteNodes.map(function (node) {

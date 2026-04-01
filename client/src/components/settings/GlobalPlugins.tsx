@@ -251,8 +251,9 @@ function InstalledPlugins({
     <div>
       <div className="text-[12px] font-semibold text-base-content/40 mb-2">Installed Plugins</div>
       {plugins.length === 0 ? (
-        <div className="py-6 text-center text-[13px] text-base-content/30">
-          No plugins installed. Search the marketplace below to get started.
+        <div className="py-6 text-center">
+          <div className="text-[12px] text-base-content/30 mb-0.5">No plugins installed</div>
+          <div className="text-[11px] text-base-content/20">Browse the marketplace or search below to add plugins.</div>
         </div>
       ) : (
         <div className="space-y-2">
