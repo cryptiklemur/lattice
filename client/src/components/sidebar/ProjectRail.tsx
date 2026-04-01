@@ -215,7 +215,9 @@ export function ProjectRail(props: ProjectRailProps) {
   var ws = useWebSocket();
   var sidebar = useSidebar();
   var groups = groupProjectsBySlug(props.projects, props.nodes);
+  var localNode = props.nodes.find(function (n) { return n.isLocal; });
   var remoteNodes = props.nodes.filter(function (n) { return !n.isLocal; });
+  var allMeshNodes = localNode ? [localNode].concat(remoteNodes) : remoteNodes;
   var [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
     x: 0,
@@ -320,11 +322,11 @@ export function ProjectRail(props: ProjectRailProps) {
       })}
 
 
-      {groups.length > 0 && remoteNodes.length > 0 && (
+      {groups.length > 0 && allMeshNodes.length > 0 && (
         <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
       )}
 
-      {remoteNodes.map(function (node) {
+      {allMeshNodes.map(function (node) {
         return (
           <NodeIndicator key={node.id} node={node} />
         );
