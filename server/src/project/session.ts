@@ -458,45 +458,111 @@ export async function getSessionTitle(projectSlug: string, sessionId: string): P
 }
 
 var historyCache = new Map<string, { messages: HistoryMessage[]; time: number }>();
-var HISTORY_CACHE_TTL = 30000;
+var HISTORY_CACHE_TTL = 60000;
 var INITIAL_MESSAGE_COUNT = 100;
+var TAIL_READ_BYTES = 2 * 1024 * 1024;
+
+function getSessionFilePath(projectSlug: string, sessionId: string): string | null {
+  var projectPath = getProjectPath(projectSlug);
+  if (!projectPath) return null;
+  var hash = projectPathToHash(projectPath);
+  var filePath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+  return existsSync(filePath) ? filePath : null;
+}
+
+function readTailLines(filePath: string, maxBytes: number): { lines: string[]; isPartial: boolean; fileSize: number } {
+  var { openSync, readSync, fstatSync, closeSync } = require("node:fs") as typeof import("node:fs");
+  var fd = openSync(filePath, "r");
+  var stat = fstatSync(fd);
+  var readStart = Math.max(0, stat.size - maxBytes);
+  var buf = Buffer.alloc(stat.size - readStart);
+  readSync(fd, buf, 0, buf.length, readStart);
+  closeSync(fd);
+  var text = buf.toString("utf-8");
+  if (readStart > 0) {
+    var firstNewline = text.indexOf("\n");
+    if (firstNewline >= 0) text = text.slice(firstNewline + 1);
+  }
+  var lines = text.split("\n").filter(function (l) { return l.length > 0; });
+  return { lines, isPartial: readStart > 0, fileSize: stat.size };
+}
+
+function parseJsonlLines(lines: string[]): SessionMessage[] {
+  var results: SessionMessage[] = [];
+  for (var i = 0; i < lines.length; i++) {
+    try {
+      var parsed = JSON.parse(lines[i]);
+      if (parsed.type === "user" || parsed.type === "assistant" || parsed.type === "system") {
+        results.push(parsed as SessionMessage);
+      }
+    } catch {}
+  }
+  return results;
+}
 
 export async function loadSessionHistory(projectSlug: string, sessionId: string): Promise<{ messages: HistoryMessage[]; totalMessages: number; hasMore: boolean }> {
-  var projectPath = getProjectPath(projectSlug);
-  var options = projectPath ? { dir: projectPath } : undefined;
-
   try {
     var t0 = Date.now();
     var cached = historyCache.get(sessionId);
-    var allMessages: HistoryMessage[];
-
     if (cached && Date.now() - cached.time < HISTORY_CACHE_TTL) {
-      allMessages = cached.messages;
-    } else {
-      var rawMessages = await getSessionMessages(sessionId, options);
-      allMessages = convertSessionMessages(rawMessages);
-      historyCache.set(sessionId, { messages: allMessages, time: Date.now() });
+      var tail = cached.messages.length > INITIAL_MESSAGE_COUNT
+        ? cached.messages.slice(cached.messages.length - INITIAL_MESSAGE_COUNT)
+        : cached.messages;
+      log.session("loadSessionHistory %s: %dms (cached, %d total)", sessionId.slice(0, 8), Date.now() - t0, cached.messages.length);
+      return { messages: tail, totalMessages: cached.messages.length, hasMore: cached.messages.length > INITIAL_MESSAGE_COUNT };
     }
 
-    log.session("loadSessionHistory %s: %dms, %d total messages", sessionId.slice(0, 8), Date.now() - t0, allMessages.length);
+    var filePath = getSessionFilePath(projectSlug, sessionId);
+    if (filePath) {
+      var tailData = readTailLines(filePath, TAIL_READ_BYTES);
+      var tailRaw = parseJsonlLines(tailData.lines);
+      var tailMessages = convertSessionMessages(tailRaw);
+      var hasMore = tailData.isPartial;
 
-    var tail = allMessages.length > INITIAL_MESSAGE_COUNT
+      log.session("loadSessionHistory %s: %dms (tail read, %d msgs, partial=%s)", sessionId.slice(0, 8), Date.now() - t0, tailMessages.length, hasMore);
+
+      if (!hasMore) {
+        historyCache.set(sessionId, { messages: tailMessages, time: Date.now() });
+      }
+
+      var initialSlice = tailMessages.length > INITIAL_MESSAGE_COUNT
+        ? tailMessages.slice(tailMessages.length - INITIAL_MESSAGE_COUNT)
+        : tailMessages;
+
+      return { messages: initialSlice, totalMessages: tailMessages.length, hasMore: hasMore };
+    }
+
+    var projectPath = getProjectPath(projectSlug);
+    var options = projectPath ? { dir: projectPath } : undefined;
+    var rawMessages = await getSessionMessages(sessionId, options);
+    var allMessages = convertSessionMessages(rawMessages);
+    historyCache.set(sessionId, { messages: allMessages, time: Date.now() });
+    log.session("loadSessionHistory %s: %dms (full SDK, %d msgs)", sessionId.slice(0, 8), Date.now() - t0, allMessages.length);
+    var tailSlice = allMessages.length > INITIAL_MESSAGE_COUNT
       ? allMessages.slice(allMessages.length - INITIAL_MESSAGE_COUNT)
       : allMessages;
-
-    return {
-      messages: tail,
-      totalMessages: allMessages.length,
-      hasMore: allMessages.length > INITIAL_MESSAGE_COUNT,
-    };
+    return { messages: tailSlice, totalMessages: allMessages.length, hasMore: allMessages.length > INITIAL_MESSAGE_COUNT };
   } catch (err) {
     log.session("Failed to load session history: %O", err);
     return { messages: [], totalMessages: 0, hasMore: false };
   }
 }
 
-export function getSessionHistoryPage(sessionId: string, beforeIndex: number, limit: number): { messages: HistoryMessage[]; hasMore: boolean } {
+export async function getSessionHistoryPage(sessionId: string, beforeIndex: number, limit: number, projectSlug?: string): Promise<{ messages: HistoryMessage[]; hasMore: boolean }> {
   var cached = historyCache.get(sessionId);
+  if (!cached && projectSlug) {
+    var projectPath = getProjectPath(projectSlug);
+    var options = projectPath ? { dir: projectPath } : undefined;
+    try {
+      var rawMessages = await getSessionMessages(sessionId, options);
+      var allMessages = convertSessionMessages(rawMessages);
+      historyCache.set(sessionId, { messages: allMessages, time: Date.now() });
+      cached = { messages: allMessages, time: Date.now() };
+      log.session("getSessionHistoryPage: full load for %s, %d messages", sessionId.slice(0, 8), allMessages.length);
+    } catch {
+      return { messages: [], hasMore: false };
+    }
+  }
   if (!cached) return { messages: [], hasMore: false };
 
   var endIdx = Math.max(0, beforeIndex);

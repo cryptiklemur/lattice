@@ -25,7 +25,7 @@ import {
   renameSession,
 } from "../project/session";
 import { getContextBreakdown } from "../project/context-breakdown";
-import { setActiveSession } from "./chat";
+import { setActiveSession, getActiveSession } from "./chat";
 import { setActiveProject } from "./fs";
 import { wasSessionInterrupted, clearInterruptedFlag, isSessionBusy, watchSessionLock, stopExternalSession, getBusyOwner } from "../project/sdk-bridge";
 import { log } from "../logger";
@@ -82,12 +82,14 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
 
   if (message.type === "session:history_page") {
     var pageMsg = message as { type: "session:history_page"; sessionId: string; before: number; limit: number };
-    var page = getSessionHistoryPage(pageMsg.sessionId, pageMsg.before, pageMsg.limit);
-    sendTo(clientId, {
-      type: "session:history_page_result",
-      sessionId: pageMsg.sessionId,
-      messages: page.messages,
-      hasMore: page.hasMore,
+    var activeSession = getActiveSession(clientId);
+    void getSessionHistoryPage(pageMsg.sessionId, pageMsg.before, pageMsg.limit, activeSession?.projectSlug).then(function (page) {
+      sendTo(clientId, {
+        type: "session:history_page_result",
+        sessionId: pageMsg.sessionId,
+        messages: page.messages,
+        hasMore: page.hasMore,
+      });
     });
     return;
   }
@@ -104,50 +106,42 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     setActiveSession(clientId, activateMsg.projectSlug, activateMsg.sessionId);
     setActiveProject(clientId, activateMsg.projectSlug);
     watchSessionLock(activateMsg.sessionId);
+    var activateT0 = Date.now();
+    void loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).then(function (historyResult) {
+      log.session("session:activate total history load: %dms", Date.now() - activateT0);
+      var interrupted = wasSessionInterrupted(activateMsg.sessionId);
+      if (interrupted) {
+        clearInterruptedFlag(activateMsg.sessionId);
+      }
+      var busy = isSessionBusy(activateMsg.sessionId);
+      var busyOwner = busy ? getBusyOwner(activateMsg.sessionId) : undefined;
+      sendTo(clientId, {
+        type: "session:history",
+        projectSlug: activateMsg.projectSlug,
+        sessionId: activateMsg.sessionId,
+        messages: historyResult.messages,
+        title: null,
+        interrupted: interrupted || undefined,
+        busy: busy || undefined,
+        busyOwner: busyOwner,
+        totalMessages: historyResult.totalMessages,
+        hasMore: historyResult.hasMore,
+      });
+    }).catch(function (err) {
+      log.session("Error sending session history: %O", err);
+      sendTo(clientId, { type: "chat:error", message: "Failed to load session history" });
+    });
+
     void Promise.all([
-      loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        log.session("Failed to load session history: %O", err);
-        return null;
-      }),
-      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        log.session("Failed to load session title: %O", err);
-        return null;
-      }),
-      getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        log.session("Failed to load session usage: %O", err);
-        return null;
-      }),
-      getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function (err) {
-        log.session("Failed to load context breakdown: %O", err);
-        return null;
-      }),
+      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
+      getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
+      getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
     ]).then(function (results) {
       try {
-        var interrupted = wasSessionInterrupted(activateMsg.sessionId);
-        if (interrupted) {
-          clearInterruptedFlag(activateMsg.sessionId);
+        if (results[0]) {
+          sendTo(clientId, { type: "session:history", projectSlug: activateMsg.projectSlug, sessionId: activateMsg.sessionId, messages: [], title: results[0] as string });
         }
-        var busy = isSessionBusy(activateMsg.sessionId);
-        var busyOwner = busy ? getBusyOwner(activateMsg.sessionId) : undefined;
-        var historyResult = results[0] || { messages: [], totalMessages: 0, hasMore: false };
-        sendTo(clientId, {
-          type: "session:history",
-          projectSlug: activateMsg.projectSlug,
-          sessionId: activateMsg.sessionId,
-          messages: historyResult.messages,
-          title: results[1],
-          interrupted: interrupted || undefined,
-          busy: busy || undefined,
-          busyOwner: busyOwner,
-          totalMessages: historyResult.totalMessages,
-          hasMore: historyResult.hasMore,
-        });
-      } catch (err) {
-        log.session("Error sending session history: %O", err);
-        sendTo(clientId, { type: "chat:error", message: "Failed to load session history" });
-      }
-      try {
-        var usage = results[2];
+        var usage = results[1];
         if (usage) {
           sendTo(clientId, {
             type: "chat:context_usage",
@@ -162,7 +156,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         log.session("Error sending context usage: %O", err);
       }
       try {
-        var breakdown = results[3];
+        var breakdown = results[2];
         if (breakdown) {
           sendTo(clientId, {
             type: "chat:context_breakdown",
