@@ -404,10 +404,21 @@ export async function getSessionPreview(projectSlug: string, sessionId: string):
   }
 }
 
-export async function listSessions(projectSlug: string): Promise<SessionSummary[]> {
+var sessionListCache = new Map<string, { sessions: SessionSummary[]; time: number }>();
+var SESSION_CACHE_TTL = 5000;
+
+export async function listSessions(projectSlug: string, options?: { offset?: number; limit?: number; noCache?: boolean }): Promise<{ sessions: SessionSummary[]; totalCount: number }> {
   var projectPath = getProjectPath(projectSlug);
   if (!projectPath) {
-    return [];
+    return { sessions: [], totalCount: 0 };
+  }
+
+  var cached = sessionListCache.get(projectSlug);
+  if (cached && !options?.noCache && Date.now() - cached.time < SESSION_CACHE_TTL) {
+    var offset = options?.offset ?? 0;
+    var limit = options?.limit ?? 0;
+    var sliced = limit > 0 ? cached.sessions.slice(offset, offset + limit) : cached.sessions;
+    return { sessions: sliced, totalCount: cached.sessions.length };
   }
 
   try {
@@ -416,11 +427,20 @@ export async function listSessions(projectSlug: string): Promise<SessionSummary[
       return mapSDKSession(s, projectSlug);
     });
     summaries.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
-    return summaries;
+    sessionListCache.set(projectSlug, { sessions: summaries, time: Date.now() });
+
+    var offset2 = options?.offset ?? 0;
+    var limit2 = options?.limit ?? 0;
+    var sliced2 = limit2 > 0 ? summaries.slice(offset2, offset2 + limit2) : summaries;
+    return { sessions: sliced2, totalCount: summaries.length };
   } catch (err) {
     log.session("Failed to list SDK sessions: %O", err);
-    return [];
+    return { sessions: [], totalCount: 0 };
   }
+}
+
+export function invalidateSessionCache(projectSlug: string): void {
+  sessionListCache.delete(projectSlug);
 }
 
 export async function getSessionTitle(projectSlug: string, sessionId: string): Promise<string> {

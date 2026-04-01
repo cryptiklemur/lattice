@@ -11,7 +11,7 @@ import { sendTo, broadcast } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
 import { resolveSkillContent } from "../handlers/skills";
 import { getPluginMcpServers } from "../handlers/plugins";
-import { guessContextWindow, getSessionTitle, renameSession, listSessions } from "./session";
+import { guessContextWindow, getSessionTitle, renameSession, listSessions, invalidateSessionCache } from "./session";
 import { getLatticeHome, loadConfig } from "../config";
 import { log } from "../logger";
 import { getDailySpend, invalidateDailySpendCache } from "../analytics/engine";
@@ -1032,8 +1032,9 @@ export function startChatStream(options: ChatStreamOptions): void {
         void renameSession(projectSlug, sessionId, newTitle).then(function (ok) {
           if (!ok) return;
           log.session("Auto-titled session %s: %s", sessionId, newTitle);
-          void listSessions(projectSlug).then(function (sessions) {
-            broadcast({ type: "session:list", projectSlug, sessions });
+          invalidateSessionCache(projectSlug);
+          void listSessions(projectSlug, { limit: 40 }).then(function (result) {
+            broadcast({ type: "session:list", projectSlug, sessions: result.sessions, totalCount: result.totalCount });
           });
         });
       });

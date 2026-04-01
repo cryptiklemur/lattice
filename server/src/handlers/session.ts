@@ -3,6 +3,7 @@ import type {
   SessionActivateMessage,
   SessionCreateMessage,
   SessionDeleteMessage,
+  SessionSummary,
   SessionListRequestMessage,
   SessionPreviewRequestMessage,
   SessionRenameMessage,
@@ -18,6 +19,7 @@ import {
   getSessionTitle,
   getSessionUsage,
   listSessions,
+  invalidateSessionCache,
   loadSessionHistory,
   renameSession,
 } from "../project/session";
@@ -30,16 +32,14 @@ import { log } from "../logger";
 registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:list_request") {
     var listReqMsg = message as SessionListRequestMessage;
-    void listSessions(listReqMsg.projectSlug).then(function (sessions) {
-      var offset = listReqMsg.offset || 0;
-      var limit = listReqMsg.limit || 0;
-      var totalCount = sessions.length;
-      var sliced = limit > 0 ? sessions.slice(offset, offset + limit) : sessions;
+    var offset = listReqMsg.offset || 0;
+    var limit = listReqMsg.limit || 0;
+    void listSessions(listReqMsg.projectSlug, { offset, limit }).then(function (result) {
       sendTo(clientId, {
         type: "session:list",
         projectSlug: listReqMsg.projectSlug,
-        sessions: sliced,
-        totalCount,
+        sessions: result.sessions,
+        totalCount: result.totalCount,
         offset,
       });
     });
@@ -59,16 +59,16 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:list_all_request") {
     var config = loadConfig();
     var allPromises = config.projects.map(function (p: typeof config.projects[number]) {
-      return listSessions(p.slug);
+      return listSessions(p.slug, { limit: 20 });
     });
     void Promise.all(allPromises).then(function (results) {
-      var merged: typeof results[0] = [];
+      var merged: SessionSummary[] = [];
       for (var i = 0; i < results.length; i++) {
-        for (var j = 0; j < results[i].length; j++) {
-          merged.push(results[i][j]);
+        for (var j = 0; j < results[i].sessions.length; j++) {
+          merged.push(results[i].sessions[j]);
         }
       }
-      merged.sort(function (a: typeof merged[number], b: typeof merged[number]) { return b.updatedAt - a.updatedAt; });
+      merged.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
       sendTo(clientId, {
         type: "session:list_all",
         sessions: merged.slice(0, 20),
@@ -171,11 +171,13 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         return;
       }
       void renameSession(projectSlug, renameMsg.sessionId, renameMsg.title).then(function () {
-        void listSessions(projectSlug).then(function (sessions) {
+        invalidateSessionCache(projectSlug);
+        void listSessions(projectSlug, { limit: 40 }).then(function (result) {
           sendTo(clientId, {
             type: "session:list",
             projectSlug,
-            sessions,
+            sessions: result.sessions,
+            totalCount: result.totalCount,
           });
         });
       });
@@ -191,11 +193,13 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         return;
       }
       void deleteSession(deleteProjectSlug, deleteMsg.sessionId).then(function () {
-        void listSessions(deleteProjectSlug).then(function (sessions) {
+        invalidateSessionCache(deleteProjectSlug);
+        void listSessions(deleteProjectSlug, { limit: 40 }).then(function (result) {
           sendTo(clientId, {
             type: "session:list",
             projectSlug: deleteProjectSlug,
-            sessions,
+            sessions: result.sessions,
+            totalCount: result.totalCount,
           });
         });
       });
