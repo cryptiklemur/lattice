@@ -221,7 +221,7 @@ export function getActiveSessionCountForProject(projectPath: string): number {
     if (existsSync(join(dir, sessionId + ".jsonl"))) count++;
   }
 
-  if (cliSessionsByProject.get(projectPath) !== null && cliSessionsByProject.get(projectPath) !== undefined) count++;
+  if (cliActiveProjects.has(projectPath)) count++;
 
   return count;
 }
@@ -241,32 +241,15 @@ export function isSessionBusy(sessionId: string): boolean {
  * The SDK spawns child processes (e.g. claude-agent-sdk/cli.js) that hold
  * lock files — those are NOT external.
  */
-var cliSessionsByProject = new Map<string, string | null>();
-var sessionNameCache = new Map<string, string>();
+var cliActiveProjects = new Set<string>();
 
 function refreshCliDetection(): void {
-  var config = loadConfig();
+  var newActive = new Set<string>();
   var cliPids = getClaudeCliPidsAsync();
-  for (var i = 0; i < config.projects.length; i++) {
-    var projectPath = config.projects[i].path;
-    var found: string | null = null;
-    for (var j = 0; j < cliPids.length; j++) {
-      if (cliPids[j].cwd !== projectPath) continue;
-      var cmdline = cliPids[j].cmdline;
-      var resumeIdx = cmdline.indexOf("--resume");
-      if (resumeIdx !== -1 && resumeIdx + 1 < cmdline.length) {
-        var sessionName = cmdline[resumeIdx + 1];
-        found = resolveSessionName(projectPath, sessionName);
-        if (!found) {
-          resolveSessionNameAsync(projectPath, sessionName);
-        }
-      } else {
-        found = findMostRecentSession(projectPath);
-      }
-      break;
-    }
-    cliSessionsByProject.set(projectPath, found);
+  for (var i = 0; i < cliPids.length; i++) {
+    newActive.add(cliPids[i].cwd);
   }
+  cliActiveProjects = newActive;
 }
 
 function getClaudeCliPidsAsync(): Array<{ pid: number; cwd: string; cmdline: string[] }> {
@@ -288,8 +271,7 @@ function getClaudeCliPidsAsync(): Array<{ pid: number; cwd: string; cmdline: str
   return results;
 }
 
-setInterval(refreshCliDetection, 5000);
-setTimeout(refreshCliDetection, 1000);
+setInterval(refreshCliDetection, 10000);
 
 function getProjectPathForSession(sessionId: string): string | null {
   var config = loadConfig();
@@ -302,72 +284,11 @@ function getProjectPathForSession(sessionId: string): string | null {
 }
 
 
-function resolveSessionName(projectPath: string, name: string): string | null {
-  var cacheKey = projectPath + ":" + name;
-  var cached = sessionNameCache.get(cacheKey);
-  if (cached) return cached;
-
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(name)) {
-    var hash = projectPath.replace(/\//g, "-");
-    if (existsSync(join(homedir(), ".claude", "projects", hash, name + ".jsonl"))) {
-      sessionNameCache.set(cacheKey, name);
-      return name;
-    }
-  }
-
-  return null;
-}
-
-function resolveSessionNameAsync(projectPath: string, name: string): void {
-  var cacheKey = projectPath + ":" + name;
-  if (sessionNameCache.has(cacheKey)) return;
-
-  var hash = projectPath.replace(/\//g, "-");
-  var dir = join(homedir(), ".claude", "projects", hash);
-  if (!existsSync(dir)) return;
-
-  var proc = Bun.spawn(["grep", "-rl", "--include=*.jsonl", "-m", "1", name, dir], {
-    stdout: "pipe", stderr: "ignore",
-  });
-  void proc.exited.then(function () {
-    var output = new Response(proc.stdout).text();
-    return output;
-  }).then(function (text) {
-    var files = text.trim().split("\n").filter(Boolean);
-    if (files.length > 0) {
-      var match = files[0].match(/([0-9a-f-]{36})\.jsonl$/);
-      if (match) {
-        sessionNameCache.set(cacheKey, match[1]);
-      }
-    }
-  }).catch(function () {});
-}
-
-function findMostRecentSession(projectPath: string): string | null {
-  var hash = projectPath.replace(/\//g, "-");
-  var dir = join(homedir(), ".claude", "projects", hash);
-  if (!existsSync(dir)) return null;
-
-  var entries = readdirSync(dir).filter(function (f) { return f.endsWith(".jsonl"); });
-  var latest: { id: string; mtime: number } | null = null;
-  for (var e = 0; e < entries.length; e++) {
-    try {
-      var s = statSync(join(dir, entries[e]));
-      if (!latest || s.mtimeMs > latest.mtime) {
-        latest = { id: entries[e].replace(".jsonl", ""), mtime: s.mtimeMs };
-      }
-    } catch {}
-  }
-  if (latest && Date.now() - latest.mtime < 60000) return latest.id;
-  return null;
-}
-
-
 function isSessionLockedByExternal(sessionId: string): boolean {
   if (activeStreams.has(sessionId)) return false;
   var projectPath = getProjectPathForSession(sessionId);
   if (!projectPath) return false;
-  return cliSessionsByProject.get(projectPath) === sessionId;
+  return cliActiveProjects.has(projectPath);
 }
 
 export function stopExternalSession(sessionId: string): boolean {

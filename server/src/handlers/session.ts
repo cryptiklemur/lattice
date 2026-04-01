@@ -34,7 +34,9 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     var listReqMsg = message as SessionListRequestMessage;
     var offset = listReqMsg.offset || 0;
     var limit = listReqMsg.limit || 0;
+    var t0 = Date.now();
     void listSessions(listReqMsg.projectSlug, { offset, limit }).then(function (result) {
+      log.session("session:list_request for %s took %dms (%d sessions)", listReqMsg.projectSlug, Date.now() - t0, result.sessions.length);
       sendTo(clientId, {
         type: "session:list",
         projectSlug: listReqMsg.projectSlug,
