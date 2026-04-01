@@ -88,17 +88,17 @@ function ProjectButton(props: ProjectButtonProps) {
         className={
           "w-[42px] h-[42px] flex items-center justify-center text-[11px] font-bold tracking-[0.03em] cursor-pointer transition-all duration-[120ms] flex-shrink-0 " +
           (props.isActive
-            ? "rounded-xl bg-primary text-primary-content"
+            ? "rounded-xl bg-base-content/10 text-base-content ring-1 ring-base-content/20"
             : hovered
             ? "rounded-xl bg-base-200 text-base-content/60"
-            : "rounded-full bg-base-200 text-base-content/60")
+            : "rounded-full bg-base-200 text-base-content/40")
         }
       >
         {initials}
       </button>
 
       {props.group.activeSessions > 0 && (
-        <div className="absolute -top-1 -right-1 min-w-[16px] h-[16px] rounded-full bg-primary text-primary-content text-[9px] font-bold flex items-center justify-center pointer-events-none px-1">
+        <div className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-success/80 text-success-content text-[8px] font-bold flex items-center justify-center pointer-events-none px-0.5">
           {props.group.activeSessions}
         </div>
       )}
@@ -109,8 +109,8 @@ function ProjectButton(props: ProjectButtonProps) {
             <div
               key={n.nodeId}
               className={
-                "w-[11px] h-[11px] rounded-full border-[1.5px] border-base-100 " +
-                (n.online ? "bg-success" : "bg-error")
+                "w-[8px] h-[8px] rounded-full border border-base-100 " +
+                (n.online ? "bg-success/70" : "bg-base-content/20")
               }
             />
           );
@@ -162,10 +162,10 @@ function NodeIndicator({ node }: { node: NodeInfo }) {
         }}
         onMouseLeave={function () { setHovered(false); }}
         className={
-          "w-[28px] h-[28px] flex items-center justify-center text-[10px] font-bold rounded-full cursor-pointer transition-all duration-[120ms] flex-shrink-0 border-2 " +
+          "w-[26px] h-[26px] flex items-center justify-center text-[9px] font-semibold rounded-full cursor-pointer transition-all duration-[120ms] flex-shrink-0 border " +
           (node.online
-            ? "border-success/50 bg-base-200 text-base-content/50 hover:bg-base-200/80"
-            : "border-error/30 bg-base-200/50 text-base-content/25 hover:bg-base-200/60")
+            ? "border-success/30 bg-base-200/60 text-base-content/40 hover:bg-base-200"
+            : "border-base-content/10 bg-base-200/30 text-base-content/20 hover:bg-base-200/40")
         }
       >
         {initial}
@@ -283,8 +283,8 @@ export function ProjectRail(props: ProjectRailProps) {
           className={
             "relative w-[42px] h-[42px] flex items-center justify-center cursor-pointer transition-all duration-[120ms] flex-shrink-0 " +
             (props.isDashboardActive
-              ? "rounded-xl bg-primary text-primary-content"
-              : "rounded-full bg-base-200 text-base-content/60 hover:rounded-xl hover:bg-primary/20 hover:text-primary")
+              ? "rounded-xl bg-base-content/10 text-base-content ring-1 ring-base-content/20"
+              : "rounded-full bg-base-200 text-base-content/40 hover:rounded-xl hover:bg-base-200 hover:text-base-content/60")
           }
           title="Lattice Dashboard"
         >

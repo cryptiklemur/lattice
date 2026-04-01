@@ -114,7 +114,7 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
                     className={
                       "w-full flex items-center gap-2.5 px-4 py-2.5 sm:py-1.5 text-[13px] transition-colors duration-[100ms] text-left " +
                       (isActive
-                        ? "bg-primary/20 text-base-content font-medium"
+                        ? "bg-base-content/8 text-base-content font-medium"
                         : "text-base-content/55 hover:bg-base-content/5 hover:text-base-content")
                     }
                   >

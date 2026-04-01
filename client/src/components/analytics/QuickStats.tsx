@@ -38,7 +38,7 @@ export function QuickStats() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map(function (i) {
           return (
-            <div key={i} className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5 animate-pulse">
+            <div key={i} className="bg-base-content/[0.03] rounded-xl p-3.5 animate-pulse">
               <div className="h-2.5 w-16 bg-base-content/10 rounded mb-3" />
               <div className="h-6 w-12 bg-base-content/10 rounded" />
             </div>
@@ -60,7 +60,7 @@ export function QuickStats() {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
+      <div className="bg-base-content/[0.03] rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Total Spend</span>
           {costSparkData.length > 1 && (
@@ -72,7 +72,7 @@ export function QuickStats() {
         <div className="text-[20px] font-mono text-base-content">${d.totalCost.toFixed(2)}</div>
       </div>
 
-      <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
+      <div className="bg-base-content/[0.03] rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Sessions</span>
           {sessionsSparkData.length > 1 && (
@@ -84,7 +84,7 @@ export function QuickStats() {
         <div className="text-[20px] font-mono text-base-content">{d.totalSessions}</div>
       </div>
 
-      <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
+      <div className="bg-base-content/[0.03] rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Total Tokens</span>
           {tokensSparkData.length > 1 && (
@@ -96,7 +96,7 @@ export function QuickStats() {
         <div className="text-[20px] font-mono text-base-content">{formatTokens(totalTokens)}</div>
       </div>
 
-      <div className="bg-base-content/[0.03] border border-base-content/8 rounded-xl p-3.5">
+      <div className="bg-base-content/[0.03] rounded-xl p-3.5">
         <div className="mb-1">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-base-content/40">Cache Rate</span>
         </div>

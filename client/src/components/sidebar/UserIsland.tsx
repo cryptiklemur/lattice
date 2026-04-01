@@ -86,7 +86,7 @@ export function UserIsland(props: UserIslandProps) {
           className="flex items-center gap-2 flex-1 min-w-0 rounded-lg px-1 py-1 -mx-1 hover:bg-base-content/5 transition-colors duration-[120ms] cursor-pointer"
           aria-label="Node info"
         >
-          <div className="w-7 h-7 rounded-full bg-primary text-primary-content text-[12px] font-bold flex items-center justify-center flex-shrink-0">
+          <div className="w-7 h-7 rounded-full bg-base-content/10 text-base-content/50 text-[12px] font-bold flex items-center justify-center flex-shrink-0">
             {initial}
           </div>
           <div className="flex-1 min-w-0 text-left">
@@ -96,7 +96,7 @@ export function UserIsland(props: UserIslandProps) {
             <div className="text-[10px] font-mono flex items-center gap-1">
               <span className="text-base-content/30">{"v" + currentVersion}</span>
               {updateAvailable && latestVersion && (
-                <span className="flex items-center gap-0.5 text-primary/70">
+                <span className="flex items-center gap-0.5 text-base-content/30">
                   <ArrowUpCircle size={9} />
                   {latestVersion}
                 </span>
