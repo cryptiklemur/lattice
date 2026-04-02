@@ -17,17 +17,19 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /^https?:\/\/.*\.(?:js|css|woff2)$/,
-            handler: "StaleWhileRevalidate",
+            handler: "NetworkFirst",
             options: {
               cacheName: "static-assets",
+              networkTimeoutSeconds: 3,
               expiration: { maxEntries: 100, maxAgeSeconds: 7 * 24 * 60 * 60 },
             },
           },
           {
             urlPattern: /^https?:\/\/.*\.(?:svg|png|jpg|jpeg|gif|webp)$/,
-            handler: "StaleWhileRevalidate",
+            handler: "NetworkFirst",
             options: {
               cacheName: "images",
+              networkTimeoutSeconds: 3,
               expiration: { maxEntries: 50, maxAgeSeconds: 7 * 24 * 60 * 60 },
             },
           },
