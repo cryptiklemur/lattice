@@ -32,6 +32,7 @@ function getCurrentVersion(): string {
 }
 
 function compareVersions(a: string, b: string): number {
+  if (!a || !b || typeof a !== "string" || typeof b !== "string") return 0;
   var pa = a.replace(/^v/, "").split(".").map(Number);
   var pb = b.replace(/^v/, "").split(".").map(Number);
   for (var i = 0; i < 3; i++) {
