@@ -511,8 +511,6 @@ function IndexPage() {
     content = <SettingsView />;
   } else if (viewName === "project-settings") {
     content = <ProjectSettingsView />;
-  } else if (hasWorkspaceTab) {
-    content = <WorkspaceView />;
   } else if (viewName === "dashboard") {
     content = <DashboardView />;
   } else if (viewName === "project-dashboard") {
