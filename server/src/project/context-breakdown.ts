@@ -189,9 +189,16 @@ export async function getContextBreakdown(projectSlug: string, sessionId: string
   var instructionsTokens = countTokens(globalClaudeMd + globalRulesContent + projectClaudeMd + projectLocalClaudeMd);
   var memoryTokens = countTokens(memoryContent + memoryIndex);
 
-  // Parse session
-  var content = readFileSync(sessionFile, "utf-8");
-  var lines = content.trim().split("\n");
+  // Parse session — read last 2MB for recent context (avoids reading 35MB+ files)
+  var { openSync, readSync: fsReadSync, fstatSync: fsFstatSync, closeSync: fsCloseSync } = require("node:fs") as typeof import("node:fs");
+  var fd = openSync(sessionFile, "r");
+  var fileStat = fsFstatSync(fd);
+  var readSize = Math.min(fileStat.size, 2 * 1024 * 1024);
+  var readBuf = Buffer.alloc(readSize);
+  fsReadSync(fd, readBuf, 0, readSize, fileStat.size - readSize);
+  fsCloseSync(fd);
+  var content = readBuf.toString("utf-8");
+  var lines = content.split("\n").filter(function (l) { return l.length > 0; });
 
   // Extract tool info
   var toolCounts = extractToolsFromSession(lines);

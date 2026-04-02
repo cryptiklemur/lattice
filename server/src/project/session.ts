@@ -294,8 +294,16 @@ export async function getSessionUsage(projectSlug: string, sessionId: string): P
   if (!existsSync(sessionFile)) return null;
 
   try {
-    var content = readFileSync(sessionFile, "utf-8");
-    var lines = content.trim().split("\n");
+    var { openSync, readSync, fstatSync, closeSync } = require("node:fs") as typeof import("node:fs");
+    var fd = openSync(sessionFile, "r");
+    var stat = fstatSync(fd);
+    var tailSize = Math.min(stat.size, 512 * 1024);
+    var buf = Buffer.alloc(tailSize);
+    readSync(fd, buf, 0, tailSize, stat.size - tailSize);
+    closeSync(fd);
+
+    var text = buf.toString("utf-8");
+    var lines = text.split("\n");
 
     for (var i = lines.length - 1; i >= 0; i--) {
       var line = lines[i].trim();

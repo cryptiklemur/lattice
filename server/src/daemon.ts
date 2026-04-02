@@ -321,6 +321,16 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         addClient(ws);
         log.ws("Client connected: %s", ws.data.id);
         sendTo(ws.data.id, { type: "mesh:nodes", nodes: buildNodesMessage() });
+        var connectConfig = loadConfig();
+        var connectIdentity = loadOrCreateIdentity();
+        var localProjects = connectConfig.projects.map(function (p: typeof connectConfig.projects[number]) {
+          return { slug: p.slug, path: p.path, title: p.title, nodeId: connectIdentity.id, nodeName: connectConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveSessionCountForProject(p.path) };
+        });
+        var connectRemoteProjects = getAllRemoteProjects(connectIdentity.id);
+        sendTo(ws.data.id, {
+          type: "projects:list",
+          projects: localProjects.concat(connectRemoteProjects as unknown as typeof localProjects),
+        });
       },
       message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
         var now = Date.now();
