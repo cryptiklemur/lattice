@@ -77,7 +77,11 @@ export function GlobalSkills() {
   }
 
   if (!loaded) {
-    return <div className="text-[13px] text-base-content/40 py-4">Loading...</div>;
+    return (
+      <div className="py-4 space-y-3 animate-pulse">
+        {[0, 1, 2].map(function (i) { return <div key={i} className="bg-base-content/[0.03] rounded-xl h-16" />; })}
+      </div>
+    );
   }
 
   return (

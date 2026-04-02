@@ -105,7 +105,14 @@ export function ProjectDashboardView() {
       </div>
 
       {loading && (
-        <div className="text-[13px] text-base-content/40 py-4">Loading...</div>
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[0, 1, 2, 3].map(function (i) {
+              return <div key={i} className="bg-base-content/[0.03] rounded-xl p-3.5 h-20" />;
+            })}
+          </div>
+          <div className="bg-base-content/[0.03] rounded-xl h-32" />
+        </div>
       )}
 
       {!loading && settings && (

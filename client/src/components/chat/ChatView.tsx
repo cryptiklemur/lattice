@@ -746,20 +746,25 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </div>
         )}
         {messages.length === 0 && historyLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex gap-1.5">
-                {[0, 1, 2].map(function (i) {
-                  return (
-                    <div
-                      key={i}
-                      className="w-2 h-2 rounded-full bg-primary/50"
-                      style={{ animation: "pulse 1.2s ease-in-out infinite", animationDelay: i * 0.2 + "s" }}
-                    />
-                  );
-                })}
+          <div className="px-5 pt-6 space-y-4 animate-pulse">
+            <div className="chat chat-end">
+              <div className="chat-bubble bg-primary/10 border-0 w-48 h-10" />
+            </div>
+            <div className="chat chat-start">
+              <div className="chat-bubble bg-base-300/50 border-0 space-y-2 w-80">
+                <div className="h-2.5 bg-base-content/8 rounded w-full" />
+                <div className="h-2.5 bg-base-content/8 rounded w-3/4" />
+                <div className="h-2.5 bg-base-content/8 rounded w-5/6" />
               </div>
-              <span className="text-[12px] text-base-content/30 font-mono">Loading session...</span>
+            </div>
+            <div className="chat chat-end">
+              <div className="chat-bubble bg-primary/10 border-0 w-56 h-10" />
+            </div>
+            <div className="chat chat-start">
+              <div className="chat-bubble bg-base-300/50 border-0 space-y-2 w-72">
+                <div className="h-2.5 bg-base-content/8 rounded w-full" />
+                <div className="h-2.5 bg-base-content/8 rounded w-2/3" />
+              </div>
             </div>
           </div>
         ) : messages.length === 0 ? (
