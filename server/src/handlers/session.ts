@@ -107,8 +107,13 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     setActiveProject(clientId, activateMsg.projectSlug);
     watchSessionLock(activateMsg.sessionId);
     var activateT0 = Date.now();
-    void loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).then(function (historyResult) {
-      log.session("session:activate total history load: %dms", Date.now() - activateT0);
+    void Promise.all([
+      loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId),
+      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
+    ]).then(function (results) {
+      log.session("session:activate history+title: %dms", Date.now() - activateT0);
+      var historyResult = results[0];
+      var title = results[1];
       var interrupted = wasSessionInterrupted(activateMsg.sessionId);
       if (interrupted) {
         clearInterruptedFlag(activateMsg.sessionId);
@@ -120,7 +125,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         projectSlug: activateMsg.projectSlug,
         sessionId: activateMsg.sessionId,
         messages: historyResult.messages,
-        title: null,
+        title: title,
         interrupted: interrupted || undefined,
         busy: busy || undefined,
         busyOwner: busyOwner,
@@ -133,15 +138,11 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     });
 
     void Promise.all([
-      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
       getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
       getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
     ]).then(function (results) {
       try {
-        if (results[0]) {
-          sendTo(clientId, { type: "session:history", projectSlug: activateMsg.projectSlug, sessionId: activateMsg.sessionId, messages: [], title: results[0] as string });
-        }
-        var usage = results[1];
+        var usage = results[0];
         if (usage) {
           sendTo(clientId, {
             type: "chat:context_usage",
@@ -156,7 +157,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         log.session("Error sending context usage: %O", err);
       }
       try {
-        var breakdown = results[2];
+        var breakdown = results[1];
         if (breakdown) {
           sendTo(clientId, {
             type: "chat:context_breakdown",
