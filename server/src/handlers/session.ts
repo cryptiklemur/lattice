@@ -107,13 +107,9 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     setActiveProject(clientId, activateMsg.projectSlug);
     watchSessionLock(activateMsg.sessionId);
     var activateT0 = Date.now();
-    void Promise.all([
-      loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId),
-      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
-    ]).then(function (results) {
-      log.session("session:activate history+title: %dms", Date.now() - activateT0);
-      var historyResult = results[0];
-      var title = results[1];
+    void loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).then(function (historyResult) {
+      log.session("session:activate history: %dms", Date.now() - activateT0);
+      var title: string | null = null;
       var interrupted = wasSessionInterrupted(activateMsg.sessionId);
       if (interrupted) {
         clearInterruptedFlag(activateMsg.sessionId);
@@ -137,6 +133,12 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
       sendTo(clientId, { type: "chat:error", message: "Failed to load session history" });
     });
 
+    setTimeout(function () {
+    void getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).then(function (sessionTitle) {
+      if (sessionTitle) {
+        sendTo(clientId, { type: "session:history", projectSlug: activateMsg.projectSlug, sessionId: activateMsg.sessionId, messages: [], title: sessionTitle });
+      }
+    }).catch(function () {});
     void Promise.all([
       getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
       getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
@@ -173,6 +175,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
       log.session("Failed to activate session: %O", err);
       sendTo(clientId, { type: "chat:error", message: "Failed to activate session" });
     });
+    }, 50);
     return;
   }
 

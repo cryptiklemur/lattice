@@ -294,6 +294,13 @@ export function useSession(): UseSessionReturn {
 
     function handleHistory(msg: ServerMessage) {
       var m = msg as SessionHistoryMessage;
+      if (m.sessionId && m.messages && m.messages.length === 0 && m.title) {
+        updateSessionTabTitle(m.sessionId, m.title);
+        if (m.sessionId === getSessionStore().state.activeSessionId) {
+          getSessionStore().setState(function (s) { return { ...s, activeSessionTitle: m.title ?? s.activeSessionTitle }; });
+        }
+        return;
+      }
       setCurrentAssistantUuid(null);
       if (m.sessionId) {
         var projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
