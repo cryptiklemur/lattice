@@ -122,7 +122,7 @@ function compileBinary(target: string, version: string): void {
     "bun", "build", "--compile",
     "--target=bun-" + target,
     "--outfile=" + outFile,
-    "--define=process.env.LATTICE_VERSION=\"'" + version + "'\"",
+    '--define=process.env.LATTICE_VERSION="' + version + '"',
     join(ROOT, "server/src/index.ts"),
   ].join(" ");
 
