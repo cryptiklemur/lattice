@@ -67,6 +67,7 @@ async function downloadBinaryUpdate(): Promise<{ success: boolean; message: stri
         return { success: false, message: "Update downloaded but needs sudo to install. Run: sudo cp " + tmpPath + " " + execPath };
       }
     } else {
+      try { unlinkSync(execPath); } catch {}
       copyFileSync(tmpPath, execPath);
       chmodSync(execPath, 0o755);
       unlinkSync(tmpPath);

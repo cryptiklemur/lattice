@@ -420,6 +420,7 @@ async function runUpdate(): Promise<void> {
         execSync("sudo chmod +x " + JSON.stringify(process.execPath), { stdio: "inherit" });
       } else {
         var { copyFileSync: cpSync, unlinkSync: rmSync } = await import("node:fs");
+        try { rmSync(process.execPath); } catch {}
         cpSync(tmpPath, process.execPath);
         chmodSync(process.execPath, 0o755);
         rmSync(tmpPath);
