@@ -30,6 +30,7 @@ export function startDiscovery(nodeId: string, name: string, port: number): void
     type: "lattice",
     port: port,
     protocol: "tcp",
+    probe: false,
     txt: {
       nodeId: nodeId,
       name: name,
