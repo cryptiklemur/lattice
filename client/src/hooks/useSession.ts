@@ -18,7 +18,7 @@ import type {
 } from "@lattice/shared";
 import { useWebSocket } from "./useWebSocket";
 import { setActiveSessionId as setSidebarSessionId } from "../stores/sidebar";
-import { updateSessionTabTitle } from "../stores/workspace";
+import { updateSessionTabTitle, pinTab } from "../stores/workspace";
 import {
   getSessionStore,
   setSessionMessages,
@@ -120,6 +120,7 @@ export function useSession(): UseSessionReturn {
     setPromptSuggestion(null);
     setIsProcessing(true);
     setSessionBusy(false);
+    pinTab("chat-" + currentSessionId);
     sendRef.current(msg as ChatSendMessage);
   }
 

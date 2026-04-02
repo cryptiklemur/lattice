@@ -3,6 +3,7 @@ import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNo
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
 import type { Tab, TabType } from "../../stores/workspace";
+import { pinTab } from "../../stores/workspace";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
 interface TabBarProps {
@@ -155,6 +156,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
               tabIndex={0}
               aria-selected={isActive}
               onClick={function () { handleTabClick(tab.id); }}
+              onDoubleClick={function () { if (!tab.pinned) pinTab(tab.id); }}
               onMouseDown={function (e) { handleMiddleClick(e, tab); }}
               onKeyDown={function (e) {
                 if (e.key === "Enter" || e.key === " ") {
@@ -171,7 +173,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
               }
             >
               <Icon size={14} className={isActive ? "text-primary" : ""} />
-              <span className="truncate text-[12px]">{label}</span>
+              <span className={"truncate text-[12px]" + (tab.pinned ? "" : " italic")}>{label}</span>
               {tab.closeable && (
                 <button
                   aria-label={"Close " + label + " tab"}

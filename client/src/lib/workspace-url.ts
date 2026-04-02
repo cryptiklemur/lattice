@@ -156,17 +156,19 @@ export function decodeWorkspaceUrl(
           type: "chat",
           label: "Session",
           closeable: true,
+          pinned: true,
           sessionId: resolvedId,
           projectSlug: projectSlug,
         };
       } else if (tabType === "chat") {
-        tab = { id: "chat", type: "chat", label: "Chat", closeable: false };
+        tab = { id: "chat", type: "chat", label: "Chat", closeable: false, pinned: true };
       } else {
         tab = {
           id: tabType,
           type: tabType,
           label: labels[tabType],
           closeable: true,
+          pinned: true,
         };
       }
 
@@ -190,7 +192,7 @@ export function decodeWorkspaceUrl(
   }
 
   if (panes.length === 0) {
-    const defaultTab: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false };
+    const defaultTab: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false, pinned: true };
     tabs.push(defaultTab);
     panes.push({ id: "pane-1", tabIds: ["chat"], activeTabId: "chat" });
   }
