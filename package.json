@@ -31,7 +31,8 @@
     "lint": "bun run --filter '*' lint",
     "typecheck": "bunx tsc --noEmit -p tsconfig.json",
     "build:binary": "bun scripts/build-binary.ts",
-    "build:binary:all": "bun scripts/build-binary.ts --all"
+    "build:binary:all": "bun scripts/build-binary.ts --all",
+    "postinstall": "node scripts/postinstall.js"
   },
   "workspaces": [
     "shared",
