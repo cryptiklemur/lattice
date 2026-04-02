@@ -42,8 +42,8 @@ DO NOT EVER LEAVE PRE-EXISTING ERRORS. FIX THEM.
 
 ## Environment
 - ANTHROPIC_API_KEY is optional — server uses the token from `claude setup-token` if not set.
-- Server binds to 0.0.0.0:7654 (WSL2 compatible).
-- Client dev server runs on :5173 but production serves from server via client/dist/.
+- Server binds to 0.0.0.0:7654 in production, 0.0.0.0:17654 in dev (WSL2 compatible).
+- Client dev server runs on :5173 and proxies to :17654. Production serves from server via client/dist/.
 - `LATTICE_HOME` — override data directory (default: `~/.lattice`).
 - `LATTICE_PORT` — override server port (default: 7654). Also: `--port=N`.
 

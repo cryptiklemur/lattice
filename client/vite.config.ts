@@ -53,7 +53,7 @@ export default defineConfig({
     open: true,
     proxy: {
       "/ws": {
-        target: "ws://localhost:7654",
+        target: "ws://localhost:" + (process.env.LATTICE_PORT || "17654"),
         ws: true,
         configure: function (proxy) {
           proxy.on("error", function () {});
@@ -63,7 +63,7 @@ export default defineConfig({
         },
       },
       "/api": {
-        target: "http://localhost:7654",
+        target: "http://localhost:" + (process.env.LATTICE_PORT || "17654"),
         configure: function (proxy) {
           proxy.on("error", function () {});
         },

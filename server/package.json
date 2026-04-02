@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/index.ts daemon",
+    "dev": "LATTICE_PORT=17654 bun --watch src/index.ts daemon",
     "start": "bun src/index.ts"
   },
   "dependencies": {
