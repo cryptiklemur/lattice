@@ -212,20 +212,47 @@ export function setIsProcessing(processing: boolean): void {
   });
 }
 
+var sessionMessageCache = new Map<string, { messages: HistoryMessage[]; title: string | null; hasMore: boolean; totalMessages: number }>();
+var MAX_CACHED_SESSIONS = 10;
+
+export function cacheCurrentSession(): void {
+  var state = sessionStore.state;
+  if (state.activeSessionId && state.messages.length > 0) {
+    sessionMessageCache.set(state.activeSessionId, {
+      messages: state.messages,
+      title: state.activeSessionTitle,
+      hasMore: state.historyHasMore,
+      totalMessages: state.historyTotalMessages,
+    });
+    if (sessionMessageCache.size > MAX_CACHED_SESSIONS) {
+      var firstKey = sessionMessageCache.keys().next().value;
+      if (firstKey) sessionMessageCache.delete(firstKey);
+    }
+  }
+}
+
+export function getCachedSession(sessionId: string): { messages: HistoryMessage[]; title: string | null; hasMore: boolean; totalMessages: number } | undefined {
+  return sessionMessageCache.get(sessionId);
+}
+
 export function setActiveSession(projectSlug: string | null, sessionId: string | null, title?: string | null): void {
   var prevSessionId = sessionStore.state.activeSessionId;
   if (prevSessionId) {
     markSessionRead(prevSessionId, sessionStore.state.messages.length);
+    cacheCurrentSession();
   }
   currentAssistantUuid = null;
   incrementStreamGeneration();
+
+  var cached = sessionId ? sessionMessageCache.get(sessionId) : undefined;
+
   sessionStore.setState(function (state) {
     return {
       ...state,
       activeProjectSlug: projectSlug,
       activeSessionId: sessionId,
-      activeSessionTitle: title ?? null,
-      messages: [],
+      activeSessionTitle: cached?.title ?? title ?? null,
+      messages: cached?.messages ?? [],
       isProcessing: false,
       currentStatus: null,
       contextUsage: null,
@@ -234,12 +261,15 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       lastResponseCost: null,
       lastResponseDuration: null,
       lastReadIndex: null,
-      historyLoading: true,
+      historyLoading: !cached,
+      historyHasMore: cached?.hasMore ?? false,
+      historyTotalMessages: cached?.totalMessages ?? 0,
       wasInterrupted: false,
       promptSuggestion: null,
       failedInput: null,
       messageQueue: [],
       isBusy: false,
+      busyOwner: null,
       isPlanMode: false,
       pendingPrefill: state.pendingPrefill,
     };
