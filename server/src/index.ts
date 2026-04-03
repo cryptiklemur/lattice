@@ -154,10 +154,12 @@ async function runStart(): Promise<void> {
   removePid();
 
   var logPath = join(getLatticeHome(), "daemon.log");
+  var config = loadConfig();
+  var port = portOverride ?? config.port;
 
   var spawnArgs = IS_COMPILED
-    ? [process.execPath, "daemon"]
-    : ["bun", import.meta.path, "daemon"];
+    ? [process.execPath, "daemon", "--port", String(port)]
+    : ["bun", import.meta.path, "daemon", "--port", String(port)];
 
   var child = Bun.spawn(spawnArgs, {
     detached: true,
@@ -175,8 +177,7 @@ async function runStart(): Promise<void> {
     setTimeout(resolve, 800);
   });
 
-  var config = loadConfig();
-  var url = (config.tls ? "https" : "http") + "://localhost:" + config.port;
+  var url = (config.tls ? "https" : "http") + "://localhost:" + port;
   console.log("[lattice] Opening " + url);
   openBrowser(url);
 }
@@ -257,14 +258,11 @@ function runRestart(): void {
 
   console.log("[lattice] Starting daemon...");
   var logPath = join(getLatticeHome(), "daemon.log");
+  var restartPort = portOverride ?? loadConfig().port;
 
   var spawnArgs = IS_COMPILED
-    ? [process.execPath, "daemon"]
-    : ["bun", import.meta.path, "daemon"];
-
-  if (portOverride) {
-    spawnArgs.push("--port", String(portOverride));
-  }
+    ? [process.execPath, "daemon", "--port", String(restartPort)]
+    : ["bun", import.meta.path, "daemon", "--port", String(restartPort)];
 
   var child = Bun.spawn(spawnArgs, {
     detached: true,
@@ -455,9 +453,10 @@ async function runUpdate(): Promise<void> {
       await new Promise<void>(function (resolve) { setTimeout(resolve, 1000); });
 
       var logPath = join(getLatticeHome(), "daemon.log");
+      var updatePort = portOverride ?? loadConfig().port;
       var restartArgs = IS_COMPILED
-        ? [process.execPath, "daemon"]
-        : ["bun", import.meta.path, "daemon"];
+        ? [process.execPath, "daemon", "--port", String(updatePort)]
+        : ["bun", import.meta.path, "daemon", "--port", String(updatePort)];
       var child = Bun.spawn(restartArgs, {
         detached: true,
         stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)],
