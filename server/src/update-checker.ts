@@ -54,7 +54,7 @@ async function checkGitHub(currentVersion: string): Promise<UpdateInfo> {
   });
 
   if (!res.ok) {
-    log.server("GitHub update check failed: HTTP %d", res.status);
+    console.error("[lattice] GitHub update check failed: HTTP " + res.status);
     return { currentVersion, latestVersion: null, updateAvailable: false, lastCheckedAt: Date.now(), releaseUrl: null, installMode: "binary" };
   }
 
@@ -79,7 +79,7 @@ async function checkNpm(currentVersion: string): Promise<UpdateInfo> {
   });
 
   if (!res.ok) {
-    log.server("npm update check failed: HTTP %d", res.status);
+    console.error("[lattice] npm update check failed: HTTP " + res.status);
     return { currentVersion, latestVersion: null, updateAvailable: false, lastCheckedAt: Date.now(), releaseUrl: null, installMode: "npm" };
   }
 
@@ -119,7 +119,7 @@ export async function checkForUpdate(force: boolean = false): Promise<UpdateInfo
     }
     return cached;
   } catch (err) {
-    log.server("Update check error: %s", err instanceof Error ? err.message : String(err));
+    console.error("[lattice] Update check error: " + (err instanceof Error ? err.message : String(err)));
     cached = { currentVersion, latestVersion: null, updateAvailable: false, lastCheckedAt: Date.now(), releaseUrl: null, installMode: getInstallMode() };
     return cached;
   } finally {
