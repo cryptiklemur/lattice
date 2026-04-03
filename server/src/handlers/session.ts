@@ -20,6 +20,7 @@ import {
   getSessionUsage,
   listSessions,
   invalidateSessionCache,
+  invalidateHistoryCache,
   getSessionHistoryPage,
   loadSessionHistory,
   renameSession,
@@ -102,9 +103,12 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "session:activate") {
-    var activateMsg = message as SessionActivateMessage;
+    var activateMsg = message as SessionActivateMessage & { refresh?: boolean };
     setActiveSession(clientId, activateMsg.projectSlug, activateMsg.sessionId);
     setActiveProject(clientId, activateMsg.projectSlug);
+    if (activateMsg.refresh) {
+      invalidateHistoryCache(activateMsg.sessionId);
+    }
     var activateT0 = Date.now();
     void loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).then(function (historyResult) {
       log.session("session:activate history: %dms", Date.now() - activateT0);

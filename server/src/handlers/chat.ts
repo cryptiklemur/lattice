@@ -3,11 +3,12 @@ import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
 import { loadConfig } from "../config";
-import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream, buildPermissionRule, getPendingElicitation, resolveElicitation } from "../project/sdk-bridge";
+import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream, getSessionStream, buildPermissionRule, getPendingElicitation, resolveElicitation } from "../project/sdk-bridge";
 import { getAttachments } from "./attachment";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { getDailySpend } from "../analytics/engine";
+import { log } from "../logger";
 
 function formatSdkRule(rule: { toolName: string; ruleContent?: string }): string {
   if (!rule.ruleContent) return rule.toolName;
@@ -281,7 +282,7 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
     return;
   }
 
-  if (message.type === "chat:elicitation_response") {
+  if ((message as any).type === "chat:elicitation_response") {
     var elicitMsg = message as { type: string; requestId: string; action: "accept" | "decline"; content?: Record<string, unknown> };
     var pendingElicit = getPendingElicitation(elicitMsg.requestId);
     if (!pendingElicit) return;
@@ -289,6 +290,76 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
       action: elicitMsg.action,
       content: elicitMsg.content || {},
     });
+    return;
+  }
+
+  if ((message as any).type === "chat:rewind_preview") {
+    var rewindMsg = message as { type: string; messageUuid: string };
+    var activeForRewind = activeSessionByClient.get(clientId);
+    if (!activeForRewind) return;
+
+    var sessionStreamForRewind = getSessionStream(activeForRewind.sessionId);
+    if (!sessionStreamForRewind) {
+      sendTo(clientId, { type: "chat:rewind_preview_result", messageUuid: rewindMsg.messageUuid, canRewind: false, error: "No active stream for rewind" } as any);
+      return;
+    }
+
+    void sessionStreamForRewind.queryInstance.rewindFiles(rewindMsg.messageUuid, { dryRun: true }).then(function (result) {
+      sendTo(clientId, {
+        type: "chat:rewind_preview_result",
+        messageUuid: rewindMsg.messageUuid,
+        canRewind: result.canRewind,
+        error: result.error,
+        filesChanged: (result.filesChanged || []).length,
+        filesCreated: 0,
+        filesDeleted: 0,
+      } as any);
+    }).catch(function (err) {
+      sendTo(clientId, { type: "chat:rewind_preview_result", messageUuid: rewindMsg.messageUuid, canRewind: false, error: String(err) } as any);
+    });
+    return;
+  }
+
+  if ((message as any).type === "chat:rewind_execute") {
+    var execRewindMsg = message as { type: string; messageUuid: string; mode: string };
+    var activeForExec = activeSessionByClient.get(clientId);
+    if (!activeForExec) return;
+
+    var sessionStreamForExec = getSessionStream(activeForExec.sessionId);
+    if (!sessionStreamForExec) {
+      sendTo(clientId, { type: "chat:rewind_execute_result", messageUuid: execRewindMsg.messageUuid, success: false, error: "No active stream" } as any);
+      return;
+    }
+
+    if (execRewindMsg.mode === "files" || execRewindMsg.mode === "both") {
+      void sessionStreamForExec.queryInstance.rewindFiles(execRewindMsg.messageUuid, { dryRun: false }).then(function (result) {
+        sendTo(clientId, {
+          type: "chat:rewind_execute_result",
+          messageUuid: execRewindMsg.messageUuid,
+          success: result.canRewind,
+          error: result.error,
+        } as any);
+      }).catch(function (err) {
+        sendTo(clientId, { type: "chat:rewind_execute_result", messageUuid: execRewindMsg.messageUuid, success: false, error: String(err) } as any);
+      });
+    } else {
+      sendTo(clientId, { type: "chat:rewind_execute_result", messageUuid: execRewindMsg.messageUuid, success: true } as any);
+    }
+    return;
+  }
+
+  if ((message as any).type === "chat:set_model") {
+    var modelMsg = message as { type: string; model: string };
+    var activeSession = activeSessionByClient.get(clientId);
+    if (!activeSession) return;
+
+    var sessionStream = getSessionStream(activeSession.sessionId);
+    if (sessionStream) {
+      void sessionStream.queryInstance.setModel(modelMsg.model === "default" ? undefined : modelMsg.model).catch(function (err) {
+        log.chat("Failed to switch model: %O", err);
+      });
+      sessionStream.currentModel = modelMsg.model;
+    }
     return;
   }
 

@@ -5,6 +5,9 @@ import { log } from "../logger";
 import { loadConfig } from "../config";
 import { listSessions, loadSessionHistory } from "./session";
 import { execSync } from "node:child_process";
+import { existsSync, unlinkSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
 var claudeExePath: string | null = null;
 
@@ -35,6 +38,18 @@ var warmupSlashCommands: string[] = [];
 var warmupAccountInfo: AccountInfo | null = null;
 var warmupComplete = false;
 
+interface WarmupRateLimitEntry {
+  status: string;
+  utilization?: number;
+  resetsAt?: number;
+  rateLimitType?: string;
+  overageStatus?: string;
+  overageResetsAt?: number;
+  isUsingOverage?: boolean;
+}
+
+var warmupRateLimits: Map<string, WarmupRateLimitEntry> = new Map();
+
 function ensureKnownModels(sdkModels: ModelEntry[]): ModelEntry[] {
   var seen = new Set<string>();
   for (var i = 0; i < sdkModels.length; i++) {
@@ -49,11 +64,31 @@ function ensureKnownModels(sdkModels: ModelEntry[]): ModelEntry[] {
   return result;
 }
 
+function deleteWarmupSession(cwd: string, sessionId: string | null): void {
+  if (!sessionId) return;
+  try {
+    var hash = cwd.replace(/\//g, "-");
+    var projectDir = join(homedir(), ".claude", "projects", hash);
+    var jsonlPath = join(projectDir, sessionId + ".jsonl");
+    var dirPath = join(projectDir, sessionId);
+    if (existsSync(jsonlPath)) {
+      unlinkSync(jsonlPath);
+      log.server("Deleted warmup session file: %s", sessionId);
+    }
+    if (existsSync(dirPath)) {
+      rmSync(dirPath, { recursive: true, force: true });
+    }
+  } catch (err) {
+    log.server("Failed to delete warmup session: %O", err);
+  }
+}
+
 export async function runWarmup(cwd: string): Promise<void> {
   log.server("SDK warmup starting (cwd: %s)...", cwd);
   try {
     var ac = new AbortController();
     var ended = false;
+    var WARMUP_SESSION_ID = "lattice-warmup";
 
     var mq = {
       [Symbol.asyncIterator]: function () {
@@ -66,7 +101,7 @@ export async function runWarmup(cwd: string): Promise<void> {
                 type: "user" as const,
                 message: { role: "user" as const, content: [{ type: "text" as const, text: "hi" }] },
                 parent_tool_use_id: null,
-                session_id: "warmup",
+                session_id: WARMUP_SESSION_ID,
               },
               done: false,
             });
@@ -79,6 +114,7 @@ export async function runWarmup(cwd: string): Promise<void> {
       prompt: mq as any,
       options: {
         cwd,
+        sessionId: WARMUP_SESSION_ID,
         settingSources: ["user", "project", "local"],
         abortController: ac,
         permissionMode: "plan",
@@ -89,12 +125,10 @@ export async function runWarmup(cwd: string): Promise<void> {
       },
     });
 
-    var gotInit = false;
     for await (var msg of stream) {
       if (msg.type === "system") {
         var sysMsg = msg as any;
         if (sysMsg.subtype === "init") {
-          gotInit = true;
           if (sysMsg.slash_commands) {
             warmupSlashCommands = sysMsg.slash_commands;
           }
@@ -109,12 +143,25 @@ export async function runWarmup(cwd: string): Promise<void> {
           try {
             warmupAccountInfo = await stream.accountInfo();
           } catch {}
+
+          ac.abort();
+          break;
         }
       }
 
       if (msg.type === "rate_limit_event") {
         var rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
         var rli = rlMsg.rate_limit_info;
+        var cacheKey = rli.rateLimitType || "default";
+        warmupRateLimits.set(cacheKey, {
+          status: rli.status,
+          utilization: rli.utilization,
+          resetsAt: rli.resetsAt,
+          rateLimitType: rli.rateLimitType,
+          overageStatus: rli.overageStatus,
+          overageResetsAt: rli.overageResetsAt,
+          isUsingOverage: rli.isUsingOverage,
+        });
         broadcast({
           type: "chat:rate_limit",
           status: rli.status,
@@ -126,14 +173,10 @@ export async function runWarmup(cwd: string): Promise<void> {
           isUsingOverage: rli.isUsingOverage,
         } as any);
       }
-
-      if (msg.type === "result" && gotInit) {
-        ac.abort();
-        break;
-      }
     }
 
     warmupComplete = true;
+    deleteWarmupSession(cwd, WARMUP_SESSION_ID);
     log.server("SDK warmup complete: %d models, %d commands, auth=%s",
       warmupModels.length, warmupSlashCommands.length,
       warmupAccountInfo?.apiKeySource || "unknown");
@@ -194,10 +237,11 @@ async function warmupProjectData(): Promise<void> {
         sessions: result.sessions,
         totalCount: result.totalCount,
       } as any);
-      if (result.sessions.length > 0) {
+      var preWarmCount = Math.min(5, result.sessions.length);
+      for (var k = 0; k < preWarmCount; k++) {
         recentSessionIds.push({
           projectSlug: projects[i].slug,
-          sessionId: result.sessions[0].id,
+          sessionId: result.sessions[k].id,
         });
       }
     } catch {}
@@ -225,6 +269,15 @@ export function getWarmupSlashCommands(): string[] {
 
 export function getWarmupAccountInfo(): AccountInfo | null {
   return warmupAccountInfo;
+}
+
+export function getWarmupRateLimits(): WarmupRateLimitEntry[] {
+  return Array.from(warmupRateLimits.values());
+}
+
+export function cacheRateLimitEntry(entry: WarmupRateLimitEntry): void {
+  var key = entry.rateLimitType || "default";
+  warmupRateLimits.set(key, entry);
 }
 
 export function isWarmupComplete(): boolean {

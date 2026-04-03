@@ -138,8 +138,16 @@ function extractUserText(content: unknown): string {
   return "";
 }
 
+var HIDDEN_TOOLS = new Set([
+  "TaskUpdate", "TaskCreate", "TaskGet", "TaskList", "TaskOutput", "TaskStop",
+  "TodoWrite", "TodoRead",
+  "EnterPlanMode", "ExitPlanMode",
+  "ToolSearch",
+]);
+
 function convertSessionMessages(messages: SessionMessage[]): HistoryMessage[] {
   var result: HistoryMessage[] = [];
+  var hiddenToolIds = new Set<string>();
 
   for (var i = 0; i < messages.length; i++) {
     var msg = messages[i];
@@ -152,6 +160,7 @@ function convertSessionMessages(messages: SessionMessage[]): HistoryMessage[] {
         for (var j = 0; j < apiMsg.content.length; j++) {
           var block = apiMsg.content[j] as { type?: string; text?: string; tool_use_id?: string; content?: unknown };
           if (block.type === "tool_result" && block.tool_use_id) {
+            if (hiddenToolIds.has(block.tool_use_id)) continue;
             hadToolResult = true;
             var resultContent = "";
             if (typeof block.content === "string") {
@@ -212,13 +221,17 @@ function convertSessionMessages(messages: SessionMessage[]): HistoryMessage[] {
               timestamp: ts,
             });
           } else if (aBlock.type === "tool_use" && aBlock.id && aBlock.name) {
-            result.push({
-              type: "tool_start",
-              toolId: aBlock.id,
-              name: aBlock.name,
-              args: JSON.stringify(aBlock.input ?? {}),
-              timestamp: ts,
-            });
+            if (HIDDEN_TOOLS.has(aBlock.name)) {
+              hiddenToolIds.add(aBlock.id);
+            } else {
+              result.push({
+                type: "tool_start",
+                toolId: aBlock.id,
+                name: aBlock.name,
+                args: JSON.stringify(aBlock.input ?? {}),
+                timestamp: ts,
+              });
+            }
           }
         }
         if (msgUsage && lastAssistantIdx >= 0) {
@@ -294,15 +307,15 @@ export async function getSessionUsage(projectSlug: string, sessionId: string): P
   if (!existsSync(sessionFile)) return null;
 
   try {
-    var { openSync, readSync, fstatSync, closeSync } = require("node:fs") as typeof import("node:fs");
-    var fd = openSync(sessionFile, "r");
-    var stat = fstatSync(fd);
-    var tailSize = Math.min(stat.size, 512 * 1024);
-    var buf = Buffer.alloc(tailSize);
-    readSync(fd, buf, 0, tailSize, stat.size - tailSize);
-    closeSync(fd);
+    var fsPromises2 = require("node:fs/promises") as typeof import("node:fs/promises");
+    var fhUsage = await fsPromises2.open(sessionFile, "r");
+    var statUsage = await fhUsage.stat();
+    var tailSize = Math.min(statUsage.size, 512 * 1024);
+    var bufUsage = Buffer.alloc(tailSize);
+    await fhUsage.read(bufUsage, 0, tailSize, statUsage.size - tailSize);
+    await fhUsage.close();
 
-    var text = buf.toString("utf-8");
+    var text = bufUsage.toString("utf-8");
     var lines = text.split("\n");
 
     for (var i = lines.length - 1; i >= 0; i--) {
@@ -453,6 +466,12 @@ export function invalidateSessionCache(projectSlug: string): void {
   sessionListCache.delete(projectSlug);
 }
 
+export function invalidateHistoryCache(sessionId: string): void {
+  historyCache.delete(sessionId);
+  var idx = historyCacheOrder.indexOf(sessionId);
+  if (idx >= 0) historyCacheOrder.splice(idx, 1);
+}
+
 export async function getSessionTitle(projectSlug: string, sessionId: string): Promise<string> {
   var projectPath = getProjectPath(projectSlug);
   var options = projectPath ? { dir: projectPath } : undefined;
@@ -489,8 +508,8 @@ export function appendToHistoryCache(sessionId: string, message: HistoryMessage)
   touchCache(sessionId);
 }
 
-var INITIAL_MESSAGE_COUNT = 100;
-var TAIL_READ_BYTES = 2 * 1024 * 1024;
+var INITIAL_MESSAGE_COUNT = 300;
+var TAIL_READ_BYTES = 512 * 1024;
 
 function getSessionFilePath(projectSlug: string, sessionId: string): string | null {
   var projectPath = getProjectPath(projectSlug);
@@ -500,21 +519,25 @@ function getSessionFilePath(projectSlug: string, sessionId: string): string | nu
   return existsSync(filePath) ? filePath : null;
 }
 
-function readTailLines(filePath: string, maxBytes: number): { lines: string[]; isPartial: boolean; fileSize: number } {
-  var { openSync, readSync, fstatSync, closeSync } = require("node:fs") as typeof import("node:fs");
-  var fd = openSync(filePath, "r");
-  var stat = fstatSync(fd);
-  var readStart = Math.max(0, stat.size - maxBytes);
-  var buf = Buffer.alloc(stat.size - readStart);
-  readSync(fd, buf, 0, buf.length, readStart);
-  closeSync(fd);
-  var text = buf.toString("utf-8");
-  if (readStart > 0) {
-    var firstNewline = text.indexOf("\n");
-    if (firstNewline >= 0) text = text.slice(firstNewline + 1);
+async function readTailLines(filePath: string, maxBytes: number): Promise<{ lines: string[]; isPartial: boolean; fileSize: number }> {
+  var fsPromises = require("node:fs/promises") as typeof import("node:fs/promises");
+  var fh = await fsPromises.open(filePath, "r");
+  try {
+    var stat = await fh.stat();
+    var readStart = Math.max(0, stat.size - maxBytes);
+    var length = stat.size - readStart;
+    var buf = Buffer.alloc(length);
+    await fh.read(buf, 0, length, readStart);
+    var text = buf.toString("utf-8");
+    if (readStart > 0) {
+      var firstNewline = text.indexOf("\n");
+      if (firstNewline >= 0) text = text.slice(firstNewline + 1);
+    }
+    var lines = text.split("\n").filter(function (l) { return l.length > 0; });
+    return { lines, isPartial: readStart > 0, fileSize: stat.size };
+  } finally {
+    await fh.close();
   }
-  var lines = text.split("\n").filter(function (l) { return l.length > 0; });
-  return { lines, isPartial: readStart > 0, fileSize: stat.size };
 }
 
 function parseJsonlLines(lines: string[]): SessionMessage[] {
@@ -545,7 +568,7 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
 
     var filePath = getSessionFilePath(projectSlug, sessionId);
     if (filePath) {
-      var tailData = readTailLines(filePath, TAIL_READ_BYTES);
+      var tailData = await readTailLines(filePath, TAIL_READ_BYTES);
       var tailRaw = parseJsonlLines(tailData.lines);
       var tailMessages = convertSessionMessages(tailRaw);
       var hasMore = tailData.isPartial;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNotificationPreference } from "../../hooks/useNotifications";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
 
 var NOTIFICATION_TYPES = [
   { key: "responses", label: "Claude responses", description: "When Claude finishes a response" },
@@ -21,6 +22,7 @@ function saveTypePrefs(prefs: Record<string, boolean>): void {
 
 export function Notifications() {
   var notifPref = useNotificationPreference();
+  var push = usePushNotifications();
   var [typePrefs, setTypePrefs] = useState<Record<string, boolean>>(loadTypePrefs);
 
   function toggleType(key: string) {
@@ -55,6 +57,39 @@ export function Notifications() {
           />
         </div>
       </div>
+
+      {push.status !== "unsupported" && (
+        <div>
+          <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
+            Push Notifications
+          </h2>
+          <div className="flex items-center justify-between py-2 px-3 bg-base-300 border border-base-content/15 rounded-xl">
+            <div>
+              <div className="text-[13px] text-base-content">Enable push notifications</div>
+              <div className="text-[11px] text-base-content/30 mt-0.5">
+                {push.status === "denied"
+                  ? "Blocked by browser — update in browser settings"
+                  : push.status === "subscribed"
+                    ? "Receiving push notifications even when the tab is closed"
+                    : "Get notified even when Lattice is not open"}
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              className="toggle toggle-sm toggle-primary"
+              checked={push.status === "subscribed"}
+              onChange={function () {
+                if (push.status === "subscribed") {
+                  void push.unsubscribe();
+                } else {
+                  void push.subscribe();
+                }
+              }}
+              disabled={push.status === "denied"}
+            />
+          </div>
+        </div>
+      )}
 
       <div>
         <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">

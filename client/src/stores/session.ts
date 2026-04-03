@@ -93,6 +93,21 @@ var sessionStore = new Store<SessionState>({
   rateLimits: {},
 });
 
+export interface ModelOption {
+  value: string;
+  displayName: string;
+}
+
+var availableModels: ModelOption[] = [];
+
+export function setAvailableModels(models: ModelOption[]): void {
+  availableModels = models;
+}
+
+export function getAvailableModels(): ModelOption[] {
+  return availableModels;
+}
+
 var streamGeneration = 0;
 
 export function getStreamGeneration(): number {
@@ -222,7 +237,7 @@ export function setIsProcessing(processing: boolean): void {
 }
 
 var sessionMessageCache = new Map<string, { messages: HistoryMessage[]; title: string | null; hasMore: boolean; totalMessages: number }>();
-var MAX_CACHED_SESSIONS = 10;
+var MAX_CACHED_SESSIONS = 50;
 
 export function cacheCurrentSession(): void {
   var state = sessionStore.state;
@@ -242,6 +257,10 @@ export function cacheCurrentSession(): void {
 
 export function getCachedSession(sessionId: string): { messages: HistoryMessage[]; title: string | null; hasMore: boolean; totalMessages: number } | undefined {
   return sessionMessageCache.get(sessionId);
+}
+
+export function invalidateSessionMessageCache(sessionId: string): void {
+  sessionMessageCache.delete(sessionId);
 }
 
 export function setActiveSession(projectSlug: string | null, sessionId: string | null, title?: string | null): void {
@@ -344,6 +363,7 @@ export function clearSession(): void {
       pendingPrefill: null,
       budgetStatus: null,
       budgetExceeded: false,
+      rateLimits: {},
     };
   });
 }
@@ -398,7 +418,13 @@ export function loadCachedRateLimits(): void {
     var raw = localStorage.getItem("lattice:rateLimits");
     if (raw) {
       var parsed = JSON.parse(raw) as Record<string, RateLimitEntry>;
-      sessionStore.setState(function (state) { return { ...state, rateLimits: parsed }; });
+      var cleaned: Record<string, RateLimitEntry> = {};
+      for (var key of Object.keys(parsed)) {
+        if (key !== "unknown" && parsed[key].rateLimitType) {
+          cleaned[key] = parsed[key];
+        }
+      }
+      sessionStore.setState(function (state) { return { ...state, rateLimits: cleaned }; });
     }
   } catch {}
 }

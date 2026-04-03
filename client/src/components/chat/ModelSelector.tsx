@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useWebSocket } from "../../hooks/useWebSocket";
+import { getAvailableModels, setAvailableModels, type ModelOption } from "../../stores/session";
 
 interface ModelSelectorState {
   model: string;
   effort: string;
 }
 
-var MODEL_OPTIONS = [
-  { value: "default", label: "Model: Default" },
-  { value: "opus", label: "Model: Opus" },
-  { value: "sonnet", label: "Model: Sonnet" },
-  { value: "haiku", label: "Model: Haiku" },
+var FALLBACK_MODELS: ModelOption[] = [
+  { value: "default", displayName: "Default" },
+  { value: "opus", displayName: "Opus" },
+  { value: "sonnet", displayName: "Sonnet" },
+  { value: "haiku", displayName: "Haiku" },
 ];
 
 var EFFORT_OPTIONS = [
@@ -26,10 +28,29 @@ interface ModelSelectorProps {
 export function ModelSelector(props: ModelSelectorProps) {
   var [model, setModel] = useState<string>("default");
   var [effort, setEffort] = useState<string>("medium");
+  var [models, setModels] = useState<ModelOption[]>(function () {
+    var warmup = getAvailableModels();
+    return warmup.length > 0 ? warmup : FALLBACK_MODELS;
+  });
+  var ws = useWebSocket();
+
+  useEffect(function () {
+    function handleWarmupModels(msg: { type: string; models?: ModelOption[] }) {
+      if (msg.type === "warmup:models" && msg.models && msg.models.length > 0) {
+        setAvailableModels(msg.models);
+        setModels(msg.models);
+      }
+    }
+    ws.subscribe("warmup:models", handleWarmupModels as any);
+    return function () {
+      ws.unsubscribe("warmup:models", handleWarmupModels as any);
+    };
+  }, [ws]);
 
   function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
     var val = e.currentTarget.value;
     setModel(val);
+    ws.send({ type: "chat:set_model", model: val } as any);
     if (props.onChange) {
       props.onChange({ model: val, effort });
     }
@@ -55,10 +76,10 @@ export function ModelSelector(props: ModelSelectorProps) {
           (model === "default" ? "text-base-content/40" : "text-primary")
         }
       >
-        {MODEL_OPTIONS.map(function (opt) {
+        {models.map(function (opt) {
           return (
             <option key={opt.value} value={opt.value}>
-              {opt.label}
+              {"Model: " + opt.displayName}
             </option>
           );
         })}

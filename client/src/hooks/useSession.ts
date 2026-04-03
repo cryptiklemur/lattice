@@ -190,13 +190,24 @@ export function useSession(): UseSessionReturn {
       if (isStaleStream()) return;
       var m = msg as ChatToolStartMessage;
       setCurrentAssistantUuid(null);
-      addSessionMessage({
-        type: "tool_start",
-        toolId: m.toolId,
-        name: m.name,
-        args: m.args,
-        timestamp: Date.now(),
-      } as HistoryMessage);
+      var existing = getSessionStore().state.messages.findLastIndex(function (msg) {
+        return msg.toolId === m.toolId && msg.type === "tool_start";
+      });
+      if (existing >= 0) {
+        getSessionStore().setState(function (s) {
+          var updated = s.messages.slice();
+          updated[existing] = { ...updated[existing], args: m.args };
+          return { ...s, messages: updated };
+        });
+      } else {
+        addSessionMessage({
+          type: "tool_start",
+          toolId: m.toolId,
+          name: m.name,
+          args: m.args,
+          timestamp: Date.now(),
+        } as HistoryMessage);
+      }
     }
 
     function handleToolResult(msg: ServerMessage) {
@@ -432,11 +443,12 @@ export function useSession(): UseSessionReturn {
 
     function handleRateLimit(msg: ServerMessage) {
       var m = msg as { type: string; status: "allowed" | "allowed_warning" | "rejected"; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean };
+      if (!m.rateLimitType) return;
       updateRateLimit({
         status: m.status,
         utilization: m.utilization,
         resetsAt: m.resetsAt,
-        rateLimitType: m.rateLimitType || "unknown",
+        rateLimitType: m.rateLimitType,
         overageStatus: m.overageStatus,
         overageResetsAt: m.overageResetsAt,
         isUsingOverage: m.isUsingOverage,
@@ -550,5 +562,6 @@ export function useSession(): UseSessionReturn {
         lastSentText = null;
       }
     },
+    rateLimits: state.rateLimits,
   };
 }

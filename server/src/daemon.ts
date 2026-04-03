@@ -19,7 +19,7 @@ import "./handlers/session";
 import "./handlers/chat";
 import "./handlers/attachment";
 import { loadInterruptedSessions, cleanupClientPermissions, cleanupClientElicitations, getActiveStreamCountForProject } from "./project/sdk-bridge";
-import { runWarmup, isWarmupComplete, getWarmupModels, getWarmupAccountInfo } from "./project/warmup";
+import { runWarmup, isWarmupComplete, getWarmupModels, getWarmupAccountInfo, getWarmupRateLimits } from "./project/warmup";
 import { clearActiveSession } from "./handlers/chat";
 import { clearActiveProject } from "./handlers/fs";
 import { clearClientRemoteNode } from "./ws/router";
@@ -44,6 +44,7 @@ import { startPeriodicUpdateCheck, getCachedUpdateInfo } from "./update-checker"
 import { loadBookmarks } from "./project/bookmarks";
 import { cleanupClientTerminals } from "./handlers/terminal";
 import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
+import { initPush, getVapidPublicKey, addPushSubscription } from "./push";
 
 interface WsData {
   id: string;
@@ -262,6 +263,24 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         });
       }
 
+      if (url.pathname === "/api/vapid-public-key") {
+        return new Response(JSON.stringify({ publicKey: getVapidPublicKey() }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.pathname === "/api/push-subscribe" && req.method === "POST") {
+        try {
+          var pushBody = await req.json() as { endpoint: string; keys: { p256dh: string; auth: string } };
+          addPushSubscription(pushBody);
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch {
+          return new Response(JSON.stringify({ ok: false }), { status: 400, headers: { "Content-Type": "application/json" } });
+        }
+      }
+
       if (url.pathname === "/api/file") {
         var reqFilePath = url.searchParams.get("path");
         if (!reqFilePath) {
@@ -345,6 +364,20 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
               apiProvider: accountInfo.apiProvider,
             } as any);
           }
+          var cachedRateLimits = getWarmupRateLimits();
+          for (var rli = 0; rli < cachedRateLimits.length; rli++) {
+            var rl = cachedRateLimits[rli];
+            sendTo(ws.data.id, {
+              type: "chat:rate_limit",
+              status: rl.status,
+              utilization: rl.utilization,
+              resetsAt: rl.resetsAt,
+              rateLimitType: rl.rateLimitType,
+              overageStatus: rl.overageStatus,
+              overageResetsAt: rl.overageResetsAt,
+              isUsingOverage: rl.isUsingOverage,
+            } as any);
+          }
         }
       },
       message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
@@ -407,6 +440,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   startPeriodicUpdateCheck();
 
   loadInterruptedSessions();
+  initPush();
 
   var firstProject = config.projects[0];
   if (firstProject) {

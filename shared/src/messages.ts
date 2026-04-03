@@ -86,9 +86,43 @@ export interface ChatPermissionResponseMessage {
   alwaysAllowScope?: "session" | "project";
 }
 
-export interface ChatRewindMessage {
-  type: "chat:rewind";
+export interface ChatRewindPreviewMessage {
+  type: "chat:rewind_preview";
   messageUuid: string;
+}
+
+export interface ChatRewindExecuteMessage {
+  type: "chat:rewind_execute";
+  messageUuid: string;
+  mode: "both" | "files" | "chat";
+}
+
+export interface ChatRewindPreviewResultMessage {
+  type: "chat:rewind_preview_result";
+  messageUuid: string;
+  canRewind: boolean;
+  error?: string;
+  filesChanged?: number;
+  insertions?: number;
+  deletions?: number;
+}
+
+export interface ChatRewindExecuteResultMessage {
+  type: "chat:rewind_execute_result";
+  messageUuid: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface ChatMessageUuidMessage {
+  type: "chat:message_uuid";
+  uuid: string;
+  messageType: "user" | "assistant";
+}
+
+export interface ChatSetModelMessage {
+  type: "chat:set_model";
+  model: string;
 }
 
 export interface ChatCancelMessage {
@@ -567,8 +601,10 @@ export type ClientMessage =
   | SessionListRequestMessage
   | ChatSendMessage
   | ChatPermissionResponseMessage
-  | ChatRewindMessage
   | ChatCancelMessage
+  | ChatSetModelMessage
+  | ChatRewindPreviewMessage
+  | ChatRewindExecuteMessage
   | FsListMessage
   | FsReadMessage
   | FsWriteMessage
@@ -1132,6 +1168,9 @@ export type ServerMessage =
   | UpdateStatusMessage
   | UpdateApplyResultMessage
   | ChatElicitationRequestMessage
+  | ChatRewindPreviewResultMessage
+  | ChatRewindExecuteResultMessage
+  | ChatMessageUuidMessage
   | WarmupModelsMessage
   | WarmupAccountMessage
   | ChatRateLimitMessage;

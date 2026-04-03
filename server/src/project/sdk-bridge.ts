@@ -15,8 +15,16 @@ import { guessContextWindow, getSessionTitle, renameSession, listSessions, inval
 import { getLatticeHome, loadConfig } from "../config";
 import { log } from "../logger";
 import { getDailySpend, invalidateDailySpendCache } from "../analytics/engine";
-import { getWarmupModels } from "./warmup";
+import { getWarmupModels, cacheRateLimitEntry } from "./warmup";
 import { execSync } from "node:child_process";
+import { sendPush } from "../push";
+
+var HIDDEN_TOOLS = new Set([
+  "TaskUpdate", "TaskCreate", "TaskGet", "TaskList", "TaskOutput", "TaskStop",
+  "TodoWrite", "TodoRead",
+  "EnterPlanMode", "ExitPlanMode",
+  "ToolSearch",
+]);
 
 var claudeExePath: string | null = null;
 
@@ -77,9 +85,73 @@ export function getAvailableModels(): ModelEntry[] {
   return getWarmupModels();
 }
 
-var activeStreams = new Map<string, Query>();
+interface MessageQueue {
+  push(msg: SDKUserMessage): void;
+  end(): void;
+  [Symbol.asyncIterator](): AsyncIterator<SDKUserMessage>;
+}
+
+function createMessageQueue(): MessageQueue {
+  var queue: SDKUserMessage[] = [];
+  var waiting: ((result: IteratorResult<SDKUserMessage>) => void) | null = null;
+  var ended = false;
+
+  return {
+    push: function (msg: SDKUserMessage) {
+      if (waiting) {
+        var resolve = waiting;
+        waiting = null;
+        resolve({ value: msg, done: false });
+      } else {
+        queue.push(msg);
+      }
+    },
+    end: function () {
+      ended = true;
+      if (waiting) {
+        var resolve = waiting;
+        waiting = null;
+        resolve({ value: undefined as any, done: true });
+      }
+    },
+    [Symbol.asyncIterator]: function () {
+      return {
+        next: function (): Promise<IteratorResult<SDKUserMessage>> {
+          if (queue.length > 0) {
+            return Promise.resolve({ value: queue.shift()!, done: false });
+          }
+          if (ended) {
+            return Promise.resolve({ value: undefined as any, done: true });
+          }
+          return new Promise(function (resolve) {
+            waiting = resolve;
+          });
+        },
+      };
+    },
+  };
+}
+
+interface SessionStream {
+  sessionId: string;
+  messageQueue: MessageQueue;
+  queryInstance: Query;
+  abortController: AbortController;
+  projectSlug: string;
+  clientId: string;
+  cwd: string;
+  turnStartTime: number;
+  firstUserMessage: string;
+  currentModel: string | undefined;
+  activeToolBlocks: Record<number, { id: string; name: string; inputJson: string }>;
+  hiddenToolIds: Set<string>;
+  turnDoneSent: boolean;
+  messageUUIDs: Array<{ uuid: string; type: string }>;
+  ended: boolean;
+}
+
+var sessionStreams = new Map<string, SessionStream>();
 var pendingStreams = new Set<string>();
-var streamMetadata = new Map<string, { projectSlug: string; clientId: string; startedAt: number; abortController?: AbortController }>();
 var interruptedSessions = new Set<string>();
 
 
@@ -89,8 +161,10 @@ function getStreamStatePath(): string {
 
 function persistStreamState(): void {
   var entries: Record<string, { projectSlug: string; clientId: string; startedAt: number }> = {};
-  streamMetadata.forEach(function (meta, sessionId) {
-    entries[sessionId] = meta;
+  sessionStreams.forEach(function (session, sessionId) {
+    if (!session.ended) {
+      entries[sessionId] = { projectSlug: session.projectSlug, clientId: session.clientId, startedAt: session.turnStartTime };
+    }
   });
   var dir = getLatticeHome();
   if (!existsSync(dir)) {
@@ -181,25 +255,43 @@ export function setSessionPermissionOverride(sessionId: string, mode: Permission
 }
 
 export function getActiveStream(sessionId: string): Query | undefined {
-  return activeStreams.get(sessionId);
+  var session = sessionStreams.get(sessionId);
+  return session && !session.ended ? session.queryInstance : undefined;
+}
+
+export function getSessionStream(sessionId: string): SessionStream | undefined {
+  var session = sessionStreams.get(sessionId);
+  return session && !session.ended ? session : undefined;
 }
 
 export function getActiveStreamCount(): number {
-  return activeStreams.size;
-}
-
-export function getActiveStreamCountForProject(projectSlug: string): number {
-  let count = 0;
-  streamMetadata.forEach(function (meta) {
-    if (meta.projectSlug === projectSlug) count++;
+  var count = 0;
+  sessionStreams.forEach(function (session) {
+    if (!session.ended) count++;
   });
   return count;
 }
 
+export function getActiveStreamCountForProject(projectSlug: string): number {
+  var count = 0;
+  sessionStreams.forEach(function (session) {
+    if (!session.ended && session.projectSlug === projectSlug) count++;
+  });
+  return count;
+}
 
 export function getSessionStreamClientId(sessionId: string): string | undefined {
-  var meta = streamMetadata.get(sessionId);
-  return meta ? meta.clientId : undefined;
+  var session = sessionStreams.get(sessionId);
+  return session && !session.ended ? session.clientId : undefined;
+}
+
+export function endSessionStream(sessionId: string): void {
+  var session = sessionStreams.get(sessionId);
+  if (session && !session.ended) {
+    session.ended = true;
+    session.messageQueue.end();
+    session.abortController.abort();
+  }
 }
 
 export function matchesAllowRules(rules: string[], toolName: string, currentRule: string): boolean {
@@ -314,12 +406,104 @@ function isDefaultTitle(title: string): boolean {
   return false;
 }
 
+function resolvePromptText(text: string): string {
+  if (text.startsWith("/")) {
+    var parts = text.split(/\s+/);
+    var skillName = parts[0].slice(1);
+    var skillArgs = parts.slice(1).join(" ");
+    var skillContent = resolveSkillContent(skillName);
+    if (skillContent) {
+      return "<skill-name>" + skillName + "</skill-name>\n" +
+        "<skill-content>\n" + skillContent + "\n</skill-content>\n" +
+        (skillArgs ? "<skill-args>" + skillArgs + "</skill-args>\n" : "") +
+        "Execute this skill. Follow its instructions exactly.";
+    }
+  }
+  return text;
+}
+
+function buildSDKUserMessage(prompt: string, attachments: Attachment[] | undefined, sessionId: string): SDKUserMessage {
+  if (attachments && attachments.length > 0) {
+    var contentBlocks: Array<{ type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
+    contentBlocks.push({ type: "text", text: prompt });
+
+    for (var ai = 0; ai < attachments.length; ai++) {
+      var att = attachments[ai];
+      if (att.type === "image" && att.mimeType && !att.mimeType.includes("svg")) {
+        contentBlocks.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: att.mimeType,
+            data: att.content,
+          },
+        });
+      } else {
+        var prefix = att.name ? "[Attached: " + att.name + "]\n" : "";
+        contentBlocks.push({
+          type: "text",
+          text: prefix + att.content,
+        });
+      }
+    }
+
+    return {
+      type: "user",
+      message: { role: "user", content: contentBlocks } as MessageParam,
+      parent_tool_use_id: null,
+      session_id: sessionId,
+    };
+  }
+
+  return {
+    type: "user",
+    message: { role: "user", content: [{ type: "text", text: prompt }] } as MessageParam,
+    parent_tool_use_id: null,
+    session_id: sessionId,
+  };
+}
+
+function pushToExistingStream(session: SessionStream, options: ChatStreamOptions): void {
+  var { text, attachments, clientId, sessionId, model } = options;
+
+  session.clientId = clientId;
+  session.turnStartTime = Date.now();
+  session.turnDoneSent = false;
+  session.activeToolBlocks = {};
+
+  var prompt = resolvePromptText(text);
+  var userMsg = buildSDKUserMessage(prompt, attachments, sessionId);
+
+  sendTo(clientId, {
+    type: "chat:user_message",
+    text,
+    uuid: crypto.randomUUID(),
+  });
+
+  if (model && model !== "default" && model !== session.currentModel) {
+    void session.queryInstance.setModel(model).catch(function (err) {
+      log.chat("Failed to switch model: %O", err);
+    });
+    session.currentModel = model;
+  }
+
+  broadcast({ type: "session:busy", sessionId, busy: true }, clientId);
+  session.messageQueue.push(userMsg);
+}
+
 export function startChatStream(options: ChatStreamOptions): void {
   var { projectSlug, sessionId, text, attachments, clientId, cwd, env, model, effort, isNewSession } = options;
+
+  var existing = sessionStreams.get(sessionId);
+  if (existing && !existing.ended) {
+    pushToExistingStream(existing, options);
+    return;
+  }
+
   var startTime = Date.now();
   var firstUserMessage = text;
 
-  if (activeStreams.has(sessionId) || pendingStreams.has(sessionId)) {
+  if (pendingStreams.has(sessionId)) {
     sendTo(clientId, { type: "chat:error", message: "Session already has an active stream." });
     return;
   }
@@ -373,6 +557,7 @@ export function startChatStream(options: ChatStreamOptions): void {
   }
 
   var abortController = new AbortController();
+  var currentClientId = clientId;
 
   var queryOptions: Parameters<typeof query>[0]["options"] = {
     cwd,
@@ -382,6 +567,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     includePartialMessages: true,
     enableFileCheckpointing: true,
     agentProgressSummaries: true,
+    extraArgs: { "replay-user-messages": null },
     abortController,
     pathToClaudeCodeExecutable: getClaudeExecutablePath(),
     additionalDirectories: savedAdditionalDirs.length > 0 ? savedAdditionalDirs : undefined,
@@ -400,8 +586,9 @@ export function startChatStream(options: ChatStreamOptions): void {
   queryOptions.onElicitation = function (request: any, opts: any) {
     return new Promise(function (resolve) {
       var requestId = crypto.randomUUID();
-      pendingElicitations.set(requestId, { resolve, clientId, sessionId });
-      sendTo(clientId, {
+      var activeClientId = (sessionStreams.get(sessionId) || { clientId: currentClientId }).clientId;
+      pendingElicitations.set(requestId, { resolve, clientId: activeClientId, sessionId });
+      sendTo(activeClientId, {
         type: "chat:elicitation_request",
         requestId,
         serverName: request.serverName || "MCP Server",
@@ -410,6 +597,7 @@ export function startChatStream(options: ChatStreamOptions): void {
         url: request.url || null,
         requestedSchema: request.requestedSchema || null,
       });
+      sendPush({ type: "elicitation", title: "Input Required", body: (request.serverName || "MCP Server") + " needs your input", sessionId });
       if (opts && opts.signal) {
         opts.signal.addEventListener("abort", function () {
           if (pendingElicitations.has(requestId)) {
@@ -422,6 +610,9 @@ export function startChatStream(options: ChatStreamOptions): void {
   } as any;
 
   queryOptions.canUseTool = function (toolName, input, options) {
+    var ss = sessionStreams.get(sessionId);
+    var activeClientId = ss ? ss.clientId : currentClientId;
+
     var approved = autoApprovedTools.get(sessionId);
     if (approved && approved.has(toolName)) {
       return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
@@ -430,7 +621,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     if (toolName === "AskUserQuestion") {
       var promptRequestId = options.toolUseID;
       var questions = (input as { questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }> }).questions;
-      sendTo(clientId, {
+      sendTo(activeClientId, {
         type: "chat:prompt_request",
         requestId: promptRequestId,
         questions: questions,
@@ -442,7 +633,7 @@ export function startChatStream(options: ChatStreamOptions): void {
           toolUseID: options.toolUseID,
           input: input,
           suggestions: undefined,
-          clientId: clientId,
+          clientId: activeClientId,
           sessionId: sessionId,
           promptType: "question",
         });
@@ -450,7 +641,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     }
 
     if (toolName === "ExitPlanMode") {
-      sendTo(clientId, {
+      sendTo(activeClientId, {
         type: "chat:plan_mode",
         active: false,
       });
@@ -499,7 +690,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     var rule = buildPermissionRule(toolName, input);
     var title = options.title || rule;
 
-    sendTo(clientId, {
+    sendTo(activeClientId, {
       type: "chat:permission_request",
       requestId: requestId,
       tool: toolName,
@@ -508,6 +699,7 @@ export function startChatStream(options: ChatStreamOptions): void {
       decisionReason: options.decisionReason,
       permissionRule: rule,
     });
+    sendPush({ type: "permission_request", title: "Permission Required", body: toolName + ": " + title, sessionId });
 
     return new Promise<PermissionResult>(function (resolve) {
       pendingPermissions.set(requestId, {
@@ -516,7 +708,7 @@ export function startChatStream(options: ChatStreamOptions): void {
         toolUseID: options.toolUseID,
         input: input,
         suggestions: options.suggestions,
-        clientId: clientId,
+        clientId: activeClientId,
         sessionId: sessionId,
       });
 
@@ -525,7 +717,7 @@ export function startChatStream(options: ChatStreamOptions): void {
           if (pendingPermissions.has(requestId)) {
             pendingPermissions.delete(requestId);
             resolve({ behavior: "deny", message: "Stream aborted.", toolUseID: options.toolUseID });
-            sendTo(clientId, { type: "chat:permission_resolved", requestId: requestId, status: "denied" });
+            sendTo(activeClientId, { type: "chat:permission_resolved", requestId: requestId, status: "denied" });
           }
         }, { once: true });
       }
@@ -575,19 +767,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     queryOptions.env = env;
   }
 
-  var prompt = text;
-  if (text.startsWith("/")) {
-    var parts = text.split(/\s+/);
-    var skillName = parts[0].slice(1);
-    var skillArgs = parts.slice(1).join(" ");
-    var skillContent = resolveSkillContent(skillName);
-    if (skillContent) {
-      prompt = "<skill-name>" + skillName + "</skill-name>\n" +
-        "<skill-content>\n" + skillContent + "\n</skill-content>\n" +
-        (skillArgs ? "<skill-args>" + skillArgs + "</skill-args>\n" : "") +
-        "Execute this skill. Follow its instructions exactly.";
-    }
-  }
+  var prompt = resolvePromptText(text);
 
   sendTo(clientId, {
     type: "chat:user_message",
@@ -595,71 +775,53 @@ export function startChatStream(options: ChatStreamOptions): void {
     uuid: crypto.randomUUID(),
   });
 
-  var activeToolBlocks: Record<number, { id: string; name: string; inputJson: string }> = {};
-  var doneSent = false;
+  var mq = createMessageQueue();
+  var firstMsg = buildSDKUserMessage(prompt, attachments, sessionId);
+  mq.push(firstMsg);
 
-  var queryPrompt: string | AsyncIterable<SDKUserMessage>;
-
-  if (attachments && attachments.length > 0) {
-    var contentBlocks: Array<{ type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
-    contentBlocks.push({ type: "text", text: prompt });
-
-    for (var ai = 0; ai < attachments.length; ai++) {
-      var att = attachments[ai];
-      if (att.type === "image" && att.mimeType && !att.mimeType.includes("svg")) {
-        contentBlocks.push({
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: att.mimeType,
-            data: att.content,
-          },
-        });
-      } else {
-        var prefix = att.name ? "[Attached: " + att.name + "]\n" : "";
-        contentBlocks.push({
-          type: "text",
-          text: prefix + att.content,
-        });
-      }
-    }
-
-    var userMessage: SDKUserMessage = {
-      type: "user",
-      message: { role: "user", content: contentBlocks } as MessageParam,
-      parent_tool_use_id: null,
-      session_id: sessionId,
-    };
-
-    queryPrompt = (async function* () {
-      yield userMessage;
-    })();
-  } else {
-    queryPrompt = prompt;
-  }
-
-  var stream = query({ prompt: queryPrompt, options: queryOptions });
+  var stream = query({ prompt: mq as any, options: queryOptions });
   pendingStreams.delete(sessionId);
-  activeStreams.set(sessionId, stream);
-  streamMetadata.set(sessionId, { projectSlug, clientId, startedAt: Date.now(), abortController });
+
+  var sessionStream: SessionStream = {
+    sessionId,
+    messageQueue: mq,
+    queryInstance: stream,
+    abortController,
+    projectSlug,
+    clientId,
+    cwd,
+    turnStartTime: startTime,
+    firstUserMessage: text,
+    currentModel: model,
+    activeToolBlocks: {},
+    hiddenToolIds: new Set<string>(),
+    turnDoneSent: false,
+    messageUUIDs: [],
+    ended: false,
+  };
+  sessionStreams.set(sessionId, sessionStream);
   persistStreamState();
   broadcast({ type: "session:busy", sessionId, busy: true }, clientId);
 
   void (async function () {
     try {
       for await (var msg of stream) {
-        processMessage(msg);
+        processMessage(sessionStream, msg);
       }
     } catch (err: unknown) {
       var errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[lattice] SDK stream error: " + errMsg);
-      sendTo(clientId, { type: "chat:error", message: errMsg });
+      if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
+        log.chat("Session %s stream aborted", sessionId);
+      } else {
+        console.error("[lattice] SDK stream error: " + errMsg);
+        sendTo(sessionStream.clientId, { type: "chat:error", message: errMsg });
+      }
     } finally {
+      sessionStream.ended = true;
       pendingStreams.delete(sessionId);
-      activeStreams.delete(sessionId);
-      streamMetadata.delete(sessionId);
+      sessionStreams.delete(sessionId);
       persistStreamState();
-      broadcast({ type: "session:busy", sessionId, busy: false }, clientId);
+      broadcast({ type: "session:busy", sessionId, busy: false }, sessionStream.clientId);
 
       var toCleanup: string[] = [];
       pendingPermissions.forEach(function (entry, reqId) {
@@ -683,247 +845,230 @@ export function startChatStream(options: ChatStreamOptions): void {
       autoApprovedTools.delete(sessionId);
       sessionPermissionOverrides.delete(sessionId);
 
-      if (!doneSent) {
-        doneSent = true;
-        sendTo(clientId, { type: "chat:done", cost: 0, duration: Date.now() - startTime });
+      if (!sessionStream.turnDoneSent) {
+        sessionStream.turnDoneSent = true;
+        sendTo(sessionStream.clientId, { type: "chat:done", cost: 0, duration: Date.now() - sessionStream.turnStartTime });
       }
     }
   })();
+}
 
-  function processMessage(msg: SDKMessage): void {
+function processMessage(ss: SessionStream, msg: SDKMessage): void {
+  var sessionId = ss.sessionId;
 
-    if (msg.type === "system") {
-      var sysMsg = msg as { type: "system"; subtype?: string; mcp_servers?: { name: string; status: string }[]; tools?: string[] };
-      if (sysMsg.subtype === "init") {
-        var toolCount = (sysMsg.tools || []).length;
-        var mcpCount = (sysMsg.mcp_servers || []).filter(function (s) { return s.status === "connected"; }).length;
-        log.chat("Session ready: %d tools, %d MCP servers connected", toolCount, mcpCount);
-      }
-      return;
+  if (msg.type === "system") {
+    var sysMsg = msg as { type: "system"; subtype?: string; mcp_servers?: { name: string; status: string }[]; tools?: string[] };
+    if (sysMsg.subtype === "init") {
+      var toolCount = (sysMsg.tools || []).length;
+      var mcpCount = (sysMsg.mcp_servers || []).filter(function (s) { return s.status === "connected"; }).length;
+      log.chat("Session ready: %d tools, %d MCP servers connected", toolCount, mcpCount);
     }
+    return;
+  }
 
-    if (msg.type === "assistant") {
-      var assistantMsg = msg as { type: "assistant"; message: { content: unknown; model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } } };
-      var msgUsage = assistantMsg.message.usage;
-      if (msgUsage && msgUsage.input_tokens != null) {
-        sendTo(clientId, {
-          type: "chat:context_usage",
-          inputTokens: msgUsage.input_tokens || 0,
-          outputTokens: msgUsage.output_tokens || 0,
-          cacheReadTokens: msgUsage.cache_read_input_tokens || 0,
-          cacheCreationTokens: msgUsage.cache_creation_input_tokens || 0,
-          contextWindow: guessContextWindow(assistantMsg.message.model || ""),
-        });
-      }
-      var aContent = assistantMsg.message.content;
-      if (Array.isArray(aContent)) {
-        for (var ai = 0; ai < aContent.length; ai++) {
-          var aBlock = aContent[ai] as { type?: string; text?: string; id?: string; name?: string; input?: unknown };
-          if (aBlock.type === "text" && aBlock.text) {
-            sendTo(clientId, { type: "chat:delta", text: aBlock.text });
-          } else if (aBlock.type === "tool_use" && aBlock.id && aBlock.name) {
-            sendTo(clientId, {
-              type: "chat:tool_start",
-              toolId: aBlock.id,
-              name: aBlock.name,
-              args: JSON.stringify(aBlock.input ?? {}),
-            });
-            if (aBlock.name === "TodoWrite" && aBlock.input) {
-              var todoInput = aBlock.input as { todos?: Array<{ id?: string; content: string; status: string; activeForm?: string }> };
-              if (todoInput.todos) {
-                sendTo(clientId, {
-                  type: "chat:todo_update",
-                  todos: todoInput.todos.map(function (t, idx) {
-                    return { id: t.id || String(idx), content: t.content, status: t.status, priority: "medium" };
-                  }),
-                });
-              }
-            }
-            if (aBlock.name === "EnterPlanMode") {
-              sendTo(clientId, { type: "chat:plan_mode", active: true });
-            }
-            if (aBlock.name === "ExitPlanMode") {
-              sendTo(clientId, { type: "chat:plan_mode", active: false });
-            }
-          }
-        }
-      } else if (typeof aContent === "string" && aContent) {
-        sendTo(clientId, { type: "chat:delta", text: aContent });
-      }
-      return;
+  if (msg.type === "assistant") {
+    var assistantMsg = msg as { type: "assistant"; message: { content: unknown; model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } } };
+    var msgUsage = assistantMsg.message.usage;
+    if (msgUsage && msgUsage.input_tokens != null) {
+      sendTo(ss.clientId, {
+        type: "chat:context_usage",
+        inputTokens: msgUsage.input_tokens || 0,
+        outputTokens: msgUsage.output_tokens || 0,
+        cacheReadTokens: msgUsage.cache_read_input_tokens || 0,
+        cacheCreationTokens: msgUsage.cache_creation_input_tokens || 0,
+        contextWindow: guessContextWindow(assistantMsg.message.model || ""),
+      });
     }
+    return;
+  }
 
-    if (msg.type === "stream_event") {
-      var partial = msg as SDKPartialAssistantMessage;
-      var evt = partial.event;
+  if (msg.type === "stream_event") {
+    var partial = msg as SDKPartialAssistantMessage;
+    var evt = partial.event;
 
-      if (evt.type === "content_block_start") {
-        var block = (evt as { content_block: { type: string; id?: string; name?: string }; index: number }).content_block;
-        var idx = (evt as { index: number }).index;
-        if (block.type === "tool_use" && block.id && block.name) {
-          activeToolBlocks[idx] = { id: block.id, name: block.name, inputJson: "" };
-          sendTo(clientId, {
+    if (evt.type === "content_block_start") {
+      var block = (evt as { content_block: { type: string; id?: string; name?: string }; index: number }).content_block;
+      var idx = (evt as { index: number }).index;
+      if (block.type === "tool_use" && block.id && block.name) {
+        ss.activeToolBlocks[idx] = { id: block.id, name: block.name, inputJson: "" };
+        if (HIDDEN_TOOLS.has(block.name)) {
+          ss.hiddenToolIds.add(block.id);
+        } else {
+          sendTo(ss.clientId, {
             type: "chat:tool_start",
             toolId: block.id,
             name: block.name,
             args: "",
           });
         }
-        return;
       }
+      return;
+    }
 
-      if (evt.type === "content_block_delta") {
-        var deltaEvt = evt as { index: number; delta: { type: string; text?: string; partial_json?: string } };
-        var blockIdx = deltaEvt.index;
+    if (evt.type === "content_block_delta") {
+      var deltaEvt = evt as { index: number; delta: { type: string; text?: string; partial_json?: string } };
+      var blockIdx = deltaEvt.index;
 
-        if (deltaEvt.delta.type === "text_delta" && typeof deltaEvt.delta.text === "string") {
-          sendTo(clientId, { type: "chat:delta", text: deltaEvt.delta.text });
-        } else if (deltaEvt.delta.type === "input_json_delta" && activeToolBlocks[blockIdx]) {
-          activeToolBlocks[blockIdx].inputJson += deltaEvt.delta.partial_json || "";
-          var updatedTool = activeToolBlocks[blockIdx];
-          sendTo(clientId, {
+      if (deltaEvt.delta.type === "text_delta" && typeof deltaEvt.delta.text === "string") {
+        sendTo(ss.clientId, { type: "chat:delta", text: deltaEvt.delta.text });
+      } else if (deltaEvt.delta.type === "input_json_delta" && ss.activeToolBlocks[blockIdx]) {
+        ss.activeToolBlocks[blockIdx].inputJson += deltaEvt.delta.partial_json || "";
+      }
+      return;
+    }
+
+    if (evt.type === "content_block_stop") {
+      var stopIdx = (evt as { index: number }).index;
+      var stoppedBlock = ss.activeToolBlocks[stopIdx];
+      if (stoppedBlock) {
+        if (!HIDDEN_TOOLS.has(stoppedBlock.name)) {
+          sendTo(ss.clientId, {
             type: "chat:tool_start",
-            toolId: updatedTool.id,
-            name: updatedTool.name,
-            args: updatedTool.inputJson,
+            toolId: stoppedBlock.id,
+            name: stoppedBlock.name,
+            args: stoppedBlock.inputJson,
           });
         }
-        return;
-      }
-
-      if (evt.type === "content_block_stop") {
-        var stopIdx = (evt as { index: number }).index;
-        var stoppedBlock = activeToolBlocks[stopIdx];
-        if (stoppedBlock) {
-          if (stoppedBlock.name === "TodoWrite" && stoppedBlock.inputJson) {
-            try {
-              var todoInput = JSON.parse(stoppedBlock.inputJson) as { todos?: Array<{ id?: string; content: string; status: string; activeForm?: string }> };
-              if (todoInput.todos) {
-                sendTo(clientId, {
-                  type: "chat:todo_update",
-                  todos: todoInput.todos.map(function (t, idx) {
-                    return { id: t.id || String(idx), content: t.content, status: t.status, priority: "medium" };
-                  }),
-                });
-              }
-            } catch {}
-          }
-          if (stoppedBlock.name === "EnterPlanMode") {
-            sendTo(clientId, { type: "chat:plan_mode", active: true });
-          }
-          if (stoppedBlock.name === "ExitPlanMode") {
-            sendTo(clientId, { type: "chat:plan_mode", active: false });
-          }
-          delete activeToolBlocks[stopIdx];
+        if (stoppedBlock.name === "TodoWrite" && stoppedBlock.inputJson) {
+          try {
+            var todoInput = JSON.parse(stoppedBlock.inputJson) as { todos?: Array<{ id?: string; content: string; status: string; activeForm?: string }> };
+            if (todoInput.todos) {
+              sendTo(ss.clientId, {
+                type: "chat:todo_update",
+                todos: todoInput.todos.map(function (t, idx) {
+                  return { id: t.id || String(idx), content: t.content, status: t.status, priority: "medium" };
+                }),
+              });
+            }
+          } catch {}
         }
-        return;
-      }
-
-      return;
-    }
-
-    if (msg.type === "user") {
-      var userMsg = msg as { type: "user"; message: { content: unknown }; tool_use_result?: unknown };
-      var content = userMsg.message.content;
-      if (Array.isArray(content)) {
-        for (var i = 0; i < content.length; i++) {
-          var item = content[i] as { type?: string; tool_use_id?: string; content?: unknown };
-          if (item.type === "tool_result" && item.tool_use_id) {
-            var resultContent = typeof item.content === "string"
-              ? item.content
-              : JSON.stringify(item.content ?? "");
-            sendTo(clientId, {
-              type: "chat:tool_result",
-              toolId: item.tool_use_id,
-              content: resultContent,
-            });
-          }
+        if (stoppedBlock.name === "EnterPlanMode") {
+          sendTo(ss.clientId, { type: "chat:plan_mode", active: true });
         }
-      }
-      return;
-    }
-
-    if (msg.type === "rate_limit_event") {
-      var rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
-      var rli = rlMsg.rate_limit_info;
-      sendTo(clientId, {
-        type: "chat:rate_limit",
-        status: rli.status,
-        utilization: rli.utilization,
-        resetsAt: rli.resetsAt,
-        rateLimitType: rli.rateLimitType,
-        overageStatus: rli.overageStatus,
-        overageResetsAt: rli.overageResetsAt,
-        isUsingOverage: rli.isUsingOverage,
-      } as any);
-      return;
-    }
-
-    if (msg.type === "prompt_suggestion") {
-      var suggestion = (msg as { type: string; suggestion: string }).suggestion;
-      if (suggestion) {
-        sendTo(clientId, { type: "chat:prompt_suggestion", suggestion: suggestion });
-      }
-      return;
-    }
-
-    if (msg.type === "result") {
-      var resultMsg = msg as SDKResultMessage;
-      var dur = Date.now() - startTime;
-      var cost = resultMsg.total_cost_usd || 0;
-
-      if (resultMsg.usage && resultMsg.modelUsage) {
-        var contextWindow = 0;
-        var modelKeys = Object.keys(resultMsg.modelUsage);
-        for (var mk = 0; mk < modelKeys.length; mk++) {
-          var mu = resultMsg.modelUsage[modelKeys[mk]];
-          if (mu.contextWindow > contextWindow) {
-            contextWindow = mu.contextWindow;
-          }
+        if (stoppedBlock.name === "ExitPlanMode") {
+          sendTo(ss.clientId, { type: "chat:plan_mode", active: false });
         }
-        sendTo(clientId, {
-          type: "chat:context_usage",
-          inputTokens: resultMsg.usage.input_tokens || 0,
-          outputTokens: resultMsg.usage.output_tokens || 0,
-          cacheReadTokens: resultMsg.usage.cache_read_input_tokens || 0,
-          cacheCreationTokens: resultMsg.usage.cache_creation_input_tokens || 0,
-          contextWindow: contextWindow,
-        });
+        delete ss.activeToolBlocks[stopIdx];
       }
+      return;
+    }
 
-      doneSent = true;
-      activeStreams.delete(sessionId);
-      streamMetadata.delete(sessionId);
-      persistStreamState();
-      sendTo(clientId, { type: "chat:done", cost: cost, duration: dur });
-      invalidateDailySpendCache();
-      var budgetConfig = loadConfig().costBudget;
-      if (budgetConfig) {
-        sendTo(clientId, {
-          type: "budget:status",
-          dailySpend: getDailySpend(),
-          dailyLimit: budgetConfig.dailyLimit,
-          enforcement: budgetConfig.enforcement,
-        } as never);
-      }
-      broadcast({ type: "session:busy", sessionId, busy: false }, clientId);
-      syncSessionToPeers(cwd, projectSlug, sessionId);
+    return;
+  }
 
-      void getSessionTitle(projectSlug, sessionId).then(function (currentTitle) {
-        if (!isDefaultTitle(currentTitle)) return;
-        var newTitle = generateSessionTitle(firstUserMessage);
-        if (!newTitle) return;
-        void renameSession(projectSlug, sessionId, newTitle).then(function (ok) {
-          if (!ok) return;
-          log.session("Auto-titled session %s: %s", sessionId, newTitle);
-          invalidateSessionCache(projectSlug);
-          void listSessions(projectSlug, { limit: 40 }).then(function (result) {
-            broadcast({ type: "session:list", projectSlug, sessions: result.sessions, totalCount: result.totalCount });
+  if (msg.type === "user") {
+    var userMsg = msg as { type: "user"; message: { content: unknown }; uuid?: string; tool_use_result?: unknown };
+    if (userMsg.uuid) {
+      ss.messageUUIDs.push({ uuid: userMsg.uuid, type: "user" });
+      sendTo(ss.clientId, { type: "chat:message_uuid" as any, uuid: userMsg.uuid, messageType: "user" });
+    }
+    var content = userMsg.message.content;
+    if (Array.isArray(content)) {
+      for (var i = 0; i < content.length; i++) {
+        var item = content[i] as { type?: string; tool_use_id?: string; content?: unknown };
+        if (item.type === "tool_result" && item.tool_use_id) {
+          if (ss.hiddenToolIds.has(item.tool_use_id)) continue;
+          var resultContent = typeof item.content === "string"
+            ? item.content
+            : JSON.stringify(item.content ?? "");
+          sendTo(ss.clientId, {
+            type: "chat:tool_result",
+            toolId: item.tool_use_id,
+            content: resultContent,
           });
+        }
+      }
+    }
+    return;
+  }
+
+  if (msg.type === "rate_limit_event") {
+    var rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
+    var rli = rlMsg.rate_limit_info;
+    cacheRateLimitEntry({
+      status: rli.status,
+      utilization: rli.utilization,
+      resetsAt: rli.resetsAt,
+      rateLimitType: rli.rateLimitType,
+      overageStatus: rli.overageStatus,
+      overageResetsAt: rli.overageResetsAt,
+      isUsingOverage: rli.isUsingOverage,
+    });
+    sendTo(ss.clientId, {
+      type: "chat:rate_limit",
+      status: rli.status,
+      utilization: rli.utilization,
+      resetsAt: rli.resetsAt,
+      rateLimitType: rli.rateLimitType,
+      overageStatus: rli.overageStatus,
+      overageResetsAt: rli.overageResetsAt,
+      isUsingOverage: rli.isUsingOverage,
+    } as any);
+    return;
+  }
+
+  if (msg.type === "prompt_suggestion") {
+    var suggestion = (msg as { type: string; suggestion: string }).suggestion;
+    if (suggestion) {
+      sendTo(ss.clientId, { type: "chat:prompt_suggestion", suggestion: suggestion });
+    }
+    return;
+  }
+
+  if (msg.type === "result") {
+    var resultMsg = msg as SDKResultMessage;
+    var dur = Date.now() - ss.turnStartTime;
+    var cost = resultMsg.total_cost_usd || 0;
+
+    if (resultMsg.usage && resultMsg.modelUsage) {
+      var contextWindow = 0;
+      var modelKeys = Object.keys(resultMsg.modelUsage);
+      for (var mk = 0; mk < modelKeys.length; mk++) {
+        var mu = resultMsg.modelUsage[modelKeys[mk]];
+        if (mu.contextWindow > contextWindow) {
+          contextWindow = mu.contextWindow;
+        }
+      }
+      sendTo(ss.clientId, {
+        type: "chat:context_usage",
+        inputTokens: resultMsg.usage.input_tokens || 0,
+        outputTokens: resultMsg.usage.output_tokens || 0,
+        cacheReadTokens: resultMsg.usage.cache_read_input_tokens || 0,
+        cacheCreationTokens: resultMsg.usage.cache_creation_input_tokens || 0,
+        contextWindow: contextWindow,
+      });
+    }
+
+    ss.turnDoneSent = true;
+    sendTo(ss.clientId, { type: "chat:done", cost: cost, duration: dur });
+    sendPush({ type: "done", title: "Task Complete", body: "Claude finished responding", sessionId, projectSlug: ss.projectSlug });
+    invalidateDailySpendCache();
+    var budgetConfig = loadConfig().costBudget;
+    if (budgetConfig) {
+      sendTo(ss.clientId, {
+        type: "budget:status",
+        dailySpend: getDailySpend(),
+        dailyLimit: budgetConfig.dailyLimit,
+        enforcement: budgetConfig.enforcement,
+      } as never);
+    }
+    broadcast({ type: "session:busy", sessionId, busy: false }, ss.clientId);
+    syncSessionToPeers(ss.cwd, ss.projectSlug, sessionId);
+
+    void getSessionTitle(ss.projectSlug, sessionId).then(function (currentTitle) {
+      if (!isDefaultTitle(currentTitle)) return;
+      var newTitle = generateSessionTitle(ss.firstUserMessage);
+      if (!newTitle) return;
+      void renameSession(ss.projectSlug, sessionId, newTitle).then(function (ok) {
+        if (!ok) return;
+        log.session("Auto-titled session %s: %s", sessionId, newTitle);
+        invalidateSessionCache(ss.projectSlug);
+        void listSessions(ss.projectSlug, { limit: 40 }).then(function (result) {
+          broadcast({ type: "session:list", projectSlug: ss.projectSlug, sessions: result.sessions, totalCount: result.totalCount });
         });
       });
+    });
 
-      return;
-    }
+    return;
   }
 }

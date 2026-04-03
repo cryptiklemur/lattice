@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, memo, useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck } from "lucide-react";
+import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck, RotateCcw } from "lucide-react";
 import type { HistoryMessage, ChatPermissionResponseMessage } from "@lattice/shared";
 import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -222,6 +222,82 @@ function SkillMessage(props: { skillName: string; content: string; time: string 
   );
 }
 
+function RewindButton(props: { uuid: string }) {
+  var ws = useWebSocket();
+  var [pending, setPending] = useState(false);
+  var [preview, setPreview] = useState<{ canRewind: boolean; filesChanged?: number; error?: string } | null>(null);
+
+  useEffect(function () {
+    function handlePreview(msg: any) {
+      if (msg.type === "chat:rewind_preview_result" && msg.messageUuid === props.uuid) {
+        setPreview(msg);
+        setPending(false);
+      }
+    }
+    function handleExecResult(msg: any) {
+      if (msg.type === "chat:rewind_execute_result" && msg.messageUuid === props.uuid) {
+        setPreview(null);
+      }
+    }
+    ws.subscribe("chat:rewind_preview_result", handlePreview);
+    ws.subscribe("chat:rewind_execute_result", handleExecResult);
+    return function () {
+      ws.unsubscribe("chat:rewind_preview_result", handlePreview);
+      ws.unsubscribe("chat:rewind_execute_result", handleExecResult);
+    };
+  }, [ws, props.uuid]);
+
+  function handleClick() {
+    if (preview) {
+      ws.send({ type: "chat:rewind_execute", messageUuid: props.uuid, mode: "files" } as any);
+      setPreview(null);
+      return;
+    }
+    setPending(true);
+    ws.send({ type: "chat:rewind_preview", messageUuid: props.uuid } as any);
+  }
+
+  if (preview && !preview.canRewind) {
+    return (
+      <span className="text-error/60 text-[10px]" title={preview.error || "Cannot rewind"}>
+        {preview.error || "Cannot rewind"}
+      </span>
+    );
+  }
+
+  if (preview && preview.canRewind) {
+    return (
+      <span className="flex items-center gap-1">
+        <button
+          onClick={handleClick}
+          className="btn btn-ghost btn-xs h-4 min-h-0 px-1 text-warning/70 hover:text-warning"
+          title={"Rewind files (" + (preview.filesChanged || 0) + " changed)"}
+        >
+          <RotateCcw className="!size-3" />
+          <span className="text-[10px]">Rewind {preview.filesChanged || 0} files</span>
+        </button>
+        <button
+          onClick={function () { setPreview(null); }}
+          className="btn btn-ghost btn-xs h-4 min-h-0 px-0.5 text-base-content/30 hover:text-base-content/60"
+        >
+          <X className="!size-3" />
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={pending}
+      className="btn btn-ghost btn-xs h-4 min-h-0 px-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity text-base-content/30 hover:text-base-content/60"
+      title="Rewind files to this point"
+    >
+      <RotateCcw className={"!size-3" + (pending ? " animate-spin" : "")} />
+    </button>
+  );
+}
+
 function UserMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
   var time = formatTime(msg.timestamp);
@@ -233,13 +309,14 @@ function UserMessage(props: { message: HistoryMessage }) {
   return (
     <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-end px-5 py-1 group/msg">
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
-        <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline">
+        <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline prose-li:text-primary-content [&_ul>li::marker]:text-primary-content [&_ol>li::marker]:text-primary-content">
           <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
         </div>
       </div>
       {time && (
         <div className="chat-footer text-[10px] text-base-content/30 mt-0.5 flex items-center gap-1">
           {time}
+          {msg.uuid && <RewindButton uuid={msg.uuid} />}
           <MessageAnchor id={msg.uuid} />
           <MessageActions text={text} showNewSession messageUuid={msg.uuid} messageType="user" />
         </div>

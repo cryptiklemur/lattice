@@ -452,9 +452,16 @@ export function SessionList(props: SessionListProps) {
     var displayed = sessions;
     if (props.filter) {
       var term = props.filter.toLowerCase();
-      displayed = displayed.filter(function (s) {
-        return s.title.toLowerCase().includes(term);
-      });
+      if (term.startsWith("*")) {
+        var idSuffix = term.slice(1);
+        displayed = displayed.filter(function (s) {
+          return s.id.toLowerCase().endsWith(idSuffix) || s.id.toLowerCase().includes(idSuffix);
+        });
+      } else {
+        displayed = displayed.filter(function (s) {
+          return s.title.toLowerCase().includes(term) || s.id.toLowerCase().includes(term);
+        });
+      }
     }
     if (props.dateRange) {
       var from = props.dateRange.from;

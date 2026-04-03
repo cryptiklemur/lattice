@@ -1,11 +1,11 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
-import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark } from "lucide-react";
+import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark, RefreshCw, Loader2 } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted, setPendingPrefill } from "../../stores/session";
+import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted, setPendingPrefill, getSessionStore, invalidateSessionMessageCache } from "../../stores/session";
 import { openSettings, openProjectSettings } from "../../stores/sidebar";
 import { openTab, updateSessionTabTitle } from "../../stores/workspace";
 import { builtinCommands } from "../../commands";
@@ -517,6 +517,22 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
             )}
             {activeSessionId && (
               <button
+                onClick={function () {
+                  var state = getSessionStore().state;
+                  if (state.activeProjectSlug && state.activeSessionId) {
+                    invalidateSessionMessageCache(state.activeSessionId);
+                    getSessionStore().setState(function (s) { return { ...s, historyLoading: true, messages: [] }; });
+                    ws.send({ type: "session:activate", projectSlug: state.activeProjectSlug, sessionId: state.activeSessionId, refresh: true } as any);
+                  }
+                }}
+                aria-label="Refresh conversation"
+                className={"btn btn-ghost btn-sm btn-square text-base-content/50 hover:text-base-content/70 transition-colors" + (historyLoading ? " animate-spin" : "")}
+              >
+                {historyLoading ? <Loader2 size={14} /> : <RefreshCw size={14} />}
+              </button>
+            )}
+            {activeSessionId && (
+              <button
                 ref={infoRef}
                 onClick={function () { setShowInfo(!showInfo); }}
                 aria-label="Session info"
@@ -819,7 +835,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         ) : (
           <div
             className="relative w-full"
-            style={{ height: virtualizer.getTotalSize() + "px" }}
+            style={{ height: virtualizer.getTotalSize() + "px", paddingBottom: "24px" }}
           >
             <div
               className="absolute top-0 left-0 w-full will-change-transform"

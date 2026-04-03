@@ -5,7 +5,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useInstallPrompt } from "../../hooks/useInstallPrompt";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { getSessionStore, loadCachedRateLimits } from "../../stores/session";
+import { getSessionStore, loadCachedRateLimits, updateRateLimit } from "../../stores/session";
 import type { RateLimitEntry } from "../../stores/session";
 import pkg from "../../../package.json";
 import type { ServerMessage } from "@lattice/shared";
@@ -66,7 +66,25 @@ export function UserIsland(props: UserIslandProps) {
   var [latestVersion, setLatestVersion] = useState<string | null>(null);
   var [currentVersion, setCurrentVersion] = useState(pkg.version);
 
-  useEffect(function () { loadCachedRateLimits(); }, []);
+  useEffect(function () {
+    loadCachedRateLimits();
+    function handleRateLimit(msg: ServerMessage) {
+      var m = msg as { type: string; status: "allowed" | "allowed_warning" | "rejected"; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean };
+      if (!m.rateLimitType) return;
+      updateRateLimit({
+        status: m.status,
+        utilization: m.utilization,
+        resetsAt: m.resetsAt,
+        rateLimitType: m.rateLimitType,
+        overageStatus: m.overageStatus,
+        overageResetsAt: m.overageResetsAt,
+        isUsingOverage: m.isUsingOverage,
+        updatedAt: Date.now(),
+      });
+    }
+    ws.subscribe("chat:rate_limit", handleRateLimit);
+    return function () { ws.unsubscribe("chat:rate_limit", handleRateLimit); };
+  }, []);
 
   useEffect(function () {
     function handleUpdateStatus(msg: ServerMessage) {
@@ -120,7 +138,8 @@ export function UserIsland(props: UserIslandProps) {
 
   var usageBar = null;
   if (primaryEntry) {
-    var utilPct = Math.min(100, Math.round((primaryEntry.utilization ?? 0) * 100));
+    var hasUtilization = primaryEntry.utilization !== undefined && primaryEntry.utilization !== null;
+    var utilPct = hasUtilization ? Math.min(100, Math.round((primaryEntry.utilization as number) * 100)) : 0;
 
     usageBar = (
       <div
@@ -133,7 +152,7 @@ export function UserIsland(props: UserIslandProps) {
             {getRateLimitLabel(primaryEntry.rateLimitType)} usage
           </span>
           <span className={"text-[9px] font-mono tabular-nums " + getStatusColor(primaryEntry)}>
-            {utilPct}%
+            {hasUtilization ? utilPct + "%" : "—"}
           </span>
         </div>
         <div className="h-1 rounded-full bg-base-content/8 overflow-hidden">
