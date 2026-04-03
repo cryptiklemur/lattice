@@ -13,6 +13,7 @@ import type {
   ChatContextUsageMessage,
   ChatContextBreakdownMessage,
   ChatPromptSuggestionMessage,
+  ChatElicitationRequestMessage,
   SessionHistoryMessage,
   ServerMessage,
 } from "@lattice/shared";
@@ -49,12 +50,12 @@ import {
   removeQueuedMessage,
   updateQueuedMessage,
   clearMessageQueue,
-  setSessionBusy,
   addPromptQuestion,
   addTodoUpdate,
   setIsPlanMode,
   setBudgetStatus,
   setBudgetExceeded,
+  updateRateLimit,
 } from "../stores/session";
 import type { SessionState, BudgetStatus } from "../stores/session";
 
@@ -119,7 +120,12 @@ export function useSession(): UseSessionReturn {
     setFailedInput(null);
     setPromptSuggestion(null);
     setIsProcessing(true);
-    setSessionBusy(false);
+    addSessionMessage({
+      type: "user",
+      uuid: "optimistic-" + Date.now(),
+      text: text,
+      timestamp: Date.now(),
+    } as HistoryMessage);
     pinTab("chat-" + currentSessionId);
     sendRef.current(msg as ChatSendMessage);
   }
@@ -143,6 +149,16 @@ export function useSession(): UseSessionReturn {
       if (isStaleStream()) return;
       var m = msg as ChatUserMessage;
       setCurrentAssistantUuid(null);
+      var messages = getSessionStore().state.messages;
+      var last = messages.length > 0 ? messages[messages.length - 1] : null;
+      if (last && last.type === "user" && last.uuid && last.uuid.startsWith("optimistic-") && last.text === m.text) {
+        getSessionStore().setState(function (s) {
+          var updated = s.messages.slice();
+          updated[updated.length - 1] = { ...updated[updated.length - 1], uuid: m.uuid };
+          return { ...s, messages: updated };
+        });
+        return;
+      }
       addSessionMessage({
         type: "user",
         uuid: m.uuid,
@@ -279,6 +295,22 @@ export function useSession(): UseSessionReturn {
       updatePermissionStatus(m.requestId, m.status);
     }
 
+    function handleElicitationRequest(msg: ServerMessage) {
+      var m = msg as ChatElicitationRequestMessage;
+      setCurrentAssistantUuid(null);
+      addSessionMessage({
+        type: "elicitation",
+        toolId: m.requestId,
+        elicitationMode: m.mode,
+        elicitationServerName: m.serverName,
+        elicitationMessage: m.message,
+        elicitationUrl: m.url,
+        elicitationSchema: m.requestedSchema,
+        elicitationStatus: "pending",
+        timestamp: Date.now(),
+      } as HistoryMessage);
+    }
+
     function handleHistoryPage(msg: ServerMessage) {
       var m = msg as { type: string; sessionId: string; messages: HistoryMessage[]; hasMore: boolean };
       var state = getSessionStore().state;
@@ -306,34 +338,46 @@ export function useSession(): UseSessionReturn {
         var projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
         setSidebarSessionId(m.sessionId);
         streamSessionId = m.sessionId;
-        if (m.busy) {
-          activeStreamGeneration = getStreamGeneration();
-        }
         if (m.title) {
           updateSessionTabTitle(m.sessionId, m.title);
         }
-        getSessionStore().setState(function (state) {
-          return {
-            ...state,
-            activeProjectSlug: projectSlug,
-            activeSessionId: m.sessionId,
-            activeSessionTitle: m.title ?? null,
-            messages: mergeToolResults(m.messages),
-            isProcessing: false,
-            currentStatus: null,
-            pendingPermissionCount: 0,
-            lastResponseCost: null,
-            lastResponseDuration: null,
-            lastReadIndex: null,
-            historyLoading: false,
-            historyHasMore: m.hasMore || false,
-            historyTotalMessages: m.totalMessages || m.messages.length,
-            wasInterrupted: m.interrupted || false,
-            isBusy: m.busy || false,
-            busyOwner: m.busyOwner ?? null,
-            isPlanMode: false,
-          };
-        });
+        var currentState = getSessionStore().state;
+        var alreadyCached = currentState.activeSessionId === m.sessionId
+          && !currentState.historyLoading
+          && currentState.messages.length > 0;
+
+        if (alreadyCached) {
+          getSessionStore().setState(function (state) {
+            return {
+              ...state,
+              activeSessionTitle: m.title ?? state.activeSessionTitle,
+              historyHasMore: m.hasMore || state.historyHasMore,
+              historyTotalMessages: m.totalMessages || state.historyTotalMessages,
+              wasInterrupted: m.interrupted || false,
+            };
+          });
+        } else {
+          getSessionStore().setState(function (state) {
+            return {
+              ...state,
+              activeProjectSlug: projectSlug,
+              activeSessionId: m.sessionId,
+              activeSessionTitle: m.title ?? null,
+              messages: mergeToolResults(m.messages),
+              isProcessing: false,
+              currentStatus: null,
+              pendingPermissionCount: 0,
+              lastResponseCost: null,
+              lastResponseDuration: null,
+              lastReadIndex: null,
+              historyLoading: false,
+              historyHasMore: m.hasMore || false,
+              historyTotalMessages: m.totalMessages || m.messages.length,
+              wasInterrupted: m.interrupted || false,
+              isPlanMode: false,
+            };
+          });
+        }
         var storedIndex = getLastReadIndex(m.sessionId);
         if (storedIndex >= 0 && storedIndex < m.messages.length) {
           setLastReadIndex(storedIndex);
@@ -358,17 +402,6 @@ export function useSession(): UseSessionReturn {
     function handlePromptSuggestion(msg: ServerMessage) {
       var m = msg as ChatPromptSuggestionMessage;
       setPromptSuggestion(m.suggestion);
-    }
-
-    function handleSessionBusy(msg: ServerMessage) {
-      var m = msg as { type: string; sessionId: string; busy: boolean; busyOwner?: "cli" | "lattice" };
-      var sessionState = getSessionStore().state;
-      if (m.sessionId === sessionState.activeSessionId) {
-        if (m.busy && sessionState.isProcessing) {
-          return;
-        }
-        setSessionBusy(m.busy, m.busyOwner);
-      }
     }
 
     function handlePromptRequest(msg: ServerMessage) {
@@ -397,6 +430,20 @@ export function useSession(): UseSessionReturn {
       setBudgetStatus({ dailySpend: m.dailySpend, dailyLimit: m.dailyLimit, enforcement: m.enforcement });
     }
 
+    function handleRateLimit(msg: ServerMessage) {
+      var m = msg as { type: string; status: "allowed" | "allowed_warning" | "rejected"; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean };
+      updateRateLimit({
+        status: m.status,
+        utilization: m.utilization,
+        resetsAt: m.resetsAt,
+        rateLimitType: m.rateLimitType || "unknown",
+        overageStatus: m.overageStatus,
+        overageResetsAt: m.overageResetsAt,
+        isUsingOverage: m.isUsingOverage,
+        updatedAt: Date.now(),
+      });
+    }
+
     function handleBudgetExceeded(msg: ServerMessage) {
       setBudgetExceeded(true);
       setIsProcessing(false);
@@ -417,13 +464,14 @@ export function useSession(): UseSessionReturn {
     subscribe("session:history", handleHistory);
     subscribe("session:history_page_result", handleHistoryPage);
     subscribe("chat:prompt_suggestion", handlePromptSuggestion);
-    subscribe("session:busy", handleSessionBusy);
     subscribe("chat:prompt_request", handlePromptRequest);
     subscribe("chat:prompt_resolved", handlePromptResolved);
     subscribe("chat:todo_update", handleTodoUpdate);
     subscribe("chat:plan_mode", handlePlanMode);
     subscribe("budget:status", handleBudgetStatus);
     subscribe("budget:exceeded", handleBudgetExceeded);
+    subscribe("chat:elicitation_request", handleElicitationRequest);
+    subscribe("chat:rate_limit", handleRateLimit);
 
     return function () {
       subscriptionsActive--;
@@ -441,13 +489,14 @@ export function useSession(): UseSessionReturn {
       unsubscribe("session:history", handleHistory);
       unsubscribe("session:history_page_result", handleHistoryPage);
       unsubscribe("chat:prompt_suggestion", handlePromptSuggestion);
-      unsubscribe("session:busy", handleSessionBusy);
       unsubscribe("chat:prompt_request", handlePromptRequest);
       unsubscribe("chat:prompt_resolved", handlePromptResolved);
       unsubscribe("chat:todo_update", handleTodoUpdate);
       unsubscribe("chat:plan_mode", handlePlanMode);
       unsubscribe("budget:status", handleBudgetStatus);
       unsubscribe("budget:exceeded", handleBudgetExceeded);
+      unsubscribe("chat:elicitation_request", handleElicitationRequest);
+      unsubscribe("chat:rate_limit", handleRateLimit);
     };
   }, [subscribe, unsubscribe]);
 
@@ -481,8 +530,6 @@ export function useSession(): UseSessionReturn {
     promptSuggestion: state.promptSuggestion,
     failedInput: state.failedInput,
     messageQueue: state.messageQueue,
-    isBusy: state.isBusy,
-    busyOwner: state.busyOwner,
     isPlanMode: state.isPlanMode,
     pendingPrefill: state.pendingPrefill,
     budgetStatus: state.budgetStatus,

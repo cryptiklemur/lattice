@@ -3,7 +3,7 @@ import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
-import { getSessionStore } from "../../stores/session";
+import { getSessionStore, setBudgetStatus } from "../../stores/session";
 import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "@lattice/shared";
 
 var ENFORCEMENT_OPTIONS = [
@@ -28,6 +28,9 @@ export function BudgetSettings() {
 
       if (save.savingRef.current) {
         save.confirmSave();
+        if (!cfg.costBudget) {
+          setBudgetStatus(null);
+        }
       } else {
         if (cfg.costBudget) {
           setEnabled(true);
@@ -37,6 +40,7 @@ export function BudgetSettings() {
           setEnabled(false);
           setDailyLimit(10);
           setEnforcement("warning");
+          setBudgetStatus(null);
         }
         save.resetFromServer();
       }
@@ -55,7 +59,7 @@ export function BudgetSettings() {
     var updateMsg: SettingsUpdateMessage = {
       type: "settings:update",
       settings: {
-        costBudget: enabled ? { dailyLimit: dailyLimit, enforcement: enforcement as "warning" | "soft-block" | "hard-block" } : undefined,
+        costBudget: enabled ? { dailyLimit: dailyLimit, enforcement: enforcement as "warning" | "soft-block" | "hard-block" } : null,
       } as SettingsUpdateMessage["settings"],
     };
     send(updateMsg);

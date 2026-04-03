@@ -28,6 +28,17 @@ export interface BudgetStatus {
   enforcement: "warning" | "soft-block" | "hard-block";
 }
 
+export interface RateLimitEntry {
+  status: "allowed" | "allowed_warning" | "rejected";
+  utilization?: number;
+  resetsAt?: number;
+  rateLimitType: string;
+  overageStatus?: string;
+  overageResetsAt?: number;
+  isUsingOverage?: boolean;
+  updatedAt: number;
+}
+
 export interface SessionState {
   messages: HistoryMessage[];
   isProcessing: boolean;
@@ -48,12 +59,11 @@ export interface SessionState {
   promptSuggestion: string | null;
   failedInput: string | null;
   messageQueue: string[];
-  isBusy: boolean;
-  busyOwner: "cli" | "lattice" | null;
   isPlanMode: boolean;
   pendingPrefill: string | null;
   budgetStatus: BudgetStatus | null;
   budgetExceeded: boolean;
+  rateLimits: Record<string, RateLimitEntry>;
 }
 
 var sessionStore = new Store<SessionState>({
@@ -76,12 +86,11 @@ var sessionStore = new Store<SessionState>({
   promptSuggestion: null,
   failedInput: null,
   messageQueue: [],
-  isBusy: false,
-  busyOwner: null,
   isPlanMode: false,
   pendingPrefill: null,
   budgetStatus: null,
   budgetExceeded: false,
+  rateLimits: {},
 });
 
 var streamGeneration = 0;
@@ -268,8 +277,6 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       promptSuggestion: null,
       failedInput: null,
       messageQueue: [],
-      isBusy: false,
-      busyOwner: null,
       isPlanMode: false,
       pendingPrefill: state.pendingPrefill,
     };
@@ -333,8 +340,6 @@ export function clearSession(): void {
       promptSuggestion: null,
       failedInput: null,
       messageQueue: [],
-      isBusy: false,
-      busyOwner: null,
       isPlanMode: false,
       pendingPrefill: null,
       budgetStatus: null,
@@ -367,12 +372,6 @@ export function setFailedInput(text: string | null): void {
   });
 }
 
-export function setSessionBusy(busy: boolean, owner?: "cli" | "lattice" | null): void {
-  sessionStore.setState(function (state) {
-    return { ...state, isBusy: busy, busyOwner: busy ? (owner ?? null) : null };
-  });
-}
-
 export function setIsPlanMode(active: boolean): void {
   sessionStore.setState(function (state) {
     return { ...state, isPlanMode: active };
@@ -383,6 +382,25 @@ export function setBudgetStatus(status: BudgetStatus | null): void {
   sessionStore.setState(function (state) {
     return { ...state, budgetStatus: status };
   });
+}
+
+export function updateRateLimit(entry: RateLimitEntry): void {
+  sessionStore.setState(function (state) {
+    var updated = { ...state.rateLimits };
+    updated[entry.rateLimitType] = entry;
+    try { localStorage.setItem("lattice:rateLimits", JSON.stringify(updated)); } catch {}
+    return { ...state, rateLimits: updated };
+  });
+}
+
+export function loadCachedRateLimits(): void {
+  try {
+    var raw = localStorage.getItem("lattice:rateLimits");
+    if (raw) {
+      var parsed = JSON.parse(raw) as Record<string, RateLimitEntry>;
+      sessionStore.setState(function (state) { return { ...state, rateLimits: parsed }; });
+    }
+  } catch {}
 }
 
 export function setBudgetExceeded(exceeded: boolean): void {

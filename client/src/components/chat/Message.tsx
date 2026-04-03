@@ -11,6 +11,7 @@ import { ToolResultRenderer } from "./ToolResultRenderer";
 import { formatToolSummary } from "./toolSummary";
 import { PromptQuestion } from "./PromptQuestion";
 import { TodoCard } from "./TodoCard";
+import { ElicitationCard } from "./ElicitationCard";
 
 function TableWrapper(props: React.HTMLAttributes<HTMLTableElement>) {
   var wrapperRef = useRef<HTMLDivElement>(null);
@@ -565,6 +566,21 @@ export var Message = memo(function Message(props: MessageProps) {
 
   if (msg.type === "todo_update") {
     return <TodoCard message={msg} />;
+  }
+
+  if (msg.type === "elicitation") {
+    return (
+      <ElicitationCard
+        requestId={msg.toolId || ""}
+        serverName={msg.elicitationServerName || "MCP Server"}
+        message={msg.elicitationMessage || ""}
+        mode={msg.elicitationMode || "form"}
+        url={msg.elicitationUrl}
+        requestedSchema={msg.elicitationSchema}
+        resolved={msg.elicitationStatus !== "pending"}
+        resolvedAction={msg.elicitationStatus === "accepted" ? "accept" : msg.elicitationStatus === "declined" ? "decline" : undefined}
+      />
+    );
   }
 
   return null;

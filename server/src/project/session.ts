@@ -465,8 +465,30 @@ export async function getSessionTitle(projectSlug: string, sessionId: string): P
   return "Untitled";
 }
 
-var historyCache = new Map<string, { messages: HistoryMessage[]; time: number }>();
-var HISTORY_CACHE_TTL = 60000;
+var historyCache = new Map<string, { messages: HistoryMessage[]; title: string | null }>();
+var historyCacheOrder: string[] = [];
+var MAX_HISTORY_CACHE = 50;
+
+function touchCache(sessionId: string): void {
+  var idx = historyCacheOrder.indexOf(sessionId);
+  if (idx >= 0) historyCacheOrder.splice(idx, 1);
+  historyCacheOrder.push(sessionId);
+}
+
+function evictOldest(): void {
+  while (historyCacheOrder.length > MAX_HISTORY_CACHE) {
+    var oldest = historyCacheOrder.shift();
+    if (oldest) historyCache.delete(oldest);
+  }
+}
+
+export function appendToHistoryCache(sessionId: string, message: HistoryMessage): void {
+  var cached = historyCache.get(sessionId);
+  if (!cached) return;
+  cached.messages.push(message);
+  touchCache(sessionId);
+}
+
 var INITIAL_MESSAGE_COUNT = 100;
 var TAIL_READ_BYTES = 2 * 1024 * 1024;
 
@@ -512,7 +534,8 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
   try {
     var t0 = Date.now();
     var cached = historyCache.get(sessionId);
-    if (cached && Date.now() - cached.time < HISTORY_CACHE_TTL) {
+    if (cached) {
+      touchCache(sessionId);
       var tail = cached.messages.length > INITIAL_MESSAGE_COUNT
         ? cached.messages.slice(cached.messages.length - INITIAL_MESSAGE_COUNT)
         : cached.messages;
@@ -530,7 +553,9 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
       log.session("loadSessionHistory %s: %dms (tail read, %d msgs, partial=%s)", sessionId.slice(0, 8), Date.now() - t0, tailMessages.length, hasMore);
 
       if (!hasMore) {
-        historyCache.set(sessionId, { messages: tailMessages, time: Date.now() });
+        historyCache.set(sessionId, { messages: tailMessages, title: null });
+        touchCache(sessionId);
+        evictOldest();
       }
 
       var initialSlice = tailMessages.length > INITIAL_MESSAGE_COUNT
@@ -544,7 +569,9 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
     var options = projectPath ? { dir: projectPath } : undefined;
     var rawMessages = await getSessionMessages(sessionId, options);
     var allMessages = convertSessionMessages(rawMessages);
-    historyCache.set(sessionId, { messages: allMessages, time: Date.now() });
+    historyCache.set(sessionId, { messages: allMessages, title: null });
+    touchCache(sessionId);
+    evictOldest();
     log.session("loadSessionHistory %s: %dms (full SDK, %d msgs)", sessionId.slice(0, 8), Date.now() - t0, allMessages.length);
     var tailSlice = allMessages.length > INITIAL_MESSAGE_COUNT
       ? allMessages.slice(allMessages.length - INITIAL_MESSAGE_COUNT)
@@ -564,8 +591,10 @@ export async function getSessionHistoryPage(sessionId: string, beforeIndex: numb
     try {
       var rawMessages = await getSessionMessages(sessionId, options);
       var allMessages = convertSessionMessages(rawMessages);
-      historyCache.set(sessionId, { messages: allMessages, time: Date.now() });
-      cached = { messages: allMessages, time: Date.now() };
+      historyCache.set(sessionId, { messages: allMessages, title: null });
+      touchCache(sessionId);
+      evictOldest();
+      cached = historyCache.get(sessionId)!;
       log.session("getSessionHistoryPage: full load for %s, %d messages", sessionId.slice(0, 8), allMessages.length);
     } catch {
       return { messages: [], hasMore: false };

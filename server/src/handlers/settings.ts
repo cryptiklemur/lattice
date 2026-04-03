@@ -122,6 +122,9 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       },
       projects: refreshed.projects,
     };
+    if ("costBudget" in incoming && incoming.costBudget == null) {
+      delete (updated as Record<string, unknown>).costBudget;
+    }
     saveConfig(updated);
     var updatedWithClaudeMd = { ...updated, claudeMd: loadGlobalClaudeMd() };
     sendTo(clientId, {

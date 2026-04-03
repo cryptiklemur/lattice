@@ -3,7 +3,7 @@ import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
 import { loadConfig } from "../config";
-import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream, buildPermissionRule } from "../project/sdk-bridge";
+import { startChatStream, getPendingPermission, deletePendingPermission, addAutoApprovedTool, setSessionPermissionOverride, getActiveStream, buildPermissionRule, getPendingElicitation, resolveElicitation } from "../project/sdk-bridge";
 import { getAttachments } from "./attachment";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -278,6 +278,17 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
 
     sendTo(clientId, { type: "chat:prompt_resolved", requestId: promptRespMsg.requestId });
     deletePendingPermission(promptRespMsg.requestId);
+    return;
+  }
+
+  if (message.type === "chat:elicitation_response") {
+    var elicitMsg = message as { type: string; requestId: string; action: "accept" | "decline"; content?: Record<string, unknown> };
+    var pendingElicit = getPendingElicitation(elicitMsg.requestId);
+    if (!pendingElicit) return;
+    resolveElicitation(elicitMsg.requestId, {
+      action: elicitMsg.action,
+      content: elicitMsg.content || {},
+    });
     return;
   }
 

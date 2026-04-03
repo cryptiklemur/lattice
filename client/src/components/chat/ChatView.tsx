@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
-import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
@@ -23,7 +22,7 @@ import { useBookmarks } from "../../hooks/useBookmarks";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
 export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug }: { sessionId?: string; projectSlug?: string } = {}) {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isBusy, busyOwner, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
 
@@ -48,11 +47,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
   var [selectedModel, setSelectedModel] = useState<string>("default");
   var [selectedEffort, setSelectedEffort] = useState<string>("medium");
   var [showInfo, setShowInfo] = useState<boolean>(false);
-  var [confirmStopExternal, setConfirmStopExternal] = useState<boolean>(false);
   var [prefillText, setPrefillText] = useState<string | null>(null);
-  var stopExternalModalRef = useRef<HTMLDivElement>(null);
-  var closeStopExternal = useCallback(function () { setConfirmStopExternal(false); }, []);
-  useFocusTrap(stopExternalModalRef, closeStopExternal, confirmStopExternal);
 
   useEffect(function () {
     if (pendingPrefill && !historyLoading) {
@@ -967,70 +962,14 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         </div>
       )}
 
-      {isBusy && !isProcessing && (
-        <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-info/10 border-t border-info/20">
-          <Terminal size={13} className="text-info flex-shrink-0" />
-          <span className="text-[12px] text-info flex-1">
-            {busyOwner === "cli"
-              ? "This session is controlled by Claude Code CLI — input is disabled"
-              : "This session is in use by another Lattice client — input is disabled"}
-          </span>
-          <button
-            onClick={function () { setConfirmStopExternal(true); }}
-            className="btn btn-ghost btn-xs text-error/70 hover:text-error gap-1 flex-shrink-0"
-          >
-            <Square size={10} className="fill-current" />
-            End Process
-          </button>
-        </div>
-      )}
-
-      {confirmStopExternal && (
-        <div ref={stopExternalModalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="End External Process">
-          <div className="absolute inset-0 bg-black/50" onClick={function () { setConfirmStopExternal(false); }} />
-          <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-            <div className="px-5 py-4 border-b border-base-content/15">
-              <h2 className="text-[15px] font-mono font-bold text-base-content">End External Process</h2>
-            </div>
-            <div className="px-5 py-4">
-              <p className="text-[13px] text-base-content/60 leading-relaxed">
-                This will send a graceful stop signal (SIGINT) to the Claude Code CLI process controlling this session. The process will finish its current operation and exit.
-              </p>
-              <p className="text-[13px] text-warning mt-2 leading-relaxed">
-                Any in-progress work may be interrupted.
-              </p>
-            </div>
-            <div className="px-5 py-3 border-t border-base-content/15 flex justify-end gap-2">
-              <button
-                onClick={function () { setConfirmStopExternal(false); }}
-                className="btn btn-ghost btn-sm text-[12px]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={function () {
-                  if (activeSessionId) {
-                    ws.send({ type: "session:stop_external", sessionId: activeSessionId } as any);
-                  }
-                  setConfirmStopExternal(false);
-                }}
-                className="btn btn-error btn-sm text-[12px]"
-              >
-                End Process
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {wasInterrupted && !isProcessing && !isBusy && (
+      {wasInterrupted && !isProcessing && (
         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-warning/10 border-t border-warning/20">
           <AlertTriangle size={13} className="text-warning flex-shrink-0" />
           <span className="text-[12px] text-warning">Session was interrupted — send a message to continue</span>
         </div>
       )}
 
-      {promptSuggestion && !isProcessing && !isBusy && (
+      {promptSuggestion && !isProcessing && (
         <div className="flex-shrink-0 px-2 sm:px-4 py-2">
           <div className="flex items-center gap-1.5 max-w-full">
             <button
@@ -1079,15 +1018,11 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         <ChatInput
           sessionId={activeSessionId}
           onSend={handleSend}
-          disabled={!activeSessionId || !online || isBusy || (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)}
+          disabled={!activeSessionId || !online || (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)}
           disabledPlaceholder={
-            isBusy
-              ? (busyOwner === "cli"
-                ? "Controlled by Claude Code CLI"
-                : "Session in use by another Lattice client")
-              : (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)
-                ? "Daily budget exceeded ($" + budgetStatus.dailySpend.toFixed(2) + " / $" + budgetStatus.dailyLimit.toFixed(2) + ")"
-                : undefined
+            (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)
+              ? "Daily budget exceeded ($" + budgetStatus.dailySpend.toFixed(2) + " / $" + budgetStatus.dailyLimit.toFixed(2) + ")"
+              : undefined
           }
           failedInput={failedInput}
           onFailedInputConsumed={clearFailedInput}

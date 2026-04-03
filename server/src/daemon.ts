@@ -18,8 +18,9 @@ import { detectIdeProjectName } from "./handlers/settings";
 import "./handlers/session";
 import "./handlers/chat";
 import "./handlers/attachment";
-import { loadInterruptedSessions, unwatchSessionLock, cleanupClientPermissions, getActiveSessionCountForProject } from "./project/sdk-bridge";
-import { clearActiveSession, getActiveSession } from "./handlers/chat";
+import { loadInterruptedSessions, cleanupClientPermissions, cleanupClientElicitations, getActiveStreamCountForProject } from "./project/sdk-bridge";
+import { runWarmup, isWarmupComplete, getWarmupModels, getWarmupAccountInfo } from "./project/warmup";
+import { clearActiveSession } from "./handlers/chat";
 import { clearActiveProject } from "./handlers/fs";
 import { clearClientRemoteNode } from "./ws/router";
 import "./handlers/fs";
@@ -324,13 +325,27 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         var connectConfig = loadConfig();
         var connectIdentity = loadOrCreateIdentity();
         var localProjects = connectConfig.projects.map(function (p: typeof connectConfig.projects[number]) {
-          return { slug: p.slug, path: p.path, title: p.title, nodeId: connectIdentity.id, nodeName: connectConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveSessionCountForProject(p.path) };
+          return { slug: p.slug, path: p.path, title: p.title, nodeId: connectIdentity.id, nodeName: connectConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveStreamCountForProject(p.slug) };
         });
         var connectRemoteProjects = getAllRemoteProjects(connectIdentity.id);
         sendTo(ws.data.id, {
           type: "projects:list",
           projects: localProjects.concat(connectRemoteProjects as unknown as typeof localProjects),
         });
+        if (isWarmupComplete()) {
+          sendTo(ws.data.id, { type: "warmup:models", models: getWarmupModels() } as any);
+          var accountInfo = getWarmupAccountInfo();
+          if (accountInfo) {
+            sendTo(ws.data.id, {
+              type: "warmup:account",
+              email: accountInfo.email,
+              organization: accountInfo.organization,
+              subscriptionType: accountInfo.subscriptionType,
+              apiKeySource: accountInfo.apiKeySource,
+              apiProvider: accountInfo.apiProvider,
+            } as any);
+          }
+        }
       },
       message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
         var now = Date.now();
@@ -354,10 +369,6 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         }
       },
       close(ws: ServerWebSocket<WsData>) {
-        var activeSession = getActiveSession(ws.data.id);
-        if (activeSession) {
-          unwatchSessionLock(activeSession.sessionId);
-        }
         clearActiveSession(ws.data.id);
         clearActiveProject(ws.data.id);
         clearClientRemoteNode(ws.data.id);
@@ -365,6 +376,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
         cleanupClientTerminals(ws.data.id);
         cleanupClientAttachments(ws.data.id);
         cleanupClientPermissions(ws.data.id);
+        cleanupClientElicitations(ws.data.id);
         clientRateLimits.delete(ws.data.id);
         log.ws("Client disconnected: %s", ws.data.id);
       },
@@ -396,6 +408,11 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
 
   loadInterruptedSessions();
 
+  var firstProject = config.projects[0];
+  if (firstProject) {
+    void runWarmup(firstProject.path);
+  }
+
   onPeerConnected(function (nodeId: string) {
     broadcast({ type: "mesh:node_online", nodeId: nodeId });
   });
@@ -420,7 +437,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     var currentIdentity = loadOrCreateIdentity();
     broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
     var localProjects = currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
-      return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveSessionCountForProject(p.path) };
+      return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveStreamCountForProject(p.slug) };
     });
     var remoteProjects = getAllRemoteProjects(currentIdentity.id);
     broadcast({

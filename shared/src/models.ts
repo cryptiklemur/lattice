@@ -61,7 +61,7 @@ export interface Attachment {
   lineCount?: number;
 }
 
-export type HistoryMessageType = "user" | "assistant" | "tool_start" | "tool_result" | "permission_request" | "prompt_question" | "todo_update";
+export type HistoryMessageType = "user" | "assistant" | "tool_start" | "tool_result" | "permission_request" | "prompt_question" | "todo_update" | "elicitation";
 
 export interface HistoryMessage {
   type: HistoryMessageType;
@@ -95,6 +95,12 @@ export interface HistoryMessage {
     status: "pending" | "in_progress" | "completed";
     priority: "high" | "medium" | "low";
   }>;
+  elicitationMode?: "form" | "url";
+  elicitationServerName?: string;
+  elicitationMessage?: string;
+  elicitationUrl?: string | null;
+  elicitationSchema?: Record<string, unknown> | null;
+  elicitationStatus?: "pending" | "accepted" | "declined";
 }
 
 export interface PeerInfo {

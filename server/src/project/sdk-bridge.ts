@@ -4,7 +4,7 @@ import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage, SDKUserM
 import type { CanUseTool, PermissionMode, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
 type MessageParam = SDKUserMessage["message"];
 import type { Attachment } from "@lattice/shared";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync, readlinkSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { sendTo, broadcast } from "../ws/broadcast";
@@ -15,6 +15,21 @@ import { guessContextWindow, getSessionTitle, renameSession, listSessions, inval
 import { getLatticeHome, loadConfig } from "../config";
 import { log } from "../logger";
 import { getDailySpend, invalidateDailySpendCache } from "../analytics/engine";
+import { getWarmupModels } from "./warmup";
+import { execSync } from "node:child_process";
+
+var claudeExePath: string | null = null;
+
+function getClaudeExecutablePath(): string {
+  if (claudeExePath) return claudeExePath;
+  try {
+    claudeExePath = execSync("which claude", { encoding: "utf-8" }).trim();
+    log.chat("Using system claude: %s", claudeExePath);
+  } catch {
+    claudeExePath = "claude";
+  }
+  return claudeExePath;
+}
 
 interface PendingPermission {
   resolve: (result: PermissionResult) => void;
@@ -28,6 +43,15 @@ interface PendingPermission {
 }
 
 var pendingPermissions = new Map<string, PendingPermission>();
+
+interface PendingElicitation {
+  resolve: (result: { action: "accept" | "decline"; content?: Record<string, unknown> }) => void;
+  clientId: string;
+  sessionId: string;
+}
+
+var pendingElicitations = new Map<string, PendingElicitation>();
+
 var autoApprovedTools = new Map<string, Set<string>>();
 var sessionPermissionOverrides = new Map<string, PermissionMode>();
 
@@ -49,87 +73,15 @@ export interface ModelEntry {
   displayName: string;
 }
 
-var KNOWN_MODELS: ModelEntry[] = [
-  { value: "default", displayName: "Default" },
-  { value: "opus", displayName: "Opus" },
-  { value: "sonnet", displayName: "Sonnet" },
-  { value: "haiku", displayName: "Haiku" },
-];
-
 export function getAvailableModels(): ModelEntry[] {
-  return KNOWN_MODELS.slice();
+  return getWarmupModels();
 }
 
 var activeStreams = new Map<string, Query>();
 var pendingStreams = new Set<string>();
-var streamMetadata = new Map<string, { projectSlug: string; clientId: string; startedAt: number }>();
+var streamMetadata = new Map<string, { projectSlug: string; clientId: string; startedAt: number; abortController?: AbortController }>();
 var interruptedSessions = new Set<string>();
 
-// Track external lock state so we only broadcast on changes
-var externalLockState = new Map<string, boolean>();
-var watchedSessions = new Set<string>();
-var remoteSessionWatchers = new Map<string, Set<string>>();
-
-/**
- * Start polling a session's lock file for external CLI usage.
- * Called when a client activates a session.
- */
-export function watchSessionLock(sessionId: string): void {
-  watchedSessions.add(sessionId);
-}
-
-/**
- * Stop polling a session's lock file.
- */
-export function unwatchSessionLock(sessionId: string): void {
-  watchedSessions.delete(sessionId);
-  externalLockState.delete(sessionId);
-}
-
-export function addRemoteSessionWatcher(sessionId: string, nodeId: string): void {
-  var watchers = remoteSessionWatchers.get(sessionId);
-  if (!watchers) {
-    watchers = new Set();
-    remoteSessionWatchers.set(sessionId, watchers);
-  }
-  watchers.add(nodeId);
-}
-
-export function getBusyOwner(sessionId: string): "cli" | "lattice" | undefined {
-  if (activeStreams.has(sessionId)) return "lattice";
-  if (isSessionLockedByExternal(sessionId)) return "cli";
-  return undefined;
-}
-
-// Poll every 3 seconds for external lock changes
-setInterval(function () {
-  for (var sessionId of watchedSessions) {
-    var busy = isSessionBusy(sessionId);
-    var prev = externalLockState.get(sessionId) ?? false;
-
-    if (busy !== prev) {
-      externalLockState.set(sessionId, busy);
-      var owner = busy ? getBusyOwner(sessionId) : undefined;
-      broadcast({ type: "session:busy", sessionId, busy: busy, busyOwner: owner });
-
-      var watchers = remoteSessionWatchers.get(sessionId);
-      if (watchers) {
-        var { getPeerConnection } = require("../mesh/connector") as typeof import("../mesh/connector");
-        for (var nodeId of watchers) {
-          var peerWs = getPeerConnection(nodeId);
-          if (peerWs) {
-            peerWs.send(JSON.stringify({
-              type: "mesh:proxy_response",
-              projectSlug: "",
-              requestId: "busy-" + sessionId,
-              payload: { type: "session:busy", sessionId, busy: busy, busyOwner: owner },
-            }));
-          }
-        }
-      }
-    }
-  }
-}, 3000);
 
 function getStreamStatePath(): string {
   return join(getLatticeHome(), "active-streams.json");
@@ -191,6 +143,30 @@ export function cleanupClientPermissions(clientId: string): void {
   }
 }
 
+export function getPendingElicitation(requestId: string): PendingElicitation | undefined {
+  return pendingElicitations.get(requestId);
+}
+
+export function resolveElicitation(requestId: string, result: { action: "accept" | "decline"; content?: Record<string, unknown> }): void {
+  var pending = pendingElicitations.get(requestId);
+  if (!pending) return;
+  pendingElicitations.delete(requestId);
+  pending.resolve(result);
+}
+
+export function cleanupClientElicitations(clientId: string): void {
+  var toRemove: string[] = [];
+  pendingElicitations.forEach(function (entry, requestId) {
+    if (entry.clientId === clientId) {
+      toRemove.push(requestId);
+      entry.resolve({ action: "decline" });
+    }
+  });
+  for (var i = 0; i < toRemove.length; i++) {
+    pendingElicitations.delete(toRemove[i]);
+  }
+}
+
 export function addAutoApprovedTool(sessionId: string, toolName: string): void {
   var tools = autoApprovedTools.get(sessionId);
   if (!tools) {
@@ -212,99 +188,14 @@ export function getActiveStreamCount(): number {
   return activeStreams.size;
 }
 
-export function getActiveSessionCountForProject(projectPath: string): number {
-  var count = 0;
-  var hash = projectPath.replace(/\//g, "-");
-  var dir = join(homedir(), ".claude", "projects", hash);
-
-  for (var [sessionId] of activeStreams) {
-    if (existsSync(join(dir, sessionId + ".jsonl"))) count++;
-  }
-
-  if (cliActiveProjects.has(projectPath)) count++;
-
+export function getActiveStreamCountForProject(projectSlug: string): number {
+  let count = 0;
+  streamMetadata.forEach(function (meta) {
+    if (meta.projectSlug === projectSlug) count++;
+  });
   return count;
 }
 
-/**
- * Check if a session is controlled by an external process (not Lattice).
- * Lattice's own active streams are handled by isProcessing on the client,
- * so this ONLY returns true for external CLI instances.
- */
-export function isSessionBusy(sessionId: string): boolean {
-  if (activeStreams.has(sessionId)) return true;
-  return isSessionLockedByExternal(sessionId);
-}
-
-/**
- * Check if a PID is the Lattice daemon or one of its child processes.
- * The SDK spawns child processes (e.g. claude-agent-sdk/cli.js) that hold
- * lock files — those are NOT external.
- */
-var cliActiveProjects = new Set<string>();
-
-function refreshCliDetection(): void {
-  var newActive = new Set<string>();
-  var cliPids = getClaudeCliPidsAsync();
-  for (var i = 0; i < cliPids.length; i++) {
-    newActive.add(cliPids[i].cwd);
-  }
-  cliActiveProjects = newActive;
-}
-
-function getClaudeCliPidsAsync(): Array<{ pid: number; cwd: string; cmdline: string[] }> {
-  var results: Array<{ pid: number; cwd: string; cmdline: string[] }> = [];
-  try {
-    var procEntries = readdirSync("/proc").filter(function (e) { return /^\d+$/.test(e); });
-    for (var i = 0; i < procEntries.length; i++) {
-      var pid = parseInt(procEntries[i], 10);
-      if (pid === process.pid) continue;
-      try {
-        var cmdline = readFileSync("/proc/" + pid + "/cmdline", "utf-8").split("\0");
-        var exe = cmdline[0] || "";
-        if (!exe.endsWith("/claude") && exe !== "claude") continue;
-        var cwd = readlinkSync("/proc/" + pid + "/cwd");
-        results.push({ pid, cwd, cmdline });
-      } catch {}
-    }
-  } catch {}
-  return results;
-}
-
-setInterval(refreshCliDetection, 10000);
-
-function getProjectPathForSession(sessionId: string): string | null {
-  var config = loadConfig();
-  for (var i = 0; i < config.projects.length; i++) {
-    var hash = config.projects[i].path.replace(/\//g, "-");
-    var jsonlPath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
-    if (existsSync(jsonlPath)) return config.projects[i].path;
-  }
-  return null;
-}
-
-
-function isSessionLockedByExternal(sessionId: string): boolean {
-  if (activeStreams.has(sessionId)) return false;
-  var projectPath = getProjectPathForSession(sessionId);
-  if (!projectPath) return false;
-  return cliActiveProjects.has(projectPath);
-}
-
-export function stopExternalSession(sessionId: string): boolean {
-  var projectPath = getProjectPathForSession(sessionId);
-  if (!projectPath) return false;
-  var pids = getClaudeCliPidsAsync();
-  for (var i = 0; i < pids.length; i++) {
-    if (pids[i].cwd === projectPath) {
-      try {
-        process.kill(pids[i].pid, "SIGINT");
-        return true;
-      } catch {}
-    }
-  }
-  return false;
-}
 
 export function getSessionStreamClientId(sessionId: string): string | undefined {
   var meta = streamMetadata.get(sessionId);
@@ -481,17 +372,54 @@ export function startChatStream(options: ChatStreamOptions): void {
     } catch {}
   }
 
+  var abortController = new AbortController();
+
   var queryOptions: Parameters<typeof query>[0]["options"] = {
     cwd,
     permissionMode: effectiveMode,
     promptSuggestions: true,
+    settingSources: ["user", "project", "local"],
+    includePartialMessages: true,
+    enableFileCheckpointing: true,
+    agentProgressSummaries: true,
+    abortController,
+    pathToClaudeCodeExecutable: getClaudeExecutablePath(),
     additionalDirectories: savedAdditionalDirs.length > 0 ? savedAdditionalDirs : undefined,
     mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers as Record<string, any> : undefined,
+    stderr: function (data: string) {
+      if (data.includes("error") || data.includes("Error") || data.includes("credit") || data.includes("Credit") || data.includes("billing") || data.includes("auth")) {
+        log.chat("SDK stderr: %s", data.trim());
+      }
+    },
   };
 
   (queryOptions as any).toolConfig = {
     askUserQuestion: { previewFormat: "html" },
   };
+
+  queryOptions.onElicitation = function (request: any, opts: any) {
+    return new Promise(function (resolve) {
+      var requestId = crypto.randomUUID();
+      pendingElicitations.set(requestId, { resolve, clientId, sessionId });
+      sendTo(clientId, {
+        type: "chat:elicitation_request",
+        requestId,
+        serverName: request.serverName || "MCP Server",
+        message: request.message || "",
+        mode: request.mode || "form",
+        url: request.url || null,
+        requestedSchema: request.requestedSchema || null,
+      });
+      if (opts && opts.signal) {
+        opts.signal.addEventListener("abort", function () {
+          if (pendingElicitations.has(requestId)) {
+            pendingElicitations.delete(requestId);
+            resolve({ action: "decline" });
+          }
+        }, { once: true });
+      }
+    });
+  } as any;
 
   queryOptions.canUseTool = function (toolName, input, options) {
     var approved = autoApprovedTools.get(sessionId);
@@ -713,7 +641,7 @@ export function startChatStream(options: ChatStreamOptions): void {
   var stream = query({ prompt: queryPrompt, options: queryOptions });
   pendingStreams.delete(sessionId);
   activeStreams.set(sessionId, stream);
-  streamMetadata.set(sessionId, { projectSlug, clientId, startedAt: Date.now() });
+  streamMetadata.set(sessionId, { projectSlug, clientId, startedAt: Date.now(), abortController });
   persistStreamState();
   broadcast({ type: "session:busy", sessionId, busy: true }, clientId);
 
@@ -742,6 +670,15 @@ export function startChatStream(options: ChatStreamOptions): void {
         }
       });
       toCleanup.forEach(function (reqId) { pendingPermissions.delete(reqId); });
+
+      var elicitToCleanup: string[] = [];
+      pendingElicitations.forEach(function (entry, reqId) {
+        if (entry.sessionId === sessionId) {
+          elicitToCleanup.push(reqId);
+          entry.resolve({ action: "decline" });
+        }
+      });
+      elicitToCleanup.forEach(function (reqId) { pendingElicitations.delete(reqId); });
 
       autoApprovedTools.delete(sessionId);
       sessionPermissionOverrides.delete(sessionId);
@@ -903,6 +840,22 @@ export function startChatStream(options: ChatStreamOptions): void {
           }
         }
       }
+      return;
+    }
+
+    if (msg.type === "rate_limit_event") {
+      var rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
+      var rli = rlMsg.rate_limit_info;
+      sendTo(clientId, {
+        type: "chat:rate_limit",
+        status: rli.status,
+        utilization: rli.utilization,
+        resetsAt: rli.resetsAt,
+        rateLimitType: rli.rateLimitType,
+        overageStatus: rli.overageStatus,
+        overageResetsAt: rli.overageResetsAt,
+        isUsingOverage: rli.isUsingOverage,
+      } as any);
       return;
     }
 

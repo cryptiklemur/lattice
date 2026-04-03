@@ -23,7 +23,7 @@ export function useWebSocket(): WebSocketContextValue {
 
 export function getWebSocketUrl(): string {
   if (import.meta.env.DEV) {
-    return "ws://" + window.location.hostname + ":7654/ws";
+    return "ws://" + window.location.hostname + ":17654/ws";
   }
   var protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return protocol + "//" + window.location.host + "/ws";

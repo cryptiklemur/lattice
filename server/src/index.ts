@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+delete process.env.CLAUDECODE;
+delete process.env.CLAUDE_CODE_ENTRYPOINT;
+
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { DAEMON_PID_FILE } from "@lattice/shared";

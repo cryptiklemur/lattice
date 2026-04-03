@@ -27,7 +27,7 @@ import {
 import { getContextBreakdown } from "../project/context-breakdown";
 import { setActiveSession, getActiveSession } from "./chat";
 import { setActiveProject } from "./fs";
-import { wasSessionInterrupted, clearInterruptedFlag, isSessionBusy, watchSessionLock, stopExternalSession, getBusyOwner } from "../project/sdk-bridge";
+import { wasSessionInterrupted, clearInterruptedFlag } from "../project/sdk-bridge";
 import { log } from "../logger";
 
 registerHandler("session", function (clientId: string, message: ClientMessage) {
@@ -105,7 +105,6 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     var activateMsg = message as SessionActivateMessage;
     setActiveSession(clientId, activateMsg.projectSlug, activateMsg.sessionId);
     setActiveProject(clientId, activateMsg.projectSlug);
-    watchSessionLock(activateMsg.sessionId);
     var activateT0 = Date.now();
     void loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).then(function (historyResult) {
       log.session("session:activate history: %dms", Date.now() - activateT0);
@@ -114,8 +113,6 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
       if (interrupted) {
         clearInterruptedFlag(activateMsg.sessionId);
       }
-      var busy = isSessionBusy(activateMsg.sessionId);
-      var busyOwner = busy ? getBusyOwner(activateMsg.sessionId) : undefined;
       sendTo(clientId, {
         type: "session:history",
         projectSlug: activateMsg.projectSlug,
@@ -123,8 +120,6 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         messages: historyResult.messages,
         title: title,
         interrupted: interrupted || undefined,
-        busy: busy || undefined,
-        busyOwner: busyOwner,
         totalMessages: historyResult.totalMessages,
         hasMore: historyResult.hasMore,
       });
@@ -222,13 +217,4 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     });
   }
 
-  if (message.type === "session:stop_external") {
-    var stopMsg = message as { type: string; sessionId: string };
-    var stopped = stopExternalSession(stopMsg.sessionId);
-    if (stopped) {
-      log.session("Sent SIGINT to external CLI process for session %s", stopMsg.sessionId);
-    } else {
-      sendTo(clientId, { type: "chat:error", message: "No external process found for this session." });
-    }
-  }
 });

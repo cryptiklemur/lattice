@@ -425,11 +425,6 @@ export interface ProjectSettingsErrorMessage {
   message: string;
 }
 
-export interface SessionStopExternalMessage {
-  type: "session:stop_external";
-  sessionId: string;
-}
-
 export interface BudgetOverrideMessage {
   type: "budget:override";
 }
@@ -533,13 +528,43 @@ export interface UpdateApplyMessage {
   type: "update:apply";
 }
 
+export interface ChatElicitationRequestMessage {
+  type: "chat:elicitation_request";
+  requestId: string;
+  serverName: string;
+  message: string;
+  mode: "form" | "url";
+  url?: string | null;
+  requestedSchema?: Record<string, unknown> | null;
+}
+
+export interface ChatElicitationResponseMessage {
+  type: "chat:elicitation_response";
+  requestId: string;
+  action: "accept" | "decline";
+  content?: Record<string, unknown>;
+}
+
+export interface WarmupModelsMessage {
+  type: "warmup:models";
+  models: Array<{ value: string; displayName: string }>;
+}
+
+export interface WarmupAccountMessage {
+  type: "warmup:account";
+  email?: string;
+  organization?: string;
+  subscriptionType?: string;
+  apiKeySource?: string;
+  apiProvider?: string;
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
   | SessionRenameMessage
   | SessionDeleteMessage
   | SessionListRequestMessage
-  | SessionStopExternalMessage
   | ChatSendMessage
   | ChatPermissionResponseMessage
   | ChatRewindMessage
@@ -608,7 +633,8 @@ export type ClientMessage =
   | PluginDiscoverMessage
   | PluginErrorsMessage
   | UpdateCheckMessage
-  | UpdateApplyMessage;
+  | UpdateApplyMessage
+  | ChatElicitationResponseMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -636,8 +662,6 @@ export interface SessionHistoryMessage {
   messages: HistoryMessage[];
   title?: string;
   interrupted?: boolean;
-  busy?: boolean;
-  busyOwner?: "cli" | "lattice";
   totalMessages?: number;
   hasMore?: boolean;
 }
@@ -646,7 +670,6 @@ export interface SessionBusyMessage {
   type: "session:busy";
   sessionId: string;
   busy: boolean;
-  busyOwner?: "cli" | "lattice";
 }
 
 export interface ChatUserMessage {
@@ -1107,7 +1130,22 @@ export type ServerMessage =
   | PluginDiscoverResultMessage
   | PluginErrorsResultMessage
   | UpdateStatusMessage
-  | UpdateApplyResultMessage;
+  | UpdateApplyResultMessage
+  | ChatElicitationRequestMessage
+  | WarmupModelsMessage
+  | WarmupAccountMessage
+  | ChatRateLimitMessage;
+
+export interface ChatRateLimitMessage {
+  type: "chat:rate_limit";
+  status: "allowed" | "allowed_warning" | "rejected";
+  utilization?: number;
+  resetsAt?: number;
+  rateLimitType?: string;
+  overageStatus?: string;
+  overageResetsAt?: number;
+  isUsingOverage?: boolean;
+}
 
 export interface BudgetStatusMessage {
   type: "budget:status";
