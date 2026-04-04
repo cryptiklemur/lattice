@@ -21,8 +21,46 @@ import { useSpinnerVerb } from "../../hooks/useSpinnerVerb";
 import { useBookmarks } from "../../hooks/useBookmarks";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
+function SessionLoadingState({ fileSize }: { fileSize: number | null }) {
+  var [progress, setProgress] = useState(0);
+
+  useEffect(function () {
+    var start = Date.now();
+    var raf = 0;
+    // Scale the time constant based on file size:
+    // ~50KB → 800ms, ~500KB → 2s, ~5MB → 8s, unknown → 3s
+    var timeConstant = fileSize != null
+      ? Math.max(800, Math.min(fileSize / 60, 8000))
+      : 3000;
+
+    function tick() {
+      var elapsed = Date.now() - start;
+      var raw = 1 - Math.exp(-elapsed / timeConstant);
+      setProgress(Math.min(raw * 90, 90));
+      raf = requestAnimationFrame(tick);
+    }
+
+    raf = requestAnimationFrame(tick);
+    return function () { cancelAnimationFrame(raf); };
+  }, [fileSize]);
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-5 select-none">
+      <div className="flex flex-col items-center gap-3 w-full max-w-[260px]">
+        <p className="text-[11px] font-mono text-base-content/40 tracking-wide">Loading session…</p>
+        <div className="w-full h-[3px] rounded-full bg-base-content/8 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary/60 transition-all duration-300 ease-out"
+            style={{ width: progress + "%" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug }: { sessionId?: string; projectSlug?: string } = {}) {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
+  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyLoadingFileSize, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
 
@@ -757,27 +795,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </div>
         )}
         {messages.length === 0 && historyLoading ? (
-          <div className="px-5 pt-6 space-y-4 animate-pulse">
-            <div className="chat chat-end">
-              <div className="chat-bubble bg-primary/10 border-0 w-48 h-10" />
-            </div>
-            <div className="chat chat-start">
-              <div className="chat-bubble bg-base-300/50 border-0 space-y-2 w-80">
-                <div className="h-2.5 bg-base-content/8 rounded w-full" />
-                <div className="h-2.5 bg-base-content/8 rounded w-3/4" />
-                <div className="h-2.5 bg-base-content/8 rounded w-5/6" />
-              </div>
-            </div>
-            <div className="chat chat-end">
-              <div className="chat-bubble bg-primary/10 border-0 w-56 h-10" />
-            </div>
-            <div className="chat chat-start">
-              <div className="chat-bubble bg-base-300/50 border-0 space-y-2 w-72">
-                <div className="h-2.5 bg-base-content/8 rounded w-full" />
-                <div className="h-2.5 bg-base-content/8 rounded w-2/3" />
-              </div>
-            </div>
-          </div>
+          <SessionLoadingState fileSize={historyLoadingFileSize} />
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center p-10 h-full">
             <div className="text-center max-w-[360px]">

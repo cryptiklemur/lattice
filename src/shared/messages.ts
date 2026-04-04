@@ -1,4 +1,4 @@
-import type { AnalyticsPayload } from "./analytics.js";
+import type { AnalyticsPayload, AnalyticsSectionName } from "./analytics.js";
 import type {
   FileEntry,
   HistoryMessage,
@@ -481,6 +481,18 @@ export interface AnalyticsDataMessage {
   data: AnalyticsPayload;
 }
 
+export interface AnalyticsSectionMessage {
+  type: "analytics:section";
+  requestId: string;
+  section: AnalyticsSectionName;
+  data: Partial<AnalyticsPayload>;
+}
+
+export interface AnalyticsCompleteMessage {
+  type: "analytics:complete";
+  requestId: string;
+}
+
 export interface AnalyticsErrorMessage {
   type: "analytics:error";
   scope: "global" | "project" | "session";
@@ -560,6 +572,23 @@ export interface UpdateCheckMessage {
 
 export interface UpdateApplyMessage {
   type: "update:apply";
+}
+
+export interface ThemeListCustomMessage {
+  type: "theme:list_custom";
+}
+
+export interface ThemeSaveMessage {
+  type: "theme:save";
+  name: string;
+  author: string;
+  variant: "dark" | "light";
+  colors: Record<string, string>;
+}
+
+export interface ThemeDeleteMessage {
+  type: "theme:delete";
+  name: string;
 }
 
 export interface ChatElicitationRequestMessage {
@@ -670,7 +699,10 @@ export type ClientMessage =
   | PluginErrorsMessage
   | UpdateCheckMessage
   | UpdateApplyMessage
-  | ChatElicitationResponseMessage;
+  | ChatElicitationResponseMessage
+  | ThemeListCustomMessage
+  | ThemeSaveMessage
+  | ThemeDeleteMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -700,6 +732,12 @@ export interface SessionHistoryMessage {
   interrupted?: boolean;
   totalMessages?: number;
   hasMore?: boolean;
+}
+
+export interface SessionLoadingProgressMessage {
+  type: "session:loading_progress";
+  sessionId: string;
+  fileSize: number | null;
 }
 
 export interface SessionBusyMessage {
@@ -1086,6 +1124,21 @@ export interface UpdateApplyResultMessage {
   message?: string;
 }
 
+export interface ThemeCustomListMessage {
+  type: "theme:custom_list";
+  themes: Array<{ name: string; author: string; variant: string; filename: string; colors: Record<string, string> }>;
+}
+
+export interface ThemeSavedMessage {
+  type: "theme:saved";
+  theme: { name: string; author: string; variant: string; filename: string; colors: Record<string, string> };
+}
+
+export interface ThemeDeletedMessage {
+  type: "theme:deleted";
+  filename: string;
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -1150,6 +1203,8 @@ export type ServerMessage =
   | ChatTodoUpdateMessage
   | ChatPlanModeMessage
   | AnalyticsDataMessage
+  | AnalyticsSectionMessage
+  | AnalyticsCompleteMessage
   | AnalyticsErrorMessage
   | SessionPreviewMessage
   | SessionHistoryPageResultMessage
@@ -1173,7 +1228,11 @@ export type ServerMessage =
   | ChatMessageUuidMessage
   | WarmupModelsMessage
   | WarmupAccountMessage
-  | ChatRateLimitMessage;
+  | ChatRateLimitMessage
+  | ThemeCustomListMessage
+  | ThemeSavedMessage
+  | ThemeDeletedMessage
+  | SessionLoadingProgressMessage;
 
 export interface ChatRateLimitMessage {
   type: "chat:rate_limit";

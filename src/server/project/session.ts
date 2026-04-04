@@ -5,7 +5,8 @@ import {
   renameSession as sdkRenameSession,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKSessionInfo, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
-import { existsSync, unlinkSync, readFileSync } from "node:fs";
+import { existsSync, unlinkSync, readFileSync, statSync } from "node:fs";
+import * as fsPromises from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
@@ -155,6 +156,18 @@ function convertSessionMessages(messages: SessionMessage[]): HistoryMessage[] {
     var apiMsg = msg.message as { role?: string; content?: unknown };
 
     if (msg.type === "user") {
+      if ((msg as Record<string, unknown>).isCompactSummary === true) {
+        var summaryText = typeof apiMsg.content === "string" ? apiMsg.content : "";
+        if (summaryText) {
+          result.push({
+            type: "compact_summary",
+            uuid: msg.uuid,
+            text: summaryText,
+            timestamp: ts,
+          });
+        }
+        continue;
+      }
       if (Array.isArray(apiMsg.content)) {
         var hadToolResult = false;
         for (var j = 0; j < apiMsg.content.length; j++) {
@@ -307,8 +320,7 @@ export async function getSessionUsage(projectSlug: string, sessionId: string): P
   if (!existsSync(sessionFile)) return null;
 
   try {
-    var fsPromises2 = require("node:fs/promises") as typeof import("node:fs/promises");
-    var fhUsage = await fsPromises2.open(sessionFile, "r");
+    var fhUsage = await fsPromises.open(sessionFile, "r");
     var statUsage = await fhUsage.stat();
     var tailSize = Math.min(statUsage.size, 512 * 1024);
     var bufUsage = Buffer.alloc(tailSize);
@@ -519,8 +531,17 @@ function getSessionFilePath(projectSlug: string, sessionId: string): string | nu
   return existsSync(filePath) ? filePath : null;
 }
 
+export function getSessionFileSizeBytes(projectSlug: string, sessionId: string): number | null {
+  var filePath = getSessionFilePath(projectSlug, sessionId);
+  if (!filePath) return null;
+  try {
+    return statSync(filePath).size;
+  } catch {
+    return null;
+  }
+}
+
 async function readTailLines(filePath: string, maxBytes: number): Promise<{ lines: string[]; isPartial: boolean; fileSize: number }> {
-  var fsPromises = require("node:fs/promises") as typeof import("node:fs/promises");
   var fh = await fsPromises.open(filePath, "r");
   try {
     var stat = await fh.stat();
@@ -575,7 +596,7 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
 
       log.session("loadSessionHistory %s: %dms (tail read, %d msgs, partial=%s)", sessionId.slice(0, 8), Date.now() - t0, tailMessages.length, hasMore);
 
-      if (!hasMore) {
+      if (!hasMore && tailMessages.length > 0) {
         historyCache.set(sessionId, { messages: tailMessages, title: null });
         touchCache(sessionId);
         evictOldest();
@@ -592,9 +613,11 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
     var options = projectPath ? { dir: projectPath } : undefined;
     var rawMessages = await getSessionMessages(sessionId, options);
     var allMessages = convertSessionMessages(rawMessages);
-    historyCache.set(sessionId, { messages: allMessages, title: null });
-    touchCache(sessionId);
-    evictOldest();
+    if (allMessages.length > 0) {
+      historyCache.set(sessionId, { messages: allMessages, title: null });
+      touchCache(sessionId);
+      evictOldest();
+    }
     log.session("loadSessionHistory %s: %dms (full SDK, %d msgs)", sessionId.slice(0, 8), Date.now() - t0, allMessages.length);
     var tailSlice = allMessages.length > INITIAL_MESSAGE_COUNT
       ? allMessages.slice(allMessages.length - INITIAL_MESSAGE_COUNT)

@@ -53,6 +53,7 @@ export interface SessionState {
   lastResponseDuration: number | null;
   lastReadIndex: number | null;
   historyLoading: boolean;
+  historyLoadingFileSize: number | null;
   historyHasMore: boolean;
   historyTotalMessages: number;
   wasInterrupted: boolean;
@@ -80,6 +81,7 @@ var sessionStore = new Store<SessionState>({
   lastResponseDuration: null,
   lastReadIndex: null,
   historyLoading: false,
+  historyLoadingFileSize: null,
   historyHasMore: false,
   historyTotalMessages: 0,
   wasInterrupted: false,
@@ -290,6 +292,7 @@ export function setActiveSession(projectSlug: string | null, sessionId: string |
       lastResponseDuration: null,
       lastReadIndex: null,
       historyLoading: !cached,
+      historyLoadingFileSize: null,
       historyHasMore: cached?.hasMore ?? false,
       historyTotalMessages: cached?.totalMessages ?? 0,
       wasInterrupted: false,
@@ -353,6 +356,7 @@ export function clearSession(): void {
       lastResponseDuration: null,
       lastReadIndex: null,
       historyLoading: false,
+      historyLoadingFileSize: null,
       historyHasMore: false,
       historyTotalMessages: 0,
       wasInterrupted: false,

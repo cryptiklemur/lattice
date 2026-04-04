@@ -24,6 +24,7 @@ import {
   getSessionHistoryPage,
   loadSessionHistory,
   renameSession,
+  getSessionFileSizeBytes,
 } from "../project/session";
 import { getContextBreakdown } from "../project/context-breakdown";
 import { setActiveSession, getActiveSession } from "./chat";
@@ -106,9 +107,9 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     var activateMsg = message as SessionActivateMessage & { refresh?: boolean };
     setActiveSession(clientId, activateMsg.projectSlug, activateMsg.sessionId);
     setActiveProject(clientId, activateMsg.projectSlug);
-    if (activateMsg.refresh) {
-      invalidateHistoryCache(activateMsg.sessionId);
-    }
+    invalidateHistoryCache(activateMsg.sessionId);
+    var fileSize = getSessionFileSizeBytes(activateMsg.projectSlug, activateMsg.sessionId);
+    sendTo(clientId, { type: "session:loading_progress", sessionId: activateMsg.sessionId, fileSize });
     var activateT0 = Date.now();
     void loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).then(function (historyResult) {
       log.session("session:activate history: %dms", Date.now() - activateT0);

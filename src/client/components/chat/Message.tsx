@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, memo, useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck, RotateCcw } from "lucide-react";
+import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck, RotateCcw, ClipboardCopy, FileText, MessageSquarePlus, History } from "lucide-react";
 import type { HistoryMessage, ChatPermissionResponseMessage } from "@lattice/shared";
 import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -12,6 +12,8 @@ import { formatToolSummary } from "./toolSummary";
 import { PromptQuestion } from "./PromptQuestion";
 import { TodoCard } from "./TodoCard";
 import { ElicitationCard } from "./ElicitationCard";
+import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
+import type { ContextMenuEntry } from "../ui/ContextMenu";
 
 function TableWrapper(props: React.HTMLAttributes<HTMLTableElement>) {
   var wrapperRef = useRef<HTMLDivElement>(null);
@@ -186,7 +188,7 @@ function parseSkillInvocation(text: string): { skillName: string; content: strin
 function SkillMessage(props: { skillName: string; content: string; time: string | null; uuid?: string }) {
   var [expanded, setExpanded] = useState(false);
   return (
-    <div id={props.uuid ? "msg-" + props.uuid : undefined} data-allow-context-menu className="chat chat-end px-5 py-1 group/msg">
+    <div id={props.uuid ? "msg-" + props.uuid : undefined} className="chat chat-end px-5 py-1 group/msg">
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
         <button
           type="button"
@@ -303,11 +305,61 @@ function UserMessage(props: { message: HistoryMessage }) {
   var time = formatTime(msg.timestamp);
   var text = msg.text || "";
   var skill = parseSkillInvocation(text);
+  var ctxMenu = useContextMenu<HistoryMessage>();
+  var ws = useWebSocket();
+  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s; });
+  var isBookmarked = useMemo(function () {
+    if (!msg.uuid) return false;
+    for (var i = 0; i < bookmarkState.bookmarks.length; i++) {
+      if (bookmarkState.bookmarks[i].messageUuid === msg.uuid) return true;
+    }
+    return false;
+  }, [msg.uuid, bookmarkState.bookmarks]);
+
+  function handleNewSession() {
+    var state = getSessionStore().state;
+    if (!state.activeProjectSlug) return;
+    setPendingPrefill(text);
+    ws.send({ type: "session:create", projectSlug: state.activeProjectSlug });
+  }
+
+  function handleBookmarkToggle() {
+    var state = getSessionStore().state;
+    if (!state.activeSessionId || !state.activeProjectSlug || !msg.uuid) return;
+    if (isBookmarked) {
+      var bm = findBookmarkByUuid(msg.uuid);
+      if (bm) {
+        ws.send({ type: "bookmark:remove", id: bm.id });
+      }
+    } else {
+      ws.send({
+        type: "bookmark:add",
+        sessionId: state.activeSessionId,
+        projectSlug: state.activeProjectSlug,
+        messageUuid: msg.uuid,
+        messageText: text.slice(0, 100),
+        messageType: "user",
+      });
+    }
+  }
+
+  function buildContextItems(): ContextMenuEntry[] {
+    return [
+      { label: "Copy", icon: <Copy size={14} />, onClick: function () { navigator.clipboard.writeText(text); } },
+      { label: "Copy as plain text", icon: <FileText size={14} />, onClick: function () { navigator.clipboard.writeText(stripMarkdown(text)); } },
+      { type: "divider" as const },
+      { label: "Start new session with this message", icon: <MessageSquarePlus size={14} />, onClick: handleNewSession },
+      { type: "divider" as const },
+      { label: isBookmarked ? "Unbookmark" : "Bookmark", icon: isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />, onClick: handleBookmarkToggle, hidden: !msg.uuid },
+      { label: "Copy link to message", icon: <Link size={14} />, onClick: function () { navigator.clipboard.writeText(window.location.origin + window.location.pathname + "#msg-" + msg.uuid); }, hidden: !msg.uuid },
+    ];
+  }
+
   if (skill) {
     return <SkillMessage skillName={skill.skillName} content={skill.content} time={time} uuid={msg.uuid} />;
   }
   return (
-    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-end px-5 py-1 group/msg">
+    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-end px-5 py-1 group/msg" onContextMenu={function (e) { ctxMenu.open(e, msg); }}>
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline prose-li:text-primary-content [&_ul>li::marker]:text-primary-content [&_ol>li::marker]:text-primary-content">
           <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
@@ -321,6 +373,7 @@ function UserMessage(props: { message: HistoryMessage }) {
           <MessageActions text={text} showNewSession messageUuid={msg.uuid} messageType="user" />
         </div>
       )}
+      {ctxMenu.state && <ContextMenu x={ctxMenu.state.x} y={ctxMenu.state.y} items={buildContextItems()} onClose={ctxMenu.close} label="User message actions" />}
     </div>
   );
 }
@@ -342,8 +395,59 @@ function formatTokenCount(n: number): string {
 function AssistantMessage(props: { message: HistoryMessage; responseCost?: number | null; responseDuration?: number | null }) {
   var msg = props.message;
   var time = formatTime(msg.timestamp);
+  var text = msg.text || "";
+  var ctxMenu = useContextMenu<HistoryMessage>();
+  var ws = useWebSocket();
+  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s; });
+  var isBookmarked = useMemo(function () {
+    if (!msg.uuid) return false;
+    for (var i = 0; i < bookmarkState.bookmarks.length; i++) {
+      if (bookmarkState.bookmarks[i].messageUuid === msg.uuid) return true;
+    }
+    return false;
+  }, [msg.uuid, bookmarkState.bookmarks]);
+
+  function handleNewSession() {
+    var state = getSessionStore().state;
+    if (!state.activeProjectSlug) return;
+    setPendingPrefill(text);
+    ws.send({ type: "session:create", projectSlug: state.activeProjectSlug });
+  }
+
+  function handleBookmarkToggle() {
+    var state = getSessionStore().state;
+    if (!state.activeSessionId || !state.activeProjectSlug || !msg.uuid) return;
+    if (isBookmarked) {
+      var bm = findBookmarkByUuid(msg.uuid);
+      if (bm) {
+        ws.send({ type: "bookmark:remove", id: bm.id });
+      }
+    } else {
+      ws.send({
+        type: "bookmark:add",
+        sessionId: state.activeSessionId,
+        projectSlug: state.activeProjectSlug,
+        messageUuid: msg.uuid,
+        messageText: text.slice(0, 100),
+        messageType: "assistant",
+      });
+    }
+  }
+
+  function buildContextItems(): ContextMenuEntry[] {
+    return [
+      { label: "Copy", icon: <Copy size={14} />, onClick: function () { navigator.clipboard.writeText(text); } },
+      { label: "Copy as plain text", icon: <FileText size={14} />, onClick: function () { navigator.clipboard.writeText(stripMarkdown(text)); } },
+      { type: "divider" as const },
+      { label: "Start new session with this message", icon: <MessageSquarePlus size={14} />, onClick: handleNewSession },
+      { type: "divider" as const },
+      { label: isBookmarked ? "Unbookmark" : "Bookmark", icon: isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />, onClick: handleBookmarkToggle, hidden: !msg.uuid },
+      { label: "Copy link to message", icon: <Link size={14} />, onClick: function () { navigator.clipboard.writeText(window.location.origin + window.location.pathname + "#msg-" + msg.uuid); }, hidden: !msg.uuid },
+    ];
+  }
+
   return (
-    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-start px-5 py-1 group/msg">
+    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-start px-5 py-1 group/msg" onContextMenu={function (e) { ctxMenu.open(e, msg); }}>
       <div className="chat-image">
         <div className="w-6 h-6 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center">
           <div className="w-2.5 h-2.5 rounded-full bg-primary" />
@@ -351,7 +455,7 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
       </div>
       <div className="chat-bubble bg-base-300/70 text-base-content text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm border border-base-content/5">
         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-base-content prose-p:text-base-content prose-strong:text-base-content prose-code:text-base-content/70 prose-code:bg-base-100/50 prose-pre:bg-base-100 prose-pre:text-base-content/70 prose-a:text-primary prose-a:underline prose-li:text-base-content">
-          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.text || ""}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
         </div>
       </div>
       {time && (
@@ -369,9 +473,10 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
             <span className="text-base-content/15">{formatTokenCount(msg.outputTokens)} out</span>
           )}
           <MessageAnchor id={msg.uuid} />
-          <MessageActions text={msg.text || ""} showNewSession messageUuid={msg.uuid} messageType="assistant" />
+          <MessageActions text={text} showNewSession messageUuid={msg.uuid} messageType="assistant" />
         </div>
       )}
+      {ctxMenu.state && <ContextMenu x={ctxMenu.state.x} y={ctxMenu.state.y} items={buildContextItems()} onClose={ctxMenu.close} label="Assistant message actions" />}
     </div>
   );
 }
@@ -380,6 +485,7 @@ function ToolMessage(props: { message: HistoryMessage }) {
   var msg = props.message;
   var [expanded, setExpanded] = useState<boolean>(false);
   var hasResult = Boolean(msg.content);
+  var ctxMenu = useContextMenu<HistoryMessage>();
 
   var parsedArgs: string = msg.args || "";
   try {
@@ -390,8 +496,15 @@ function ToolMessage(props: { message: HistoryMessage }) {
     parsedArgs = msg.args || "";
   }
 
+  function buildContextItems(): ContextMenuEntry[] {
+    return [
+      { label: "Copy output", icon: <ClipboardCopy size={14} />, onClick: function () { navigator.clipboard.writeText(msg.content || ""); }, disabled: !hasResult },
+      { label: "Copy tool input", icon: <Copy size={14} />, onClick: function () { navigator.clipboard.writeText(parsedArgs); } },
+    ];
+  }
+
   return (
-    <div className="ml-14 mr-5 py-0.5 max-w-[95%] sm:max-w-[75%] group/msg">
+    <div data-allow-context-menu className="ml-14 mr-5 py-0.5 max-w-[95%] sm:max-w-[75%] group/msg" onContextMenu={function (e) { ctxMenu.open(e, msg); }}>
       <div
         className={
           "rounded-lg overflow-hidden text-[12px] border transition-colors duration-100 " +
@@ -442,6 +555,7 @@ function ToolMessage(props: { message: HistoryMessage }) {
           <MessageActions text={msg.content || ""} />
         </div>
       )}
+      {ctxMenu.state && <ContextMenu x={ctxMenu.state.x} y={ctxMenu.state.y} items={buildContextItems()} onClose={ctxMenu.close} label="Tool message actions" />}
     </div>
   );
 }
@@ -618,6 +732,48 @@ function PermissionMessage(props: { message: HistoryMessage }) {
   );
 }
 
+function CompactSummaryMessage(props: { message: HistoryMessage }) {
+  var [expanded, setExpanded] = useState(false);
+  var msg = props.message;
+  var text = msg.text || "";
+  var time = formatTime(msg.timestamp);
+
+  return (
+    <div id={msg.uuid ? "msg-" + msg.uuid : undefined} className="px-5 py-3">
+      <button
+        type="button"
+        onClick={function () { setExpanded(function (v) { return !v; }); }}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-3 group/compact focus-visible:outline-none"
+      >
+        <div className="h-px flex-1 bg-base-content/8 group-hover/compact:bg-base-content/15 transition-colors duration-150" />
+        <div className={"flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all duration-150 " + (expanded ? "border-primary/30 bg-primary/8 text-primary/70" : "border-base-content/10 bg-base-200/60 text-base-content/35 hover:border-base-content/20 hover:text-base-content/55")}>
+          <History size={11} className="shrink-0" />
+          <span className="text-[10px] font-mono font-semibold tracking-wider uppercase">Context Compacted</span>
+          {time && <span className="text-[9px] opacity-60 ml-0.5">{time}</span>}
+          <ChevronDown size={10} className={"ml-0.5 transition-transform duration-200 " + (expanded ? "rotate-180" : "")} />
+        </div>
+        <div className="h-px flex-1 bg-base-content/8 group-hover/compact:bg-base-content/15 transition-colors duration-150" />
+      </button>
+
+      {expanded && (
+        <div className="mt-3 mx-auto max-w-[760px]">
+          <div className="rounded-xl border border-base-content/8 bg-base-200/40 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-base-content/6 bg-base-200/60">
+              <History size={12} className="text-base-content/30 shrink-0" />
+              <span className="text-[10px] font-mono font-semibold text-base-content/35 uppercase tracking-wider">Session Summary</span>
+              <span className="ml-auto text-[9px] text-base-content/20 font-mono">{time}</span>
+            </div>
+            <div className="max-h-[480px] overflow-y-auto p-4 prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-base-content/70 prose-headings:text-[12px] prose-headings:font-mono prose-headings:uppercase prose-headings:tracking-wide prose-headings:mt-4 prose-headings:mb-1.5 prose-p:text-base-content/50 prose-p:text-[12px] prose-p:leading-relaxed prose-strong:text-base-content/65 prose-code:text-base-content/50 prose-code:text-[11px] prose-code:bg-base-content/5 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-li:text-base-content/50 prose-li:text-[12px] prose-hr:border-base-content/8">
+              <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export var Message = memo(function Message(props: MessageProps) {
   var msg = props.message;
 
@@ -631,6 +787,10 @@ export var Message = memo(function Message(props: MessageProps) {
 
   if (msg.type === "tool_start") {
     return <ToolMessage message={msg} />;
+  }
+
+  if (msg.type === "compact_summary") {
+    return <CompactSummaryMessage message={msg} />;
   }
 
   if (msg.type === "permission_request") {

@@ -81,6 +81,7 @@ export interface UseSessionReturn extends SessionState {
   dismissBudgetExceeded: () => void;
   loadMoreHistory: () => void;
   historyHasMore: boolean;
+  historyLoadingFileSize: number | null;
 }
 
 export function useSession(): UseSessionReturn {
@@ -335,6 +336,12 @@ export function useSession(): UseSessionReturn {
       });
     }
 
+    function handleLoadingProgress(msg: ServerMessage) {
+      var m = msg as { type: string; sessionId: string; fileSize: number | null };
+      if (m.sessionId !== getSessionStore().state.activeSessionId) return;
+      getSessionStore().setState(function (s) { return { ...s, historyLoadingFileSize: m.fileSize }; });
+    }
+
     function handleHistory(msg: ServerMessage) {
       var m = msg as SessionHistoryMessage;
       if (m.sessionId && m.messages && m.messages.length === 0 && m.title) {
@@ -346,6 +353,10 @@ export function useSession(): UseSessionReturn {
       }
       setCurrentAssistantUuid(null);
       if (m.sessionId) {
+        if (m.sessionId !== getSessionStore().state.activeSessionId) {
+          if (m.title) updateSessionTabTitle(m.sessionId, m.title);
+          return;
+        }
         var projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
         setSidebarSessionId(m.sessionId);
         streamSessionId = m.sessionId;
@@ -462,6 +473,7 @@ export function useSession(): UseSessionReturn {
       setCurrentStatus(null);
     }
 
+    subscribe("session:loading_progress", handleLoadingProgress);
     subscribe("chat:user_message", handleUserMessage);
     subscribe("chat:delta", handleDelta);
     subscribe("chat:tool_start", handleToolStart);
@@ -487,6 +499,7 @@ export function useSession(): UseSessionReturn {
 
     return function () {
       subscriptionsActive--;
+      unsubscribe("session:loading_progress", handleLoadingProgress);
       unsubscribe("chat:user_message", handleUserMessage);
       unsubscribe("chat:delta", handleDelta);
       unsubscribe("chat:tool_start", handleToolStart);
@@ -529,6 +542,7 @@ export function useSession(): UseSessionReturn {
     lastResponseDuration: state.lastResponseDuration,
     lastReadIndex: state.lastReadIndex,
     historyLoading: state.historyLoading,
+    historyLoadingFileSize: state.historyLoadingFileSize,
     historyHasMore: state.historyHasMore,
     historyTotalMessages: state.historyTotalMessages,
     loadMoreHistory: function () {
