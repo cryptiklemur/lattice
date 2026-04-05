@@ -629,7 +629,7 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
   }
 }
 
-export async function getSessionHistoryPage(sessionId: string, beforeIndex: number, limit: number, projectSlug?: string): Promise<{ messages: HistoryMessage[]; hasMore: boolean }> {
+export async function getSessionHistoryPage(sessionId: string, beforeIndex: number, limit: number, projectSlug?: string): Promise<{ messages: HistoryMessage[]; hasMore: boolean; totalMessages: number }> {
   var cached = historyCache.get(sessionId);
   if (!cached && projectSlug) {
     var projectPath = getProjectPath(projectSlug);
@@ -643,16 +643,17 @@ export async function getSessionHistoryPage(sessionId: string, beforeIndex: numb
       cached = historyCache.get(sessionId)!;
       log.session("getSessionHistoryPage: full load for %s, %d messages", sessionId.slice(0, 8), allMessages.length);
     } catch {
-      return { messages: [], hasMore: false };
+      return { messages: [], hasMore: false, totalMessages: 0 };
     }
   }
-  if (!cached) return { messages: [], hasMore: false };
+  if (!cached) return { messages: [], hasMore: false, totalMessages: 0 };
 
-  var endIdx = Math.max(0, beforeIndex);
+  var total = cached.messages.length;
+  var endIdx = Math.min(Math.max(0, beforeIndex), total);
   var startIdx = Math.max(0, endIdx - limit);
   var page = cached.messages.slice(startIdx, endIdx);
 
-  return { messages: page, hasMore: startIdx > 0 };
+  return { messages: page, hasMore: startIdx > 0, totalMessages: total };
 }
 
 export function createSession(projectSlug: string): SessionSummary {

@@ -91,6 +91,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         sessionId: pageMsg.sessionId,
         messages: page.messages,
         hasMore: page.hasMore,
+        totalMessages: page.totalMessages,
       });
     });
     return;

@@ -322,7 +322,7 @@ export function useSession(): UseSessionReturn {
     }
 
     function handleHistoryPage(msg: ServerMessage) {
-      var m = msg as { type: string; sessionId: string; messages: HistoryMessage[]; hasMore: boolean };
+      var m = msg as { type: string; sessionId: string; messages: HistoryMessage[]; hasMore: boolean; totalMessages?: number };
       var state = getSessionStore().state;
       if (m.sessionId !== state.activeSessionId) return;
       getSessionStore().setState(function (s) {
@@ -330,6 +330,7 @@ export function useSession(): UseSessionReturn {
           ...s,
           messages: mergeToolResults(m.messages).concat(s.messages),
           historyHasMore: m.hasMore,
+          historyTotalMessages: m.totalMessages ?? s.historyTotalMessages,
         };
       });
     }
