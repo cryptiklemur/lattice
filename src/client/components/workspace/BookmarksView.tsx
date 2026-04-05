@@ -80,7 +80,7 @@ export function BookmarksView() {
     setTimeout(function () {
       var el = document.getElementById("msg-" + bm.messageUuid);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
         el.classList.add("ring-2", "ring-warning/40");
         setTimeout(function () { el!.classList.remove("ring-2", "ring-warning/40"); }, 2000);
       }

@@ -167,7 +167,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
       var el = scrollParentRef.current;
       if (el) el.scrollTop = el.scrollHeight;
     } else {
-      virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: "smooth" });
+      virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     }
   }, [messages.length, virtualizer, isMobile]);
 
@@ -512,7 +512,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                                 setShowBookmarkDropdown(false);
                                 var el = document.getElementById("msg-" + bm.messageUuid);
                                 if (el) {
-                                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  el.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
                                   el.classList.add("ring-2", "ring-warning/40");
                                   setTimeout(function () { el!.classList.remove("ring-2", "ring-warning/40"); }, 2000);
                                 }
