@@ -42,7 +42,7 @@
     "start": "NODE_ENV=production tsx src/server/index.ts"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.79",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.92",
     "@clack/prompts": "^1.2.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.2",

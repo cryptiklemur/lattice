@@ -815,7 +815,8 @@ export function startChatStream(options: ChatStreamOptions): void {
         log.chat("Session %s stream aborted", sessionId);
       } else if (errMsg.includes("Sent before connected") && !retried) {
         retried = true;
-        log.chat("Session %s SDK WebSocket race condition, retrying...", sessionId);
+        log.chat("Session %s SDK WebSocket race condition, retrying after delay...", sessionId);
+        await new Promise(function (r) { setTimeout(r, 500); });
         try {
           var retryMq = createMessageQueue();
           retryMq.push(firstMsg);
