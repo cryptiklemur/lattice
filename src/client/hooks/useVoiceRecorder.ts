@@ -63,7 +63,10 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   var recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   var timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   var finalTranscriptRef = useRef("");
+  var interimTranscriptRef = useRef("");
   var startTimeRef = useRef(0);
+
+  interimTranscriptRef.current = interimTranscript;
 
   var SpeechRecognitionClass = typeof window !== "undefined"
     ? (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition
@@ -140,10 +143,10 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    var transcript = finalTranscriptRef.current || interimTranscript;
+    var transcript = finalTranscriptRef.current || interimTranscriptRef.current;
     cleanup();
     return transcript;
-  }, [interimTranscript, cleanup]);
+  }, [cleanup]);
 
   var cancel = useCallback(function () {
     if (recognitionRef.current) {

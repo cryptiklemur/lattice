@@ -7,7 +7,13 @@ export function useIdleDetection(): boolean {
   var timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
+    var lastReset = 0;
+
     function resetTimer() {
+      var now = Date.now();
+      if (now - lastReset < 500) return;
+      lastReset = now;
+
       if (timerRef.current) clearTimeout(timerRef.current);
       setIsIdle(false);
       timerRef.current = setTimeout(function () {
