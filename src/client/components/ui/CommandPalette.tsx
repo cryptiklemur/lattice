@@ -248,7 +248,7 @@ export function CommandPalette() {
 
   return (
     <div className="fixed inset-0 z-[9998] flex items-start justify-center pt-[15vh]" onClick={close}>
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-base-content/50" />
       <div
         className="relative w-full max-w-[520px] mx-4 bg-base-200 border border-base-content/10 rounded-xl shadow-2xl overflow-hidden"
         onClick={function (e) { e.stopPropagation(); }}

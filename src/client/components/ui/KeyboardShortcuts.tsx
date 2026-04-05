@@ -76,7 +76,7 @@ export function KeyboardShortcuts() {
 
   return (
     <div className="fixed inset-0 z-[9998] flex items-center justify-center" onClick={function () { setOpen(false); }}>
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-base-content/50" />
       <div
         className="relative w-full max-w-[540px] mx-4 bg-base-200 border border-base-content/15 rounded-2xl shadow-xl overflow-hidden"
         onClick={function (e) { e.stopPropagation(); }}

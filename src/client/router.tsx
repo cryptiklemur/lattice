@@ -319,7 +319,7 @@ function RemoveProjectConfirm() {
 
   return (
     <div ref={removeModalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Remove Project">
-      <div className="absolute inset-0 bg-black/50" onClick={sidebar.closeConfirmRemove} />
+      <div className="absolute inset-0 bg-base-content/50" onClick={sidebar.closeConfirmRemove} />
       <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="px-5 py-4 border-b border-base-content/15">
           <h2 className="text-[15px] font-mono font-bold text-base-content">Remove Project</h2>

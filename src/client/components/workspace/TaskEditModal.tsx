@@ -46,7 +46,7 @@ export function TaskEditModal(props: TaskEditModalProps) {
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-content/50 backdrop-blur-sm"
       onClick={handleBackdrop}
       role="dialog"
       aria-modal="true"

@@ -161,7 +161,7 @@ export function ThemeWizard(props: ThemeWizardProps) {
   var canProceed = step === 1 ? name.trim().length > 0 : true;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={props.onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-content/60 backdrop-blur-sm" onClick={props.onClose}>
       <div
         className="bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-[90vw] max-w-[860px] max-h-[85vh] flex flex-col overflow-hidden"
         onClick={function (e) { e.stopPropagation(); }}

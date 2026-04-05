@@ -90,6 +90,7 @@ function MessageAnchor(props: { id: string | undefined }) {
       onClick={handleClick}
       className="opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 text-base-content/20 hover:text-base-content/50 cursor-pointer p-0.5 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none rounded"
       title="Copy link to message"
+      aria-label="Copy link to message"
     >
       <Link size={11} />
     </button>
@@ -159,16 +160,16 @@ function MessageActions(props: { text: string; showNewSession?: boolean; message
 
   return (
     <>
-      <button type="button" onClick={handleCopy} className={btnClass} title={copied ? "Copied!" : "Copy message (Shift+click for plain text)"}>
+      <button type="button" onClick={handleCopy} className={btnClass} title={copied ? "Copied!" : "Copy message (Shift+click for plain text)"} aria-label={copied ? "Copied" : "Copy message"}>
         {copied ? <Check size={11} /> : <Copy size={11} />}
       </button>
       {props.showNewSession && (
-        <button type="button" onClick={handleNewSession} className={btnClass} title="Start new session with this message">
+        <button type="button" onClick={handleNewSession} className={btnClass} title="Start new session with this message" aria-label="Start new session with this message">
           <SquarePlus size={11} />
         </button>
       )}
       {props.messageUuid && props.messageType && (
-        <button type="button" onClick={handleBookmarkToggle} className={btnClass + (isBookmarked ? " !opacity-100 !text-warning" : "")} title={isBookmarked ? "Remove bookmark" : "Bookmark message"}>
+        <button type="button" onClick={handleBookmarkToggle} className={btnClass + (isBookmarked ? " !opacity-100 !text-warning" : "")} title={isBookmarked ? "Remove bookmark" : "Bookmark message"} aria-label={isBookmarked ? "Remove bookmark" : "Bookmark message"}>
           {isBookmarked ? <BookmarkCheck size={11} /> : <Bookmark size={11} />}
         </button>
       )}

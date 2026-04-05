@@ -145,7 +145,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
       role="dialog"
       aria-modal="true"
       aria-label="Pair a node"
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 backdrop-blur-sm"
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-base-content/65 backdrop-blur-sm"
       onClick={props.onClose}
     >
       <div

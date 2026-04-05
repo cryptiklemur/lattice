@@ -131,7 +131,7 @@ export function ChartCard(props: ChartCardProps) {
         </div>
 
         <div
-          className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[9998] bg-base-content/60 backdrop-blur-sm"
           style={overlayStyle}
           onClick={closeFullscreen}
         />
