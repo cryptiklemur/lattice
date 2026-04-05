@@ -418,7 +418,6 @@ export function useSession(): UseSessionReturn {
           setSessionTitle(m.title);
         }
       }
-      setSessionMessages(m.messages);
     }
 
     function handlePromptSuggestion(msg: ServerMessage) {
