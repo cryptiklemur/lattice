@@ -143,7 +143,7 @@ async function runDaemon(): Promise<void> {
   if (onboarding.passphrase) {
     var { hashPassphrase } = await import("./auth/passphrase");
     var config = loadConfig();
-    config.passphraseHash = hashPassphrase(onboarding.passphrase);
+    config.passphraseHash = await hashPassphrase(onboarding.passphrase);
     var { saveConfig: saveCfg } = await import("./config");
     saveCfg(config);
   }

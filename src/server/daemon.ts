@@ -336,9 +336,26 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   var app = express();
   app.use(express.json());
 
-  app.post("/auth", function (req, res) {
+  var authAttempts = new Map<string, number[]>();
+  var AUTH_RATE_LIMIT = 5;
+  var AUTH_RATE_WINDOW = 60000;
+
+  app.post("/auth", async function (req, res) {
+    var ip = req.ip || req.socket.remoteAddress || "unknown";
+    var now = Date.now();
+    var attempts = authAttempts.get(ip) || [];
+    attempts = attempts.filter(function (t) { return now - t < AUTH_RATE_WINDOW; });
+
+    if (attempts.length >= AUTH_RATE_LIMIT) {
+      res.status(429).json({ ok: false, error: "Too many attempts. Try again later." });
+      return;
+    }
+
+    attempts.push(now);
+    authAttempts.set(ip, attempts);
+
     var passphrase = (req.body as { passphrase?: string }).passphrase || "";
-    if (!config.passphraseHash || verifyPassphrase(passphrase, config.passphraseHash)) {
+    if (!config.passphraseHash || await verifyPassphrase(passphrase, config.passphraseHash)) {
       var token = generateSessionToken();
       addSession(token);
       res.setHeader("Set-Cookie", "lattice_auth=" + token + "; HttpOnly; Path=/; SameSite=Strict");
