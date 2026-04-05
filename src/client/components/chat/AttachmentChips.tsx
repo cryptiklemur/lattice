@@ -75,7 +75,7 @@ export function AttachmentChips(props: AttachmentChipsProps) {
                   onClick={function () {
                     setExpandedPaste(expandedPaste === att.id ? null : att.id);
                   }}
-                  className="relative text-[10px] text-primary/50 hover:text-primary/80 underline"
+                  className="icon-action relative text-[10px] text-primary/50 hover:text-primary/80 underline"
                   aria-label={expandedPaste === att.id ? "Hide preview" : "Show preview"}
                 >
                   {expandedPaste === att.id ? <EyeOff size={10} /> : <Eye size={10} />}
@@ -85,7 +85,7 @@ export function AttachmentChips(props: AttachmentChipsProps) {
               {isFailed && (
                 <button
                   onClick={function () { props.onRetry(att.id); }}
-                  className="relative text-error/60 hover:text-error/90"
+                  className="icon-action relative text-error/60 hover:text-error/90"
                   aria-label={"Retry " + att.name}
                   title={att.error}
                 >
@@ -95,7 +95,7 @@ export function AttachmentChips(props: AttachmentChipsProps) {
 
               <button
                 onClick={function () { props.onRemove(att.id); }}
-                className="relative text-base-content/30 hover:text-base-content/60"
+                className="icon-action relative text-base-content/30 hover:text-base-content/60"
                 aria-label={"Remove " + att.name}
               >
                 <X size={12} />
@@ -103,7 +103,7 @@ export function AttachmentChips(props: AttachmentChipsProps) {
             </div>
 
             {expandedPaste === att.id && att.content && (
-              <div className="absolute left-0 bottom-full mb-1 w-[400px] max-h-[200px] overflow-auto rounded-lg border border-base-content/10 bg-base-300 shadow-lg z-50 p-2 font-mono text-[11px] text-base-content/50 whitespace-pre">
+              <div className="absolute left-0 bottom-full mb-1 w-[400px] max-w-[calc(100vw-2rem)] max-h-[200px] overflow-auto rounded-lg border border-base-content/10 bg-base-300 shadow-lg z-50 p-2 font-mono text-[11px] text-base-content/50 whitespace-pre">
                 {att.content.slice(0, 2000)}
                 {att.content.length > 2000 && "\n... (" + (att.content.length - 2000) + " more characters)"}
               </div>

@@ -146,7 +146,7 @@ function DiffRenderer(props: { oldText: string; newText: string }) {
           <button
             type="button"
             onClick={function () { setMode("unified"); }}
-            className={"p-0.5 rounded transition-colors " + (mode === "unified" ? "text-primary/70 bg-primary/10" : "text-base-content/25 hover:text-base-content/40")}
+            className={"icon-action p-0.5 rounded transition-colors " + (mode === "unified" ? "text-primary/70 bg-primary/10" : "text-base-content/25 hover:text-base-content/40")}
             title="Unified view"
           >
             <AlignLeft size={11} />
@@ -154,7 +154,7 @@ function DiffRenderer(props: { oldText: string; newText: string }) {
           <button
             type="button"
             onClick={function () { setMode("split"); }}
-            className={"p-0.5 rounded transition-colors " + (mode === "split" ? "text-primary/70 bg-primary/10" : "text-base-content/25 hover:text-base-content/40")}
+            className={"icon-action p-0.5 rounded transition-colors " + (mode === "split" ? "text-primary/70 bg-primary/10" : "text-base-content/25 hover:text-base-content/40")}
             title="Side-by-side view"
           >
             <Columns2 size={11} />
