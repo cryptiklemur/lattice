@@ -176,7 +176,7 @@ export function cleanupClient(clientId: string): void {
   completed.delete(clientId);
 }
 
-setInterval(function () {
+var ttlCleanupInterval = setInterval(function () {
   var now = Date.now();
   stores.forEach(function (store) {
     store.forEach(function (pending, id) {
@@ -186,3 +186,4 @@ setInterval(function () {
     });
   });
 }, CLEANUP_INTERVAL_MS);
+ttlCleanupInterval.unref();
