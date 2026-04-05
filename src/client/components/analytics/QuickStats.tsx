@@ -1,5 +1,6 @@
 import { LineChart, Line, ResponsiveContainer } from "recharts";
-import { useAnalytics } from "../../hooks/useAnalytics";
+import { useStore } from "@tanstack/react-store";
+import { getAnalyticsStore } from "../../stores/analytics";
 import { getChartColors } from "./chartTokens";
 
 function formatTokens(n: number): string {
@@ -31,9 +32,10 @@ function Sparkline({ data, stroke }: SparklineProps) {
 }
 
 export function QuickStats() {
-  const analytics = useAnalytics();
+  const analytics = useStore(getAnalyticsStore(), function (s) { return s; });
+  const summaryLoaded = analytics.loadedSections.includes("summary");
 
-  if (!analytics.data) {
+  if (!summaryLoaded) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map(function (i) {
@@ -51,12 +53,12 @@ export function QuickStats() {
   const d = analytics.data;
   const colors = getChartColors();
 
-  const costSparkData = d.costOverTime.slice(-7).map(function (e: typeof d.costOverTime[number]) { return { v: e.total }; });
-  const sessionsSparkData = d.sessionsOverTime.slice(-7).map(function (e: typeof d.sessionsOverTime[number]) { return { v: e.count }; });
-  const tokensSparkData = d.tokensOverTime.slice(-7).map(function (e: typeof d.tokensOverTime[number]) { return { v: e.input + e.output }; });
+  const costSparkData = (d.costOverTime ?? []).slice(-7).map(function (e) { return { v: e.total }; });
+  const sessionsSparkData = (d.sessionsOverTime ?? []).slice(-7).map(function (e) { return { v: e.count }; });
+  const tokensSparkData = (d.tokensOverTime ?? []).slice(-7).map(function (e) { return { v: e.input + e.output }; });
 
-  const totalTokens = d.totalTokens.input + d.totalTokens.output;
-  const cacheHitPct = Math.round(d.cacheHitRate * 100);
+  const totalTokens = (d.totalTokens?.input ?? 0) + (d.totalTokens?.output ?? 0);
+  const cacheHitPct = Math.round((d.cacheHitRate ?? 0) * 100);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -69,7 +71,7 @@ export function QuickStats() {
             </div>
           )}
         </div>
-        <div className="text-[20px] font-mono text-base-content">${d.totalCost.toFixed(2)}</div>
+        <div className="text-[20px] font-mono text-base-content">${(d.totalCost ?? 0).toFixed(2)}</div>
       </div>
 
       <div className="bg-base-content/[0.03] rounded-xl p-3.5">
@@ -81,7 +83,7 @@ export function QuickStats() {
             </div>
           )}
         </div>
-        <div className="text-[20px] font-mono text-base-content">{d.totalSessions}</div>
+        <div className="text-[20px] font-mono text-base-content">{d.totalSessions ?? 0}</div>
       </div>
 
       <div className="bg-base-content/[0.03] rounded-xl p-3.5">

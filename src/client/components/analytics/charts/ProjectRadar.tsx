@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   RadarChart,
   Radar,
@@ -50,6 +51,34 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 export function ProjectRadar({ data }: ProjectRadarProps) {
   var colors = getChartColors();
+
+  var { projects, radarData } = useMemo(function () {
+    var projects = data.slice(0, 5);
+    var normalized = new Map<string, Map<string, number>>();
+    for (var ai = 0; ai < AXIS_KEYS.length; ai++) {
+      var key = AXIS_KEYS[ai];
+      var rawValues = projects.map(function (p) { return p[key] as number; });
+      var normValues = normalize(rawValues);
+      for (var pi = 0; pi < projects.length; pi++) {
+        var projMap = normalized.get(projects[pi].project);
+        if (!projMap) {
+          projMap = new Map();
+          normalized.set(projects[pi].project, projMap);
+        }
+        projMap.set(key, normValues[pi]);
+      }
+    }
+    var radarData = AXIS_KEYS.map(function (key) {
+      var entry: Record<string, string | number> = { axis: AXIS_LABELS[key] };
+      for (var pi = 0; pi < projects.length; pi++) {
+        var projMap = normalized.get(projects[pi].project);
+        entry[projects[pi].project] = projMap ? projMap.get(key) || 0 : 0;
+      }
+      return entry;
+    });
+    return { projects, radarData };
+  }, [data]);
+
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[250px] text-base-content/25 font-mono text-[11px]">
@@ -57,32 +86,6 @@ export function ProjectRadar({ data }: ProjectRadarProps) {
       </div>
     );
   }
-
-  var projects = data.slice(0, 5);
-
-  var normalized = new Map<string, Map<string, number>>();
-  for (var ai = 0; ai < AXIS_KEYS.length; ai++) {
-    var key = AXIS_KEYS[ai];
-    var rawValues = projects.map(function (p) { return p[key] as number; });
-    var normValues = normalize(rawValues);
-    for (var pi = 0; pi < projects.length; pi++) {
-      var projMap = normalized.get(projects[pi].project);
-      if (!projMap) {
-        projMap = new Map();
-        normalized.set(projects[pi].project, projMap);
-      }
-      projMap.set(key, normValues[pi]);
-    }
-  }
-
-  var radarData = AXIS_KEYS.map(function (key) {
-    var entry: Record<string, string | number> = { axis: AXIS_LABELS[key] };
-    for (var pi = 0; pi < projects.length; pi++) {
-      var projMap = normalized.get(projects[pi].project);
-      entry[projects[pi].project] = projMap ? projMap.get(key) || 0 : 0;
-    }
-    return entry;
-  });
 
   return (
     <ResponsiveContainer width="100%" height={280}>
@@ -108,6 +111,7 @@ export function ProjectRadar({ data }: ProjectRadarProps) {
               fill={colors.palette[index % colors.palette.length]}
               fillOpacity={0.1}
               strokeWidth={1.5}
+              isAnimationActive={false}
             />
           );
         })}

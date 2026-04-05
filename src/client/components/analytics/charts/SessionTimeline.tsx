@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { getChartColors } from "../chartTokens";
 
 interface TimelineDatum {
@@ -86,9 +87,9 @@ export function SessionTimeline({ data }: SessionTimelineProps) {
         })}
       </svg>
 
-      {hover && (
+      {hover && createPortal(
         <div
-          className="fixed z-50 rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none max-w-[200px]"
+          className="fixed z-[9999] rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none max-w-[200px]"
           style={{ left: hover.x + 12, top: hover.y - 50 }}
         >
           <p className="text-[10px] font-mono text-base-content/50 mb-1 truncate">{hover.datum.title}</p>
@@ -98,7 +99,8 @@ export function SessionTimeline({ data }: SessionTimelineProps) {
             <p><span className="text-base-content/40">end </span>{formatTime(hover.datum.end)}</p>
             <p><span className="text-base-content/40">cost </span>${hover.datum.cost.toFixed(4)}</p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

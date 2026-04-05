@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { getChartColors } from "../chartTokens";
 
 interface HeatmapDatum {
@@ -115,16 +116,17 @@ export function HourlyHeatmap({ data }: HourlyHeatmapProps) {
         })}
       </svg>
 
-      {hover && (
+      {hover && createPortal(
         <div
-          className="fixed z-50 rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none"
+          className="fixed z-[9999] rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none"
           style={{ left: hover.x + 12, top: hover.y - 40 }}
         >
           <div className="text-[11px] font-mono text-base-content/70 space-y-0.5">
             <p><span className="text-base-content/40">{hover.day} </span>{hover.hour}:00</p>
             <p><span className="text-base-content/40">sessions </span>{hover.count}</p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

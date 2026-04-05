@@ -1,21 +1,5 @@
-#!/usr/bin/env bash
-set -e
-
-SOURCE="${BASH_SOURCE[0]}"
-while [ -L "$SOURCE" ]; do
-  DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-SCRIPT_DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
-ENTRY="$SCRIPT_DIR/../server/src/index.ts"
-
-if command -v bun >/dev/null 2>&1; then
-  exec bun "$ENTRY" "$@"
-else
-  echo "[lattice] Error: bun is required to run lattice from npm."
-  echo "[lattice] Install bun: https://bun.sh"
-  echo "[lattice] Or download a standalone binary from:"
-  echo "[lattice]   https://github.com/cryptiklemur/lattice/releases"
-  exit 1
-fi
+#!/usr/bin/env node
+import("tsx/esm/api").then(function (tsx) {
+  tsx.register();
+  import("../src/server/index.ts");
+});

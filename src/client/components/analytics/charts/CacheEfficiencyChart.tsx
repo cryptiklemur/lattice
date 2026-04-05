@@ -49,7 +49,7 @@ export function CacheEfficiencyChart({ data }: CacheEfficiencyChartProps) {
         <XAxis dataKey="date" tick={getTickStyle()} axisLine={false} tickLine={false} />
         <YAxis domain={[0, 100]} tick={getTickStyle()} axisLine={false} tickLine={false} tickFormatter={function (v) { return v + "%"; }} />
         <Tooltip content={<CustomTooltip />} />
-        <Area type="monotone" dataKey="rate" stroke={colors.success} fill="url(#cacheEffGrad)" strokeWidth={2} />
+        <Area type="monotone" dataKey="rate" stroke={colors.success} fill="url(#cacheEffGrad)" strokeWidth={2} isAnimationActive={false} />
       </AreaChart>
     </ResponsiveContainer>
   );

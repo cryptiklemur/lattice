@@ -1,7 +1,13 @@
 import { join, resolve } from "node:path";
-import { initAssets, serveStaticAsset, hasEmbeddedAssets, getClientDir } from "./assets";
-import { readFileSync, existsSync } from "node:fs";
-import type { ServerWebSocket } from "bun";
+import { createServer as createHttpServer } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
+import { readFileSync, existsSync, createReadStream, statSync } from "node:fs";
+import { lookup } from "node:dns";
+import express from "express";
+import { WebSocketServer } from "ws";
+import type { WebSocket } from "ws";
+import type { IncomingMessage } from "node:http";
+import { getClientDir } from "./assets";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
 import { addClient, removeClient, routeMessage } from "./ws/server";
@@ -38,6 +44,7 @@ import "./handlers/analytics";
 import "./handlers/bookmarks";
 import "./handlers/plugins";
 import "./handlers/update";
+import "./handlers/themes";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
 import { startPeriodicUpdateCheck, getCachedUpdateInfo } from "./update-checker";
@@ -46,13 +53,10 @@ import { cleanupClientTerminals } from "./handlers/terminal";
 import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
 import { initPush, getVapidPublicKey, addPushSubscription } from "./push";
 
-interface WsData {
-  id: string;
-}
-
 var RATE_LIMIT_WINDOW = 10000;
 var RATE_LIMIT_MAX = 100;
 var clientRateLimits = new Map<string, { count: number; windowStart: number }>();
+var wsClientIds = new WeakMap<WebSocket, string>();
 
 function parseCookies(cookieHeader: string): Map<string, string> {
   var map = new Map<string, string>();
@@ -70,11 +74,11 @@ function parseCookies(cookieHeader: string): Map<string, string> {
   return map;
 }
 
-function isAuthenticated(req: Request, passphraseHash: string | undefined): boolean {
+function isAuthenticatedReq(req: IncomingMessage, passphraseHash: string | undefined): boolean {
   if (!passphraseHash) {
     return true;
   }
-  var cookieHeader = req.headers.get("cookie") || "";
+  var cookieHeader = req.headers.cookie || "";
   var cookies = parseCookies(cookieHeader);
   var token = cookies.get("lattice_auth");
   if (!token) {
@@ -197,6 +201,126 @@ function buildLoginPage(): string {
 </html>`;
 }
 
+function getMimeType(filePath: string): string {
+  var ext = filePath.split(".").pop() || "";
+  var mimeTypes: Record<string, string> = {
+    html: "text/html; charset=utf-8",
+    js: "application/javascript",
+    css: "text/css",
+    json: "application/json",
+    svg: "image/svg+xml",
+    png: "image/png",
+    ico: "image/x-icon",
+    webmanifest: "application/manifest+json",
+    woff: "font/woff",
+    woff2: "font/woff2",
+    ttf: "font/ttf",
+    txt: "text/plain",
+    map: "application/json",
+  };
+  return mimeTypes[ext] || "application/octet-stream";
+}
+
+function handleWsOpen(ws: WebSocket, clientId: string): void {
+  wsClientIds.set(ws, clientId);
+  addClient(clientId, ws);
+  log.ws("Client connected: %s", clientId);
+  sendTo(clientId, { type: "mesh:nodes", nodes: buildNodesMessage() });
+  var connectConfig = loadConfig();
+  var connectIdentity = loadOrCreateIdentity();
+  var localProjects = connectConfig.projects.map(function (p: typeof connectConfig.projects[number]) {
+    return { slug: p.slug, path: p.path, title: p.title, nodeId: connectIdentity.id, nodeName: connectConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveStreamCountForProject(p.slug) };
+  });
+  var connectRemoteProjects = getAllRemoteProjects(connectIdentity.id);
+  sendTo(clientId, {
+    type: "projects:list",
+    projects: localProjects.concat(connectRemoteProjects as unknown as typeof localProjects),
+  });
+  if (isWarmupComplete()) {
+    sendTo(clientId, { type: "warmup:models", models: getWarmupModels() } as any);
+    var accountInfo = getWarmupAccountInfo();
+    if (accountInfo) {
+      sendTo(clientId, {
+        type: "warmup:account",
+        email: accountInfo.email,
+        organization: accountInfo.organization,
+        subscriptionType: accountInfo.subscriptionType,
+        apiKeySource: accountInfo.apiKeySource,
+        apiProvider: accountInfo.apiProvider,
+      } as any);
+    }
+    var cachedRateLimits = getWarmupRateLimits();
+    for (var rli = 0; rli < cachedRateLimits.length; rli++) {
+      var rl = cachedRateLimits[rli];
+      sendTo(clientId, {
+        type: "chat:rate_limit",
+        status: rl.status,
+        utilization: rl.utilization,
+        resetsAt: rl.resetsAt,
+        rateLimitType: rl.rateLimitType,
+        overageStatus: rl.overageStatus,
+        overageResetsAt: rl.overageResetsAt,
+        isUsingOverage: rl.isUsingOverage,
+      } as any);
+    }
+  }
+  void (async function () {
+    var { listSessions } = await import("./project/session");
+    for (var pi = 0; pi < connectConfig.projects.length; pi++) {
+      try {
+        var result = await listSessions(connectConfig.projects[pi].slug, { limit: 40 });
+        sendTo(clientId, {
+          type: "session:list",
+          projectSlug: connectConfig.projects[pi].slug,
+          sessions: result.sessions,
+          totalCount: result.totalCount,
+        } as any);
+      } catch {}
+    }
+  })();
+}
+
+function handleWsMessage(ws: WebSocket, data: Buffer | ArrayBuffer | Buffer[]): void {
+  var clientId = wsClientIds.get(ws);
+  if (!clientId) return;
+
+  var now = Date.now();
+  var limit = clientRateLimits.get(clientId);
+  if (!limit || now - limit.windowStart > RATE_LIMIT_WINDOW) {
+    limit = { count: 0, windowStart: now };
+    clientRateLimits.set(clientId, limit);
+  }
+  limit.count++;
+  if (limit.count > RATE_LIMIT_MAX) {
+    sendTo(clientId, { type: "chat:error", message: "Rate limit exceeded, please slow down" });
+    return;
+  }
+
+  var text = typeof data === "string" ? data : Buffer.isBuffer(data) ? data.toString() : Buffer.from(data as ArrayBuffer).toString();
+  try {
+    var msg = JSON.parse(text) as ClientMessage;
+    routeMessage(clientId, msg);
+  } catch (err) {
+    log.ws("Invalid JSON message: %O", err);
+  }
+}
+
+function handleWsClose(ws: WebSocket): void {
+  var clientId = wsClientIds.get(ws);
+  if (!clientId) return;
+  clearActiveSession(clientId);
+  clearActiveProject(clientId);
+  clearClientRemoteNode(clientId);
+  removeClient(clientId);
+  cleanupClientTerminals(clientId);
+  cleanupClientAttachments(clientId);
+  cleanupClientPermissions(clientId);
+  cleanupClientElicitations(clientId);
+  clientRateLimits.delete(clientId);
+  wsClientIds.delete(ws);
+  log.ws("Client disconnected: %s", clientId);
+}
+
 export async function startDaemon(portOverride?: number | null): Promise<void> {
   var config = loadConfig();
   if (portOverride && !isNaN(portOverride)) {
@@ -207,8 +331,75 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   log.server("Node: %s (%s)", config.name, identity.id);
   log.server("Home: %s", getLatticeHome());
 
-  await initAssets();
   var clientDir = getClientDir();
+
+  var app = express();
+  app.use(express.json());
+
+  app.post("/auth", function (req, res) {
+    var passphrase = (req.body as { passphrase?: string }).passphrase || "";
+    if (!config.passphraseHash || verifyPassphrase(passphrase, config.passphraseHash)) {
+      var token = generateSessionToken();
+      addSession(token);
+      res.setHeader("Set-Cookie", "lattice_auth=" + token + "; HttpOnly; Path=/; SameSite=Strict");
+      res.json({ ok: true });
+    } else {
+      res.status(401).json({ ok: false });
+    }
+  });
+
+  app.use(function (req, res, next) {
+    if (req.path === "/ws" || req.path === "/auth") {
+      next();
+      return;
+    }
+    if (!isAuthenticatedReq(req, config.passphraseHash)) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(buildLoginPage());
+      return;
+    }
+    next();
+  });
+
+  app.get("/api/vapid-public-key", function (_req, res) {
+    res.json({ publicKey: getVapidPublicKey() });
+  });
+
+  app.post("/api/push-subscribe", function (req, res) {
+    try {
+      var pushBody = req.body as { endpoint: string; keys: { p256dh: string; auth: string } };
+      addPushSubscription(pushBody);
+      res.json({ ok: true });
+    } catch {
+      res.status(400).json({ ok: false });
+    }
+  });
+
+  app.get("/api/file", function (req, res) {
+    var reqFilePath = req.query.path as string | undefined;
+    if (!reqFilePath) {
+      res.status(400).send("Missing path parameter");
+      return;
+    }
+    var resolved = resolve(reqFilePath);
+    if (!existsSync(resolved)) {
+      for (var pi = 0; pi < config.projects.length; pi++) {
+        var projectResolved = join(config.projects[pi].path, reqFilePath);
+        if (existsSync(projectResolved)) {
+          resolved = projectResolved;
+          break;
+        }
+      }
+    }
+    if (!existsSync(resolved)) {
+      res.status(404).send("File not found");
+      return;
+    }
+    var stat = statSync(resolved);
+    res.setHeader("Content-Type", getMimeType(resolved));
+    res.setHeader("Content-Length", stat.size);
+    createReadStream(resolved).pipe(res);
+  });
 
   var tlsOptions: { cert: Buffer; key: Buffer } | undefined;
   if (config.tls) {
@@ -225,203 +416,71 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   }
 
   var protocol = tlsOptions ? "https" : "http";
+  var httpServer = tlsOptions
+    ? createHttpsServer(tlsOptions, app)
+    : createHttpServer(app);
+
+  var isDev = process.env.NODE_ENV !== "production";
+  if (isDev) {
+    var { createServer: createViteServer } = await import("vite");
+    var vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: { server: httpServer },
+      },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+    log.server("Vite dev server attached (middleware mode, HMR on same port)");
+  } else if (clientDir && existsSync(clientDir)) {
+    app.use(express.static(clientDir));
+    app.get("/{*path}", function (_req, res) {
+      var indexPath = join(clientDir!, "index.html");
+      if (existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send("Not found");
+      }
+    });
+  }
+
+  var wss = new WebSocketServer({ noServer: true });
+
+  httpServer.on("upgrade", function (req: IncomingMessage, socket, head) {
+    var url = new URL(req.url || "/", "http://localhost");
+    if (url.pathname !== "/ws") {
+      return;
+    }
+    if (!isAuthenticatedReq(req, config.passphraseHash)) {
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(req, socket, head, function (ws) {
+      var clientId = crypto.randomUUID();
+      handleWsOpen(ws, clientId);
+      ws.on("message", function (data) { handleWsMessage(ws, data as Buffer); });
+      ws.on("close", function () { handleWsClose(ws); });
+    });
+  });
 
   var maxRetries = 10;
   for (var attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      Bun.serve<WsData>({
-    port: config.port,
-    hostname: "0.0.0.0",
-    reusePort: true,
-    ...(tlsOptions ? { tls: tlsOptions } : {}),
-
-    async fetch(req: Request, server: ReturnType<typeof Bun.serve>) {
-      var url = new URL(req.url);
-
-      if (url.pathname === "/auth" && req.method === "POST") {
-        try {
-          var body = await req.json() as { passphrase?: string };
-          var passphrase = body.passphrase || "";
-          if (!config.passphraseHash || verifyPassphrase(passphrase, config.passphraseHash)) {
-            var token = generateSessionToken();
-            addSession(token);
-            var headers = new Headers();
-            headers.set("Content-Type", "application/json");
-            headers.set("Set-Cookie", "lattice_auth=" + token + "; HttpOnly; Path=/; SameSite=Strict");
-            return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+      await new Promise<void>(function (resolveP, reject) {
+        httpServer.once("error", function (err: NodeJS.ErrnoException) {
+          if (err.code === "EADDRINUSE" && attempt < maxRetries - 1) {
+            log.server("Port %d in use, retrying in 1s (%d/%d)...", config.port, attempt + 1, maxRetries);
+            setTimeout(function () { resolveP(); }, 1000);
+          } else {
+            reject(err);
           }
-          return new Response(JSON.stringify({ ok: false }), { status: 401, headers: { "Content-Type": "application/json" } });
-        } catch {
-          return new Response(JSON.stringify({ ok: false }), { status: 400, headers: { "Content-Type": "application/json" } });
-        }
-      }
-
-      if (url.pathname !== "/ws" && !isAuthenticated(req, config.passphraseHash)) {
-        return new Response(buildLoginPage(), {
-          status: 200,
-          headers: { "Content-Type": "text/html; charset=utf-8" },
         });
-      }
-
-      if (url.pathname === "/api/vapid-public-key") {
-        return new Response(JSON.stringify({ publicKey: getVapidPublicKey() }), {
-          headers: { "Content-Type": "application/json" },
+        httpServer.listen(config.port, "0.0.0.0", function () {
+          resolveP();
         });
-      }
-
-      if (url.pathname === "/api/push-subscribe" && req.method === "POST") {
-        try {
-          var pushBody = await req.json() as { endpoint: string; keys: { p256dh: string; auth: string } };
-          addPushSubscription(pushBody);
-          return new Response(JSON.stringify({ ok: true }), {
-            headers: { "Content-Type": "application/json" },
-          });
-        } catch {
-          return new Response(JSON.stringify({ ok: false }), { status: 400, headers: { "Content-Type": "application/json" } });
-        }
-      }
-
-      if (url.pathname === "/api/file") {
-        var reqFilePath = url.searchParams.get("path");
-        if (!reqFilePath) {
-          return new Response("Missing path parameter", { status: 400 });
-        }
-        var resolved = resolve(reqFilePath);
-        if (!existsSync(resolved)) {
-          for (var pi = 0; pi < config.projects.length; pi++) {
-            var projectResolved = join(config.projects[pi].path, reqFilePath);
-            if (existsSync(projectResolved)) {
-              resolved = projectResolved;
-              break;
-            }
-          }
-        }
-        if (!existsSync(resolved)) {
-          return new Response("File not found", { status: 404 });
-        }
-        var reqFile = Bun.file(resolved);
-        return new Response(reqFile);
-      }
-
-      if (url.pathname === "/ws") {
-        var upgraded = server.upgrade(req, {
-          data: { id: crypto.randomUUID() },
-        });
-        if (upgraded) {
-          return undefined;
-        }
-        return new Response("WebSocket upgrade failed", { status: 400 });
-      }
-
-      var staticPath = url.pathname === "/" ? "/index.html" : url.pathname;
-
-      if (hasEmbeddedAssets()) {
-        var embedded = serveStaticAsset(staticPath);
-        if (embedded) return embedded;
-        var embeddedIndex = serveStaticAsset("/index.html");
-        if (embeddedIndex) return embeddedIndex;
-        return new Response("Not found", { status: 404 });
-      }
-
-      var file = Bun.file(join(clientDir, staticPath));
-      if (await file.exists()) {
-        return new Response(file);
-      }
-
-      var index = Bun.file(join(clientDir, "index.html"));
-      if (await index.exists()) {
-        return new Response(index);
-      }
-
-      return new Response("Not found", { status: 404 });
-    },
-
-    websocket: {
-      open(ws: ServerWebSocket<WsData>) {
-        addClient(ws);
-        log.ws("Client connected: %s", ws.data.id);
-        sendTo(ws.data.id, { type: "mesh:nodes", nodes: buildNodesMessage() });
-        var connectConfig = loadConfig();
-        var connectIdentity = loadOrCreateIdentity();
-        var localProjects = connectConfig.projects.map(function (p: typeof connectConfig.projects[number]) {
-          return { slug: p.slug, path: p.path, title: p.title, nodeId: connectIdentity.id, nodeName: connectConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveStreamCountForProject(p.slug) };
-        });
-        var connectRemoteProjects = getAllRemoteProjects(connectIdentity.id);
-        sendTo(ws.data.id, {
-          type: "projects:list",
-          projects: localProjects.concat(connectRemoteProjects as unknown as typeof localProjects),
-        });
-        if (isWarmupComplete()) {
-          sendTo(ws.data.id, { type: "warmup:models", models: getWarmupModels() } as any);
-          var accountInfo = getWarmupAccountInfo();
-          if (accountInfo) {
-            sendTo(ws.data.id, {
-              type: "warmup:account",
-              email: accountInfo.email,
-              organization: accountInfo.organization,
-              subscriptionType: accountInfo.subscriptionType,
-              apiKeySource: accountInfo.apiKeySource,
-              apiProvider: accountInfo.apiProvider,
-            } as any);
-          }
-          var cachedRateLimits = getWarmupRateLimits();
-          for (var rli = 0; rli < cachedRateLimits.length; rli++) {
-            var rl = cachedRateLimits[rli];
-            sendTo(ws.data.id, {
-              type: "chat:rate_limit",
-              status: rl.status,
-              utilization: rl.utilization,
-              resetsAt: rl.resetsAt,
-              rateLimitType: rl.rateLimitType,
-              overageStatus: rl.overageStatus,
-              overageResetsAt: rl.overageResetsAt,
-              isUsingOverage: rl.isUsingOverage,
-            } as any);
-          }
-        }
-      },
-      message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
-        var now = Date.now();
-        var limit = clientRateLimits.get(ws.data.id);
-        if (!limit || now - limit.windowStart > RATE_LIMIT_WINDOW) {
-          limit = { count: 0, windowStart: now };
-          clientRateLimits.set(ws.data.id, limit);
-        }
-        limit.count++;
-        if (limit.count > RATE_LIMIT_MAX) {
-          sendTo(ws.data.id, { type: "chat:error", message: "Rate limit exceeded, please slow down" });
-          return;
-        }
-
-        var text = typeof message === "string" ? message : message.toString();
-        try {
-          var msg = JSON.parse(text) as ClientMessage;
-          routeMessage(ws.data.id, msg);
-        } catch (err) {
-          log.ws("Invalid JSON message: %O", err);
-        }
-      },
-      close(ws: ServerWebSocket<WsData>) {
-        clearActiveSession(ws.data.id);
-        clearActiveProject(ws.data.id);
-        clearClientRemoteNode(ws.data.id);
-        removeClient(ws.data.id);
-        cleanupClientTerminals(ws.data.id);
-        cleanupClientAttachments(ws.data.id);
-        cleanupClientPermissions(ws.data.id);
-        cleanupClientElicitations(ws.data.id);
-        clientRateLimits.delete(ws.data.id);
-        log.ws("Client disconnected: %s", ws.data.id);
-      },
-    },
-  });
-      break;
-    } catch (err: unknown) {
-      if (attempt < maxRetries - 1 && err instanceof Error && (err as any).code === "EADDRINUSE") {
-        log.server("Port %d in use, retrying in 1s (%d/%d)...", config.port, attempt + 1, maxRetries);
-        await new Promise(function (r) { setTimeout(r, 1000); });
-        continue;
-      }
+      });
+      if (httpServer.listening) break;
+    } catch (err) {
       throw err;
     }
   }
@@ -429,16 +488,11 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
   log.server("Listening on %s://0.0.0.0:%d", protocol, config.port);
 
   startDiscovery(identity.id, config.name, config.port);
-
   startMeshConnections();
-
   startScheduler();
-
   loadNotes();
   loadBookmarks();
-
   startPeriodicUpdateCheck();
-
   loadInterruptedSessions();
   initPush();
 

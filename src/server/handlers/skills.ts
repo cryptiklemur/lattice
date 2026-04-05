@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, existsSync, lstatSync, realpathSync, statSync, rmSync } from "node:fs";
 import { join, sep, dirname } from "node:path";
 import { homedir } from "node:os";
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import type { ClientMessage } from "@lattice/shared";
 import type { SkillInfo } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
@@ -270,17 +270,16 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
     }
 
     try {
-      var proc = Bun.spawn(["npx", "skillsadd", installMsg.source], {
+      var proc = spawn("npx", ["skillsadd", installMsg.source], {
         cwd: cwd,
-        stdout: "pipe",
-        stderr: "pipe",
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
       var timeout = setTimeout(function () {
         proc.kill();
       }, 60000);
 
-      void proc.exited.then(function (code) {
+      proc.on("close", function (code) {
         clearTimeout(timeout);
         skillsCache = null;
         if (code === 0) {
@@ -346,17 +345,16 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
   if (message.type === "skills:update") {
     var updateMsg = message as { type: "skills:update"; source: string };
     try {
-      var updateProc = Bun.spawn(["npx", "skillsadd", updateMsg.source], {
+      var updateProc = spawn("npx", ["skillsadd", updateMsg.source], {
         cwd: homedir(),
-        stdout: "pipe",
-        stderr: "pipe",
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
       var updateTimeout = setTimeout(function () {
         updateProc.kill();
       }, 60000);
 
-      void updateProc.exited.then(function (code) {
+      updateProc.on("close", function (code) {
         clearTimeout(updateTimeout);
         skillsCache = null;
         if (code === 0) {

@@ -23,33 +23,11 @@
 ## Quick Start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cryptiklemur/lattice/main/install.sh | bash
+npm install -g @cryptiklemur/lattice
 lattice
 ```
 
-Opens at `http://localhost:7654`. No runtime dependencies — the binary includes everything.
-
-<details>
-<summary>Other install methods</summary>
-
-**Custom install directory:**
-
-```bash
-LATTICE_INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/cryptiklemur/lattice/main/install.sh | bash
-```
-
-**Via npm** (requires [Bun](https://bun.sh)):
-
-```bash
-bun install -g @cryptiklemur/lattice
-lattice
-```
-
-**Manual download:**
-
-Download the binary for your platform from [GitHub Releases](https://github.com/cryptiklemur/lattice/releases), `chmod +x`, and run it.
-
-</details>
+Opens at `http://localhost:7654`.
 
 <details>
 <summary>Development setup</summary>
@@ -57,11 +35,11 @@ Download the binary for your platform from [GitHub Releases](https://github.com/
 ```bash
 git clone https://github.com/cryptiklemur/lattice.git
 cd lattice
-bun install
-bun run dev
+npm install
+npm run dev
 ```
 
-Hot-reloads both server and client automatically.
+Starts Express + Vite on a single port (`http://localhost:7654`) with HMR.
 
 </details>
 
@@ -128,15 +106,15 @@ Responsive design with touch targets, swipe-to-open sidebar, and optimized layou
 
 ## Architecture
 
-Bun monorepo with three packages, compiled into a standalone binary via `bun build --compile`:
+Single npm package with three source directories:
 
-| Package | Stack |
-|---------|-------|
-| `shared/` | TypeScript types, message protocol, constants |
-| `server/` | Bun WebSocket server, analytics engine, mesh networking |
-| `client/` | React 19, Vite, Tailwind, daisyUI, 23 themes |
+| Directory | Stack |
+|-----------|-------|
+| `src/shared/` | TypeScript types, message protocol, constants |
+| `src/server/` | Express + ws server, analytics engine, mesh networking |
+| `src/client/` | React 19, Vite, Tailwind, daisyUI, 23 themes |
 
-The client is built by Vite, then embedded into the server binary as base64-encoded assets. The result is a single executable with zero runtime dependencies.
+In development, Vite runs in middleware mode inside Express — single port for API, WebSocket, and HMR. In production, Express serves the built client from `dist/client/`.
 
 Communication via typed WebSocket messages. Sessions managed through the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk). Client state via Tanstack Store + Router.
 
@@ -154,8 +132,8 @@ Communication via typed WebSocket messages. Sessions managed through the [Claude
 ### Testing
 
 ```bash
-bun run dev            # start server
-bunx playwright test   # run tests
+npm run dev            # start server
+npx playwright test    # run tests
 ```
 
 Playwright suite covers onboarding, session flow, keyboard shortcuts, accessibility, message actions, and session previews.

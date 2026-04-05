@@ -1,25 +1,30 @@
 import type { ClientMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
-import { getAnalytics } from "../analytics/engine";
+import { streamAnalyticsSections } from "../analytics/engine";
 
 registerHandler("analytics", function (clientId: string, message: ClientMessage) {
   if (message.type === "analytics:request") {
     var msg = message as { type: string; requestId: string; scope: string; projectSlug?: string; sessionId?: string; period: string; forceRefresh?: boolean };
 
-    getAnalytics(
+    streamAnalyticsSections(
       msg.scope as "global" | "project" | "session",
       msg.period as "24h" | "7d" | "30d" | "90d" | "all",
       msg.projectSlug,
       msg.sessionId,
-      msg.forceRefresh
-    ).then(function (data) {
+      msg.forceRefresh,
+      function (sectionName, sectionData) {
+        sendTo(clientId, {
+          type: "analytics:section",
+          requestId: msg.requestId,
+          section: sectionName,
+          data: sectionData,
+        });
+      },
+    ).then(function () {
       sendTo(clientId, {
-        type: "analytics:data",
+        type: "analytics:complete",
         requestId: msg.requestId,
-        scope: msg.scope,
-        period: msg.period,
-        data: data,
       });
     }).catch(function (err) {
       sendTo(clientId, {

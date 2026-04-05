@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus } from "lucide-react";
+import { Plus, Settings, PlusCircle, Trash2, Unplug, RefreshCw } from "lucide-react";
 import type { ProjectInfo, NodeInfo } from "@lattice/shared";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
+import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
+import type { ContextMenuEntry } from "../ui/ContextMenu";
 
 function getProjectInitials(title: string): string {
   var words = title.trim().split(/[\s\-_]+/);
@@ -44,13 +46,6 @@ function groupProjectsBySlug(projects: ProjectInfo[], nodes: NodeInfo[]): Projec
     }
   }
   return Array.from(groups.values());
-}
-
-interface ContextMenuState {
-  visible: boolean;
-  x: number;
-  y: number;
-  slug: string | null;
 }
 
 interface ProjectButtonProps {
@@ -219,69 +214,15 @@ export function ProjectRail(props: ProjectRailProps) {
   var localNode = props.nodes.find(function (n) { return n.isLocal; });
   var remoteNodes = props.nodes.filter(function (n) { return !n.isLocal; });
   var allMeshNodes = localNode ? [localNode].concat(remoteNodes) : remoteNodes;
-  var [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    slug: null,
-  });
-  var menuRef = useRef<HTMLDivElement>(null);
-  var [nodeMenu, setNodeMenu] = useState<{ visible: boolean; x: number; y: number; node: NodeInfo | null }>({
-    visible: false, x: 0, y: 0, node: null,
-  });
-
-  useEffect(
-    function () {
-      if (!contextMenu.visible && !nodeMenu.visible) return;
-
-      function handleClick() {
-        setContextMenu(function (prev) { return { ...prev, visible: false }; });
-        setNodeMenu(function (prev) { return { ...prev, visible: false }; });
-      }
-
-      function handleKeyDown(e: KeyboardEvent) {
-        if (e.key === "Escape") {
-          setContextMenu(function (prev) { return { ...prev, visible: false }; });
-          setNodeMenu(function (prev) { return { ...prev, visible: false }; });
-        }
-      }
-
-      function handleScroll() {
-        setContextMenu(function (prev) { return { ...prev, visible: false }; });
-        setNodeMenu(function (prev) { return { ...prev, visible: false }; });
-      }
-
-      window.addEventListener("click", handleClick);
-      window.addEventListener("keydown", handleKeyDown);
-      window.addEventListener("scroll", handleScroll, true);
-
-      return function () {
-        window.removeEventListener("click", handleClick);
-        window.removeEventListener("keydown", handleKeyDown);
-        window.removeEventListener("scroll", handleScroll, true);
-      };
-    },
-    [contextMenu.visible, nodeMenu.visible]
-  );
+  var projectCtx = useContextMenu<string>();
+  var nodeCtx = useContextMenu<NodeInfo>();
 
   function handleNodeContextMenu(e: React.MouseEvent, node: NodeInfo) {
-    var cx = e.clientX;
-    var cy = e.clientY;
-    if (cx + 160 > window.innerWidth - 8) cx = window.innerWidth - 168;
-    if (cy + 100 > window.innerHeight - 8) cy = window.innerHeight - 108;
-    setNodeMenu({ visible: true, x: cx, y: cy, node: node });
+    nodeCtx.open(e, node);
   }
 
   function handleContextMenu(e: React.MouseEvent, slug: string) {
-    var menuWidth = 160;
-    var menuHeight = 100;
-    var cx = e.clientX;
-    var cy = e.clientY;
-    if (cx + menuWidth > window.innerWidth - 8) cx = window.innerWidth - menuWidth - 8;
-    if (cy + menuHeight > window.innerHeight - 8) cy = window.innerHeight - menuHeight - 8;
-    if (cx < 8) cx = 8;
-    if (cy < 8) cy = 8;
-    setContextMenu({ visible: true, x: cx, y: cy, slug: slug });
+    projectCtx.open(e, slug);
   }
 
   return (
@@ -369,110 +310,43 @@ export function ProjectRail(props: ProjectRailProps) {
 
       <div className="flex-1" />
 
-      {contextMenu.visible && createPortal(
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label="Project actions"
-          onClick={function (e) { e.stopPropagation(); }}
-          className="fixed z-[99999] bg-base-300 border border-base-content/20 rounded-lg shadow-2xl py-1 min-w-[160px]"
-          style={{ left: contextMenu.x + "px", top: contextMenu.y + "px" }}
-        >
-          <button
-            role="menuitem"
-            className="w-full text-left px-3 py-1.5 text-sm text-base-content hover:bg-base-content/10 transition-colors"
-            onClick={function () {
-              if (contextMenu.slug) {
-                sidebar.setActiveProjectSlug(contextMenu.slug);
-                sidebar.openProjectSettings("general");
-              }
-              setContextMenu(function (prev) { return { ...prev, visible: false }; });
-            }}
-          >
-            Project Settings
-          </button>
-          <button
-            role="menuitem"
-            className="w-full text-left px-3 py-1.5 text-sm text-base-content hover:bg-base-content/10 transition-colors"
-            onClick={function () {
-              if (contextMenu.slug) {
-                ws.send({ type: "session:create", projectSlug: contextMenu.slug });
-              }
-              setContextMenu(function (prev) { return { ...prev, visible: false }; });
-            }}
-          >
-            New Session
-          </button>
-          <div className="my-1 h-px bg-base-content/10" />
-          <button
-            role="menuitem"
-            className="w-full text-left px-3 py-1.5 text-sm text-error hover:bg-error/10 transition-colors"
-            onClick={function () {
-              var slug = contextMenu.slug;
-              setContextMenu(function (prev) { return { ...prev, visible: false }; });
-              if (slug) {
-                sidebar.openConfirmRemove(slug);
-              }
-            }}
-          >
-            Remove Project
-          </button>
-        </div>,
-        document.body
+      {projectCtx.state !== null && (
+        <ContextMenu
+          x={projectCtx.state.x}
+          y={projectCtx.state.y}
+          items={[
+            { label: "Project Settings", icon: <Settings size={14} />, onClick: function () { sidebar.setActiveProjectSlug(projectCtx.state!.data); sidebar.openProjectSettings("general"); } },
+            { label: "New Session", icon: <PlusCircle size={14} />, onClick: function () { ws.send({ type: "session:create", projectSlug: projectCtx.state!.data }); } },
+            { type: "divider" },
+            { label: "Remove Project", icon: <Trash2 size={14} />, danger: true, onClick: function () { sidebar.openConfirmRemove(projectCtx.state!.data); } },
+          ] as ContextMenuEntry[]}
+          onClose={projectCtx.close}
+          label="Project actions"
+        />
       )}
 
-      {nodeMenu.visible && nodeMenu.node && createPortal(
-        <div
-          role="menu"
-          aria-label="Node actions"
-          onClick={function (e) { e.stopPropagation(); }}
-          className="fixed z-[99999] bg-base-300 border border-base-content/20 rounded-lg shadow-2xl py-1 min-w-[160px]"
-          style={{ left: nodeMenu.x + "px", top: nodeMenu.y + "px" }}
-        >
-          <button
-            role="menuitem"
-            className="w-full text-left px-3 py-1.5 text-sm text-base-content hover:bg-base-content/10 transition-colors"
-            onClick={function () {
-              sidebar.openSettings("nodes");
-              setNodeMenu(function (prev) { return { ...prev, visible: false }; });
-            }}
-          >
-            Node Settings
-          </button>
-          {!nodeMenu.node.isLocal && (
-            <>
-              {!nodeMenu.node.online && (
-                <button
-                  role="menuitem"
-                  className="w-full text-left px-3 py-1.5 text-sm text-base-content hover:bg-base-content/10 transition-colors"
-                  onClick={function () {
-                    if (nodeMenu.node) {
-                      ws.send({ type: "mesh:reconnect", nodeId: nodeMenu.node.id } as any);
-                    }
-                    setNodeMenu(function (prev) { return { ...prev, visible: false }; });
-                  }}
-                >
-                  Reconnect
-                </button>
-              )}
-              <div className="my-1 h-px bg-base-content/10" />
-              <button
-                role="menuitem"
-                className="w-full text-left px-3 py-1.5 text-sm text-error hover:bg-error/10 transition-colors"
-                onClick={function () {
-                  if (nodeMenu.node) {
-                    ws.send({ type: "mesh:unpair", nodeId: nodeMenu.node.id });
-                  }
-                  setNodeMenu(function (prev) { return { ...prev, visible: false }; });
-                }}
-              >
-                Unpair
-              </button>
-            </>
-          )}
-        </div>,
-        document.body
-      )}
+      {nodeCtx.state !== null && (function () {
+        var node = nodeCtx.state!.data;
+        var items: ContextMenuEntry[] = [
+          { label: "Node Settings", icon: <Settings size={14} />, onClick: function () { sidebar.openSettings("nodes"); } },
+        ];
+        if (!node.isLocal) {
+          if (!node.online) {
+            items.push({ label: "Reconnect", icon: <RefreshCw size={14} />, onClick: function () { ws.send({ type: "mesh:reconnect", nodeId: node.id } as any); } });
+          }
+          items.push({ type: "divider" });
+          items.push({ label: "Unpair", icon: <Unplug size={14} />, danger: true, onClick: function () { ws.send({ type: "mesh:unpair", nodeId: node.id }); } });
+        }
+        return (
+          <ContextMenu
+            x={nodeCtx.state!.x}
+            y={nodeCtx.state!.y}
+            items={items}
+            onClose={nodeCtx.close}
+            label="Node actions"
+          />
+        );
+      })()}
 
     </div>
   );

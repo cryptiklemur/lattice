@@ -24,6 +24,8 @@ interface ChartCardProps {
   children: ReactNode;
   className?: string;
   action?: ReactNode;
+  loading?: boolean;
+  skeletonHeight?: number;
 }
 
 export function ChartCard(props: ChartCardProps) {
@@ -92,7 +94,9 @@ export function ChartCard(props: ChartCardProps) {
         </div>
       </div>
       <div role="img" aria-label={props.title}>
-        {props.children}
+        {props.loading
+          ? <div className="rounded-lg bg-base-content/[0.04] animate-pulse" style={{ height: (props.skeletonHeight ?? 200) + "px" }} />
+          : props.children}
       </div>
     </>
   );
@@ -166,7 +170,9 @@ export function ChartCard(props: ChartCardProps) {
             <div className="flex-1 p-6 overflow-auto min-h-0">
               <ChartFullscreenContext.Provider value={chartHeight}>
                 <div style={{ height: chartHeight + "px" }}>
-                  {props.children}
+                  {props.loading
+                    ? <div className="rounded-lg bg-base-content/[0.04] animate-pulse h-full" />
+                    : props.children}
                 </div>
               </ChartFullscreenContext.Provider>
             </div>

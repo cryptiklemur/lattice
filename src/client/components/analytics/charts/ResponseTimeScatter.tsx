@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   ScatterChart,
   Scatter,
@@ -38,17 +39,21 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 export function ResponseTimeScatter({ data }: ResponseTimeScatterProps) {
   var fullscreenHeight = useChartFullscreen();
   var colors = getChartColors();
-  var models = Array.from(new Set(data.map(function (d) { return d.model; })));
 
-  var byModel = models.map(function (model) {
-    return {
-      model: model,
-      color: getModelColor(model),
-      points: data
-        .filter(function (d) { return d.model === model; })
-        .map(function (d) { return { tokens: d.tokens, durationSec: d.duration / 1000, model: d.model }; }),
-    };
-  });
+  var byModel = useMemo(function () {
+    var modelSet = new Set<string>();
+    for (var i = 0; i < data.length; i++) modelSet.add(data[i].model);
+    var models = Array.from(modelSet);
+    return models.map(function (model) {
+      return {
+        model,
+        color: getModelColor(model),
+        points: data
+          .filter(function (d) { return d.model === model; })
+          .map(function (d) { return { tokens: d.tokens, durationSec: d.duration / 1000, model: d.model }; }),
+      };
+    });
+  }, [data]);
 
   return (
     <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
@@ -81,6 +86,7 @@ export function ResponseTimeScatter({ data }: ResponseTimeScatterProps) {
               data={group.points}
               fill={group.color}
               fillOpacity={0.7}
+              isAnimationActive={false}
             />
           );
         })}

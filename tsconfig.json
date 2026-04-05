@@ -8,16 +8,15 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
-    "composite": true,
-    "incremental": true
+    "jsx": "react-jsx",
+    "paths": {
+      "@lattice/shared": ["./src/shared/index.ts"]
+    },
+    "types": ["node"]
   },
-  "references": [
-    { "path": "./shared" },
-    { "path": "./server" },
-    { "path": "./client" }
+  "include": [
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

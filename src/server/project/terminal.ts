@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
-import { join } from "node:path";
-import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { IS_COMPILED } from "../runtime";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
+
+var __dirname_local = dirname(fileURLToPath(import.meta.url));
 
 interface TerminalWorker {
   process: ChildProcess;
@@ -13,22 +14,7 @@ interface TerminalWorker {
 
 var terminals = new Map<string, TerminalWorker>();
 
-function getWorkerPath(): string {
-  if (!IS_COMPILED) {
-    return join(import.meta.dir, "pty-worker.cjs");
-  }
-  var extractedPath = join(homedir(), ".lattice", "pty-worker.cjs");
-  if (!existsSync(extractedPath)) {
-    var srcPath = join(import.meta.dir, "pty-worker.cjs");
-    if (existsSync(srcPath)) {
-      mkdirSync(join(homedir(), ".lattice"), { recursive: true });
-      writeFileSync(extractedPath, readFileSync(srcPath));
-    }
-  }
-  return extractedPath;
-}
-
-var WORKER_PATH = getWorkerPath();
+var WORKER_PATH = join(__dirname_local, "pty-worker.cjs");
 
 var NODE_MODULES_PATH = (function () {
   try {
@@ -37,10 +23,7 @@ var NODE_MODULES_PATH = (function () {
     parts.pop();
     return parts.join("/node_modules/") + "/node_modules";
   } catch {
-    if (IS_COMPILED) {
-      return "";
-    }
-    return join(import.meta.dir, "..", "..", "..", "node_modules");
+    return join(__dirname_local, "..", "..", "..", "node_modules");
   }
 })();
 

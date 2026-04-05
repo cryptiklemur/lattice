@@ -7,7 +7,7 @@ import { useInstallPrompt } from "../../hooks/useInstallPrompt";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { getSessionStore, loadCachedRateLimits, updateRateLimit } from "../../stores/session";
 import type { RateLimitEntry } from "../../stores/session";
-import pkg from "../../../package.json";
+import pkg from "../../../../package.json";
 import type { ServerMessage } from "@lattice/shared";
 
 interface UserIslandProps {

@@ -1,20 +1,14 @@
-import { useState, useEffect, useRef } from "react";
 import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3 } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
 import type { Tab, TabType } from "../../stores/workspace";
 import { pinTab } from "../../stores/workspace";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
+import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 
 interface TabBarProps {
   paneId?: string;
   isActivePane?: boolean;
-}
-
-interface ContextMenuState {
-  tabId: string;
-  x: number;
-  y: number;
 }
 
 var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
@@ -30,31 +24,7 @@ var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
 export function TabBar({ paneId, isActivePane }: TabBarProps) {
   var workspace = useWorkspace();
   var session = useSession();
-  var [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  var menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(function () {
-    if (!contextMenu) return;
-
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setContextMenu(null);
-      }
-    }
-
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setContextMenu(null);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return function () {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [contextMenu]);
+  var ctxMenu = useContextMenu<string>();
 
   var paneTabs: Tab[];
   var activeTabId: string;
@@ -102,25 +72,18 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
   }
 
   function handleContextMenu(e: React.MouseEvent, tabId: string) {
-    e.preventDefault();
     if (workspace.panes.length >= 2) return;
     var contextPane = paneId
       ? workspace.panes.find(function (p) { return p.id === paneId; })
       : workspace.panes[0];
     if (!contextPane || contextPane.tabIds.length < 2) return;
-    var menuWidth = 160;
-    var menuHeight = 80;
-    var x = e.clientX;
-    var y = e.clientY;
-    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 8;
-    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 8;
-    setContextMenu({ tabId, x, y });
+    ctxMenu.open(e, tabId);
   }
 
   function handleSplit(direction: "horizontal" | "vertical") {
-    if (!contextMenu) return;
-    workspace.splitPane(contextMenu.tabId, direction);
-    setContextMenu(null);
+    if (!ctxMenu.state) return;
+    workspace.splitPane(ctxMenu.state.data, direction);
+    ctxMenu.close();
   }
 
   function handleMiddleClick(e: React.MouseEvent, tab: Tab) {
@@ -190,27 +153,17 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
           );
         })}
       </div>
-      {contextMenu && (
-        <div
-          ref={menuRef}
-          className="fixed z-50 bg-base-300 border border-base-content/15 rounded-lg shadow-lg py-1 min-w-[160px]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-        >
-          <button
-            onClick={function () { handleSplit("horizontal"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-          >
-            <Columns2 size={14} />
-            Split Right
-          </button>
-          <button
-            onClick={function () { handleSplit("vertical"); }}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-mono text-base-content/80 hover:bg-base-content/15 hover:text-base-content transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-          >
-            <Rows2 size={14} />
-            Split Down
-          </button>
-        </div>
+      {ctxMenu.state !== null && (
+        <ContextMenu
+          x={ctxMenu.state.x}
+          y={ctxMenu.state.y}
+          items={[
+            { label: "Split Right", icon: <Columns2 size={14} />, onClick: function () { handleSplit("horizontal"); } },
+            { label: "Split Down", icon: <Rows2 size={14} />, onClick: function () { handleSplit("vertical"); } },
+          ]}
+          onClose={ctxMenu.close}
+          label="Tab actions"
+        />
       )}
     </>
   );

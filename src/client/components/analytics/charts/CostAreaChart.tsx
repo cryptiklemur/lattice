@@ -69,10 +69,10 @@ export function CostAreaChart({ data }: CostAreaChartProps) {
         <XAxis dataKey="date" tick={getTickStyle()} axisLine={false} tickLine={false} />
         <YAxis tick={getTickStyle()} axisLine={false} tickLine={false} tickFormatter={function (v) { return "$" + v.toFixed(2); }} />
         <Tooltip content={<CustomTooltip />} />
-        <Area type="monotone" dataKey="opus" stackId="1" stroke={colors.secondary} fill="url(#opusGrad)" strokeWidth={1.5} />
-        <Area type="monotone" dataKey="sonnet" stackId="1" stroke={colors.primary} fill="url(#sonnetGrad)" strokeWidth={1.5} />
-        <Area type="monotone" dataKey="haiku" stackId="1" stroke={colors.success} fill="url(#haikuGrad)" strokeWidth={1.5} />
-        <Area type="monotone" dataKey="other" stackId="1" stroke={colors.warning} fill="url(#otherGrad)" strokeWidth={1.5} />
+        <Area type="monotone" dataKey="opus" stackId="1" stroke={colors.secondary} fill="url(#opusGrad)" strokeWidth={1.5} isAnimationActive={false} />
+        <Area type="monotone" dataKey="sonnet" stackId="1" stroke={colors.primary} fill="url(#sonnetGrad)" strokeWidth={1.5} isAnimationActive={false} />
+        <Area type="monotone" dataKey="haiku" stackId="1" stroke={colors.success} fill="url(#haikuGrad)" strokeWidth={1.5} isAnimationActive={false} />
+        <Area type="monotone" dataKey="other" stackId="1" stroke={colors.warning} fill="url(#otherGrad)" strokeWidth={1.5} isAnimationActive={false} />
       </AreaChart>
     </ResponsiveContainer>
   );

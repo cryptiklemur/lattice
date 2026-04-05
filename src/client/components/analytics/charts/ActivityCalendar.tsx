@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { getChartColors } from "../chartTokens";
 
 interface CalendarDatum {
@@ -185,9 +186,9 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
         })}
       </svg>
 
-      {hover && (
+      {hover && createPortal(
         <div
-          className="fixed z-50 rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none"
+          className="fixed z-[9999] rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none"
           style={{ left: hover.x + 12, top: hover.y - 40 }}
         >
           <p className="text-[10px] font-mono text-base-content/50">{hover.datum.date}</p>
@@ -195,7 +196,8 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
             <p><span className="text-base-content/40">sessions </span>{hover.datum.count}</p>
             <p><span className="text-base-content/40">cost </span>${hover.datum.cost.toFixed(4)}</p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

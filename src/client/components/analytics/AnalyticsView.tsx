@@ -59,167 +59,37 @@ import { DailySummaryCards } from "./charts/DailySummaryCards";
 import { ProjectRadar } from "./charts/ProjectRadar";
 import { SessionComplexityList } from "./charts/SessionComplexityList";
 import { NodeFleetOverview } from "./charts/NodeFleetOverview";
+import type { AnalyticsSectionName } from "@lattice/shared";
 
 export function AnalyticsView() {
   const analytics = useAnalytics();
   const mesh = useMesh();
   const nodes = mesh.nodes;
+  const hasAnyData = analytics.loadedSections.length > 0;
+  const isLoading = analytics.loading;
+
+  function sectionLoading(name: AnalyticsSectionName): boolean {
+    return isLoading && !analytics.loadedSections.includes(name);
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-base-100 bg-lattice-grid">
       <div className="flex items-center justify-between px-4 h-11 border-b border-base-300 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <h1 className="text-[13px] font-mono font-bold text-base-content/90">Analytics</h1>
-          {analytics.loading && analytics.data && (
+          {isLoading && hasAnyData && (
             <span className="w-3.5 h-3.5 border-2 border-base-content/15 border-t-primary/60 rounded-full animate-spin" />
           )}
         </div>
         <PeriodSelector value={analytics.period} onChange={analytics.setPeriod} />
       </div>
 
-      <div className={"flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 transition-opacity duration-200 " + (analytics.loading && analytics.data ? "opacity-50" : "opacity-100")}>
-        {analytics.loading && !analytics.data && (
-          <div className="flex flex-col gap-4 max-w-[1200px] mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[0, 1, 2, 3].map(function (i) {
-                return <div key={i} className="h-24 rounded-xl bg-base-content/[0.03] animate-pulse" />;
-              })}
-            </div>
-            <div className="h-[240px] rounded-xl bg-base-content/[0.03] animate-pulse" />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="h-[240px] rounded-xl bg-base-content/[0.03] animate-pulse" />
-              <div className="h-[240px] rounded-xl bg-base-content/[0.03] animate-pulse" />
-            </div>
-          </div>
-        )}
-
+      <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
         {analytics.error && (
           <div className="text-center text-error/60 py-20 font-mono text-[13px]">{analytics.error}</div>
         )}
 
-        {analytics.data && (
-          <div className="flex flex-col max-w-[1200px] mx-auto pb-12">
-            <QuickStats />
-
-            <section className="flex flex-col gap-3 mt-8">
-              <SectionHeader label="Spending" />
-              <ChartCard title="Spending Over Time">
-                <ChartErrorBoundary name="CostArea">
-                  <CostAreaChart data={analytics.data.costOverTime} />
-                </ChartErrorBoundary>
-              </ChartCard>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Spend by Model">
-                  <ChartErrorBoundary name="CostDonut">
-                    <CostDonutChart modelUsage={analytics.data.modelUsage} totalCost={analytics.data.totalCost} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-                <ChartCard title="Running Total">
-                  <ChartErrorBoundary name="CumulativeCost">
-                    <CumulativeCostChart data={analytics.data.cumulativeCost} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Session Cost Ranges">
-                  <ChartErrorBoundary name="CostDistribution">
-                    <CostDistributionChart data={analytics.data.costDistribution} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-                <ChartCard title="Cost per Session">
-                  <ChartErrorBoundary name="SessionBubble">
-                    <SessionBubbleChart data={analytics.data.sessionBubbles} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-              </div>
-            </section>
-
-            <section className="flex flex-col gap-3 mt-10">
-              <SectionHeader label="Usage & Speed" />
-              <ChartCard title="Token Usage Over Time">
-                <ChartErrorBoundary name="TokenFlow">
-                  <TokenFlowChart data={analytics.data.tokensOverTime} />
-                </ChartErrorBoundary>
-              </ChartCard>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Cache Hit Rate">
-                  <ChartErrorBoundary name="CacheEfficiency">
-                    <CacheEfficiencyChart data={analytics.data.cacheHitRateOverTime} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-                <ChartCard title="Response Speed">
-                  <ChartErrorBoundary name="ResponseTime">
-                    <ResponseTimeScatter data={analytics.data.responseTimeData} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Context Utilization">
-                  <ChartErrorBoundary name="ContextUtilization">
-                    <ContextUtilizationChart data={analytics.data.contextUtilization} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-                <ChartCard title="Token Breakdown">
-                  <ChartErrorBoundary name="Sankey">
-                    <TokenSankeyChart data={analytics.data.tokenFlowSankey} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-              </div>
-            </section>
-
-            <section className="flex flex-col gap-3 mt-10">
-              <SectionHeader label="Activity" />
-              <ChartCard title="Activity Calendar">
-                <ChartErrorBoundary name="Calendar">
-                  <ActivityCalendar data={analytics.data.activityCalendar} />
-                </ChartErrorBoundary>
-              </ChartCard>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Peak Hours">
-                  <ChartErrorBoundary name="HourlyHeatmap">
-                    <HourlyHeatmap data={analytics.data.hourlyHeatmap} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-                <ChartCard title="Session Timeline">
-                  <ChartErrorBoundary name="Timeline">
-                    <SessionTimeline data={analytics.data.sessionTimeline} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-              </div>
-              <ChartCard title="Daily Summary">
-                <ChartErrorBoundary name="DailySummary">
-                  <DailySummaryCards data={analytics.data.dailySummaries} />
-                </ChartErrorBoundary>
-              </ChartCard>
-            </section>
-
-            <section className="flex flex-col gap-3 mt-10">
-              <SectionHeader label="Projects" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ChartCard title="Project Comparison">
-                  <ChartErrorBoundary name="Radar">
-                    <ProjectRadar data={analytics.data.projectRadar} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-                <ChartCard title="Session Complexity">
-                  <ChartErrorBoundary name="Complexity">
-                    <SessionComplexityList data={analytics.data.sessionComplexity} />
-                  </ChartErrorBoundary>
-                </ChartCard>
-              </div>
-            </section>
-
-            <SectionHeader label="Fleet" />
-
-            <ChartCard title="Node Fleet">
-              <ChartErrorBoundary name="Fleet">
-                <NodeFleetOverview nodes={nodes} />
-              </ChartErrorBoundary>
-            </ChartCard>
-          </div>
-        )}
-
-        {!analytics.loading && !analytics.error && !analytics.data && (
+        {!analytics.error && !isLoading && !hasAnyData && (
           <div className="flex flex-col items-center justify-center py-20 gap-6 max-w-[400px] mx-auto">
             <div className="w-16 h-16 rounded-2xl bg-primary/8 flex items-center justify-center">
               <BarChart3 size={28} className="text-primary/40" />
@@ -244,6 +114,128 @@ export function AnalyticsView() {
                 <span>Activity patterns and session complexity</span>
               </div>
             </div>
+          </div>
+        )}
+
+        {(isLoading || hasAnyData) && (
+          <div className="flex flex-col max-w-[1200px] mx-auto pb-12">
+            <QuickStats />
+
+            <section className="flex flex-col gap-3 mt-8">
+              <SectionHeader label="Spending" />
+              <ChartCard title="Spending Over Time" loading={sectionLoading("summary")} skeletonHeight={240}>
+                <ChartErrorBoundary name="CostArea">
+                  <CostAreaChart data={analytics.data?.costOverTime ?? []} />
+                </ChartErrorBoundary>
+              </ChartCard>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Spend by Model" loading={sectionLoading("spending")}>
+                  <ChartErrorBoundary name="CostDonut">
+                    <CostDonutChart modelUsage={analytics.data?.modelUsage ?? []} totalCost={analytics.data?.totalCost ?? 0} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Running Total" loading={sectionLoading("summary")}>
+                  <ChartErrorBoundary name="CumulativeCost">
+                    <CumulativeCostChart data={analytics.data?.cumulativeCost ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Session Cost Ranges" loading={sectionLoading("spending")}>
+                  <ChartErrorBoundary name="CostDistribution">
+                    <CostDistributionChart data={analytics.data?.costDistribution ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Cost per Session" loading={sectionLoading("spending")}>
+                  <ChartErrorBoundary name="SessionBubble">
+                    <SessionBubbleChart data={analytics.data?.sessionBubbles ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3 mt-10">
+              <SectionHeader label="Usage & Speed" />
+              <ChartCard title="Token Usage Over Time" loading={sectionLoading("summary")} skeletonHeight={240}>
+                <ChartErrorBoundary name="TokenFlow">
+                  <TokenFlowChart data={analytics.data?.tokensOverTime ?? []} />
+                </ChartErrorBoundary>
+              </ChartCard>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Cache Hit Rate" loading={sectionLoading("summary")}>
+                  <ChartErrorBoundary name="CacheEfficiency">
+                    <CacheEfficiencyChart data={analytics.data?.cacheHitRateOverTime ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Response Speed" loading={sectionLoading("usage")}>
+                  <ChartErrorBoundary name="ResponseTime">
+                    <ResponseTimeScatter data={analytics.data?.responseTimeData ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Context Utilization" loading={sectionLoading("usage")}>
+                  <ChartErrorBoundary name="ContextUtilization">
+                    <ContextUtilizationChart data={analytics.data?.contextUtilization ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Token Breakdown" loading={sectionLoading("usage")}>
+                  <ChartErrorBoundary name="Sankey">
+                    <TokenSankeyChart data={analytics.data?.tokenFlowSankey ?? { nodes: [], links: [] }} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3 mt-10">
+              <SectionHeader label="Activity" />
+              <ChartCard title="Activity Calendar" loading={sectionLoading("activity")} skeletonHeight={160}>
+                <ChartErrorBoundary name="Calendar">
+                  <ActivityCalendar data={analytics.data?.activityCalendar ?? []} />
+                </ChartErrorBoundary>
+              </ChartCard>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Peak Hours" loading={sectionLoading("activity")}>
+                  <ChartErrorBoundary name="HourlyHeatmap">
+                    <HourlyHeatmap data={analytics.data?.hourlyHeatmap ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Session Timeline" loading={sectionLoading("activity")}>
+                  <ChartErrorBoundary name="Timeline">
+                    <SessionTimeline data={analytics.data?.sessionTimeline ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+              <ChartCard title="Daily Summary" loading={sectionLoading("activity")} skeletonHeight={120}>
+                <ChartErrorBoundary name="DailySummary">
+                  <DailySummaryCards data={analytics.data?.dailySummaries ?? []} />
+                </ChartErrorBoundary>
+              </ChartCard>
+            </section>
+
+            <section className="flex flex-col gap-3 mt-10">
+              <SectionHeader label="Projects" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ChartCard title="Project Comparison" loading={sectionLoading("projects")}>
+                  <ChartErrorBoundary name="Radar">
+                    <ProjectRadar data={analytics.data?.projectRadar ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+                <ChartCard title="Session Complexity" loading={sectionLoading("projects")}>
+                  <ChartErrorBoundary name="Complexity">
+                    <SessionComplexityList data={analytics.data?.sessionComplexity ?? []} />
+                  </ChartErrorBoundary>
+                </ChartCard>
+              </div>
+            </section>
+
+            <SectionHeader label="Fleet" />
+
+            <ChartCard title="Node Fleet" loading={false} skeletonHeight={120}>
+              <ChartErrorBoundary name="Fleet">
+                <NodeFleetOverview nodes={nodes} />
+              </ChartErrorBoundary>
+            </ChartCard>
           </div>
         )}
       </div>

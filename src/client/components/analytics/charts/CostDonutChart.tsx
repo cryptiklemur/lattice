@@ -55,6 +55,7 @@ export function CostDonutChart({ modelUsage, totalCost }: CostDonutChartProps) {
             paddingAngle={2}
             startAngle={90}
             endAngle={-270}
+            isAnimationActive={false}
           >
             {modelUsage.map(function (entry, index) {
               return <Cell key={entry.model + index} fill={getModelColor(entry.model)} />;

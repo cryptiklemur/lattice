@@ -18,7 +18,7 @@ export function SaveFooter({ dirty, saving, saveState, onSave, extraStatus }: Sa
   useEffect(function () {
     if (prevStateRef.current !== saveState) {
       if (saveState === "saved") {
-        showToast("Settings saved", "success");
+        showToast("Settings saved", "info");
       } else if (saveState === "error") {
         showToast("Failed to save settings — server did not respond within 5 seconds", "error");
       }

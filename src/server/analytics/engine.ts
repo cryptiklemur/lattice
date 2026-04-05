@@ -1,7 +1,8 @@
-import { readdirSync, existsSync } from "node:fs";
+import { readdirSync, existsSync, readFileSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope } from "@lattice/shared";
+import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "@lattice/shared";
 import { estimateCost, projectPathToHash } from "../project/session";
 import { loadConfig } from "../config";
 
@@ -41,6 +42,15 @@ interface CacheEntry {
 
 var cache = new Map<string, CacheEntry>();
 var CACHE_TTL = 5 * 60 * 1000;
+var inflight = new Map<string, Promise<AnalyticsPayload>>();
+
+export var SECTION_KEYS: Record<AnalyticsSectionName, Array<keyof AnalyticsPayload>> = {
+  summary: ["totalCost", "totalSessions", "totalTokens", "cacheHitRate", "avgSessionCost", "avgSessionDuration", "costOverTime", "cumulativeCost", "sessionsOverTime", "tokensOverTime", "cacheHitRateOverTime"],
+  spending: ["costDistribution", "sessionBubbles", "modelUsage", "projectBreakdown"],
+  usage: ["toolUsage", "responseTimeData", "contextUtilization", "tokenFlowSankey"],
+  activity: ["activityCalendar", "hourlyHeatmap", "sessionTimeline", "dailySummaries"],
+  projects: ["toolTreemap", "toolSunburst", "permissionStats", "projectRadar", "sessionComplexity"],
+};
 
 function bucketModel(model: string): "opus" | "sonnet" | "haiku" | "other" {
   if (model.includes("opus")) return "opus";
@@ -75,15 +85,8 @@ function getCostBucket(cost: number): string | null {
   return "$5.00+";
 }
 
-function parseSessionFile(filePath: string, sessionId: string, projectSlug: string): SessionData | null {
+function parseSessionText(text: string, sessionId: string, projectSlug: string): SessionData | null {
   try {
-    var text: string;
-    try {
-      text = require("node:fs").readFileSync(filePath, "utf-8");
-    } catch {
-      return null;
-    }
-
     var lines = text.split("\n");
     var data: SessionData = {
       id: sessionId,
@@ -206,7 +209,25 @@ function parseSessionFile(filePath: string, sessionId: string, projectSlug: stri
   }
 }
 
-function getSessionFilesForProject(projectPath: string): Array<{ path: string; id: string }> {
+function parseSessionFile(filePath: string, sessionId: string, projectSlug: string): SessionData | null {
+  try {
+    var text = readFileSync(filePath, "utf-8");
+    return parseSessionText(text, sessionId, projectSlug);
+  } catch {
+    return null;
+  }
+}
+
+async function parseSessionFileAsync(filePath: string, sessionId: string, projectSlug: string): Promise<SessionData | null> {
+  try {
+    var text = await readFile(filePath, "utf-8");
+    return parseSessionText(text, sessionId, projectSlug);
+  } catch {
+    return null;
+  }
+}
+
+function getSessionFilesForProject(projectPath: string, cutoff?: number): Array<{ path: string; id: string }> {
   var hash = projectPathToHash(projectPath);
   var dir = join(homedir(), ".claude", "projects", hash);
   if (!existsSync(dir)) return [];
@@ -215,12 +236,17 @@ function getSessionFilesForProject(projectPath: string): Array<{ path: string; i
   try {
     var entries = readdirSync(dir);
     for (var i = 0; i < entries.length; i++) {
-      if (entries[i].endsWith(".jsonl")) {
-        files.push({
-          path: join(dir, entries[i]),
-          id: entries[i].replace(".jsonl", ""),
-        });
+      if (!entries[i].endsWith(".jsonl")) continue;
+      var filePath = join(dir, entries[i]);
+      if (cutoff && cutoff > 0) {
+        try {
+          var mtime = statSync(filePath).mtimeMs;
+          if (mtime < cutoff) continue;
+        } catch {
+          // include if stat fails
+        }
       }
+      files.push({ path: filePath, id: entries[i].replace(".jsonl", "") });
     }
   } catch {
     return [];
@@ -771,7 +797,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   };
 }
 
-export function getAnalytics(
+export async function getAnalytics(
   scope: AnalyticsScope,
   period: AnalyticsPeriod,
   projectSlug?: string,
@@ -786,27 +812,28 @@ export function getAnalytics(
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return Promise.resolve(cached.data);
     }
+    var existing = inflight.get(cacheKey);
+    if (existing) return existing;
   }
 
-  var sessions: SessionData[] = [];
   var config = loadConfig();
+  var cutoff = getPeriodCutoff(period);
+  var fileRefs: Array<{ path: string; id: string; slug: string }> = [];
 
   if (scope === "global") {
     for (var i = 0; i < config.projects.length; i++) {
       var proj = config.projects[i];
-      var files = getSessionFilesForProject(proj.path);
+      var files = getSessionFilesForProject(proj.path, cutoff);
       for (var j = 0; j < files.length; j++) {
-        var data = parseSessionFile(files[j].path, files[j].id, proj.slug);
-        if (data) sessions.push(data);
+        fileRefs.push({ path: files[j].path, id: files[j].id, slug: proj.slug });
       }
     }
   } else if (scope === "project" && projectSlug) {
     var project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
     if (project) {
-      var projFiles = getSessionFilesForProject(project.path);
+      var projFiles = getSessionFilesForProject(project.path, cutoff);
       for (var pf = 0; pf < projFiles.length; pf++) {
-        var pData = parseSessionFile(projFiles[pf].path, projFiles[pf].id, projectSlug);
-        if (pData) sessions.push(pData);
+        fileRefs.push({ path: projFiles[pf].path, id: projFiles[pf].id, slug: projectSlug });
       }
     }
   } else if (scope === "session" && projectSlug && sessionId) {
@@ -815,17 +842,23 @@ export function getAnalytics(
       var hash = projectPathToHash(sessProject.path);
       var filePath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
       if (existsSync(filePath)) {
-        var sData = parseSessionFile(filePath, sessionId, projectSlug);
-        if (sData) sessions.push(sData);
+        fileRefs.push({ path: filePath, id: sessionId, slug: projectSlug });
       }
     }
   }
 
-  var result = aggregate(sessions, period);
+  var promise = Promise.all(fileRefs.map(function (ref) {
+    return parseSessionFileAsync(ref.path, ref.id, ref.slug);
+  })).then(function (results) {
+    var sessions = results.filter(function (s): s is SessionData { return s !== null; });
+    var result = aggregate(sessions, period);
+    cache.set(cacheKey, { data: result, timestamp: Date.now() });
+    inflight.delete(cacheKey);
+    return result;
+  });
 
-  cache.set(cacheKey, { data: result, timestamp: Date.now() });
-
-  return Promise.resolve(result);
+  inflight.set(cacheKey, promise);
+  return promise;
 }
 
 var dailySpendCache: { value: number; timestamp: number } | null = null;
@@ -860,4 +893,28 @@ export function getDailySpend(): number {
 
 export function invalidateDailySpendCache(): void {
   dailySpendCache = null;
+}
+
+export async function streamAnalyticsSections(
+  scope: AnalyticsScope,
+  period: AnalyticsPeriod,
+  projectSlug: string | undefined,
+  sessionId: string | undefined,
+  forceRefresh: boolean | undefined,
+  onSection: (name: AnalyticsSectionName, data: Partial<AnalyticsPayload>) => void,
+): Promise<void> {
+  var payload = await getAnalytics(scope, period, projectSlug, sessionId, forceRefresh);
+  var sectionNames: AnalyticsSectionName[] = ["summary", "spending", "usage", "activity", "projects"];
+
+  for (var si = 0; si < sectionNames.length; si++) {
+    var name = sectionNames[si];
+    var keys = SECTION_KEYS[name];
+    var sectionData: Partial<AnalyticsPayload> = {};
+    for (var ki = 0; ki < keys.length; ki++) {
+      var key = keys[ki];
+      (sectionData as Record<string, unknown>)[key] = payload[key];
+    }
+    onSection(name, sectionData);
+    await new Promise<void>(function (resolve) { setImmediate(resolve); });
+  }
 }

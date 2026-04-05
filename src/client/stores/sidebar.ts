@@ -3,6 +3,7 @@ import type { ProjectSettingsSection } from "@lattice/shared";
 import { encodeWorkspaceUrl, decodeWorkspaceUrl, isLegacySessionUrl, shortSessionId } from "../lib/workspace-url";
 import type { DecodedWorkspace } from "../lib/workspace-url";
 import { getWorkspaceStore, restoreWorkspace, setUrlSyncCallback, switchProjectWorkspace, setCurrentProjectKey } from "./workspace";
+import { setAnalyticsScope } from "./analytics";
 
 export type { ProjectSettingsSection };
 
@@ -364,8 +365,9 @@ export function goToDashboard(): void {
 }
 
 export function goToAnalytics(): void {
+  setAnalyticsScope("global");
   sidebarStore.setState(function (state) {
-    return { ...state, activeView: { type: "analytics" }, sidebarMode: "project" };
+    return { ...state, activeView: { type: "analytics" } };
   });
   pushUrl(sidebarStore.state.activeProjectSlug);
 }

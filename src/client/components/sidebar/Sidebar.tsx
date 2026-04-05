@@ -12,7 +12,6 @@ import { clearSession } from "../../stores/session";
 import { useOnline } from "../../hooks/useOnline";
 import { openTab, openSessionTab, closeTab, getWorkspaceStore } from "../../stores/workspace";
 import { getSidebarStore, goToAnalytics, openSettings } from "../../stores/sidebar";
-import { setAnalyticsScope } from "../../stores/analytics";
 import { ProjectRail } from "./ProjectRail";
 import { SessionList } from "./SessionList";
 import { UserIsland } from "./UserIsland";
@@ -259,7 +258,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
       <div className="flex flex-col flex-1 overflow-hidden min-h-0 bg-base-200 border-r border-base-300">
         {sidebar.sidebarMode === "project" ? (
           <>
-            {sidebar.activeView.type === "dashboard" ? (
+            {(sidebar.activeView.type === "dashboard" || (sidebar.activeView.type === "analytics" && !sidebar.activeProjectSlug)) ? (
               <>
                 <div className="px-4 h-12 border-b border-base-300 flex-shrink-0 flex items-center gap-2">
                   <LatticeLogomark size={18} />
@@ -287,10 +286,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     </button>
                     <button
                       type="button"
-                      onClick={function () {
-                        setAnalyticsScope("global");
-                        openTab("analytics");
-                      }}
+                      onClick={goToAnalytics}
                       className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
                     >
                       <BarChart3 size={12} />

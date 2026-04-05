@@ -3,24 +3,24 @@
 This file provides guidance to Claude Code when working with code in this repository.
 
 ## Project Structure
-Bun monorepo with three workspaces:
-- `shared/` — TypeScript types and constants (no build, imported directly)
-- `server/` — Bun daemon serving WebSocket API + static client assets on port 7654
-- `client/` — React 19 + Vite + Tailwind + daisyUI web app
+Single npm package with three source directories:
+- `src/shared/` — TypeScript types and constants (no build, imported via `@lattice/shared` path alias)
+- `src/server/` — Express + ws daemon serving WebSocket API + static client assets on port 7654
+- `src/client/` — React 19 + Vite + Tailwind + daisyUI web app
 
 ## Commands
-- `bun run dev` — starts server (--watch) + Vite dev server, hot reloads both
-- `bun run build` — builds all workspaces (only client produces output)
-- `bun run typecheck` — runs tsc across all workspaces
-- `bunx playwright test` — runs Playwright tests (server must be running on :7654)
-- Single test: `bunx playwright test tests/session-flow.spec.ts`
+- `npm run dev` — starts Express server with Vite middleware mode (single port, HMR)
+- `npm run build` — runs `vite build`, outputs to `dist/client/`
+- `npm run typecheck` — runs `tsc --noEmit`
+- `npx playwright test` — runs Playwright tests (server must be running on :7654)
+- Single test: `npx playwright test tests/session-flow.spec.ts`
 
 ## Coding Standards
 - Use `const`/`let` (not `var`). Use named function declarations, not arrow functions — except for anonymous callbacks where arrows are fine.
 - No emojis for icons or in UI. Use `lucide-react` for all icons.
 - No section separator comments or organizational comments.
 - Follow .editorconfig (2-space indent, LF, UTF-8).
-- Server: ESM with Bun. Client: ESM with Vite + React.
+- Server: ESM with Node.js (tsx). Client: ESM with Vite + React.
 
 ## Git
 - Never add "Co-Authored-By" lines mentioning Claude/AI.
@@ -42,8 +42,7 @@ DO NOT EVER LEAVE PRE-EXISTING ERRORS. FIX THEM.
 
 ## Environment
 - ANTHROPIC_API_KEY is optional — server uses the token from `claude setup-token` if not set.
-- Server binds to 0.0.0.0:7654 in production, 0.0.0.0:17654 in dev (WSL2 compatible).
-- Client dev server runs on :5173 and proxies to :17654. Production serves from server via client/dist/.
+- Single port: Express server on 0.0.0.0:7654 serves both API/WS and client (Vite middleware in dev, static files in production).
 - `LATTICE_HOME` — override data directory (default: `~/.lattice`).
 - `LATTICE_PORT` — override server port (default: 7654). Also: `--port=N`.
 
@@ -56,16 +55,16 @@ DO NOT EVER LEAVE PRE-EXISTING ERRORS. FIX THEM.
 ### Testing Mesh/Node Functionality
 Run a second Lattice instance with a separate data directory and port:
 ```bash
-LATTICE_HOME=/tmp/lattice-test-node LATTICE_PORT=7655 bun server/src/index.ts daemon
+LATTICE_HOME=/tmp/lattice-test-node NODE_ENV=production npx tsx src/server/index.ts daemon --port 7655
 ```
 Then pair the two instances via the UI or WebSocket:
 ```bash
 # Generate invite on :7654, then pair from :7655:
-bun -e "
-var ws = new WebSocket('ws://localhost:7655/ws');
-ws.onopen = function() { ws.send(JSON.stringify({ type: 'mesh:pair', code: 'LTCE-XXXX-...' })); };
-ws.onmessage = function(e) { console.log(JSON.parse(e.data).type); };
+node -e "
+var ws = new (require('ws').WebSocket)('ws://localhost:7655/ws');
+ws.on('open', function() { ws.send(JSON.stringify({ type: 'mesh:pair', code: 'LTCE-XXXX-...' })); });
+ws.on('message', function(d) { console.log(JSON.parse(d).type); });
 "
 ```
-The test instance serves from `client/dist/` (run `bun run build` first for UI access on :7655).
+The test instance serves from `dist/client/` (run `npm run build` first for UI access on :7655).
 Clean up: `rm -rf /tmp/lattice-test-node`

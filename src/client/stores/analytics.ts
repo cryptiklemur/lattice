@@ -1,8 +1,9 @@
 import { Store } from "@tanstack/react-store";
-import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope } from "@lattice/shared";
+import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "@lattice/shared";
 
 export interface AnalyticsState {
-  data: AnalyticsPayload | null;
+  data: Partial<AnalyticsPayload>;
+  loadedSections: AnalyticsSectionName[];
   loading: boolean;
   error: string | null;
   period: AnalyticsPeriod;
@@ -11,10 +12,11 @@ export interface AnalyticsState {
 }
 
 var analyticsStore = new Store<AnalyticsState>({
-  data: null,
+  data: {},
+  loadedSections: [],
   loading: false,
   error: null,
-  period: "7d",
+  period: "30d",
   scope: "global",
   projectSlug: null,
 });
@@ -23,9 +25,21 @@ export function getAnalyticsStore(): Store<AnalyticsState> {
   return analyticsStore;
 }
 
-export function setAnalyticsData(data: AnalyticsPayload): void {
+export function mergeAnalyticsSection(section: AnalyticsSectionName, sectionData: Partial<AnalyticsPayload>): void {
   analyticsStore.setState(function (state) {
-    return { ...state, data: data, loading: false, error: null };
+    return {
+      ...state,
+      data: { ...state.data, ...sectionData },
+      loadedSections: state.loadedSections.includes(section)
+        ? state.loadedSections
+        : [...state.loadedSections, section],
+    };
+  });
+}
+
+export function clearAnalyticsForRequest(): void {
+  analyticsStore.setState(function (state) {
+    return { ...state, data: {}, loadedSections: [], loading: true, error: null };
   });
 }
 

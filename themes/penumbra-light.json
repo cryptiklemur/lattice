@@ -1,0 +1,9 @@
+{
+  "name": "Penumbra Light",
+  "author": "Nealmckee",
+  "variant": "light",
+  "base00": "fff7ed", "base01": "f2e6d4", "base02": "dedbd6", "base03": "9e9b97",
+  "base04": "636363", "base05": "3e4044", "base06": "24272b", "base07": "0d0f11",
+  "base08": "ca7081", "base09": "ba823a", "base0A": "8d9741", "base0B": "4e9b63",
+  "base0C": "3fa09e", "base0D": "5794d0", "base0E": "8b6fc0", "base0F": "c27d7e"
+}

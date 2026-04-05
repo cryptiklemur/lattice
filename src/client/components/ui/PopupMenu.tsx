@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export interface PopupMenuItem {
   id: string;
@@ -84,7 +85,7 @@ export function PopupMenu(props: PopupMenuProps) {
     }
   }
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       role="menu"
@@ -113,6 +114,7 @@ export function PopupMenu(props: PopupMenuProps) {
           </button>
         );
       })}
-    </div>
+    </div>,
+    document.body
   );
 }

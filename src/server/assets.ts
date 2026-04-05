@@ -1,5 +1,8 @@
-import { join } from "node:path";
-import { IS_COMPILED } from "./runtime";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
+
+var __dirname_local = dirname(fileURLToPath(import.meta.url));
 
 var CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -18,49 +21,22 @@ var CONTENT_TYPES: Record<string, string> = {
   ".wasm": "application/wasm",
 };
 
-interface EmbeddedAssetModule {
-  assets: Map<string, { b64: string; type: string }>;
-}
-
-var embeddedAssets: Map<string, { b64: string; type: string }> | null = null;
-var assetCache = new Map<string, Uint8Array>();
-
 export async function initAssets(): Promise<void> {
-  if (!IS_COMPILED) return;
-  try {
-    var mod = await import("./_generated/embedded-assets") as EmbeddedAssetModule;
-    embeddedAssets = mod.assets;
-  } catch {}
+  // No-op in npm mode — static serving is handled by Express
 }
 
-export function serveStaticAsset(pathname: string): Response | null {
-  if (!embeddedAssets) return null;
-
-  var entry = embeddedAssets.get(pathname);
-  if (!entry) return null;
-
-  var cached = assetCache.get(pathname);
-  if (!cached) {
-    cached = Buffer.from(entry.b64, "base64") as unknown as Uint8Array;
-    assetCache.set(pathname, cached);
-  }
-
-  return new Response(cached as unknown as BodyInit, {
-    headers: {
-      "Content-Type": entry.type,
-      "Cache-Control": pathname === "/index.html" || pathname === "/sw.js"
-        ? "no-cache"
-        : "public, max-age=31536000, immutable",
-    },
-  });
+export function serveStaticAsset(_pathname: string): Response | null {
+  return null;
 }
 
 export function hasEmbeddedAssets(): boolean {
-  return embeddedAssets !== null;
+  return false;
 }
 
 export function getClientDir(): string {
-  return join(import.meta.dir, "../../client/dist");
+  var distPath = join(__dirname_local, "../../dist/client");
+  if (existsSync(distPath)) return distPath;
+  return join(__dirname_local, "../../dist/client");
 }
 
 export function guessContentType(path: string): string {

@@ -1,16 +1,29 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 delete process.env.CLAUDECODE;
 delete process.env.CLAUDE_CODE_ENTRYPOINT;
 
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, writeFileSync, unlinkSync, openSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawn, execSync } from "node:child_process";
 import { DAEMON_PID_FILE } from "@lattice/shared";
 import { getLatticeHome, loadConfig } from "./config";
-import { IS_COMPILED } from "./runtime";
+
+var __filename_local = fileURLToPath(import.meta.url);
+var __dirname_local = dirname(__filename_local);
+
+function getCurrentVersion(): string {
+  try {
+    var pkg = JSON.parse(readFileSync(join(__dirname_local, "../../package.json"), "utf-8"));
+    return pkg.version || "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 var args = process.argv.slice(2);
 var command = "start";
-var portOverride: number | null = process.env.LATTICE_PORT ? parseInt(process.env.LATTICE_PORT, 10) : null;
+var portOverride: number | null = null;
 
 for (var i = 0; i < args.length; i++) {
   if (args[i] === "--port" && i + 1 < args.length) {
@@ -65,6 +78,18 @@ function isDaemonRunning(pid: number): boolean {
   }
 }
 
+function spawnDaemon(port: number): number {
+  var logPath = join(getLatticeHome(), "daemon.log");
+  var logFd = openSync(logPath, "a");
+  var child = spawn("tsx", [__filename_local, "daemon", "--port", String(port)], {
+    detached: true,
+    stdio: ["ignore", logFd, logFd],
+    env: { ...process.env, LATTICE_PORT: undefined },
+  });
+  child.unref();
+  return child.pid!;
+}
+
 switch (command) {
   case "daemon":
     await runDaemon();
@@ -76,7 +101,7 @@ switch (command) {
     runStop();
     break;
   case "restart":
-    runRestart();
+    await runRestart();
     break;
   case "status":
     runStatus();
@@ -108,17 +133,29 @@ switch (command) {
 }
 
 async function runDaemon(): Promise<void> {
+  var { printBanner, printStatus, printQrCode, runOnboarding } = await import("./tui");
   var { startDaemon } = await import("./daemon");
+  var { broadcast, closeAllClients } = await import("./ws/broadcast");
+  var { getActiveStreamCount } = await import("./project/sdk-bridge");
+  var { stopMeshConnections } = await import("./mesh/connector");
+
+  var onboarding = await runOnboarding();
+  if (onboarding.passphrase) {
+    var { hashPassphrase } = await import("./auth/passphrase");
+    var config = loadConfig();
+    config.passphraseHash = hashPassphrase(onboarding.passphrase);
+    var { saveConfig: saveCfg } = await import("./config");
+    saveCfg(config);
+  }
+
+  var effectivePort = portOverride ?? onboarding.port;
+
   writePid(process.pid);
   var shutdownInProgress = false;
   function gracefulShutdown(): void {
     if (shutdownInProgress) return;
     shutdownInProgress = true;
-    console.log("[lattice] Shutting down gracefully...");
-
-    var { broadcast, closeAllClients } = require("./ws/broadcast") as typeof import("./ws/broadcast");
-    var { getActiveStreamCount } = require("./project/sdk-bridge") as typeof import("./project/sdk-bridge");
-    var { stopMeshConnections } = require("./mesh/connector") as typeof import("./mesh/connector");
+    console.log("\n[lattice] Shutting down gracefully...");
 
     broadcast({ type: "chat:error", message: "Server is shutting down" });
     stopMeshConnections();
@@ -138,7 +175,25 @@ async function runDaemon(): Promise<void> {
   }
   process.on("SIGTERM", gracefulShutdown);
   process.on("SIGINT", gracefulShutdown);
-  await startDaemon(portOverride);
+  await startDaemon(effectivePort);
+
+  var config = loadConfig();
+  var protocol = config.tls ? "https" : "http";
+  var url = protocol + "://localhost:" + config.port;
+  var version = getCurrentVersion();
+  var projectCount = config.projects.length;
+  var sessionCount = 0;
+  try {
+    var { listSessions } = await import("./project/session");
+    for (var i = 0; i < config.projects.length; i++) {
+      var result = await listSessions(config.projects[i].slug, { limit: 0 });
+      sessionCount += result.totalCount;
+    }
+  } catch {}
+
+  printBanner();
+  await printQrCode(url);
+  printStatus(config, version, projectCount, sessionCount);
 }
 
 async function runStart(): Promise<void> {
@@ -153,25 +208,12 @@ async function runStart(): Promise<void> {
 
   removePid();
 
-  var logPath = join(getLatticeHome(), "daemon.log");
   var config = loadConfig();
   var port = portOverride ?? config.port;
-
-  var spawnArgs = IS_COMPILED
-    ? [process.execPath, "daemon", "--port", String(port)]
-    : ["bun", import.meta.path, "daemon", "--port", String(port)];
-
-  var child = Bun.spawn(spawnArgs, {
-    detached: true,
-    stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)],
-  });
-
-  child.unref();
-
-  var childPid = child.pid;
+  var childPid = spawnDaemon(port);
   writePid(childPid);
   console.log("[lattice] Daemon started (PID " + childPid + ")");
-  console.log("[lattice] Logs: " + logPath);
+  console.log("[lattice] Logs: " + join(getLatticeHome(), "daemon.log"));
 
   await new Promise<void>(function (resolve) {
     setTimeout(resolve, 800);
@@ -228,14 +270,11 @@ function runHelp(): void {
   console.log("");
   console.log("  Environment:");
   console.log("    LATTICE_HOME   Data directory (default: ~/.lattice)");
-  console.log("    LATTICE_PORT   Server port (default: 7654)");
   console.log("    DEBUG          Enable debug logging (e.g. DEBUG=lattice:*)");
-  console.log("                   Scopes: server,ws,router,mesh,mesh:connect,mesh:hello,");
-  console.log("                   mesh:proxy,broadcast,chat,session,plugins,update");
   console.log("");
 }
 
-function runRestart(): void {
+async function runRestart(): Promise<void> {
   var pid = readPid();
   if (pid !== null && isDaemonRunning(pid)) {
     console.log("[lattice] Stopping daemon (PID " + pid + ")...");
@@ -248,7 +287,7 @@ function runRestart(): void {
     while (waited < 5000) {
       try {
         process.kill(pid, 0);
-        Bun.sleepSync(200);
+        await new Promise<void>(function (r) { setTimeout(r, 200); });
         waited += 200;
       } catch {
         break;
@@ -257,21 +296,10 @@ function runRestart(): void {
   }
 
   console.log("[lattice] Starting daemon...");
-  var logPath = join(getLatticeHome(), "daemon.log");
   var restartPort = portOverride ?? loadConfig().port;
-
-  var spawnArgs = IS_COMPILED
-    ? [process.execPath, "daemon", "--port", String(restartPort)]
-    : ["bun", import.meta.path, "daemon", "--port", String(restartPort)];
-
-  var child = Bun.spawn(spawnArgs, {
-    detached: true,
-    stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)],
-  });
-
-  child.unref();
-  writePid(child.pid);
-  console.log("[lattice] Daemon started (PID " + child.pid + ")");
+  var childPid = spawnDaemon(restartPort);
+  writePid(childPid);
+  console.log("[lattice] Daemon started (PID " + childPid + ")");
 }
 
 async function runVersion(): Promise<void> {
@@ -286,7 +314,7 @@ async function runVersion(): Promise<void> {
       console.log("[lattice] Latest:  v" + info.latestVersion + " (up to date)");
     }
   }
-  console.log("[lattice] Mode:    " + info.installMode);
+  console.log("[lattice] Mode:    npm");
 }
 
 function runLogs(): void {
@@ -296,9 +324,8 @@ function runLogs(): void {
     process.exit(1);
   }
   console.log("[lattice] Tailing " + logPath + " (Ctrl+C to stop)");
-  var proc = Bun.spawn(["tail", "-f", "-n", "50", logPath], {
-    stdout: "inherit",
-    stderr: "inherit",
+  var proc = spawn("tail", ["-f", "-n", "50", logPath], {
+    stdio: ["ignore", "inherit", "inherit"],
   });
   process.on("SIGINT", function () {
     proc.kill();
@@ -360,7 +387,7 @@ function runStatus(): void {
 }
 
 async function runUpdate(): Promise<void> {
-  var { checkForUpdate, getPackageName, getGitHubRepo } = await import("./update-checker");
+  var { checkForUpdate, getPackageName } = await import("./update-checker");
   console.log("[lattice] Checking for updates...");
   var info = await checkForUpdate(true);
 
@@ -374,71 +401,16 @@ async function runUpdate(): Promise<void> {
     process.exit(0);
   }
 
-  console.log("[lattice] Update available: %s -> %s (%s)", info.currentVersion, info.latestVersion, info.installMode);
+  console.log("[lattice] Update available: %s -> %s", info.currentVersion, info.latestVersion);
   console.log("[lattice] Installing...");
 
-  var code: number;
-
-  if (IS_COMPILED) {
-    var { chmodSync, renameSync, writeFileSync } = await import("node:fs");
-    var repo = getGitHubRepo();
-    var platform = process.platform === "darwin" ? "darwin" : "linux";
-    var arch = process.arch === "arm64" ? "arm64" : "x64";
-    var assetName = "lattice-" + platform + "-" + arch;
-
-    try {
-      var releaseRes = await fetch("https://api.github.com/repos/" + repo + "/releases/latest", {
-        headers: { "Accept": "application/vnd.github.v3+json" },
-      });
-      var release = await releaseRes.json() as { assets?: Array<{ name: string; browser_download_url: string }> };
-      var asset = (release.assets ?? []).find(function (a) { return a.name === assetName; });
-
-      if (!asset) {
-        console.error("[lattice] No binary found for " + assetName);
-        process.exit(1);
-      }
-
-      console.log("[lattice] Downloading " + assetName + "...");
-      var downloadRes = await fetch(asset.browser_download_url);
-      var binary = new Uint8Array(await downloadRes.arrayBuffer());
-      var { tmpdir } = await import("node:os");
-      var tmpPath = join(tmpdir(), "lattice-update-" + Date.now());
-      writeFileSync(tmpPath, binary);
-      chmodSync(tmpPath, 0o755);
-
-      var needsSudo = false;
-      try {
-        var { accessSync, constants: fsConstants } = await import("node:fs");
-        accessSync(process.execPath, fsConstants.W_OK);
-      } catch {
-        needsSudo = true;
-      }
-
-      if (needsSudo) {
-        console.log("[lattice] Needs elevated permissions to replace binary...");
-        var { execSync } = await import("node:child_process");
-        execSync("sudo cp " + JSON.stringify(tmpPath) + " " + JSON.stringify(process.execPath), { stdio: "inherit" });
-        execSync("sudo chmod +x " + JSON.stringify(process.execPath), { stdio: "inherit" });
-      } else {
-        var { copyFileSync: cpSync, unlinkSync: rmSync } = await import("node:fs");
-        try { rmSync(process.execPath); } catch {}
-        cpSync(tmpPath, process.execPath);
-        chmodSync(process.execPath, 0o755);
-        rmSync(tmpPath);
-      }
-      code = 0;
-    } catch (err) {
-      console.error("[lattice] Download failed:", err instanceof Error ? err.message : String(err));
-      code = 1;
-    }
-  } else {
-    var pkgName = getPackageName();
-    var proc = Bun.spawn(["bun", "install", "-g", pkgName + "@latest"], {
-      stdout: "inherit",
-      stderr: "inherit",
-    });
-    code = await proc.exited;
-  }
+  var pkgName = getPackageName();
+  var proc = spawn("npm", ["install", "-g", pkgName + "@latest"], {
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  var code = await new Promise<number>(function (resolve) {
+    proc.on("close", function (c) { resolve(c ?? 1); });
+  });
 
   if (code === 0) {
     console.log("[lattice] Updated to %s", info.latestVersion);
@@ -452,18 +424,10 @@ async function runUpdate(): Promise<void> {
       removePid();
       await new Promise<void>(function (resolve) { setTimeout(resolve, 1000); });
 
-      var logPath = join(getLatticeHome(), "daemon.log");
       var updatePort = portOverride ?? loadConfig().port;
-      var restartArgs = IS_COMPILED
-        ? [process.execPath, "daemon", "--port", String(updatePort)]
-        : ["bun", import.meta.path, "daemon", "--port", String(updatePort)];
-      var child = Bun.spawn(restartArgs, {
-        detached: true,
-        stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)],
-      });
-      child.unref();
-      writePid(child.pid);
-      console.log("[lattice] Daemon restarted (PID %d)", child.pid);
+      var childPid = spawnDaemon(updatePort);
+      writePid(childPid);
+      console.log("[lattice] Daemon restarted (PID %d)", childPid);
     }
   } else {
     console.error("[lattice] Update failed (exit code %d)", code);
@@ -475,11 +439,11 @@ function openBrowser(url: string): void {
   var platform = process.platform;
   try {
     if (platform === "win32") {
-      Bun.spawn(["cmd", "/c", "start", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+      spawn("cmd", ["/c", "start", url], { detached: true, stdio: "ignore" }).unref();
     } else if (platform === "darwin") {
-      Bun.spawn(["open", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+      spawn("open", [url], { detached: true, stdio: "ignore" }).unref();
     } else {
-      Bun.spawn(["xdg-open", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+      spawn("xdg-open", [url], { detached: true, stdio: "ignore" }).unref();
     }
   } catch {
     console.log("[lattice] Could not open browser. Visit: " + url);

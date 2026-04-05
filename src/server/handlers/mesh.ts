@@ -313,8 +313,9 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
       removeVirtualClient("mesh-proxy:" + clientId + ":" + proxyReq.requestId);
     });
 
-    var { routeMessage: routeMsg } = require("../ws/router") as typeof import("../ws/router");
-    routeMsg("mesh-proxy:" + clientId + ":" + proxyReq.requestId, proxyReq.payload);
+    import("../ws/router").then(function (mod) {
+      mod.routeMessage("mesh-proxy:" + clientId + ":" + proxyReq.requestId, proxyReq.payload);
+    });
     return;
   }
 

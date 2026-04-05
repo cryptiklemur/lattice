@@ -1,12 +1,11 @@
 import { chmodSync, writeFileSync, accessSync, copyFileSync, unlinkSync, constants as fsConstants } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import type { ClientMessage } from "@lattice/shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { checkForUpdate, getPackageName, getGitHubRepo, getInstallMode } from "../update-checker";
-import { IS_COMPILED } from "../runtime";
 
 function getAssetName(): string {
   var platform = process.platform === "darwin" ? "darwin" : "linux";
@@ -96,35 +95,18 @@ registerHandler("update", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "update:apply") {
-    if (IS_COMPILED) {
-      void downloadBinaryUpdate().then(function (result) {
-        sendTo(clientId, { type: "update:apply_result", success: result.success, message: result.message });
-        if (result.success) {
-          void checkForUpdate(true).then(function (info) {
-            broadcast({
-              type: "update:status",
-              currentVersion: info.currentVersion,
-              latestVersion: info.latestVersion,
-              updateAvailable: info.updateAvailable,
-              releaseUrl: info.releaseUrl,
-              installMode: info.installMode,
-            });
-          });
-        }
-      });
-    } else {
+    {
       var pkgName = getPackageName();
       try {
-        var proc = Bun.spawn(["bun", "install", "-g", pkgName + "@latest"], {
-          stdout: "pipe",
-          stderr: "pipe",
+        var proc = spawn("npm", ["install", "-g", pkgName + "@latest"], {
+          stdio: ["ignore", "pipe", "pipe"],
         });
 
         var timeout = setTimeout(function () {
           proc.kill();
         }, 120000);
 
-        void proc.exited.then(function (code) {
+        proc.on("close", function (code) {
           clearTimeout(timeout);
           if (code === 0) {
             sendTo(clientId, { type: "update:apply_result", success: true, message: "Updated successfully. Restart the server to apply." });

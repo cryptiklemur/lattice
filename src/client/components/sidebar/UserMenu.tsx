@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Settings, RefreshCw, Power } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 
@@ -77,7 +78,7 @@ export function UserMenu(props: UserMenuProps) {
   var itemClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-base-content/70 hover:bg-base-content/5 hover:text-base-content outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
   var dangerClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-error hover:bg-error/10 outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       role="menu"
@@ -100,6 +101,7 @@ export function UserMenu(props: UserMenuProps) {
         <span className="opacity-60 flex-shrink-0"><Power size={13} /></span>
         {confirmingShutdown ? "Click again to shutdown" : "Shutdown"}
       </button>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -6,23 +6,23 @@ var _registry: typeof import("../project/registry") | null = null;
 var _connector: typeof import("../mesh/connector") | null = null;
 var _proxy: typeof import("../mesh/proxy") | null = null;
 
-function getRegistry(): typeof import("../project/registry") {
+async function getRegistry(): Promise<typeof import("../project/registry")> {
   if (!_registry) {
-    _registry = require("../project/registry") as typeof import("../project/registry");
+    _registry = await import("../project/registry");
   }
   return _registry;
 }
 
-function getConnector(): typeof import("../mesh/connector") {
+async function getConnector(): Promise<typeof import("../mesh/connector")> {
   if (!_connector) {
-    _connector = require("../mesh/connector") as typeof import("../mesh/connector");
+    _connector = await import("../mesh/connector");
   }
   return _connector;
 }
 
-function getProxy(): typeof import("../mesh/proxy") {
+async function getProxy(): Promise<typeof import("../mesh/proxy")> {
   if (!_proxy) {
-    _proxy = require("../mesh/proxy") as typeof import("../mesh/proxy");
+    _proxy = await import("../mesh/proxy");
   }
   return _proxy;
 }
@@ -50,7 +50,7 @@ export function getClientRemoteNode(clientId: string): { nodeId: string; project
   return clientRemoteNode.get(clientId);
 }
 
-export function routeMessage(clientId: string, message: ClientMessage): void {
+export async function routeMessage(clientId: string, message: ClientMessage): Promise<void> {
   var prefix = message.type.split(":")[0];
 
   log.router("→ %s from client %s (prefix=%s)", message.type, clientId.slice(0, 8), prefix);
@@ -61,14 +61,14 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
     var msgSlug = (message as any).projectSlug as string | undefined;
 
     if (msgSlug) {
-      var localProject = getLocalProject(msgSlug);
+      var localProject = await getLocalProject(msgSlug);
       log.router("  slug=%s local=%s", msgSlug, localProject);
       if (!localProject) {
-        var remoteEntry = getRemoteNodeForProject(msgSlug);
+        var remoteEntry = await getRemoteNodeForProject(msgSlug);
         if (remoteEntry) {
           log.router("  → proxying to remote node %s for project %s", remoteEntry.nodeId.slice(0, 8), msgSlug);
           setClientRemoteNode(clientId, remoteEntry.nodeId, msgSlug);
-          proxyMessage(clientId, remoteEntry.nodeId, msgSlug, message);
+          await proxyMessage(clientId, remoteEntry.nodeId, msgSlug, message);
           return;
         }
         log.router("  ✗ no remote node found for slug %s", msgSlug);
@@ -77,7 +77,7 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
       }
     } else if (remote) {
       log.router("  → proxying via cached remote node %s", remote.nodeId.slice(0, 8));
-      proxyMessage(clientId, remote.nodeId, remote.projectSlug, message);
+      await proxyMessage(clientId, remote.nodeId, remote.projectSlug, message);
       return;
     }
   }
@@ -86,14 +86,7 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
   if (handler) {
     log.router("  → dispatching to %s handler", prefix);
     try {
-      var result = handler(clientId, message);
-      if (result && typeof result.then === "function") {
-        result.then(undefined, function (err: unknown) {
-          var stack = err instanceof Error ? err.stack : String(err);
-          log.ws("Async handler error for %s: %s", message.type, stack);
-          sendTo(clientId, { type: "chat:error", message: "Internal server error processing " + message.type });
-        });
-      }
+      await handler(clientId, message);
     } catch (err) {
       var stack = err instanceof Error ? (err as Error).stack : String(err);
       log.ws("Handler error for %s: %s", message.type, stack);
@@ -105,21 +98,24 @@ export function routeMessage(clientId: string, message: ClientMessage): void {
   sendTo(clientId, { type: "error", message: `Unknown message type: ${message.type}` });
 }
 
-function getLocalProject(slug: string): boolean {
-  return getRegistry().getProjectBySlug(slug) !== undefined;
+async function getLocalProject(slug: string): Promise<boolean> {
+  var registry = await getRegistry();
+  return registry.getProjectBySlug(slug) !== undefined;
 }
 
-function getRemoteNodeForProject(slug: string): { nodeId: string } | undefined {
-  var nodeId = getConnector().findNodeForProject(slug);
+async function getRemoteNodeForProject(slug: string): Promise<{ nodeId: string } | undefined> {
+  var connector = await getConnector();
+  var nodeId = connector.findNodeForProject(slug);
   if (nodeId) {
     return { nodeId: nodeId };
   }
   return undefined;
 }
 
-function proxyMessage(clientId: string, nodeId: string, projectSlug: string, message: ClientMessage): void {
+async function proxyMessage(clientId: string, nodeId: string, projectSlug: string, message: ClientMessage): Promise<void> {
   try {
-    getProxy().proxyToRemoteNode(nodeId, projectSlug, clientId, message);
+    var proxy = await getProxy();
+    proxy.proxyToRemoteNode(nodeId, projectSlug, clientId, message);
   } catch (err) {
     log.ws("Failed to proxy message: %O", err);
     sendTo(clientId, { type: "chat:error", message: "Failed to proxy message to remote node" });

@@ -1,7 +1,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import type {
   ClientMessage,
   PluginInfo,
@@ -550,17 +550,16 @@ registerHandler("plugin", function (clientId: string, message: ClientMessage) {
     var installMsg = message as { type: "plugin:install"; name: string; marketplace: string };
     var installArg = installMsg.name + "@" + installMsg.marketplace;
     try {
-      var proc = Bun.spawn(["claude", "plugin", "install", installArg], {
+      var proc = spawn("claude", ["plugin", "install", installArg], {
         cwd: homedir(),
-        stdout: "pipe",
-        stderr: "pipe",
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
       var timeout = setTimeout(function () {
         proc.kill();
       }, 120000);
 
-      void proc.exited.then(function (code) {
+      proc.on("close", function (code) {
         clearTimeout(timeout);
         if (code === 0) {
           sendTo(clientId, { type: "plugin:install_result", success: true, message: "Installed " + installMsg.name + " successfully" });
@@ -579,17 +578,16 @@ registerHandler("plugin", function (clientId: string, message: ClientMessage) {
     var uninstallMsg = message as { type: "plugin:uninstall"; name: string; marketplace: string };
     var uninstallArg = uninstallMsg.name + "@" + uninstallMsg.marketplace;
     try {
-      var uninstallProc = Bun.spawn(["claude", "plugin", "uninstall", uninstallArg], {
+      var uninstallProc = spawn("claude", ["plugin", "uninstall", uninstallArg], {
         cwd: homedir(),
-        stdout: "pipe",
-        stderr: "pipe",
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
       var uninstallTimeout = setTimeout(function () {
         uninstallProc.kill();
       }, 60000);
 
-      void uninstallProc.exited.then(function (code) {
+      uninstallProc.on("close", function (code) {
         clearTimeout(uninstallTimeout);
         if (code === 0) {
           sendTo(clientId, { type: "plugin:uninstall_result", success: true, message: "Uninstalled " + uninstallMsg.name + " successfully" });
@@ -608,17 +606,16 @@ registerHandler("plugin", function (clientId: string, message: ClientMessage) {
     var updateMsg = message as { type: "plugin:update"; name: string; marketplace: string };
     var updateArg = updateMsg.name + "@" + updateMsg.marketplace;
     try {
-      var updateProc = Bun.spawn(["claude", "plugin", "update", updateArg], {
+      var updateProc = spawn("claude", ["plugin", "update", updateArg], {
         cwd: homedir(),
-        stdout: "pipe",
-        stderr: "pipe",
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
       var updateTimeout = setTimeout(function () {
         updateProc.kill();
       }, 120000);
 
-      void updateProc.exited.then(function (code) {
+      updateProc.on("close", function (code) {
         clearTimeout(updateTimeout);
         if (code === 0) {
           sendTo(clientId, { type: "plugin:update_result", success: true, message: "Updated " + updateMsg.name + " successfully" });

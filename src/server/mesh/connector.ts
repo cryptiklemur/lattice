@@ -1,4 +1,5 @@
 import type { MeshMessage, MeshHelloMessage, MeshSessionSyncMessage, MeshSessionRequestMessage } from "@lattice/shared";
+import * as peersModule from "./peers";
 import { loadPeers } from "./peers";
 import { loadOrCreateIdentity } from "../identity";
 import { loadConfig } from "../config";
@@ -372,7 +373,6 @@ export function getConnectedPeerProjects(nodeId: string): Array<{ slug: string; 
 }
 
 export function getAllRemoteProjects(localNodeId: string): Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean; online: boolean }> {
-  var peersModule = require("./peers") as typeof import("./peers");
   var allPeers = peersModule.loadPeers();
   var connectedIds = new Set(getConnectedPeerIds());
   var results: Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean; online: boolean }> = [];

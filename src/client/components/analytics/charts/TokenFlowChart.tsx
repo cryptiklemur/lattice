@@ -69,9 +69,9 @@ export function TokenFlowChart({ data }: TokenFlowChartProps) {
         <XAxis dataKey="date" tick={getTickStyle()} axisLine={false} tickLine={false} />
         <YAxis tick={getTickStyle()} axisLine={false} tickLine={false} tickFormatter={formatTokens} />
         <Tooltip content={<CustomTooltip />} />
-        <Area type="monotone" dataKey="input" stackId="1" stroke={colors.primary} fill="url(#inputGrad)" strokeWidth={2} />
-        <Area type="monotone" dataKey="output" stackId="1" stroke={colors.success} fill="url(#outputGrad)" strokeWidth={2} />
-        <Area type="monotone" dataKey="cacheRead" stackId="1" stroke={colors.warning} fill="url(#cacheReadGrad)" strokeWidth={2} />
+        <Area type="monotone" dataKey="input" stackId="1" stroke={colors.primary} fill="url(#inputGrad)" strokeWidth={2} isAnimationActive={false} />
+        <Area type="monotone" dataKey="output" stackId="1" stroke={colors.success} fill="url(#outputGrad)" strokeWidth={2} isAnimationActive={false} />
+        <Area type="monotone" dataKey="cacheRead" stackId="1" stroke={colors.warning} fill="url(#cacheReadGrad)" strokeWidth={2} isAnimationActive={false} />
       </AreaChart>
     </ResponsiveContainer>
   );

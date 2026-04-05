@@ -2,10 +2,12 @@ import { useEffect, useRef } from "react";
 import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "./useWebSocket";
 import type { ServerMessage } from "@lattice/shared";
-import type { AnalyticsPeriod, AnalyticsScope } from "@lattice/shared";
+import type { AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "@lattice/shared";
+import type { AnalyticsPayload } from "@lattice/shared";
 import {
   getAnalyticsStore,
-  setAnalyticsData,
+  mergeAnalyticsSection,
+  clearAnalyticsForRequest,
   setAnalyticsLoading,
   setAnalyticsError,
   setAnalyticsPeriod,
@@ -26,7 +28,7 @@ export function useAnalytics(): AnalyticsState & {
 
   function requestAnalytics(forceRefresh?: boolean) {
     var s = getAnalyticsStore().state;
-    setAnalyticsLoading(true);
+    clearAnalyticsForRequest();
     sendRef.current({
       type: "analytics:request",
       requestId: crypto.randomUUID(),
@@ -38,9 +40,13 @@ export function useAnalytics(): AnalyticsState & {
   }
 
   useEffect(function () {
-    function handleData(msg: ServerMessage) {
-      var m = msg as { type: string; data: any };
-      setAnalyticsData(m.data);
+    function handleSection(msg: ServerMessage) {
+      var m = msg as { type: string; section: AnalyticsSectionName; data: Partial<AnalyticsPayload> };
+      mergeAnalyticsSection(m.section, m.data);
+    }
+
+    function handleComplete() {
+      setAnalyticsLoading(false);
     }
 
     function handleError(msg: ServerMessage) {
@@ -48,11 +54,13 @@ export function useAnalytics(): AnalyticsState & {
       setAnalyticsError(m.message);
     }
 
-    subscribe("analytics:data", handleData);
+    subscribe("analytics:section", handleSection);
+    subscribe("analytics:complete", handleComplete);
     subscribe("analytics:error", handleError);
 
     return function () {
-      unsubscribe("analytics:data", handleData);
+      unsubscribe("analytics:section", handleSection);
+      unsubscribe("analytics:complete", handleComplete);
       unsubscribe("analytics:error", handleError);
     };
   }, [subscribe, unsubscribe]);
@@ -63,6 +71,7 @@ export function useAnalytics(): AnalyticsState & {
 
   return {
     data: state.data,
+    loadedSections: state.loadedSections,
     loading: state.loading,
     error: state.error,
     period: state.period,

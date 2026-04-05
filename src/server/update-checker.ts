@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { log } from "./logger";
-import { IS_COMPILED } from "./runtime";
+
+var __dirname_local = dirname(fileURLToPath(import.meta.url));
 
 var PKG_NAME = "@cryptiklemur/lattice";
 var GITHUB_REPO = "cryptiklemur/lattice";
@@ -24,7 +26,7 @@ var checking = false;
 function getCurrentVersion(): string {
   if (process.env.LATTICE_VERSION) return process.env.LATTICE_VERSION;
   try {
-    var pkg = JSON.parse(readFileSync(join(import.meta.dir, "../../package.json"), "utf-8"));
+    var pkg = JSON.parse(readFileSync(join(__dirname_local, "../../package.json"), "utf-8"));
     return pkg.version || "0.0.0";
   } catch {
     return "0.0.0";
@@ -44,7 +46,7 @@ function compareVersions(a: string, b: string): number {
 }
 
 export function getInstallMode(): InstallMode {
-  return IS_COMPILED ? "binary" : "npm";
+  return "npm";
 }
 
 async function checkGitHub(currentVersion: string): Promise<UpdateInfo> {
@@ -110,9 +112,7 @@ export async function checkForUpdate(force: boolean = false): Promise<UpdateInfo
 
   checking = true;
   try {
-    cached = IS_COMPILED
-      ? await checkGitHub(currentVersion)
-      : await checkNpm(currentVersion);
+    cached = await checkNpm(currentVersion);
 
     if (cached.updateAvailable) {
       log.server("Update available: %s -> %s (%s)", currentVersion, cached.latestVersion, cached.installMode);

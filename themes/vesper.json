@@ -1,0 +1,9 @@
+{
+  "name": "Vesper",
+  "author": "Rauno Freiberg",
+  "variant": "dark",
+  "base00": "101010", "base01": "1a1a1a", "base02": "232323", "base03": "505050",
+  "base04": "7a7a7a", "base05": "b0b0b0", "base06": "d1d1d1", "base07": "ffffff",
+  "base08": "f5a191", "base09": "ffc799", "base0A": "ffd6a0", "base0B": "99d1a4",
+  "base0C": "a3d2df", "base0D": "88c4e8", "base0E": "c9a0dc", "base0F": "f5a191"
+}

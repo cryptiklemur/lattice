@@ -51,6 +51,7 @@ export function CostDistributionChart({ data }: CostDistributionChartProps) {
           stroke={colors.primary}
           fill="url(#distGrad)"
           strokeWidth={2}
+          isAnimationActive={false}
         />
       </AreaChart>
     </ResponsiveContainer>

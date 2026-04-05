@@ -1,4 +1,5 @@
 export var DEFAULT_PORT = 7654;
+export var DEFAULT_DEV_PORT = 17654;
 export var PROTOCOL_VERSION = 1;
 export var MDNS_SERVICE_TYPE = "_lattice._tcp";
 export var LATTICE_HOME_DIR = ".lattice";

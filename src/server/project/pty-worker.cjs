@@ -1,5 +1,5 @@
 // Worker that runs node-pty in a subprocess, communicating via stdin/stdout JSON messages.
-// Running node-pty in a separate process avoids SIGHUP issues with Bun's --watch mode.
+// Running node-pty in a separate process avoids SIGHUP issues with --watch mode.
 var pty = require("node-pty");
 
 var term = null;

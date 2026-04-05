@@ -4,6 +4,7 @@
   "description": "Multi-machine agentic dashboard for Claude Code. Monitor sessions, manage MCP servers and skills, orchestrate across mesh-networked nodes.",
   "license": "MIT",
   "author": "Aaron Scherer <me@aaronscherer.me>",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/cryptiklemur/lattice.git"
@@ -25,26 +26,73 @@
   "bin": {
     "lattice": "./bin/lattice"
   },
-  "scripts": {
-    "dev": "bun run --filter '*' dev",
-    "build": "bun run --filter '*' build",
-    "lint": "bun run --filter '*' lint",
-    "typecheck": "bunx tsc --noEmit -p tsconfig.json",
-    "build:binary": "bun scripts/build-binary.ts",
-    "build:binary:all": "bun scripts/build-binary.ts --all",
-    "postinstall": "node scripts/postinstall.js"
-  },
-  "workspaces": [
-    "shared",
-    "server",
-    "client"
+  "files": [
+    "src/",
+    "public/",
+    "dist/",
+    "bin/",
+    "index.html",
+    "vite.config.ts",
+    "tsconfig.json"
   ],
+  "scripts": {
+    "dev": "NODE_ENV=development node --import tsx/esm --watch-path=src/server --watch-path=src/shared src/server/index.ts daemon --port 17654",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "start": "NODE_ENV=production tsx src/server/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.79",
+    "@clack/prompts": "^1.2.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/react-hotkeys": "^0.4.2",
+    "@tanstack/react-query": "^5.91.2",
+    "@tanstack/react-router": "^1.167.5",
+    "@tanstack/react-store": "^0.9.2",
+    "@tanstack/react-virtual": "^3.13.23",
+    "@vitejs/plugin-react": "^6",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-search": "^0.16.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/xterm": "^6.0.0",
+    "bonjour-service": "^1.3.0",
+    "cronstrue": "^3.14.0",
+    "daisyui": "^5.5.19",
+    "debug": "^4.4.3",
+    "express": "^5",
+    "js-tiktoken": "^1.0.21",
+    "lucide-react": "^0.577.0",
+    "node-pty": "^1.1.0",
+    "qrcode": "^1.5.4",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-markdown": "^10.1.0",
+    "recharts": "2.15.3",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.0.2",
+    "tailwindcss": "^4.2.2",
+    "tsx": "^4",
+    "vite": "^8",
+    "web-push": "^3.6.7",
+    "ws": "^8"
+  },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/github": "^12.0.6",
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.1.0",
-    "semantic-release": "^25.0.3"
+    "@types/debug": "^4.1.13",
+    "@types/express": "^5",
+    "@types/node": "^22",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
+    "@types/ws": "^8",
+    "semantic-release": "^25.0.3",
+    "typescript": "^5.9",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

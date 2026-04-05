@@ -1,9 +1,17 @@
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  root: ".",
+  publicDir: "public",
+  resolve: {
+    alias: {
+      "@lattice/shared": resolve(__dirname, "src/shared/index.ts"),
+    },
+  },
   plugins: [
     tailwindcss(),
     react(),
@@ -50,26 +58,14 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    outDir: "dist/client",
+  },
   server: {
     host: "0.0.0.0",
-    open: true,
-    proxy: {
-      "/ws": {
-        target: "ws://localhost:" + (process.env.LATTICE_PORT || "17654"),
-        ws: true,
-        configure: function (proxy) {
-          proxy.on("error", function () {});
-          proxy.on("proxyReqWs", function (_proxyReq, _req, socket) {
-            socket.on("error", function () {});
-          });
-        },
-      },
-      "/api": {
-        target: "http://localhost:" + (process.env.LATTICE_PORT || "17654"),
-        configure: function (proxy) {
-          proxy.on("error", function () {});
-        },
-      },
+    hmr: {
+      host: "localhost",
     },
+    open: true,
   },
 });

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   ScatterChart,
   Scatter,
@@ -47,25 +48,30 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 export function SessionBubbleChart({ data }: SessionBubbleChartProps) {
   var fullscreenHeight = useChartFullscreen();
   var colors = getChartColors();
-  var projects = Array.from(new Set(data.map(function (d) { return d.project; })));
 
-  function getColor(project: string): string {
-    var idx = projects.indexOf(project);
-    return colors.palette[idx % colors.palette.length];
-  }
+  var { byProject, minTs, maxTs } = useMemo(function () {
+    var projectSet = new Set<string>();
+    var minTs = Infinity;
+    var maxTs = -Infinity;
+    for (var i = 0; i < data.length; i++) {
+      projectSet.add(data[i].project);
+      if (data[i].timestamp < minTs) minTs = data[i].timestamp;
+      if (data[i].timestamp > maxTs) maxTs = data[i].timestamp;
+    }
+    var projects = Array.from(projectSet);
 
-  var byProject = projects.map(function (project) {
-    return {
-      project,
-      color: getColor(project),
-      points: data
-        .filter(function (d) { return d.project === project; })
-        .map(function (d) { return { ...d, x: d.timestamp, y: d.tokens, z: Math.max(d.cost * 1000, 20) }; }),
-    };
-  });
+    var byProject = projects.map(function (project, idx) {
+      return {
+        project,
+        color: colors.palette[idx % colors.palette.length],
+        points: data
+          .filter(function (d) { return d.project === project; })
+          .map(function (d) { return { ...d, x: d.timestamp, y: d.tokens, z: Math.max(d.cost * 1000, 20) }; }),
+      };
+    });
 
-  var minTs = Math.min(...data.map(function (d) { return d.timestamp; }));
-  var maxTs = Math.max(...data.map(function (d) { return d.timestamp; }));
+    return { byProject, minTs: isFinite(minTs) ? minTs : 0, maxTs: isFinite(maxTs) ? maxTs : 0 };
+  }, [data, colors.palette]);
 
   return (
     <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>
@@ -98,6 +104,7 @@ export function SessionBubbleChart({ data }: SessionBubbleChartProps) {
               data={group.points}
               fill={group.color}
               fillOpacity={0.7}
+              isAnimationActive={false}
             />
           );
         })}

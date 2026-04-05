@@ -37,3 +37,4 @@ export interface AnalyticsPayload {
 
 export type AnalyticsPeriod = "24h" | "7d" | "30d" | "90d" | "all";
 export type AnalyticsScope = "global" | "project" | "session";
+export type AnalyticsSectionName = "summary" | "spending" | "usage" | "activity" | "projects";

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Clock, MessageSquare, Cpu, DollarSign } from "lucide-react";
+import { Clock, MessageSquare, Cpu, DollarSign, Pencil, Trash2 } from "lucide-react";
+import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 import type { SessionSummary, SessionPreview, SessionListMessage, SessionCreatedMessage, SessionPreviewMessage } from "@lattice/shared";
 import type { ServerMessage } from "@lattice/shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -59,12 +60,6 @@ function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
 }
 
 var knownUpdatedAt = new Map<string, number>();
-
-interface ContextMenu {
-  x: number;
-  y: number;
-  session: SessionSummary;
-}
 
 export interface DateRange {
   from?: number;
@@ -199,7 +194,7 @@ export function SessionList(props: SessionListProps) {
   var [totalCount, setTotalCount] = useState<number>(0);
   var [renameId, setRenameId] = useState<string | null>(null);
   var [renameValue, setRenameValue] = useState<string>("");
-  var [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  var ctxMenu = useContextMenu<SessionSummary>();
   var [unreadTick, setUnreadTick] = useState<number>(0);
   var [hoveredId, setHoveredId] = useState<string | null>(null);
   var [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
@@ -351,19 +346,6 @@ export function SessionList(props: SessionListProps) {
     }
   }, [renameId]);
 
-  useEffect(function () {
-    if (!contextMenu) {
-      return;
-    }
-    function dismiss() {
-      setContextMenu(null);
-    }
-    document.addEventListener("mousedown", dismiss);
-    return function () {
-      document.removeEventListener("mousedown", dismiss);
-    };
-  }, [contextMenu]);
-
   function handleActivate(session: SessionSummary) {
     if (!props.projectSlug) {
       return;
@@ -377,12 +359,11 @@ export function SessionList(props: SessionListProps) {
   }
 
   function handleContextMenu(e: React.MouseEvent, session: SessionSummary) {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, session });
+    ctxMenu.open(e, session);
   }
 
   function handleRenameStart(session: SessionSummary) {
-    setContextMenu(null);
+    ctxMenu.close();
     setRenameId(session.id);
     setRenameValue(session.title);
   }
@@ -416,7 +397,7 @@ export function SessionList(props: SessionListProps) {
   }
 
   function handleDeleteSession(session: SessionSummary) {
-    setContextMenu(null);
+    ctxMenu.close();
     ws.send({ type: "session:delete", sessionId: session.id });
     setSessions(function (prev) {
       return prev.filter(function (s) { return s.id !== session.id; });
@@ -601,27 +582,17 @@ export function SessionList(props: SessionListProps) {
         <PreviewPopover preview={activePreview} anchorRect={hoveredRect} />
       )}
 
-      {contextMenu !== null && (
-        <div
-          role="menu"
-          aria-label="Session actions"
-          onMouseDown={function (e) { e.stopPropagation(); }}
-          className="fixed z-[9999] bg-base-200 border border-base-content/20 rounded-md shadow-xl p-1 min-w-[140px]"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <button
-            onClick={function () { handleRenameStart(contextMenu!.session); }}
-            className="block w-full px-2.5 py-1.5 rounded text-[13px] text-base-content/70 text-left hover:bg-base-300 hover:text-base-content transition-colors duration-[120ms] cursor-pointer"
-          >
-            Rename
-          </button>
-          <button
-            onClick={function () { handleDeleteSession(contextMenu!.session); }}
-            className="block w-full px-2.5 py-1.5 rounded text-[13px] text-error text-left hover:bg-base-300 transition-colors duration-[120ms] cursor-pointer"
-          >
-            Delete
-          </button>
-        </div>
+      {ctxMenu.state !== null && (
+        <ContextMenu
+          x={ctxMenu.state.x}
+          y={ctxMenu.state.y}
+          items={[
+            { label: "Rename", icon: <Pencil size={14} />, onClick: function () { handleRenameStart(ctxMenu.state!.data); } },
+            { label: "Delete", icon: <Trash2 size={14} />, onClick: function () { handleDeleteSession(ctxMenu.state!.data); }, danger: true },
+          ]}
+          onClose={ctxMenu.close}
+          label="Session actions"
+        />
       )}
     </div>
   );

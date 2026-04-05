@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { getChartColors } from "../chartTokens";
 
@@ -40,30 +41,30 @@ export function ToolSunburst({ data }: ToolSunburstProps) {
     );
   }
 
-  var categoryTotals = new Map<string, number>();
-  for (var i = 0; i < data.length; i++) {
-    var cat = data[i].category;
-    categoryTotals.set(cat, (categoryTotals.get(cat) || 0) + data[i].count);
-  }
-
-  var innerData: Array<{ name: string; value: number }> = [];
-  categoryTotals.forEach(function (count, category) {
-    innerData.push({ name: category, value: count });
-  });
-  innerData.sort(function (a, b) { return b.value - a.value; });
-
-  var categoryOrder: string[] = innerData.map(function (d) { return d.name; });
-
-  var outerData: Array<{ name: string; category: string; value: number }> = [];
-  for (var ci = 0; ci < categoryOrder.length; ci++) {
-    var catName = categoryOrder[ci];
-    var catTools = data
-      .filter(function (d) { return d.category === catName; })
-      .sort(function (a, b) { return b.count - a.count; });
-    for (var ti = 0; ti < catTools.length; ti++) {
-      outerData.push({ name: catTools[ti].name, category: catName, value: catTools[ti].count });
+  var { innerData, outerData } = useMemo(function () {
+    var categoryTotals = new Map<string, number>();
+    for (var i = 0; i < data.length; i++) {
+      var cat = data[i].category;
+      categoryTotals.set(cat, (categoryTotals.get(cat) || 0) + data[i].count);
     }
-  }
+    var innerData: Array<{ name: string; value: number }> = [];
+    categoryTotals.forEach(function (count, category) {
+      innerData.push({ name: category, value: count });
+    });
+    innerData.sort(function (a, b) { return b.value - a.value; });
+    var categoryOrder = innerData.map(function (d) { return d.name; });
+    var outerData: Array<{ name: string; category: string; value: number }> = [];
+    for (var ci = 0; ci < categoryOrder.length; ci++) {
+      var catName = categoryOrder[ci];
+      var catTools = data
+        .filter(function (d) { return d.category === catName; })
+        .sort(function (a, b) { return b.count - a.count; });
+      for (var ti = 0; ti < catTools.length; ti++) {
+        outerData.push({ name: catTools[ti].name, category: catName, value: catTools[ti].count });
+      }
+    }
+    return { innerData, outerData };
+  }, [data]);
 
   return (
     <div>
@@ -78,6 +79,7 @@ export function ToolSunburst({ data }: ToolSunburstProps) {
             paddingAngle={2}
             startAngle={90}
             endAngle={-270}
+            isAnimationActive={false}
           >
             {innerData.map(function (entry) {
               return <Cell key={"inner-" + entry.name} fill={getCategoryColor(entry.name)} />;
@@ -92,6 +94,7 @@ export function ToolSunburst({ data }: ToolSunburstProps) {
             paddingAngle={1}
             startAngle={90}
             endAngle={-270}
+            isAnimationActive={false}
           >
             {outerData.map(function (entry, index) {
               var catIndex = outerData.slice(0, index).filter(function (d) { return d.category === entry.category; }).length;

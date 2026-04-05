@@ -51,6 +51,7 @@ export function CumulativeCostChart({ data }: CumulativeCostChartProps) {
           stroke={colors.primary}
           fill="url(#cumulativeGrad)"
           strokeWidth={2}
+          isAnimationActive={false}
         />
       </AreaChart>
     </ResponsiveContainer>
