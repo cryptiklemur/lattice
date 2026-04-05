@@ -65,12 +65,23 @@ registerHandler("terminal", function(clientId: string, message: ClientMessage) {
 
   if (message.type === "terminal:input") {
     var inputMsg = message as TerminalInputMessage;
+    var clientSet = clientTerminals.get(clientId);
+    if (!clientSet || !clientSet.has(inputMsg.termId)) {
+      return;
+    }
+    if (typeof inputMsg.data === "string" && inputMsg.data.length > 65536) {
+      return;
+    }
     writeToTerminal(inputMsg.termId, inputMsg.data);
     return;
   }
 
   if (message.type === "terminal:resize") {
     var resizeMsg = message as TerminalResizeMessage;
+    var resizeClientSet = clientTerminals.get(clientId);
+    if (!resizeClientSet || !resizeClientSet.has(resizeMsg.termId)) {
+      return;
+    }
     resizeTerminal(resizeMsg.termId, resizeMsg.cols, resizeMsg.rows);
     return;
   }
