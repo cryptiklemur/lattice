@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "./useWebSocket";
 import type { ServerMessage } from "@lattice/shared";
@@ -26,7 +26,7 @@ export function useAnalytics(): AnalyticsState & {
   var sendRef = useRef(send);
   sendRef.current = send;
 
-  function requestAnalytics(forceRefresh?: boolean) {
+  var requestAnalytics = useCallback(function (forceRefresh?: boolean) {
     var s = getAnalyticsStore().state;
     clearAnalyticsForRequest();
     sendRef.current({
@@ -37,7 +37,7 @@ export function useAnalytics(): AnalyticsState & {
       period: s.period,
       forceRefresh: forceRefresh,
     } as any);
-  }
+  }, []);
 
   useEffect(function () {
     function handleSection(msg: ServerMessage) {
@@ -67,7 +67,7 @@ export function useAnalytics(): AnalyticsState & {
 
   useEffect(function () {
     requestAnalytics();
-  }, [state.period, state.scope, state.projectSlug]);
+  }, [state.period, state.scope, state.projectSlug, requestAnalytics]);
 
   return {
     data: state.data,
