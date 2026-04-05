@@ -381,20 +381,23 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       res.status(400).send("Missing path parameter");
       return;
     }
-    var resolved = resolve(reqFilePath);
-    if (!existsSync(resolved)) {
-      for (var pi = 0; pi < config.projects.length; pi++) {
-        var projectResolved = join(config.projects[pi].path, reqFilePath);
-        if (existsSync(projectResolved)) {
-          resolved = projectResolved;
-          break;
-        }
+
+    var resolved: string | null = null;
+
+    for (var pi = 0; pi < config.projects.length; pi++) {
+      var projectPath = resolve(config.projects[pi].path);
+      var candidate = resolve(projectPath, reqFilePath);
+      if (candidate.startsWith(projectPath + "/") && existsSync(candidate)) {
+        resolved = candidate;
+        break;
       }
     }
-    if (!existsSync(resolved)) {
+
+    if (!resolved) {
       res.status(404).send("File not found");
       return;
     }
+
     var stat = statSync(resolved);
     res.setHeader("Content-Type", getMimeType(resolved));
     res.setHeader("Content-Length", stat.size);
