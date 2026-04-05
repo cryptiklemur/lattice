@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID, generateKeyPairSync } from "node:crypto";
 import { getLatticeHome } from "./config";
@@ -25,6 +25,7 @@ export function loadOrCreateIdentity(): NodeIdentity {
     stored.publicKey = keys.publicKey;
     stored.privateKey = keys.privateKey;
     writeFileSync(path, JSON.stringify(stored, null, 2), "utf-8");
+    chmodSync(path, 0o600);
     return stored;
   }
   var keys = generateEd25519Keypair();
@@ -35,6 +36,7 @@ export function loadOrCreateIdentity(): NodeIdentity {
     createdAt: Date.now(),
   };
   writeFileSync(path, JSON.stringify(identity, null, 2), "utf-8");
+  chmodSync(path, 0o600);
   return identity;
 }
 
