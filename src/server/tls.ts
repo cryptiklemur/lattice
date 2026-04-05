@@ -16,12 +16,26 @@ export function getCertsDir(): string {
   return certsDir;
 }
 
+function isCertExpiringSoon(certPath: string): boolean {
+  try {
+    var result = spawnSync("openssl", ["x509", "-enddate", "-noout", "-in", certPath], { encoding: "utf-8" });
+    if (result.status !== 0) return true;
+    var match = result.stdout.match(/notAfter=(.+)/);
+    if (!match) return true;
+    var expiryDate = new Date(match[1]);
+    var daysLeft = (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    return daysLeft < 30;
+  } catch {
+    return true;
+  }
+}
+
 export function ensureCerts(): CertPaths {
   var certsDir = getCertsDir();
   var certPath = join(certsDir, "cert.pem");
   var keyPath = join(certsDir, "key.pem");
 
-  if (existsSync(certPath) && existsSync(keyPath)) {
+  if (existsSync(certPath) && existsSync(keyPath) && !isCertExpiringSoon(certPath)) {
     return { cert: certPath, key: keyPath };
   }
 
