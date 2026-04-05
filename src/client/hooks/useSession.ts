@@ -59,13 +59,6 @@ import {
 } from "../stores/session";
 import type { SessionState, BudgetStatus } from "../stores/session";
 
-var subscriptionsActive = 0;
-var activeStreamGeneration = 0;
-var streamSessionId: string | null = null;
-var lastSentText: string | null = null;
-var lastUsedModel: string | undefined = undefined;
-var lastUsedEffort: string | undefined = undefined;
-
 export type { SessionState };
 
 export interface UseSessionReturn extends SessionState {
@@ -91,6 +84,12 @@ export function useSession(): UseSessionReturn {
   var sendRef = useRef(send);
   sendRef.current = send;
   var sendMessageRef = useRef(function (_text: string, _attachmentIds?: string[], _model?: string, _effort?: string) {});
+  var subscriptionsActiveRef = useRef(0);
+  var activeStreamGenerationRef = useRef(0);
+  var streamSessionIdRef = useRef<string | null>(null);
+  var lastSentTextRef = useRef<string | null>(null);
+  var lastUsedModelRef = useRef<string | undefined>(undefined);
+  var lastUsedEffortRef = useRef<string | undefined>(undefined);
 
   function activateSession(projectSlug: string, sessionId: string) {
     setActiveSession(projectSlug, sessionId);
@@ -113,11 +112,11 @@ export function useSession(): UseSessionReturn {
     if (effort) {
       msg.effort = effort;
     }
-    activeStreamGeneration = getStreamGeneration();
-    streamSessionId = currentSessionId;
-    lastSentText = text;
-    lastUsedModel = model;
-    lastUsedEffort = effort;
+    activeStreamGenerationRef.current = getStreamGeneration();
+    streamSessionIdRef.current = currentSessionId;
+    lastSentTextRef.current = text;
+    lastUsedModelRef.current = model;
+    lastUsedEffortRef.current = effort;
     setFailedInput(null);
     setPromptSuggestion(null);
     setIsProcessing(true);
@@ -134,15 +133,15 @@ export function useSession(): UseSessionReturn {
   sendMessageRef.current = sendMessage;
 
   useEffect(function () {
-    subscriptionsActive++;
-    if (subscriptionsActive > 1) {
-      return function () { subscriptionsActive--; };
+    subscriptionsActiveRef.current++;
+    if (subscriptionsActiveRef.current > 1) {
+      return function () { subscriptionsActiveRef.current--; };
     }
 
     function isStaleStream(): boolean {
-      if (activeStreamGeneration !== getStreamGeneration()) return true;
+      if (activeStreamGenerationRef.current !== getStreamGeneration()) return true;
       var currentActiveId = getSessionStore().state.activeSessionId;
-      if (streamSessionId && currentActiveId && streamSessionId !== currentActiveId) return true;
+      if (streamSessionIdRef.current && currentActiveId && streamSessionIdRef.current !== currentActiveId) return true;
       return false;
     }
 
@@ -220,7 +219,7 @@ export function useSession(): UseSessionReturn {
     function handleDone(msg: ServerMessage) {
       if (isStaleStream()) return;
       var m = msg as { type: string; cost: number; duration: number; sessionId?: string };
-      lastSentText = null;
+      lastSentTextRef.current = null;
       setIsProcessing(false);
       setCurrentStatus(null);
       setCurrentAssistantUuid(null);
@@ -234,7 +233,7 @@ export function useSession(): UseSessionReturn {
         var combined = queue.join("\n\n");
         clearMessageQueue();
         setTimeout(function () {
-          sendMessageRef.current(combined, [], lastUsedModel, lastUsedEffort);
+          sendMessageRef.current(combined, [], lastUsedModelRef.current, lastUsedEffortRef.current);
         }, 100);
       }
     }
@@ -245,9 +244,9 @@ export function useSession(): UseSessionReturn {
       setIsProcessing(false);
       setCurrentStatus(null);
       setCurrentAssistantUuid(null);
-      if (lastSentText) {
-        setFailedInput(lastSentText);
-        lastSentText = null;
+      if (lastSentTextRef.current) {
+        setFailedInput(lastSentTextRef.current);
+        lastSentTextRef.current = null;
       }
       if (m.message) {
         addSessionMessage({
@@ -359,7 +358,7 @@ export function useSession(): UseSessionReturn {
         }
         var projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
         setSidebarSessionId(m.sessionId);
-        streamSessionId = m.sessionId;
+        streamSessionIdRef.current = m.sessionId;
         if (m.title) {
           updateSessionTabTitle(m.sessionId, m.title);
         }
@@ -497,7 +496,7 @@ export function useSession(): UseSessionReturn {
     subscribe("chat:rate_limit", handleRateLimit);
 
     return function () {
-      subscriptionsActive--;
+      subscriptionsActiveRef.current--;
       unsubscribe("session:loading_progress", handleLoadingProgress);
       unsubscribe("chat:user_message", handleUserMessage);
       unsubscribe("chat:delta", handleDelta);
@@ -570,9 +569,9 @@ export function useSession(): UseSessionReturn {
     },
     dismissBudgetExceeded: function () {
       setBudgetExceeded(false);
-      if (lastSentText) {
-        setFailedInput(lastSentText);
-        lastSentText = null;
+      if (lastSentTextRef.current) {
+        setFailedInput(lastSentTextRef.current);
+        lastSentTextRef.current = null;
       }
     },
     rateLimits: state.rateLimits,
