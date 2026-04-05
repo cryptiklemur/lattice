@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useWebSocket } from "./useWebSocket";
 import type { ServerMessage } from "@lattice/shared";
 
@@ -76,6 +76,8 @@ export function useAttachments(): UseAttachmentsReturn {
   var { send, subscribe, unsubscribe } = useWebSocket();
   var pendingResolvers = useRef(new Map<string, { resolve: () => void; reject: (err: string) => void; timer: ReturnType<typeof setTimeout> }>());
   var fileCache = useRef(new Map<string, File>());
+  var attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
 
   var updateAttachment = useCallback(function (id: string, updates: Partial<ClientAttachment>) {
     setAttachments(function (prev) {
@@ -111,7 +113,11 @@ export function useAttachments(): UseAttachmentsReturn {
         var start = chunkIndex * CHUNK_SIZE;
         var end = Math.min(start + CHUNK_SIZE, bytes.length);
         var chunk = bytes.slice(start, end);
-        var base64 = btoa(String.fromCharCode.apply(null, chunk as unknown as number[]));
+        var binary = "";
+        for (var bi = 0; bi < chunk.length; bi++) {
+          binary += String.fromCharCode(chunk[bi]);
+        }
+        var base64 = btoa(binary);
 
         send({
           type: "attachment:chunk",
@@ -178,9 +184,6 @@ export function useAttachments(): UseAttachmentsReturn {
     if (file.size > MAX_FILE_SIZE) {
       return;
     }
-    if (attachments.length >= MAX_ATTACHMENTS) {
-      return;
-    }
 
     var id = crypto.randomUUID();
     var mime = guessMimeType(file);
@@ -202,14 +205,24 @@ export function useAttachments(): UseAttachmentsReturn {
       previewUrl,
     };
 
-    fileCache.current.set(id, file);
-    setAttachments(function (prev) { return [...prev, att]; });
-    uploadFile(att, file);
-  }, [attachments.length, uploadFile]);
+    var added = false;
+    setAttachments(function (prev) {
+      if (prev.length >= MAX_ATTACHMENTS) {
+        return prev;
+      }
+      added = true;
+      return [...prev, att];
+    });
+
+    if (added) {
+      fileCache.current.set(id, file);
+      uploadFile(att, file);
+    } else if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+  }, [uploadFile]);
 
   var addPaste = useCallback(function (text: string) {
-    if (attachments.length >= MAX_ATTACHMENTS) return;
-
     var id = crypto.randomUUID();
     var blob = new Blob([text], { type: "text/plain" });
     var file = new File([blob], "pasted-text.txt", { type: "text/plain" });
@@ -227,10 +240,20 @@ export function useAttachments(): UseAttachmentsReturn {
       content: text,
     };
 
-    fileCache.current.set(id, file);
-    setAttachments(function (prev) { return [...prev, att]; });
-    uploadFile(att, file);
-  }, [attachments.length, uploadFile]);
+    var added = false;
+    setAttachments(function (prev) {
+      if (prev.length >= MAX_ATTACHMENTS) {
+        return prev;
+      }
+      added = true;
+      return [...prev, att];
+    });
+
+    if (added) {
+      fileCache.current.set(id, file);
+      uploadFile(att, file);
+    }
+  }, [uploadFile]);
 
   var removeAttachment = useCallback(function (id: string) {
     setAttachments(function (prev) {
@@ -258,6 +281,16 @@ export function useAttachments(): UseAttachmentsReturn {
     setAttachments([]);
     fileCache.current.clear();
   }, [attachments]);
+
+  useEffect(function () {
+    return function () {
+      attachmentsRef.current.forEach(function (att) {
+        if (att.previewUrl) {
+          URL.revokeObjectURL(att.previewUrl);
+        }
+      });
+    };
+  }, []);
 
   var readyIds = attachments
     .filter(function (a) { return a.status === "ready"; })
