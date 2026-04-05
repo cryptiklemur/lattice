@@ -110,6 +110,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
             value={search}
             onChange={function (e) { setSearch(e.target.value); }}
             placeholder="Search icons..."
+            aria-label="Search icons"
             className="w-full h-8 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
           />
           <div className="grid grid-cols-10 gap-1 max-h-48 overflow-y-auto">
@@ -148,6 +149,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
               }
             }}
             placeholder="1-2 chars"
+            aria-label="Icon text"
             className="flex-1 h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
           />
           <input

@@ -352,6 +352,7 @@ function NameStep(props: NameStepProps) {
             value={props.value}
             onChange={function (e) { props.onChange(e.target.value); }}
             placeholder="my-laptop"
+            aria-label="Machine name"
             className="flex-1 bg-transparent text-base-content font-mono text-[14px] outline-none"
             autoFocus
             spellCheck={false}
@@ -518,6 +519,7 @@ function SecurityStep(props: SecurityStepProps) {
           value={props.passphrase}
           onChange={function (e) { props.onPassphraseChange(e.target.value); }}
           placeholder="Leave blank to skip"
+          aria-label="Passphrase"
           className="input input-bordered w-full bg-base-300 text-base-content text-[14px] focus:border-primary"
           autoFocus
         />
@@ -544,6 +546,7 @@ function SecurityStep(props: SecurityStepProps) {
             value={props.passphraseConfirm}
             onChange={function (e) { props.onConfirmChange(e.target.value); }}
             placeholder="Repeat passphrase"
+            aria-label="Confirm passphrase"
             className={
               "input input-bordered w-full bg-base-300 text-base-content text-[14px] focus:border-primary " +
               (props.error ? "border-error" : "")
@@ -595,6 +598,7 @@ function ProjectStep(props: ProjectStepProps) {
           value={props.path}
           onChange={function (e) { props.onPathChange(e.target.value); }}
           placeholder="/home/you/projects/my-app"
+          aria-label="Project path"
           className="input input-bordered w-full bg-base-300 text-base-content font-mono text-[14px] focus:border-primary"
           autoFocus
           spellCheck={false}
@@ -612,6 +616,7 @@ function ProjectStep(props: ProjectStepProps) {
           value={props.title}
           onChange={function (e) { props.onTitleChange(e.target.value); }}
           placeholder={props.path ? (props.path.replace(/\/+$/, "").split("/").pop() || "My App") : "My App"}
+          aria-label="Display name"
           className="input input-bordered w-full bg-base-300 text-base-content text-[14px] focus:border-primary"
         />
       </fieldset>

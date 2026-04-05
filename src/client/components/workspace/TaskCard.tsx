@@ -97,6 +97,7 @@ export function TaskCard(props: TaskCardProps) {
             className="toggle toggle-primary toggle-xs"
             checked={task.enabled}
             disabled={disabled}
+            aria-label={"Toggle " + task.name}
             onChange={function () {}}
           />
         </label>

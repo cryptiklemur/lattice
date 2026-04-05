@@ -74,6 +74,7 @@ export function NoteCard(props: NoteCardProps) {
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             placeholder="Type your note..."
+            aria-label="Note content"
             className="textarea textarea-bordered w-full min-h-[80px] bg-base-300 text-base-content text-[13px] resize-y leading-relaxed"
           />
         ) : (

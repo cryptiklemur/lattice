@@ -77,6 +77,7 @@ function renderFormField(
           value={value != null ? String(value) : ""}
           placeholder={prop.description || ""}
           onChange={function (e) { onChange(key, e.target.value ? Number(e.target.value) : ""); }}
+          aria-label={label}
           className="input input-xs input-bordered bg-base-content/[0.03] text-[12px] text-base-content/70 placeholder:text-base-content/20"
         />
       </div>
@@ -93,6 +94,7 @@ function renderFormField(
         value={String(value || "")}
         placeholder={prop.description || ""}
         onChange={function (e) { onChange(key, e.target.value); }}
+        aria-label={label}
         className="input input-xs input-bordered bg-base-content/[0.03] text-[12px] text-base-content/70 placeholder:text-base-content/20"
       />
     </div>
@@ -207,6 +209,7 @@ export function ElicitationCard(props: ElicitationCardProps) {
                 value={String(formData._raw || "")}
                 onChange={function (e) { handleFieldChange("_raw", e.target.value); }}
                 placeholder="Enter your response..."
+                aria-label="Response"
                 className="textarea textarea-bordered textarea-xs bg-base-content/[0.03] text-[12px] text-base-content/70 placeholder:text-base-content/20"
               />
             </div>
