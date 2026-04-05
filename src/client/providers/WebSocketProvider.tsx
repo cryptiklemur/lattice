@@ -21,6 +21,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
   var unmountedRef = useRef<boolean>(false);
   var listenersRef = useRef<Map<string, Set<(msg: ServerMessage) => void>>>(new Map());
   var hasConnectedRef = useRef<boolean>(false);
+  var outgoingQueueRef = useRef<ClientMessage[]>([]);
 
   function connect() {
     if (unmountedRef.current) {
@@ -54,6 +55,11 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
         }
       }
       hasConnectedRef.current = true;
+      var queued = outgoingQueueRef.current;
+      outgoingQueueRef.current = [];
+      queued.forEach(function (msg) {
+        ws.send(JSON.stringify(msg));
+      });
     };
 
     ws.onmessage = function (event: MessageEvent) {
@@ -131,6 +137,8 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
     var ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
+    } else {
+      outgoingQueueRef.current.push(msg);
     }
   }
 
