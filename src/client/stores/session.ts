@@ -505,16 +505,6 @@ export function enqueueMessage(text: string): void {
   });
 }
 
-export function dequeueMessage(): string | null {
-  var queue = sessionStore.state.messageQueue;
-  if (queue.length === 0) return null;
-  var first = queue[0];
-  sessionStore.setState(function (state) {
-    return { ...state, messageQueue: state.messageQueue.slice(1) };
-  });
-  return first;
-}
-
 export function removeQueuedMessage(index: number): void {
   sessionStore.setState(function (state) {
     var updated = state.messageQueue.slice();

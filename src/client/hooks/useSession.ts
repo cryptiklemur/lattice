@@ -46,7 +46,6 @@ import {
   setPromptSuggestion,
   setFailedInput,
   enqueueMessage,
-  dequeueMessage,
   removeQueuedMessage,
   updateQueuedMessage,
   clearMessageQueue,
