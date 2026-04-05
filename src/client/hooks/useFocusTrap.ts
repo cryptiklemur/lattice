@@ -15,6 +15,8 @@ export function useFocusTrap(
   active: boolean = true,
 ): void {
   var previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  var onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(function () {
     if (!active) return;
@@ -31,7 +33,7 @@ export function useFocusTrap(
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -68,5 +70,5 @@ export function useFocusTrap(
         previouslyFocusedRef.current.focus();
       }
     };
-  }, [containerRef, onClose, active]);
+  }, [containerRef, active]);
 }
