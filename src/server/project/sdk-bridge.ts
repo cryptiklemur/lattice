@@ -779,7 +779,6 @@ export function startChatStream(options: ChatStreamOptions): void {
   var firstMsg = buildSDKUserMessage(prompt, attachments, sessionId);
 
   var stream = query({ prompt: mq as any, options: queryOptions });
-  mq.push(firstMsg);
   pendingStreams.delete(sessionId);
 
   var sessionStream: SessionStream = {
@@ -805,6 +804,12 @@ export function startChatStream(options: ChatStreamOptions): void {
 
   void (async function () {
     var retried = false;
+    try {
+      await stream.initializationResult();
+    } catch (initErr) {
+      log.chat("Session %s SDK initialization warning: %O", sessionId, initErr);
+    }
+    mq.push(firstMsg);
     try {
       for await (var msg of stream) {
         processMessage(sessionStream, msg);
