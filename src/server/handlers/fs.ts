@@ -18,6 +18,10 @@ export function clearActiveProject(clientId: string): void {
   activeProjectByClient.delete(clientId);
 }
 
+export function getActiveProjectForClient(clientId: string): string | undefined {
+  return activeProjectByClient.get(clientId);
+}
+
 registerHandler("fs", function (clientId: string, message: ClientMessage) {
   if (message.type === "fs:list") {
     var listMsg = message as FsListMessage;
