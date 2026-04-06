@@ -12,7 +12,7 @@ function walk(dir) {
   return files;
 }
 
-var re = /(from\s+"|import\(\s*")(\.\.?\/[^"]+)(")/g;
+var re = /(from\s+"|import\(\s*"|import\s+")(\.\.?\/[^"]+)(")/g;
 var dirs = ["dist/server", "dist/shared"];
 var files = [];
 for (var d of dirs) {
