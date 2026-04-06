@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { networkInterfaces } from "node:os";
 import { getLatticeHome } from "./config";
 
 export interface CertPaths {
@@ -41,6 +42,21 @@ export function ensureCerts(): CertPaths {
 
   console.log("[lattice] Generating self-signed TLS certificate...");
 
+  var sans = ["DNS:lattice", "DNS:localhost", "IP:127.0.0.1", "IP:::1"];
+  var ifaces = networkInterfaces();
+  for (var name in ifaces) {
+    var addrs = ifaces[name];
+    if (!addrs) continue;
+    for (var i = 0; i < addrs.length; i++) {
+      if (!addrs[i].internal) {
+        sans.push("IP:" + addrs[i].address);
+      }
+    }
+  }
+
+  var extFile = join(certsDir, "openssl-san.cnf");
+  writeFileSync(extFile, "[req]\ndistinguished_name=dn\nx509_extensions=v3\nprompt=no\n[dn]\nCN=lattice\n[v3]\nsubjectAltName=" + sans.join(",") + "\n");
+
   var result = spawnSync(
     "openssl",
     [
@@ -50,7 +66,7 @@ export function ensureCerts(): CertPaths {
       "-out", certPath,
       "-days", "365",
       "-nodes",
-      "-subj", "/CN=lattice",
+      "-config", extFile,
     ],
     { encoding: "utf-8" }
   );
