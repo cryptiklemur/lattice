@@ -12,7 +12,7 @@ import { setCustomThemes } from "./stores/theme";
 import type { Theme, ThemeEntry } from "./themes/index";
 import type { ServerMessage } from "#shared";
 
-function useCustomThemeLoader() {
+function useCustomThemeSync() {
   var ws = useWebSocket();
 
   useEffect(function () {
@@ -41,7 +41,6 @@ function useCustomThemeLoader() {
     ws.subscribe("theme:custom_list", handleCustomList);
     ws.subscribe("theme:saved", handleChanged);
     ws.subscribe("theme:deleted", handleChanged);
-    ws.send({ type: "theme:list_custom" } as any);
     return function () {
       ws.unsubscribe("theme:custom_list", handleCustomList);
       ws.unsubscribe("theme:saved", handleChanged);
@@ -52,7 +51,7 @@ function useCustomThemeLoader() {
 
 function AppInner() {
   var { items, dismiss } = useToastState();
-  useCustomThemeLoader();
+  useCustomThemeSync();
 
   useEffect(function () {
     function blockContextMenu(e: MouseEvent) {

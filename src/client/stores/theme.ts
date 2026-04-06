@@ -1,11 +1,31 @@
 import { Store } from "@tanstack/react-store";
-import type { ThemeEntry } from "../themes/index";
+import type { ThemeEntry, Theme } from "../themes/index";
 
 export interface ThemeState {
   mode: "dark" | "light";
   darkThemeId: string;
   lightThemeId: string;
   customThemes: ThemeEntry[];
+}
+
+function loadInjectedCustomThemes(): ThemeEntry[] {
+  try {
+    var raw = (window as any).__LATTICE_CUSTOM_THEMES__;
+    if (!Array.isArray(raw) || raw.length === 0) return [];
+    return raw.map(function (ct: any): ThemeEntry {
+      return {
+        id: "custom:" + ct.filename,
+        theme: {
+          name: ct.name,
+          author: ct.author,
+          variant: ct.variant as "dark" | "light",
+          ...ct.colors,
+        } as Theme,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 function loadInitialState(): ThemeState {
@@ -17,7 +37,7 @@ function loadInitialState(): ThemeState {
     mode: mode === "light" ? "light" : "dark",
     darkThemeId: darkThemeId ?? "dracula",
     lightThemeId: lightThemeId ?? "ayu-light",
-    customThemes: [],
+    customThemes: loadInjectedCustomThemes(),
   };
 }
 

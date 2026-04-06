@@ -24,7 +24,7 @@ async function ensureThemesDir(): Promise<void> {
   await mkdir(themesDir(), { recursive: true });
 }
 
-async function loadAllThemes(): Promise<Array<{ name: string; author: string; variant: string; filename: string; colors: Record<string, string> }>> {
+export async function loadAllThemes(): Promise<Array<{ name: string; author: string; variant: string; filename: string; colors: Record<string, string> }>> {
   await ensureThemesDir();
   var dir = themesDir();
   var files = await readdir(dir);
