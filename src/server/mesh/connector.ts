@@ -1,4 +1,4 @@
-import type { MeshMessage, MeshHelloMessage, MeshSessionSyncMessage, MeshSessionRequestMessage } from "@lattice/shared";
+import type { MeshMessage, MeshHelloMessage, MeshSessionSyncMessage, MeshSessionRequestMessage } from "#shared";
 import * as peersModule from "./peers";
 import { loadPeers } from "./peers";
 import { loadOrCreateIdentity } from "../identity";

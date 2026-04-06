@@ -1,4 +1,4 @@
-import type { ClientMessage, TerminalCreateMessage, TerminalInputMessage, TerminalResizeMessage } from "@lattice/shared";
+import type { ClientMessage, TerminalCreateMessage, TerminalInputMessage, TerminalResizeMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { createTerminal, destroyTerminal, writeToTerminal, resizeTerminal } from "../project/terminal";

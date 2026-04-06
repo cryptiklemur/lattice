@@ -1,4 +1,4 @@
-import type { ClientMessage } from "@lattice/shared";
+import type { ClientMessage } from "#shared";
 import { sendTo } from "./broadcast";
 import { log } from "../logger";
 

@@ -4,7 +4,7 @@ import type {
   NotesCreateMessage,
   NotesUpdateMessage,
   NotesDeleteMessage,
-} from "@lattice/shared";
+} from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { listNotes, createNote, updateNote, deleteNote } from "../features/sticky-notes";

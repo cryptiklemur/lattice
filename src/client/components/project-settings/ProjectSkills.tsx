@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { SkillMarketplace } from "../settings/SkillMarketplace";
 import { SkillItem, SkillViewModal } from "../settings/skill-shared";
-import type { ProjectSettings, ServerMessage } from "@lattice/shared";
+import type { ProjectSettings, ServerMessage } from "#shared";
 
 interface ProjectSkillsProps {
   settings: ProjectSettings;

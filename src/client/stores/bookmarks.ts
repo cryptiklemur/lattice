@@ -1,5 +1,5 @@
 import { Store } from "@tanstack/react-store";
-import type { MessageBookmark } from "@lattice/shared";
+import type { MessageBookmark } from "#shared";
 
 export interface BookmarkState {
   bookmarks: MessageBookmark[];

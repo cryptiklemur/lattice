@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ClientMessage, EditorDetectMessage, EditorEnsureProjectMessage } from "@lattice/shared";
+import type { ClientMessage, EditorDetectMessage, EditorEnsureProjectMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";

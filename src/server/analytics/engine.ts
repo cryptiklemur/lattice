@@ -2,7 +2,7 @@ import { readdirSync, existsSync, readFileSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "@lattice/shared";
+import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "#shared";
 import { estimateCost, projectPathToHash } from "../project/session";
 import { loadConfig } from "../config";
 

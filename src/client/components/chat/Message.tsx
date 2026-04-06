@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, memo, useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck, RotateCcw, ClipboardCopy, FileText, MessageSquarePlus, History } from "lucide-react";
-import type { HistoryMessage, ChatPermissionResponseMessage } from "@lattice/shared";
+import type { HistoryMessage, ChatPermissionResponseMessage } from "#shared";
 import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { getSessionStore, setPendingPrefill } from "../../stores/session";

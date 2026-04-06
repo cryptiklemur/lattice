@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { ClientMessage, ServerMessage } from "@lattice/shared";
+import type { ClientMessage, ServerMessage } from "#shared";
 
 export type WebSocketStatus = "connecting" | "connected" | "disconnected";
 

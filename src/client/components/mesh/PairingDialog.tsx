@@ -3,7 +3,7 @@ import { X, Copy, Check, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { clearInvite } from "../../stores/mesh";
-import type { ServerMessage } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
 
 type Tab = "generate" | "enter";
 type PairStatus = "idle" | "connecting" | "paired" | "failed";

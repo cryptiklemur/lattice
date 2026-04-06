@@ -10,7 +10,7 @@ import * as fsPromises from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import type { HistoryMessage, SessionPreview, SessionSummary } from "@lattice/shared";
+import type { HistoryMessage, SessionPreview, SessionSummary } from "#shared";
 import { loadConfig } from "../config";
 import { log } from "../logger";
 

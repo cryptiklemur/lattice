@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
-import type { FileEntry } from "@lattice/shared";
+import type { FileEntry } from "#shared";
 
 var MAX_FILE_SIZE = 512 * 1024;
 

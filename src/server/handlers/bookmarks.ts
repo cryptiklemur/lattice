@@ -3,7 +3,7 @@ import type {
   BookmarkListMessage,
   BookmarkAddMessage,
   BookmarkRemoveMessage,
-} from "@lattice/shared";
+} from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { listBookmarks, addBookmark, removeBookmark } from "../project/bookmarks";

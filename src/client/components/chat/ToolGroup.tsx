@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Wrench, ChevronDown, Check, FileText, Search, Terminal, Pencil, FolderOpen } from "lucide-react";
-import type { HistoryMessage } from "@lattice/shared";
+import type { HistoryMessage } from "#shared";
 import { ToolResultRenderer } from "./ToolResultRenderer";
 import { formatToolSummary } from "./toolSummary";
 

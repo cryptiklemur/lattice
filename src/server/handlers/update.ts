@@ -2,7 +2,7 @@ import { chmodSync, writeFileSync, accessSync, copyFileSync, unlinkSync, constan
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execSync, spawn } from "node:child_process";
-import type { ClientMessage } from "@lattice/shared";
+import type { ClientMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { checkForUpdate, getPackageName, getGitHubRepo, getInstallMode } from "../update-checker";

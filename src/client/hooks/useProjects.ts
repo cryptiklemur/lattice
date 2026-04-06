@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@tanstack/react-store";
-import type { ProjectInfo } from "@lattice/shared";
-import type { ProjectsListMessage } from "@lattice/shared";
-import type { ServerMessage } from "@lattice/shared";
+import type { ProjectInfo } from "#shared";
+import type { ProjectsListMessage } from "#shared";
+import type { ServerMessage } from "#shared";
 import { useWebSocket } from "./useWebSocket";
 import { setActiveProjectSlug, getSidebarStore } from "../stores/sidebar";
 

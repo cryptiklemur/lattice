@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { PeerInfo } from "@lattice/shared";
+import type { PeerInfo } from "#shared";
 import { getLatticeHome } from "../config";
 
 function getPeersPath(): string {

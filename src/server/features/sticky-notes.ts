@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeF
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { getLatticeHome } from "../config";
-import type { StickyNote } from "@lattice/shared";
+import type { StickyNote } from "#shared";
 
 var notesFile = "";
 var notes: StickyNote[] = [];

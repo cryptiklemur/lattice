@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { X } from "lucide-react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import cronstrue from "cronstrue";
-import type { ScheduledTask } from "@lattice/shared";
+import type { ScheduledTask } from "#shared";
 
 interface TaskEditModalProps {
   task: ScheduledTask | null;

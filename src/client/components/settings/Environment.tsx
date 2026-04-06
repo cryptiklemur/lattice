@@ -4,7 +4,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
 import { findDuplicateKeys } from "../../utils/findDuplicateKeys";
-import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage } from "#shared";
 
 interface EnvEntry {
   id: string;

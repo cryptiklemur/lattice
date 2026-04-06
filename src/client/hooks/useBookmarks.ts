@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useStore } from "@tanstack/react-store";
-import type { ServerMessage, BookmarkListResultMessage, MessageBookmark } from "@lattice/shared";
+import type { ServerMessage, BookmarkListResultMessage, MessageBookmark } from "#shared";
 import { useWebSocket } from "./useWebSocket";
 import { getBookmarkStore, setBookmarks, setAllBookmarks } from "../stores/bookmarks";
 import { getSessionStore } from "../stores/session";

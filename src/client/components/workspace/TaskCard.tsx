@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import cronstrue from "cronstrue";
-import type { ScheduledTask } from "@lattice/shared";
+import type { ScheduledTask } from "#shared";
 
 interface TaskCardProps {
   task: ScheduledTask;

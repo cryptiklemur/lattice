@@ -2,8 +2,8 @@ import * as p from "@clack/prompts";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { getLatticeHome, loadConfig, saveConfig } from "./config";
-import type { LatticeConfig } from "@lattice/shared";
-import { DEFAULT_PORT } from "@lattice/shared";
+import type { LatticeConfig } from "#shared";
+import { DEFAULT_PORT } from "#shared";
 
 var BANNER = `
   \x1b[36m██╗\x1b[0m      \x1b[36m█████╗\x1b[0m \x1b[36m████████╗████████╗██╗\x1b[0m \x1b[36m██████╗\x1b[0m \x1b[36m███████╗\x1b[0m

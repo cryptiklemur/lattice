@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Calendar } from "lucide-react";
-import type { ScheduledTask, ServerMessage } from "@lattice/shared";
+import type { ScheduledTask, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSession } from "../../hooks/useSession";
 import { useOnline } from "../../hooks/useOnline";

@@ -1,5 +1,5 @@
 import { Store } from "@tanstack/react-store";
-import type { HistoryMessage } from "@lattice/shared";
+import type { HistoryMessage } from "#shared";
 
 export interface ContextUsage {
   inputTokens: number;

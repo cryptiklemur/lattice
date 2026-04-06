@@ -1,5 +1,5 @@
 import { Server, Wifi, WifiOff } from "lucide-react";
-import type { NodeInfo } from "@lattice/shared";
+import type { NodeInfo } from "#shared";
 
 interface NodeFleetOverviewProps {
   nodes: NodeInfo[];

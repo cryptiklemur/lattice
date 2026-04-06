@@ -1,7 +1,7 @@
-import type { ClientMessage, MeshPairMessage, MeshUnpairMessage, NodeInfo } from "@lattice/shared";
+import type { ClientMessage, MeshPairMessage, MeshUnpairMessage, NodeInfo } from "#shared";
 import { log } from "../logger";
 import { handleProxyRequest, handleProxyResponse } from "../mesh/proxy";
-import type { MeshProxyRequestMessage, MeshProxyResponseMessage } from "@lattice/shared";
+import type { MeshProxyRequestMessage, MeshProxyResponseMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig } from "../config";
@@ -10,7 +10,7 @@ import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairi
 import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
 import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer, getConnectedPeerProjects, registerInboundPeer } from "../mesh/connector";
 import { getClientWebSocket, registerVirtualClient, removeVirtualClient } from "../ws/broadcast";
-import type { PeerInfo } from "@lattice/shared";
+import type { PeerInfo } from "#shared";
 import { networkInterfaces } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";

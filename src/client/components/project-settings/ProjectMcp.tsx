@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
-import type { ProjectSettings, McpServerConfig } from "@lattice/shared";
+import type { ProjectSettings, McpServerConfig } from "#shared";
 import {
   type FormState,
   emptyForm,

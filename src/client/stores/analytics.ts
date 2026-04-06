@@ -1,5 +1,5 @@
 import { Store } from "@tanstack/react-store";
-import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "@lattice/shared";
+import type { AnalyticsPayload, AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "#shared";
 
 export interface AnalyticsState {
   data: Partial<AnalyticsPayload>;

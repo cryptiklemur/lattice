@@ -9,7 +9,7 @@ export default defineConfig({
   publicDir: "public",
   resolve: {
     alias: {
-      "@lattice/shared": resolve(__dirname, "src/shared/index.ts"),
+      "#shared": resolve(__dirname, "src/shared/index.ts"),
     },
   },
   plugins: [

@@ -2,7 +2,7 @@ import { useSidebar } from "../../hooks/useSidebar";
 import { useProjectSettings } from "../../hooks/useProjectSettings";
 import { Menu } from "lucide-react";
 import type { ProjectSettingsSection } from "../../stores/sidebar";
-import type { ProjectSettings } from "@lattice/shared";
+import type { ProjectSettings } from "#shared";
 import { ProjectGeneral } from "./ProjectGeneral";
 import { ProjectClaude } from "./ProjectClaude";
 import { ProjectEnvironment } from "./ProjectEnvironment";

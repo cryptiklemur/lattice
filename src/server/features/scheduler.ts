@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { getLatticeHome } from "../config";
 import { broadcast } from "../ws/broadcast";
-import type { ScheduledTask } from "@lattice/shared";
+import type { ScheduledTask } from "#shared";
 
 var schedulesFile = "";
 var tasks: ScheduledTask[] = [];

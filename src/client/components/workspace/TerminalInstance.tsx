@@ -6,7 +6,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import "@xterm/xterm/css/xterm.css";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
-import type { ServerMessage, TerminalCreatedMessage, TerminalOutputMessage, TerminalExitedMessage } from "@lattice/shared";
+import type { ServerMessage, TerminalCreatedMessage, TerminalOutputMessage, TerminalExitedMessage } from "#shared";
 
 function getXtermTheme(): Record<string, string> {
   var root = document.documentElement;

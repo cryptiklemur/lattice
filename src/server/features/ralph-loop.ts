@@ -5,7 +5,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKMessage, SDKPartialAssistantMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import { broadcast } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
-import type { LoopStatus } from "@lattice/shared";
+import type { LoopStatus } from "#shared";
 
 var activeLoops = new Map<string, LoopStatus>();
 

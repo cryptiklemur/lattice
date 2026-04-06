@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { getLatticeHome } from "../config";
-import type { MessageBookmark } from "@lattice/shared";
+import type { MessageBookmark } from "#shared";
 
 var bookmarksFile = "";
 var bookmarks: MessageBookmark[] = [];

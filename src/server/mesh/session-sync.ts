@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, appendFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import type { MeshSessionSyncMessage, MeshSessionRequestMessage } from "@lattice/shared";
+import type { MeshSessionSyncMessage, MeshSessionRequestMessage } from "#shared";
 import { getConnectedPeerIds, getPeerConnection } from "./connector";
 import { getLatticeHome } from "../config";
 

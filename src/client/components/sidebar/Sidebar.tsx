@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark, Settings, Network } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
-import type { SessionSummary, ServerMessage, SettingsDataMessage } from "@lattice/shared";
+import type { SessionSummary, ServerMessage, SettingsDataMessage } from "#shared";
 import type { DateRange } from "./SessionList";
 import { useProjects } from "../../hooks/useProjects";
 import { useMesh } from "../../hooks/useMesh";

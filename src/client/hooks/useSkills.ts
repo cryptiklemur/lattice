@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { SkillInfo } from "@lattice/shared";
-import type { ServerMessage } from "@lattice/shared";
+import type { SkillInfo } from "#shared";
+import type { ServerMessage } from "#shared";
 import { useWebSocket } from "./useWebSocket";
 
 export function useSkills(): SkillInfo[] {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage } from "#shared";
 
 interface RuleEntry {
   filename: string;

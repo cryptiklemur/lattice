@@ -1,4 +1,4 @@
-import type { ClientMessage, FsListMessage, FsReadMessage, FsWriteMessage } from "@lattice/shared";
+import type { ClientMessage, FsListMessage, FsReadMessage, FsWriteMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";

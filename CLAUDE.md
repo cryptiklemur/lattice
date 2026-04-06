@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project Structure
 Single npm package with three source directories:
-- `src/shared/` — TypeScript types and constants (no build, imported via `@lattice/shared` path alias)
+- `src/shared/` — TypeScript types and constants (no build, imported via `#shared` subpath import)
 - `src/server/` — Express + ws daemon serving WebSocket API + static client assets on port 7654
 - `src/client/` — React 19 + Vite + Tailwind + daisyUI web app
 

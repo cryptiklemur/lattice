@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useWebSocket } from "./useWebSocket";
-import type { ServerMessage } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
 
 var CHUNK_SIZE = 64 * 1024;
 var MAX_FILE_SIZE = 50 * 1024 * 1024;

@@ -1,5 +1,5 @@
 import { Store } from "@tanstack/react-store";
-import type { ProjectSettingsSection } from "@lattice/shared";
+import type { ProjectSettingsSection } from "#shared";
 import { encodeWorkspaceUrl, decodeWorkspaceUrl, isLegacySessionUrl, shortSessionId } from "../lib/workspace-url";
 import type { DecodedWorkspace } from "../lib/workspace-url";
 import { getWorkspaceStore, restoreWorkspace, setUrlSyncCallback, switchProjectWorkspace, setCurrentProjectKey } from "./workspace";

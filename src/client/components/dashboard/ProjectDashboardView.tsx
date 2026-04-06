@@ -8,7 +8,7 @@ import {
   MessageSquare, ChevronRight,
 } from "lucide-react";
 import type { ProjectSettingsSection } from "../../stores/sidebar";
-import type { SessionSummary, ServerMessage } from "@lattice/shared";
+import type { SessionSummary, ServerMessage } from "#shared";
 import { openSessionTab } from "../../stores/workspace";
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {

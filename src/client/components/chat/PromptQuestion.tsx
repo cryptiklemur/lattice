@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Check, Circle, CheckCircle2, MessageCircleQuestion, ChevronDown, Send } from "lucide-react";
-import type { HistoryMessage } from "@lattice/shared";
+import type { HistoryMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { resolvePromptQuestion } from "../../stores/session";
 

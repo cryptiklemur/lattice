@@ -3,7 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
-import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "#shared";
 
 var CLAUDE_MODELS = [
   { id: "claude-opus-4-6", label: "Claude Opus 4.6" },

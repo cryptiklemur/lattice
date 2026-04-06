@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Trash2 } from "lucide-react";
-import type { StickyNote } from "@lattice/shared";
+import type { StickyNote } from "#shared";
 
 interface NoteCardProps {
   note: StickyNote;

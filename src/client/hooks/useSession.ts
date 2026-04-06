@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "@tanstack/react-store";
-import type { HistoryMessage } from "@lattice/shared";
+import type { HistoryMessage } from "#shared";
 import type {
   ChatDeltaMessage,
   ChatSendMessage,
@@ -16,7 +16,7 @@ import type {
   ChatElicitationRequestMessage,
   SessionHistoryMessage,
   ServerMessage,
-} from "@lattice/shared";
+} from "#shared";
 import { useWebSocket } from "./useWebSocket";
 import { setActiveSessionId as setSidebarSessionId } from "../stores/sidebar";
 import { updateSessionTabTitle, pinTab } from "../stores/workspace";

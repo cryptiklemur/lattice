@@ -1,4 +1,4 @@
-import type { NodeInfo } from "@lattice/shared";
+import type { NodeInfo } from "#shared";
 
 interface NodeBadgeProps {
   node: NodeInfo;

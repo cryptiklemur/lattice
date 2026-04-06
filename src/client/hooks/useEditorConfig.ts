@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useWebSocket } from "./useWebSocket";
-import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage } from "#shared";
 
 export function useEditorConfig() {
   var ws = useWebSocket();

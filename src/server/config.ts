@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { join } from "node:path";
-import { DEFAULT_PORT, LATTICE_HOME_DIR } from "@lattice/shared";
-import type { LatticeConfig } from "@lattice/shared";
+import { DEFAULT_PORT, LATTICE_HOME_DIR } from "#shared";
+import type { LatticeConfig } from "#shared";
 
 var home = process.env.LATTICE_HOME || join(homedir(), LATTICE_HOME_DIR);
 var cachedConfig: LatticeConfig | null = null;

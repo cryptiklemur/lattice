@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Settings, PlusCircle, Trash2, Unplug, RefreshCw } from "lucide-react";
-import type { ProjectInfo, NodeInfo } from "@lattice/shared";
+import type { ProjectInfo, NodeInfo } from "#shared";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";

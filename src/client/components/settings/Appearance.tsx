@@ -6,7 +6,7 @@ import type { ThemeEntry } from "../../themes/index";
 import { ThemeWizard } from "./ThemeWizard";
 import { ThemeSwatches } from "./ThemePreview";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
-import type { ServerMessage } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
 
 var SWATCH_KEYS = [
   "base00", "base01", "base02", "base03",

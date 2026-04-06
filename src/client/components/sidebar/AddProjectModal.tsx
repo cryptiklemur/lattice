@@ -3,7 +3,7 @@ import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { X, FolderOpen, FileText, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useProjects } from "../../hooks/useProjects";
-import type { ServerMessage } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
 
 interface BrowseEntry {
   name: string;

@@ -3,7 +3,7 @@ import { X, Plus, AlertTriangle } from "lucide-react";
 import { SaveFooter } from "../ui/SaveFooter";
 import { useSaveState } from "../../hooks/useSaveState";
 import { findDuplicateKeys } from "../../utils/findDuplicateKeys";
-import type { ProjectSettings } from "@lattice/shared";
+import type { ProjectSettings } from "#shared";
 
 interface EnvEntry {
   id: string;

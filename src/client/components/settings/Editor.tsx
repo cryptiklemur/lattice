@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
-import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "#shared";
 
 var IDE_OPTIONS = [
   { id: "vscode", label: "VS Code" },

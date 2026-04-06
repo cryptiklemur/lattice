@@ -4,7 +4,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
 import { getSessionStore, setBudgetStatus } from "../../stores/session";
-import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "#shared";
 
 var ENFORCEMENT_OPTIONS = [
   { id: "warning", label: "Warning", description: "Shows a warning but does not block" },

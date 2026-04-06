@@ -7,7 +7,7 @@ import type {
   SessionListRequestMessage,
   SessionPreviewRequestMessage,
   SessionRenameMessage,
-} from "@lattice/shared";
+} from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";

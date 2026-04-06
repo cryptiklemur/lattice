@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowUpCircle, X, Loader2, ExternalLink, RefreshCw } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import type { ServerMessage } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
 
 interface UpdateState {
   currentVersion: string;

@@ -10,7 +10,7 @@ import {
   Network, FolderOpen, MessageSquare, Menu,
   ChevronRight, CircleDot, Circle,
 } from "lucide-react";
-import type { ServerMessage, SessionSummary, LatticeConfig } from "@lattice/shared";
+import type { ServerMessage, SessionSummary, LatticeConfig } from "#shared";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 import { openSessionTab } from "../../stores/workspace";
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { IconPicker } from "../ui/IconPicker";
 import { SaveFooter } from "../ui/SaveFooter";
 import { useSaveState } from "../../hooks/useSaveState";
-import type { ProjectSettings, ProjectIcon } from "@lattice/shared";
+import type { ProjectSettings, ProjectIcon } from "#shared";
 
 interface ProjectGeneralProps {
   settings: ProjectSettings;

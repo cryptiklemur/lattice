@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { icons } from "lucide-react";
-import type { ProjectIcon } from "@lattice/shared";
+import type { ProjectIcon } from "#shared";
 
 type Tab = "lucide" | "text" | "upload";
 

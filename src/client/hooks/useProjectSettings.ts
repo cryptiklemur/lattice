@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useWebSocket } from "./useWebSocket";
-import type { ServerMessage, ProjectSettings, ProjectSettingsDataMessage, ProjectSettingsErrorMessage } from "@lattice/shared";
+import type { ServerMessage, ProjectSettings, ProjectSettingsDataMessage, ProjectSettingsErrorMessage } from "#shared";
 
 export function useProjectSettings(projectSlug: string | null) {
   var { status, send, subscribe, unsubscribe } = useWebSocket();

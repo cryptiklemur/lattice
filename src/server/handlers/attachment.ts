@@ -1,5 +1,5 @@
-import type { Attachment } from "@lattice/shared";
-import type { AttachmentChunkMessage, AttachmentCompleteMessage, ClientMessage } from "@lattice/shared";
+import type { Attachment } from "#shared";
+import type { AttachmentChunkMessage, AttachmentCompleteMessage, ClientMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 

@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import type { ServerMessage, SettingsDataMessage, McpServerConfig } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage, McpServerConfig } from "#shared";
 import {
   type FormState,
   emptyForm,
@@ -99,7 +99,7 @@ export function GlobalMcp() {
     save.startSave();
     send({
       type: "settings:update",
-      settings: { mcpServers: servers } as unknown as import("@lattice/shared").SettingsUpdateMessage["settings"],
+      settings: { mcpServers: servers } as unknown as import("#shared").SettingsUpdateMessage["settings"],
     });
   }
 

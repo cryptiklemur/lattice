@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { basename } from "node:path";
 import { loadConfig, saveConfig } from "../config";
-import type { ProjectSummary } from "@lattice/shared";
+import type { ProjectSummary } from "#shared";
 
 export function listProjects(nodeId: string): ProjectSummary[] {
   var config = loadConfig();

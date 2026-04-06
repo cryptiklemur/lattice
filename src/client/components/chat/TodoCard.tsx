@@ -1,5 +1,5 @@
 import { Circle, CircleDot, CheckCircle2, ListTodo } from "lucide-react";
-import type { HistoryMessage } from "@lattice/shared";
+import type { HistoryMessage } from "#shared";
 
 interface TodoCardProps {
   message: HistoryMessage;

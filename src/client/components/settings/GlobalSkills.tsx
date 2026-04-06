@@ -3,7 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { SkillMarketplace } from "./SkillMarketplace";
 import { SkillItem, SkillActions, SkillViewModal } from "./skill-shared";
-import type { ServerMessage, SkillInfo, SettingsDataMessage } from "@lattice/shared";
+import type { ServerMessage, SkillInfo, SettingsDataMessage } from "#shared";
 
 export function GlobalSkills() {
   var { send, subscribe, unsubscribe } = useWebSocket();

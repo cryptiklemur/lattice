@@ -1,4 +1,4 @@
-import type { McpServerConfig } from "@lattice/shared";
+import type { McpServerConfig } from "#shared";
 
 export type ServerType = "stdio" | "http" | "sse";
 

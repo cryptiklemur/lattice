@@ -4,7 +4,7 @@ import { useBookmarks } from "../../hooks/useBookmarks";
 import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
 import { openTab } from "../../stores/workspace";
-import type { MessageBookmark } from "@lattice/shared";
+import type { MessageBookmark } from "#shared";
 
 function relativeTime(ts: number): string {
   var diff = Date.now() - ts;

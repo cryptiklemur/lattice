@@ -1,4 +1,4 @@
-import type { ChatSendMessage, ChatPermissionResponseMessage, ChatSetPermissionModeMessage, ChatPromptResponseMessage, ClientMessage } from "@lattice/shared";
+import type { ChatSendMessage, ChatPermissionResponseMessage, ChatSetPermissionModeMessage, ChatPromptResponseMessage, ClientMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";

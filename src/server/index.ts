@@ -6,7 +6,7 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync, openSync } from "n
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, execSync } from "node:child_process";
-import { DAEMON_PID_FILE } from "@lattice/shared";
+import { DAEMON_PID_FILE } from "#shared";
 import { getLatticeHome, loadConfig } from "./config";
 
 var __filename_local = fileURLToPath(import.meta.url);

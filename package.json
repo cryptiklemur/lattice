@@ -26,6 +26,9 @@
   "bin": {
     "lattice": "./bin/lattice"
   },
+  "imports": {
+    "#shared": "./src/shared/index.ts"
+  },
   "files": [
     "src/",
     "public/",

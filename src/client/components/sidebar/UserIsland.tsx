@@ -8,7 +8,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { getSessionStore, loadCachedRateLimits, updateRateLimit } from "../../stores/session";
 import type { RateLimitEntry } from "../../stores/session";
 import pkg from "../../../../package.json";
-import type { ServerMessage } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
 
 interface UserIslandProps {
   nodeName: string;

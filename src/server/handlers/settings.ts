@@ -1,9 +1,9 @@
-import type { ClientMessage, SettingsGetMessage, SettingsUpdateMessage } from "@lattice/shared";
+import type { ClientMessage, SettingsGetMessage, SettingsUpdateMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig, saveConfig } from "../config";
 import { addProject, removeProject } from "../project/registry";
-import type { LatticeConfig } from "@lattice/shared";
+import type { LatticeConfig } from "#shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -67,7 +67,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     sendTo(clientId, {
       type: "settings:data",
       config: configWithClaudeMd,
-      mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+      mcpServers: readGlobalMcpServers() as Record<string, import("#shared").McpServerConfig>,
       globalSkills: readGlobalSkills(),
       globalRules: readGlobalRules(),
       spinnerVerbs: loadSpinnerVerbs(),
@@ -130,7 +130,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
     sendTo(clientId, {
       type: "settings:data",
       config: updatedWithClaudeMd,
-      mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+      mcpServers: readGlobalMcpServers() as Record<string, import("#shared").McpServerConfig>,
       globalSkills: readGlobalSkills(),
       globalRules: readGlobalRules(),
       spinnerVerbs: loadSpinnerVerbs(),

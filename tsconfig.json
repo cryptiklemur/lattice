@@ -11,7 +11,7 @@
     "sourceMap": true,
     "jsx": "react-jsx",
     "paths": {
-      "@lattice/shared": ["./src/shared/index.ts"]
+      "#shared": ["./src/shared/index.ts"]
     },
     "types": ["node"]
   },

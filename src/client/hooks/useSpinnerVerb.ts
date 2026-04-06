@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useWebSocket } from "./useWebSocket";
-import type { ServerMessage, SettingsDataMessage } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage } from "#shared";
 
 var DEFAULT_VERBS = ["Thinking", "Analyzing", "Processing", "Computing", "Evaluating"];
 

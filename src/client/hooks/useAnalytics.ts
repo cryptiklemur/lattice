@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "./useWebSocket";
-import type { ServerMessage } from "@lattice/shared";
-import type { AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "@lattice/shared";
-import type { AnalyticsPayload } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
+import type { AnalyticsPeriod, AnalyticsScope, AnalyticsSectionName } from "#shared";
+import type { AnalyticsPayload } from "#shared";
 import {
   getAnalyticsStore,
   mergeAnalyticsSection,

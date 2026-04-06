@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { StickyNote as StickyNoteIcon } from "lucide-react";
-import type { StickyNote, ServerMessage } from "@lattice/shared";
+import type { StickyNote, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSession } from "../../hooks/useSession";
 import { useOnline } from "../../hooks/useOnline";

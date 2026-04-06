@@ -18,7 +18,7 @@ import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessag
 import { handleProxyRequest, handleProxyResponse } from "./mesh/proxy";
 import { verifyPassphrase, generateSessionToken, addSession, isValidSession } from "./auth/passphrase";
 import { ensureCerts } from "./tls";
-import type { ClientMessage, MeshMessage } from "@lattice/shared";
+import type { ClientMessage, MeshMessage } from "#shared";
 import { log } from "./logger";
 import { detectIdeProjectName } from "./handlers/settings";
 import "./handlers/session";

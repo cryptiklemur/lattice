@@ -4,7 +4,7 @@ import type {
   ClientMessage,
   ThemeSaveMessage,
   ThemeDeleteMessage,
-} from "@lattice/shared";
+} from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcast } from "../ws/broadcast";
 import { getLatticeHome } from "../config";

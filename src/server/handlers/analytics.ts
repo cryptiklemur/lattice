@@ -1,4 +1,4 @@
-import type { ClientMessage } from "@lattice/shared";
+import type { ClientMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { streamAnalyticsSections } from "../analytics/engine";

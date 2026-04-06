@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "@tanstack/react-store";
-import type { ServerMessage, NodeInfo } from "@lattice/shared";
+import type { ServerMessage, NodeInfo } from "#shared";
 import { useWebSocket } from "./useWebSocket";
 import {
   getMeshStore,

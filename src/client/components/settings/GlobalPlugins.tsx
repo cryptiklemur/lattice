@@ -12,7 +12,7 @@ import type {
   PluginError,
   PluginMarketplaceInfo,
   MarketplacePluginEntry,
-} from "@lattice/shared";
+} from "#shared";
 
 export function GlobalPlugins() {
   var { send, subscribe, unsubscribe } = useWebSocket();

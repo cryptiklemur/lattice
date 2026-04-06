@@ -2,7 +2,7 @@ import { encodingForModel } from "js-tiktoken";
 import { existsSync, readFileSync, readdirSync, openSync, readSync, fstatSync, closeSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import type { ContextBreakdownSegment } from "@lattice/shared";
+import type { ContextBreakdownSegment } from "#shared";
 import { guessContextWindow } from "./session";
 import { loadConfig } from "../config";
 import { getInstalledPluginCount, getPluginSkillRuleTokenEstimate } from "../handlers/plugins";

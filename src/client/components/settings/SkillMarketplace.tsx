@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Download, ChevronDown, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useProjects } from "../../hooks/useProjects";
-import type { ServerMessage, MarketplaceSkill } from "@lattice/shared";
+import type { ServerMessage, MarketplaceSkill } from "#shared";
 
 interface SkillMarketplaceProps {
   defaultScope?: "global" | "project";

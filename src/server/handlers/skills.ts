@@ -2,8 +2,8 @@ import { readdirSync, readFileSync, existsSync, lstatSync, realpathSync, statSyn
 import { join, sep, dirname } from "node:path";
 import { homedir } from "node:os";
 import { execSync, spawn } from "node:child_process";
-import type { ClientMessage } from "@lattice/shared";
-import type { SkillInfo } from "@lattice/shared";
+import type { ClientMessage } from "#shared";
+import type { SkillInfo } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";
@@ -292,7 +292,7 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
           sendTo(clientId, {
             type: "settings:data",
             config: globalConfig,
-            mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+            mcpServers: readGlobalMcpServers() as Record<string, import("#shared").McpServerConfig>,
             globalSkills: readGlobalSkills(),
           });
         }
@@ -333,7 +333,7 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
       sendTo(clientId, {
         type: "settings:data",
         config: delConfig,
-        mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+        mcpServers: readGlobalMcpServers() as Record<string, import("#shared").McpServerConfig>,
         globalSkills: readGlobalSkills(),
       });
     } catch (err) {
@@ -366,7 +366,7 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
         sendTo(clientId, {
           type: "settings:data",
           config: updConfig,
-          mcpServers: readGlobalMcpServers() as Record<string, import("@lattice/shared").McpServerConfig>,
+          mcpServers: readGlobalMcpServers() as Record<string, import("#shared").McpServerConfig>,
           globalSkills: readGlobalSkills(),
         });
       });

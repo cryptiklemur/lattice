@@ -59,7 +59,7 @@ import { DailySummaryCards } from "./charts/DailySummaryCards";
 import { ProjectRadar } from "./charts/ProjectRadar";
 import { SessionComplexityList } from "./charts/SessionComplexityList";
 import { NodeFleetOverview } from "./charts/NodeFleetOverview";
-import type { AnalyticsSectionName } from "@lattice/shared";
+import type { AnalyticsSectionName } from "#shared";
 
 export function AnalyticsView() {
   const analytics = useAnalytics();

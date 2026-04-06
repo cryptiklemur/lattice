@@ -4,7 +4,7 @@ import { Plus, Trash2, Pencil, X, Loader2, Brain, ExternalLink } from "lucide-re
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import type { ServerMessage } from "@lattice/shared";
+import type { ServerMessage } from "#shared";
 
 interface MemoryEntry {
   filename: string;

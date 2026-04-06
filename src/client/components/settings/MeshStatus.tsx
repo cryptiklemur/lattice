@@ -3,7 +3,7 @@ import { Plus, CircleDot, Circle, RefreshCw, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { PairingDialog } from "../mesh/PairingDialog";
-import type { NodeInfo } from "@lattice/shared";
+import type { NodeInfo } from "#shared";
 
 interface NodeRowProps {
   node: NodeInfo;

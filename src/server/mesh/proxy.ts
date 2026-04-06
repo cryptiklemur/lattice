@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ClientMessage, MeshProxyRequestMessage, MeshProxyResponseMessage, ServerMessage } from "@lattice/shared";
+import type { ClientMessage, MeshProxyRequestMessage, MeshProxyResponseMessage, ServerMessage } from "#shared";
 import { getPeerConnection } from "./connector";
 import { sendTo, broadcast, registerVirtualClient, removeVirtualClient } from "../ws/broadcast";
 import { routeMessage } from "../ws/router";

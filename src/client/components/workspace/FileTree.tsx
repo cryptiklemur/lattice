@@ -1,5 +1,5 @@
 import { ChevronRight, FileIcon } from "lucide-react";
-import type { FileEntry } from "@lattice/shared";
+import type { FileEntry } from "#shared";
 
 export interface TreeNode {
   entry: FileEntry;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Blocks, Loader2 } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import type { ProjectSettings, ServerMessage, PluginInfo } from "@lattice/shared";
+import type { ProjectSettings, ServerMessage, PluginInfo } from "#shared";
 
 interface ProjectPluginsProps {
   settings: ProjectSettings;

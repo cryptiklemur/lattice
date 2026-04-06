@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { ClientMessage, ServerMessage } from "@lattice/shared";
+import type { ClientMessage, ServerMessage } from "#shared";
 import { WebSocketContext, getWebSocketUrl } from "../hooks/useWebSocket";
 import type { WebSocketStatus } from "../hooks/useWebSocket";
 import { showToast } from "../components/ui/Toast";

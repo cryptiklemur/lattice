@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, FileCode, FileX } from "lucide-react";
-import type { FsListResultMessage, FsReadResultMessage, ServerMessage } from "@lattice/shared";
+import type { FsListResultMessage, FsReadResultMessage, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useProjects } from "../../hooks/useProjects";

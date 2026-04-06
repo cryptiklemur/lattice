@@ -1,4 +1,4 @@
-import type { ClientMessage, ProjectSettingsGetMessage, ProjectSettingsUpdateMessage, ProjectSettings, McpServerConfig } from "@lattice/shared";
+import type { ClientMessage, ProjectSettingsGetMessage, ProjectSettingsUpdateMessage, ProjectSettings, McpServerConfig } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { loadConfig, saveConfig, invalidateConfigCache } from "../config";

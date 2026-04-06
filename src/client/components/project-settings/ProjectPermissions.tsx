@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
 import { SaveFooter } from "../ui/SaveFooter";
 import { useSaveState } from "../../hooks/useSaveState";
-import type { ProjectSettings } from "@lattice/shared";
+import type { ProjectSettings } from "#shared";
 
 function RuleList({
   rules,

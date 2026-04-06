@@ -5,7 +5,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useMesh } from "../../hooks/useMesh";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
-import type { ServerMessage, SettingsDataMessage, LatticeConfig } from "@lattice/shared";
+import type { ServerMessage, SettingsDataMessage, LatticeConfig } from "#shared";
 
 interface NodeSettingsModalProps {
   isOpen: boolean;

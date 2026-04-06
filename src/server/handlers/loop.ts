@@ -1,4 +1,4 @@
-import type { ClientMessage, LoopStartMessage, LoopStopMessage, LoopStatusRequestMessage } from "@lattice/shared";
+import type { ClientMessage, LoopStartMessage, LoopStopMessage, LoopStatusRequestMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { startLoop, stopLoop, getLoopStatus } from "../features/ralph-loop";

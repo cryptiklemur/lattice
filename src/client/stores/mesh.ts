@@ -1,5 +1,5 @@
 import { Store } from "@tanstack/react-store";
-import type { NodeInfo } from "@lattice/shared";
+import type { NodeInfo } from "#shared";
 
 export interface MeshState {
   nodes: NodeInfo[];

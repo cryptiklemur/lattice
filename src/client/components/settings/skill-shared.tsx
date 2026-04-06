@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Trash2, RefreshCw, X, Loader2, FileText } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { SkillInfo } from "@lattice/shared";
+import type { SkillInfo } from "#shared";
 
 function parseFrontmatter(content: string): { meta: Record<string, string>; body: string } {
   var match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/);

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { SaveFooter } from "../ui/SaveFooter";
 import { useSaveState } from "../../hooks/useSaveState";
-import type { ProjectSettings, ThinkingConfig } from "@lattice/shared";
+import type { ProjectSettings, ThinkingConfig } from "#shared";
 
 var CLAUDE_MODELS = [
   { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
