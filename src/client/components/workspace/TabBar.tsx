@@ -1,4 +1,4 @@
-import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3 } from "lucide-react";
+import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
 import type { Tab, TabType } from "../../stores/workspace";
@@ -19,6 +19,7 @@ var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
   tasks: Calendar,
   bookmarks: Bookmark,
   analytics: BarChart3,
+  brainstorm: Lightbulb,
 };
 
 export function TabBar({ paneId, isActivePane }: TabBarProps) {

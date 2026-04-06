@@ -92,6 +92,7 @@ export function decodeWorkspaceUrl(
     tasks: "Tasks",
     bookmarks: "Bookmarks",
     analytics: "Analytics",
+    brainstorm: "Brainstorm",
   };
 
   let splitMeta: string | null = null;
