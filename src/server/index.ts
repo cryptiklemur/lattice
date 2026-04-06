@@ -21,7 +21,7 @@ function getCurrentVersion(): string {
 }
 
 var args = process.argv.slice(2);
-var command = "start";
+var command = "help";
 var portOverride: number | null = null;
 var tlsOverride: boolean | null = null;
 
@@ -96,10 +96,10 @@ function spawnDaemon(port: number, tls?: boolean | null): number {
     var pkgRoot = join(__dirname_local, "..");
     var localTsx = join(pkgRoot, "node_modules", ".bin", "tsx");
     spawnCmd = existsSync(localTsx) ? localTsx : "tsx";
-    spawnArgs = ["--tsconfig", join(pkgRoot, "tsconfig.json"), __filename_local, "daemon", "--port", String(port)];
+    spawnArgs = ["--tsconfig", join(pkgRoot, "tsconfig.json"), __filename_local, "run", "--port", String(port)];
   } else {
     spawnCmd = process.execPath;
-    spawnArgs = [__filename_local, "daemon", "--port", String(port)];
+    spawnArgs = [__filename_local, "run", "--port", String(port)];
   }
   if (tls === true) spawnArgs.push("--tls");
   if (tls === false) spawnArgs.push("--no-tls");
@@ -113,6 +113,7 @@ function spawnDaemon(port: number, tls?: boolean | null): number {
 }
 
 switch (command) {
+  case "run":
   case "daemon":
     await runDaemon();
     break;
@@ -279,7 +280,8 @@ function runHelp(): void {
   console.log("  Usage: lattice [command] [options]");
   console.log("");
   console.log("  Commands:");
-  console.log("    start      Start the daemon and open the UI (default)");
+  console.log("    start      Start the daemon and open the UI");
+  console.log("    run        Run the daemon in the foreground");
   console.log("    stop       Stop the running daemon");
   console.log("    restart    Stop and restart the daemon");
   console.log("    status     Show daemon status and connection info");
@@ -289,7 +291,7 @@ function runHelp(): void {
   console.log("    open       Open the UI in the browser");
   console.log("    config     Show configuration paths and settings");
   console.log("    setup-tls  Set up HTTPS (Tailscale or self-signed)");
-  console.log("    help       Show this help message");
+  console.log("    help       Show this help message (default)");
   console.log("");
   console.log("  Options:");
   console.log("    --port=N   Override the server port");
@@ -303,52 +305,158 @@ function runHelp(): void {
 }
 
 async function runSetupTls(): Promise<void> {
-  var { execSync: exec } = await import("node:child_process");
+  var { spawnSync } = await import("node:child_process");
+  var { createInterface } = await import("node:readline");
+  var { mkdirSync, chmodSync, chownSync, statSync } = await import("node:fs");
   var certsDir = join(getLatticeHome(), "certs");
   var certPath = join(certsDir, "cert.pem");
   var keyPath = join(certsDir, "key.pem");
 
-  console.log("[lattice] TLS Setup");
-  console.log("");
-
-  var hasTailscale = false;
-  try {
-    exec("tailscale version", { stdio: "ignore" });
-    hasTailscale = true;
-  } catch {}
-
-  if (hasTailscale) {
-    console.log("  Tailscale detected. To use trusted Tailscale HTTPS certs:");
-    console.log("");
-    try {
-      var dnsName = exec("tailscale status --json", { encoding: "utf-8" });
-      var hostname = JSON.parse(dnsName).Self.DNSName.replace(/\.$/, "");
-      console.log("  1. Generate cert:");
-      console.log("     sudo tailscale cert --cert-file " + certPath + " --key-file " + keyPath + " " + hostname);
-      console.log("");
-      console.log("  2. Enable TLS and restart:");
-      console.log("     lattice restart --tls");
-      console.log("");
-      console.log("  3. Access at:");
-      console.log("     https://" + hostname + ":" + loadConfig().port);
-    } catch {
-      console.log("  1. Run: sudo tailscale cert --cert-file " + certPath + " --key-file " + keyPath + " <your-hostname>.ts.net");
-      console.log("  2. Run: lattice restart --tls");
-    }
-  } else {
-    console.log("  Tailscale not found. Using self-signed certificate.");
-    console.log("");
+  function prompt(question: string): Promise<string> {
+    var rl = createInterface({ input: process.stdin, output: process.stdout });
+    return new Promise(function (resolve) {
+      rl.question(question, function (answer) {
+        rl.close();
+        resolve(answer.trim().toLowerCase());
+      });
+    });
   }
 
   console.log("");
+  console.log("  lattice — TLS Setup");
+  console.log("");
+
+  var hasTailscale = false;
+  var hostname = "";
+  try {
+    spawnSync("tailscale", ["version"], { stdio: "ignore" });
+    hasTailscale = true;
+    var statusResult = spawnSync("tailscale", ["status", "--json"], { encoding: "utf-8" });
+    if (statusResult.status === 0) {
+      hostname = JSON.parse(statusResult.stdout).Self.DNSName.replace(/\.$/, "");
+    }
+  } catch {}
+
+  if (hasTailscale && hostname) {
+    console.log("  Tailscale detected: " + hostname);
+    console.log("");
+
+    var answer = await prompt("  Set up Tailscale HTTPS certs automatically? [Y/n] ");
+    if (answer !== "n" && answer !== "no") {
+      if (!existsSync(certsDir)) {
+        mkdirSync(certsDir, { recursive: true });
+      }
+
+      console.log("");
+      console.log("  Generating Tailscale cert (sudo required)...");
+      console.log("");
+
+      var certResult = spawnSync(
+        "sudo",
+        ["tailscale", "cert", "--cert-file", certPath, "--key-file", keyPath, hostname],
+        { stdio: "inherit" }
+      );
+
+      if (certResult.status !== 0) {
+        console.error("");
+        console.error("  Failed to generate Tailscale certs.");
+        console.error("  You can run manually:");
+        console.error("    sudo tailscale cert --cert-file " + certPath + " --key-file " + keyPath + " " + hostname);
+        process.exit(1);
+      }
+
+      var uid = process.getuid ? process.getuid() : 0;
+      var gid = process.getgid ? process.getgid() : 0;
+      try {
+        chownSync(certPath, uid, gid);
+        chownSync(keyPath, uid, gid);
+        chmodSync(certPath, 0o644);
+        chmodSync(keyPath, 0o600);
+      } catch {
+        console.log("  Fixing permissions with sudo...");
+        spawnSync("sudo", ["chown", uid + ":" + gid, certPath, keyPath], { stdio: "inherit" });
+        spawnSync("sudo", ["chmod", "644", certPath], { stdio: "inherit" });
+        spawnSync("sudo", ["chmod", "600", keyPath], { stdio: "inherit" });
+      }
+
+      console.log("");
+      console.log("  Certs installed and permissions fixed.");
+
+      var config = loadConfig();
+      if (!config.tls) {
+        var { saveConfig: saveCfg } = await import("./config");
+        config.tls = true;
+        saveCfg(config);
+        console.log("  TLS enabled in config.");
+      }
+
+      var pid = readPid();
+      if (pid !== null && isDaemonRunning(pid)) {
+        var restartAnswer = await prompt("  Daemon is running. Restart with TLS? [Y/n] ");
+        if (restartAnswer !== "n" && restartAnswer !== "no") {
+          console.log("  Restarting daemon...");
+          try { process.kill(pid, "SIGTERM"); } catch {}
+          removePid();
+          await new Promise<void>(function (r) { setTimeout(r, 1500); });
+          var port = portOverride ?? config.port;
+          var childPid = spawnDaemon(port, true);
+          writePid(childPid);
+          console.log("  Daemon restarted (PID " + childPid + ")");
+        }
+      }
+
+      console.log("");
+      console.log("  Access at: https://" + hostname + ":" + loadConfig().port);
+      console.log("");
+      return;
+    }
+  } else if (hasTailscale) {
+    console.log("  Tailscale detected but could not determine hostname.");
+    console.log("  Run 'tailscale status' to verify your connection.");
+    console.log("");
+  }
+
   console.log("  ── Self-signed certificate ──");
   console.log("");
 
-  if (existsSync(certPath)) {
+  if (existsSync(certPath) && existsSync(keyPath)) {
     console.log("  Cert exists: " + certPath);
-    console.log("  To regenerate: rm -rf " + certsDir + " && lattice restart --tls");
+    console.log("  To regenerate: rm -rf " + certsDir + " && lattice setup-tls");
   } else {
-    console.log("  No cert yet. Run 'lattice restart --tls' to auto-generate one.");
+    var selfSignAnswer = await prompt("  Generate a self-signed certificate? [Y/n] ");
+    if (selfSignAnswer !== "n" && selfSignAnswer !== "no") {
+      var { ensureCerts } = await import("./tls");
+      try {
+        var certs = ensureCerts();
+        console.log("  Certificate generated: " + certs.cert);
+
+        var config = loadConfig();
+        if (!config.tls) {
+          var { saveConfig: saveCfg } = await import("./config");
+          config.tls = true;
+          saveCfg(config);
+          console.log("  TLS enabled in config.");
+        }
+
+        var pid = readPid();
+        if (pid !== null && isDaemonRunning(pid)) {
+          var restartAnswer = await prompt("  Daemon is running. Restart with TLS? [Y/n] ");
+          if (restartAnswer !== "n" && restartAnswer !== "no") {
+            console.log("  Restarting daemon...");
+            try { process.kill(pid, "SIGTERM"); } catch {}
+            removePid();
+            await new Promise<void>(function (r) { setTimeout(r, 1500); });
+            var port = portOverride ?? config.port;
+            var childPid = spawnDaemon(port, true);
+            writePid(childPid);
+            console.log("  Daemon restarted (PID " + childPid + ")");
+          }
+        }
+      } catch (err) {
+        console.error("  Failed to generate certificate:", err);
+        process.exit(1);
+      }
+    }
   }
 
   console.log("");

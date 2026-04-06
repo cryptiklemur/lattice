@@ -431,8 +431,12 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
         key: readFileSync(certs.key),
       };
       log.server("TLS enabled (cert: %s)", certs.cert);
-    } catch (err) {
-      console.error("[lattice] Failed to load TLS certs, falling back to HTTP:", err);
+    } catch (err: any) {
+      if (err?.code === "EACCES") {
+        console.error("[lattice] Permission denied reading TLS certs. Run 'lattice setup-tls' to fix permissions.");
+      } else {
+        console.error("[lattice] Failed to load TLS certs, falling back to HTTP:", err);
+      }
     }
   }
 
