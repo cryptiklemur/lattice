@@ -2,7 +2,7 @@ import { memo, useMemo, useCallback, useState, useEffect } from "react";
 import { useTheme } from "../../hooks/useTheme";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { Sun, Moon, Check, Plus, Pencil, Trash2, Download } from "lucide-react";
-import type { ThemeEntry } from "../../themes/index";
+import type { ThemeEntry, Theme } from "../../themes/index";
 import { ThemeWizard } from "./ThemeWizard";
 import { ThemeSwatches } from "./ThemePreview";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
@@ -110,7 +110,6 @@ interface CustomTheme {
 }
 
 export function Appearance() {
-  var { mode, currentThemeId, toggleMode, setTheme, themes } = useTheme();
   var ws = useWebSocket();
   var [wizardOpen, setWizardOpen] = useState(false);
   var [editTheme, setEditTheme] = useState<CustomTheme | null>(null);
@@ -138,6 +137,22 @@ export function Appearance() {
       ws.unsubscribe("theme:deleted", handleSaved);
     };
   }, []);
+
+  var customEntries = useMemo(function () {
+    return customThemes.map(function (ct): ThemeEntry {
+      return {
+        id: "custom:" + ct.filename,
+        theme: {
+          name: ct.name,
+          author: ct.author,
+          variant: ct.variant as "dark" | "light",
+          ...ct.colors,
+        } as Theme,
+      };
+    });
+  }, [customThemes]);
+
+  var { mode, currentThemeId, toggleMode, setTheme, themes } = useTheme(customEntries);
 
   var darkThemes = useMemo(function () {
     return themes.filter(function (e) { return e.theme.variant === "dark"; });
@@ -220,17 +235,34 @@ export function Appearance() {
         </div>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
           {customThemes.map(function (ct) {
+            var customId = "custom:" + ct.filename;
+            var isActive = customId === currentThemeId;
             return (
               <button
                 key={ct.filename}
-                onClick={function () { handleEditCustom(ct); }}
+                onClick={function () { handleThemeSelect(customId); }}
                 onContextMenu={function (e) { ctxMenu.open(e, ct); }}
                 data-allow-context-menu
-                className="flex flex-col gap-2 p-3 sm:p-2.5 px-3 rounded-lg border cursor-pointer text-left transition-colors duration-[120ms] relative border-base-content/15 bg-base-300 hover:border-base-content/30"
+                className={
+                  "flex flex-col gap-2 p-3 sm:p-2.5 px-3 rounded-lg border cursor-pointer text-left transition-colors duration-[120ms] relative focus-visible:ring-2 focus-visible:ring-primary " +
+                  (isActive
+                    ? "border-primary bg-base-300 shadow-sm"
+                    : "border-base-content/15 bg-base-300 hover:border-base-content/30")
+                }
               >
-                <div className="absolute top-1.5 right-1.5">
-                  <Pencil size={10} className="text-base-content/20" />
-                </div>
+                {isActive ? (
+                  <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
+                    <Check size={8} className="text-primary-content" strokeWidth={1.8} />
+                  </div>
+                ) : (
+                  <div
+                    role="button"
+                    className="absolute top-1.5 right-1.5 p-0.5 rounded hover:bg-base-content/10 transition-colors"
+                    onClick={function (e) { e.stopPropagation(); handleEditCustom(ct); }}
+                  >
+                    <Pencil size={10} className="text-base-content/30 hover:text-base-content/60" />
+                  </div>
+                )}
                 <ThemeSwatches colors={ct.colors} />
                 <div className="text-[12px] font-medium text-base-content truncate w-full">
                   {ct.name}

@@ -89,12 +89,16 @@ function applyTheme(entry: ThemeEntry): void {
   root.style.colorScheme = entry.theme.variant === "dark" ? "dark" : "light";
 }
 
-export function useTheme() {
+export function useTheme(customThemes?: ThemeEntry[]) {
   var store = getThemeStore();
   var state = useStore(store, function (s) { return s; });
 
+  var allThemes = customThemes && customThemes.length > 0
+    ? themes.concat(customThemes)
+    : themes;
+
   var currentThemeId = state.mode === "dark" ? state.darkThemeId : state.lightThemeId;
-  var currentEntry = themes.find(function (e) { return e.id === currentThemeId; }) ?? themes[0];
+  var currentEntry = allThemes.find(function (e) { return e.id === currentThemeId; }) ?? themes[0];
 
   useEffect(function () {
     applyTheme(currentEntry);
@@ -110,5 +114,6 @@ export function useTheme() {
     toggleMode,
     setTheme,
     themes,
+    allThemes,
   };
 }
