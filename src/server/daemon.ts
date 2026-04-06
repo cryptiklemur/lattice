@@ -438,7 +438,7 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     ? createHttpsServer(tlsOptions, app)
     : createHttpServer(app);
 
-  var isDev = process.env.NODE_ENV !== "production";
+  var isDev = process.env.NODE_ENV === "development";
   if (isDev) {
     var { createServer: createViteServer } = await import("vite");
     var vite = await createViteServer({
