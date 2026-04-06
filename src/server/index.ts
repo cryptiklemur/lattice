@@ -84,7 +84,10 @@ function isDaemonRunning(pid: number): boolean {
 function spawnDaemon(port: number): number {
   var logPath = join(getLatticeHome(), "daemon.log");
   var logFd = openSync(logPath, "a");
-  var child = spawn("tsx", [__filename_local, "daemon", "--port", String(port)], {
+  var pkgRoot = join(__dirname_local, "..");
+  var localTsx = join(pkgRoot, "node_modules", ".bin", "tsx");
+  var tsxBin = existsSync(localTsx) ? localTsx : "tsx";
+  var child = spawn(tsxBin, ["--tsconfig", join(pkgRoot, "tsconfig.json"), __filename_local, "daemon", "--port", String(port)], {
     detached: true,
     stdio: ["ignore", logFd, logFd],
     env: { ...process.env, LATTICE_PORT: undefined },
