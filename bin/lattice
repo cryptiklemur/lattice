@@ -1,10 +1,2 @@
 #!/usr/bin/env node
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-var __pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-
-import("tsx/esm/api").then(function (tsx) {
-  tsx.register({ tsconfig: join(__pkgRoot, "tsconfig.json") });
-  import("../src/server/index.ts");
-});
+import("../dist/server/index.js");

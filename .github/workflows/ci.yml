@@ -58,6 +58,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Build server
+        run: npm run build:server
+
       - name: Build client
         run: npm run build
 

@@ -27,19 +27,16 @@
     "lattice": "./bin/lattice"
   },
   "imports": {
-    "#shared": "./src/shared/index.ts"
+    "#shared": "./dist/shared/index.js"
   },
   "files": [
-    "src/",
-    "public/",
     "dist/",
     "bin/",
-    "index.html",
-    "vite.config.ts",
-    "tsconfig.json"
+    "themes/"
   ],
   "scripts": {
     "dev": "NODE_ENV=development node --import tsx/esm --watch-path=src/server --watch-path=src/shared src/server/index.ts daemon --port 17654",
+    "build:server": "tsc -p tsconfig.server.json && node scripts/fix-esm-imports.cjs",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "start": "NODE_ENV=production tsx src/server/index.ts"
@@ -75,12 +72,12 @@
     "remark-gfm": "^4.0.1",
     "shiki": "^4.0.2",
     "tailwindcss": "^4.2.2",
-    "tsx": "^4",
     "vite": "^8",
     "web-push": "^3.6.7",
     "ws": "^8"
   },
   "devDependencies": {
+    "tsx": "^4",
     "@playwright/test": "^1.52.0",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/github": "^12.0.6",
