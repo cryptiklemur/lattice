@@ -702,7 +702,9 @@ export type ClientMessage =
   | ChatElicitationResponseMessage
   | ThemeListCustomMessage
   | ThemeSaveMessage
-  | ThemeDeleteMessage;
+  | ThemeDeleteMessage
+  | BrainstormSelectMessage
+  | BrainstormStatusRequestMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -1232,7 +1234,10 @@ export type ServerMessage =
   | ThemeCustomListMessage
   | ThemeSavedMessage
   | ThemeDeletedMessage
-  | SessionLoadingProgressMessage;
+  | SessionLoadingProgressMessage
+  | BrainstormContentMessage
+  | BrainstormClearedMessage
+  | BrainstormStatusMessage;
 
 export interface ChatRateLimitMessage {
   type: "chat:rate_limit";
@@ -1256,6 +1261,36 @@ export interface BudgetExceededMessage {
   type: "budget:exceeded";
   dailySpend: number;
   dailyLimit: number;
+}
+
+export interface BrainstormContentMessage {
+  type: "brainstorm:content";
+  html: string;
+  filename: string;
+  sessionDir: string;
+}
+
+export interface BrainstormClearedMessage {
+  type: "brainstorm:cleared";
+}
+
+export interface BrainstormStatusMessage {
+  type: "brainstorm:status";
+  active: boolean;
+  html?: string;
+  filename?: string;
+  sessionDir?: string;
+}
+
+export interface BrainstormSelectMessage {
+  type: "brainstorm:select";
+  choice: string;
+  text: string;
+  sessionDir: string;
+}
+
+export interface BrainstormStatusRequestMessage {
+  type: "brainstorm:status_request";
 }
 
 export interface MeshHelloMessage {
