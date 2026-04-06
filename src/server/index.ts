@@ -143,6 +143,9 @@ switch (command) {
   case "config":
     runConfigInfo();
     break;
+  case "setup-tls":
+    await runSetupTls();
+    break;
   case "help":
   case "--help":
   case "-h":
@@ -285,6 +288,7 @@ function runHelp(): void {
   console.log("    logs       Tail the daemon log");
   console.log("    open       Open the UI in the browser");
   console.log("    config     Show configuration paths and settings");
+  console.log("    setup-tls  Set up HTTPS (Tailscale or self-signed)");
   console.log("    help       Show this help message");
   console.log("");
   console.log("  Options:");
@@ -295,6 +299,71 @@ function runHelp(): void {
   console.log("  Environment:");
   console.log("    LATTICE_HOME   Data directory (default: ~/.lattice)");
   console.log("    DEBUG          Enable debug logging (e.g. DEBUG=lattice:*)");
+  console.log("");
+}
+
+async function runSetupTls(): Promise<void> {
+  var { execSync: exec } = await import("node:child_process");
+  var certsDir = join(getLatticeHome(), "certs");
+  var certPath = join(certsDir, "cert.pem");
+  var keyPath = join(certsDir, "key.pem");
+
+  console.log("[lattice] TLS Setup");
+  console.log("");
+
+  var hasTailscale = false;
+  try {
+    exec("tailscale version", { stdio: "ignore" });
+    hasTailscale = true;
+  } catch {}
+
+  if (hasTailscale) {
+    console.log("  Tailscale detected. To use trusted Tailscale HTTPS certs:");
+    console.log("");
+    try {
+      var dnsName = exec("tailscale status --json", { encoding: "utf-8" });
+      var hostname = JSON.parse(dnsName).Self.DNSName.replace(/\.$/, "");
+      console.log("  1. Generate cert:");
+      console.log("     sudo tailscale cert --cert-file " + certPath + " --key-file " + keyPath + " " + hostname);
+      console.log("");
+      console.log("  2. Enable TLS and restart:");
+      console.log("     lattice restart --tls");
+      console.log("");
+      console.log("  3. Access at:");
+      console.log("     https://" + hostname + ":" + loadConfig().port);
+    } catch {
+      console.log("  1. Run: sudo tailscale cert --cert-file " + certPath + " --key-file " + keyPath + " <your-hostname>.ts.net");
+      console.log("  2. Run: lattice restart --tls");
+    }
+  } else {
+    console.log("  Tailscale not found. Using self-signed certificate.");
+    console.log("");
+  }
+
+  console.log("");
+  console.log("  ── Self-signed certificate ──");
+  console.log("");
+
+  if (existsSync(certPath)) {
+    console.log("  Cert exists: " + certPath);
+    console.log("  To regenerate: rm -rf " + certsDir + " && lattice restart --tls");
+  } else {
+    console.log("  No cert yet. Run 'lattice restart --tls' to auto-generate one.");
+  }
+
+  console.log("");
+  console.log("  To trust the self-signed cert (removes browser warnings):");
+  console.log("");
+  console.log("  Linux:");
+  console.log("    sudo cp " + certPath + " /usr/local/share/ca-certificates/lattice.crt");
+  console.log("    sudo update-ca-certificates");
+  console.log("");
+  console.log("  macOS:");
+  console.log("    sudo security add-trusted-cert -d -r trustRoot \\");
+  console.log("      -k /Library/Keychains/System.keychain " + certPath);
+  console.log("");
+  console.log("  Windows (PowerShell as admin):");
+  console.log("    Import-Certificate -FilePath " + certPath + " -CertStoreLocation Cert:\\LocalMachine\\Root");
   console.log("");
 }
 

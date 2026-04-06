@@ -430,10 +430,21 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
         cert: readFileSync(certs.cert),
         key: readFileSync(certs.key),
       };
-      log.server("TLS enabled");
+      log.server("TLS enabled (cert: %s)", certs.cert);
     } catch (err) {
       console.error("[lattice] Failed to load TLS certs, falling back to HTTP:", err);
     }
+  }
+
+  if (tlsOptions) {
+    var certsDir = join(getLatticeHome(), "certs");
+    log.server("TLS cert: %s", join(certsDir, "cert.pem"));
+    log.server("To trust the self-signed cert:");
+    log.server("  Linux:  sudo cp %s /usr/local/share/ca-certificates/lattice.crt && sudo update-ca-certificates", join(certsDir, "cert.pem"));
+    log.server("  macOS:  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain %s", join(certsDir, "cert.pem"));
+    log.server("  Or use Tailscale HTTPS (no trust needed):");
+    log.server("  tailscale cert $(tailscale status --json | jq -r '.Self.DNSName' | sed 's/\\.$//')");
+    log.server("  Then copy: cp <hostname>.crt %s && cp <hostname>.key %s", join(certsDir, "cert.pem"), join(certsDir, "key.pem"));
   }
 
   var protocol = tlsOptions ? "https" : "http";
