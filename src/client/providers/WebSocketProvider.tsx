@@ -6,6 +6,7 @@ import type { WebSocketStatus } from "../hooks/useWebSocket";
 import { showToast } from "../components/ui/Toast";
 import { getSessionStore } from "../stores/session";
 import { sendNotification } from "../hooks/useNotifications";
+import { openTab } from "../stores/workspace";
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -160,6 +161,16 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       }
     }
   }
+
+  useEffect(function () {
+    function handleBrainstormContent() {
+      openTab("brainstorm");
+    }
+    subscribe("brainstorm:content", handleBrainstormContent);
+    return function () {
+      unsubscribe("brainstorm:content", handleBrainstormContent);
+    };
+  }, []);
 
   useEffect(function () {
     unmountedRef.current = false;
