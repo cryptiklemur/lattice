@@ -217,9 +217,18 @@ async function runDaemon(): Promise<void> {
     }
   } catch {}
 
+  var tailscaleUrl: string | undefined;
+  try {
+    var tsResult = execSync("tailscale status --json", { encoding: "utf-8" });
+    var tsHostname = JSON.parse(tsResult).Self.DNSName.replace(/\.$/, "");
+    if (tsHostname) {
+      tailscaleUrl = protocol + "://" + tsHostname + ":" + config.port;
+    }
+  } catch {}
+
   printBanner();
   await printQrCode(url);
-  printStatus(config, version, projectCount, sessionCount);
+  printStatus(config, version, projectCount, sessionCount, tailscaleUrl);
 }
 
 async function runStart(): Promise<void> {

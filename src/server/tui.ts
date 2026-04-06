@@ -18,18 +18,20 @@ export function printBanner(): void {
   console.log(BANNER);
 }
 
-export function printStatus(config: LatticeConfig, version: string, projectCount: number, sessionCount: number): void {
+export function printStatus(config: LatticeConfig, version: string, projectCount: number, sessionCount: number, tailscaleUrl?: string): void {
   var protocol = config.tls ? "https" : "http";
   var url = protocol + "://localhost:" + config.port;
 
-  console.log("");
-  p.note(
-    "lattice v" + version + " — " + url + "\n" +
-    projectCount + " project" + (projectCount !== 1 ? "s" : "") +
+  var lines = "lattice v" + version + " — " + url + "\n";
+  if (tailscaleUrl) {
+    lines += tailscaleUrl + "\n";
+  }
+  lines += projectCount + " project" + (projectCount !== 1 ? "s" : "") +
     " · " + sessionCount + " session" + (sessionCount !== 1 ? "s" : "") + "\n" +
-    "Press Ctrl+C to stop",
-    "Running"
-  );
+    "Press Ctrl+C to stop";
+
+  console.log("");
+  p.note(lines, "Running");
   console.log("");
 }
 

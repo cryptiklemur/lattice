@@ -17,7 +17,6 @@ import { startDiscovery } from "./mesh/discovery";
 import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessage, getAllRemoteProjects } from "./mesh/connector";
 import { handleProxyRequest, handleProxyResponse } from "./mesh/proxy";
 import { verifyPassphrase, generateSessionToken, addSession, isValidSession } from "./auth/passphrase";
-import { ensureCerts } from "./tls";
 import type { ClientMessage, MeshMessage } from "#shared";
 import { log } from "./logger";
 import { detectIdeProjectName } from "./handlers/settings";
@@ -424,31 +423,27 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
 
   var tlsOptions: { cert: Buffer; key: Buffer } | undefined;
   if (config.tls) {
-    try {
-      var certs = ensureCerts();
-      tlsOptions = {
-        cert: readFileSync(certs.cert),
-        key: readFileSync(certs.key),
-      };
-      log.server("TLS enabled (cert: %s)", certs.cert);
-    } catch (err: any) {
-      if (err?.code === "EACCES") {
-        console.error("[lattice] Permission denied reading TLS certs. Run 'lattice setup-tls' to fix permissions.");
-      } else {
-        console.error("[lattice] Failed to load TLS certs, falling back to HTTP:", err);
-      }
-    }
-  }
-
-  if (tlsOptions) {
     var certsDir = join(getLatticeHome(), "certs");
-    log.server("TLS cert: %s", join(certsDir, "cert.pem"));
-    log.server("To trust the self-signed cert:");
-    log.server("  Linux:  sudo cp %s /usr/local/share/ca-certificates/lattice.crt && sudo update-ca-certificates", join(certsDir, "cert.pem"));
-    log.server("  macOS:  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain %s", join(certsDir, "cert.pem"));
-    log.server("  Or use Tailscale HTTPS (no trust needed):");
-    log.server("  tailscale cert $(tailscale status --json | jq -r '.Self.DNSName' | sed 's/\\.$//')");
-    log.server("  Then copy: cp <hostname>.crt %s && cp <hostname>.key %s", join(certsDir, "cert.pem"), join(certsDir, "key.pem"));
+    var certPath = join(certsDir, "cert.pem");
+    var keyPath = join(certsDir, "key.pem");
+
+    if (existsSync(certPath) && existsSync(keyPath)) {
+      try {
+        tlsOptions = {
+          cert: readFileSync(certPath),
+          key: readFileSync(keyPath),
+        };
+        log.server("TLS enabled (cert: %s)", certPath);
+      } catch (err: any) {
+        if (err?.code === "EACCES") {
+          console.error("[lattice] Permission denied reading TLS certs. Run 'lattice setup-tls' to fix permissions.");
+        } else {
+          console.error("[lattice] Failed to load TLS certs, falling back to HTTP:", err);
+        }
+      }
+    } else {
+      console.error("[lattice] TLS enabled but no certs found. Run 'lattice setup-tls' to generate them.");
+    }
   }
 
   var protocol = tlsOptions ? "https" : "http";
