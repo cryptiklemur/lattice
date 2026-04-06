@@ -23,6 +23,7 @@ function getCurrentVersion(): string {
 var args = process.argv.slice(2);
 var command = "start";
 var portOverride: number | null = null;
+var tlsOverride: boolean | null = null;
 
 for (var i = 0; i < args.length; i++) {
   if (args[i] === "--port" && i + 1 < args.length) {
@@ -30,6 +31,10 @@ for (var i = 0; i < args.length; i++) {
     i++;
   } else if (args[i].startsWith("--port=")) {
     portOverride = parseInt(args[i].split("=")[1], 10);
+  } else if (args[i] === "--tls") {
+    tlsOverride = true;
+  } else if (args[i] === "--no-tls") {
+    tlsOverride = false;
   } else if (!args[i].startsWith("-")) {
     command = args[i];
   }
@@ -81,7 +86,7 @@ function isDaemonRunning(pid: number): boolean {
   }
 }
 
-function spawnDaemon(port: number): number {
+function spawnDaemon(port: number, tls?: boolean | null): number {
   var logPath = join(getLatticeHome(), "daemon.log");
   var logFd = openSync(logPath, "a");
   var isDev = __filename_local.endsWith(".ts");
@@ -96,6 +101,8 @@ function spawnDaemon(port: number): number {
     spawnCmd = process.execPath;
     spawnArgs = [__filename_local, "daemon", "--port", String(port)];
   }
+  if (tls === true) spawnArgs.push("--tls");
+  if (tls === false) spawnArgs.push("--no-tls");
   var child = spawn(spawnCmd, spawnArgs, {
     detached: true,
     stdio: ["ignore", logFd, logFd],
@@ -190,7 +197,7 @@ async function runDaemon(): Promise<void> {
   }
   process.on("SIGTERM", gracefulShutdown);
   process.on("SIGINT", gracefulShutdown);
-  await startDaemon(effectivePort);
+  await startDaemon(effectivePort, tlsOverride);
 
   var config = loadConfig();
   var protocol = config.tls ? "https" : "http";
@@ -225,7 +232,7 @@ async function runStart(): Promise<void> {
 
   var config = loadConfig();
   var port = portOverride ?? config.port;
-  var childPid = spawnDaemon(port);
+  var childPid = spawnDaemon(port, tlsOverride);
   writePid(childPid);
   console.log("[lattice] Daemon started (PID " + childPid + ")");
   console.log("[lattice] Logs: " + join(getLatticeHome(), "daemon.log"));
@@ -282,6 +289,8 @@ function runHelp(): void {
   console.log("");
   console.log("  Options:");
   console.log("    --port=N   Override the server port");
+  console.log("    --tls      Enable HTTPS with auto-generated self-signed cert");
+  console.log("    --no-tls   Disable HTTPS (use HTTP)");
   console.log("");
   console.log("  Environment:");
   console.log("    LATTICE_HOME   Data directory (default: ~/.lattice)");
@@ -312,7 +321,7 @@ async function runRestart(): Promise<void> {
 
   console.log("[lattice] Starting daemon...");
   var restartPort = portOverride ?? loadConfig().port;
-  var childPid = spawnDaemon(restartPort);
+  var childPid = spawnDaemon(restartPort, tlsOverride);
   writePid(childPid);
   console.log("[lattice] Daemon started (PID " + childPid + ")");
 }
@@ -440,7 +449,7 @@ async function runUpdate(): Promise<void> {
       await new Promise<void>(function (resolve) { setTimeout(resolve, 1000); });
 
       var updatePort = portOverride ?? loadConfig().port;
-      var childPid = spawnDaemon(updatePort);
+      var childPid = spawnDaemon(updatePort, tlsOverride);
       writePid(childPid);
       console.log("[lattice] Daemon restarted (PID %d)", childPid);
     }

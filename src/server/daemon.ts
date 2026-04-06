@@ -321,9 +321,12 @@ function handleWsClose(ws: WebSocket): void {
   log.ws("Client disconnected: %s", clientId);
 }
 
-export async function startDaemon(portOverride?: number | null): Promise<void> {
+export async function startDaemon(portOverride?: number | null, tlsOverride?: boolean | null): Promise<void> {
   var config = loadConfig();
   var effectivePort = (portOverride && !isNaN(portOverride)) ? portOverride : config.port;
+  if (tlsOverride !== null && tlsOverride !== undefined) {
+    config.tls = tlsOverride;
+  }
   var identity = loadOrCreateIdentity();
 
   log.server("Node: %s (%s)", config.name, identity.id);
