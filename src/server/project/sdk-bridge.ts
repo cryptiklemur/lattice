@@ -777,9 +777,9 @@ export function startChatStream(options: ChatStreamOptions): void {
 
   var mq = createMessageQueue();
   var firstMsg = buildSDKUserMessage(prompt, attachments, sessionId);
-  mq.push(firstMsg);
 
   var stream = query({ prompt: mq as any, options: queryOptions });
+  mq.push(firstMsg);
   pendingStreams.delete(sessionId);
 
   var sessionStream: SessionStream = {
@@ -819,8 +819,8 @@ export function startChatStream(options: ChatStreamOptions): void {
         await new Promise(function (r) { setTimeout(r, 500); });
         try {
           var retryMq = createMessageQueue();
-          retryMq.push(firstMsg);
           var retryStream = query({ prompt: retryMq as any, options: queryOptions });
+          retryMq.push(firstMsg);
           sessionStream.queryInstance = retryStream;
           sessionStream.messageQueue = retryMq;
           for await (var retryMsg of retryStream) {
