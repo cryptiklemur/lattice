@@ -323,9 +323,7 @@ function handleWsClose(ws: WebSocket): void {
 
 export async function startDaemon(portOverride?: number | null): Promise<void> {
   var config = loadConfig();
-  if (portOverride && !isNaN(portOverride)) {
-    config.port = portOverride;
-  }
+  var effectivePort = (portOverride && !isNaN(portOverride)) ? portOverride : config.port;
   var identity = loadOrCreateIdentity();
 
   log.server("Node: %s (%s)", config.name, identity.id);
@@ -489,13 +487,13 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
       await new Promise<void>(function (resolveP, reject) {
         httpServer.once("error", function (err: NodeJS.ErrnoException) {
           if (err.code === "EADDRINUSE" && attempt < maxRetries - 1) {
-            log.server("Port %d in use, retrying in 1s (%d/%d)...", config.port, attempt + 1, maxRetries);
+            log.server("Port %d in use, retrying in 1s (%d/%d)...", effectivePort, attempt + 1, maxRetries);
             setTimeout(function () { resolveP(); }, 1000);
           } else {
             reject(err);
           }
         });
-        httpServer.listen(config.port, "0.0.0.0", function () {
+        httpServer.listen(effectivePort, "0.0.0.0", function () {
           resolveP();
         });
       });
@@ -505,9 +503,9 @@ export async function startDaemon(portOverride?: number | null): Promise<void> {
     }
   }
 
-  log.server("Listening on %s://0.0.0.0:%d", protocol, config.port);
+  log.server("Listening on %s://0.0.0.0:%d", protocol, effectivePort);
 
-  startDiscovery(identity.id, config.name, config.port);
+  startDiscovery(identity.id, config.name, effectivePort);
   startMeshConnections();
   startScheduler();
   loadNotes();
