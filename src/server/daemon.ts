@@ -263,20 +263,6 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
       } as any);
     }
   }
-  void (async function () {
-    var { listSessions } = await import("./project/session");
-    for (var pi = 0; pi < connectConfig.projects.length; pi++) {
-      try {
-        var result = await listSessions(connectConfig.projects[pi].slug, { limit: 40 });
-        sendTo(clientId, {
-          type: "session:list",
-          projectSlug: connectConfig.projects[pi].slug,
-          sessions: result.sessions,
-          totalCount: result.totalCount,
-        } as any);
-      } catch {}
-    }
-  })();
 }
 
 function handleWsMessage(ws: WebSocket, data: Buffer | ArrayBuffer | Buffer[]): void {
@@ -580,18 +566,29 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     }
   });
 
+  var lastNodesHash = "";
+  var lastProjectsHash = "";
   setInterval(function () {
+    var nodesPayload = buildNodesMessage();
+    var nodesHash = JSON.stringify(nodesPayload);
+    if (nodesHash !== lastNodesHash) {
+      lastNodesHash = nodesHash;
+      broadcast({ type: "mesh:nodes", nodes: nodesPayload });
+    }
+
     var currentConfig = loadConfig();
     var currentIdentity = loadOrCreateIdentity();
-    broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
     var localProjects = currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
       return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveStreamCountForProject(p.slug) };
     });
     var remoteProjects = getAllRemoteProjects(currentIdentity.id);
-    broadcast({
-      type: "projects:list",
-      projects: localProjects.concat(remoteProjects as unknown as typeof localProjects),
-    });
+    var allProjects = localProjects.concat(remoteProjects as unknown as typeof localProjects);
+    var projectsHash = JSON.stringify(allProjects);
+    if (projectsHash !== lastProjectsHash) {
+      lastProjectsHash = projectsHash;
+      broadcast({ type: "projects:list", projects: allProjects });
+    }
+
     var updateInfo = getCachedUpdateInfo();
     if (updateInfo && updateInfo.updateAvailable) {
       broadcast({

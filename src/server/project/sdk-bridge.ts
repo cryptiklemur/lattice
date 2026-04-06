@@ -803,7 +803,6 @@ export function startChatStream(options: ChatStreamOptions): void {
   broadcast({ type: "session:busy", sessionId, busy: true }, clientId);
 
   void (async function () {
-    var retried = false;
     try {
       await stream.initializationResult();
     } catch (initErr) {
@@ -818,26 +817,8 @@ export function startChatStream(options: ChatStreamOptions): void {
       var errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
         log.chat("Session %s stream aborted", sessionId);
-      } else if (errMsg.includes("Sent before connected") && !retried) {
-        retried = true;
-        log.chat("Session %s SDK WebSocket race condition, retrying after delay...", sessionId);
-        await new Promise(function (r) { setTimeout(r, 500); });
-        try {
-          var retryMq = createMessageQueue();
-          var retryStream = query({ prompt: retryMq as any, options: queryOptions });
-          retryMq.push(firstMsg);
-          sessionStream.queryInstance = retryStream;
-          sessionStream.messageQueue = retryMq;
-          for await (var retryMsg of retryStream) {
-            processMessage(sessionStream, retryMsg);
-          }
-        } catch (retryErr: unknown) {
-          var retryErrMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
-          if (!retryErrMsg.includes("aborted") && !retryErrMsg.includes("AbortError")) {
-            console.error("[lattice] SDK stream retry error: " + retryErrMsg);
-            sendTo(sessionStream.clientId, { type: "chat:error", message: retryErrMsg });
-          }
-        }
+      } else if (errMsg.includes("Sent before connected")) {
+        log.chat("Session %s SDK WebSocket race condition: %s", sessionId, errMsg);
       } else {
         console.error("[lattice] SDK stream error: " + errMsg);
         sendTo(sessionStream.clientId, { type: "chat:error", message: errMsg });
