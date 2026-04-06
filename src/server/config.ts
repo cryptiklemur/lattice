@@ -27,7 +27,16 @@ export function loadConfig(): LatticeConfig {
     return createDefaultConfig();
   }
   var raw = readFileSync(configPath, "utf-8");
-  cachedConfig = JSON.parse(raw) as LatticeConfig;
+  var parsed = JSON.parse(raw) as Partial<LatticeConfig>;
+  cachedConfig = {
+    port: parsed.port ?? DEFAULT_PORT,
+    name: parsed.name ?? hostname(),
+    tls: parsed.tls ?? false,
+    debug: parsed.debug ?? false,
+    globalEnv: parsed.globalEnv ?? {},
+    projects: parsed.projects ?? [],
+    ...parsed,
+  } as LatticeConfig;
   return cachedConfig;
 }
 
