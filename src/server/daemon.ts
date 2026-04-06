@@ -454,11 +454,11 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     app.use(vite.middlewares);
     log.server("Vite dev server attached (middleware mode, HMR on same port)");
   } else if (clientDir && existsSync(clientDir)) {
-    app.use(express.static(clientDir));
+    app.use(express.static(clientDir, { dotfiles: "allow" }));
     app.get("/{*path}", function (_req, res) {
       var indexPath = join(clientDir!, "index.html");
       if (existsSync(indexPath)) {
-        res.sendFile(indexPath);
+        res.sendFile(indexPath, { dotfiles: "allow" });
       } else {
         res.status(404).send("Not found");
       }
