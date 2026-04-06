@@ -6,7 +6,6 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync, openSync } from "n
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, execSync } from "node:child_process";
-import { DAEMON_PID_FILE } from "#shared";
 import { getLatticeHome, loadConfig } from "./config";
 
 var __filename_local = fileURLToPath(import.meta.url);
@@ -36,12 +35,17 @@ for (var i = 0; i < args.length; i++) {
   }
 }
 
-function getPidPath(): string {
-  return join(getLatticeHome(), DAEMON_PID_FILE);
+function getEffectivePort(): number {
+  return portOverride ?? loadConfig().port;
 }
 
-function readPid(): number | null {
-  var pidPath = getPidPath();
+function getPidPath(port?: number): string {
+  var p = port ?? getEffectivePort();
+  return join(getLatticeHome(), "daemon-" + p + ".pid");
+}
+
+function readPid(port?: number): number | null {
+  var pidPath = getPidPath(port);
   if (!existsSync(pidPath)) {
     return null;
   }
@@ -54,17 +58,16 @@ function readPid(): number | null {
   }
 }
 
-function writePid(pid: number): void {
-  writeFileSync(getPidPath(), String(pid), "utf-8");
+function writePid(pid: number, port?: number): void {
+  writeFileSync(getPidPath(port), String(pid), "utf-8");
 }
 
-function removePid(): void {
-  var pidPath = getPidPath();
+function removePid(port?: number): void {
+  var pidPath = getPidPath(port);
   if (existsSync(pidPath)) {
     try {
       unlinkSync(pidPath);
     } catch {
-      // ignore
     }
   }
 }
