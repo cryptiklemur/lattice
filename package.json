@@ -35,7 +35,7 @@
     "themes/"
   ],
   "scripts": {
-    "dev": "NODE_ENV=development node --import tsx/esm --watch-path=src/server --watch-path=src/shared src/server/index.ts daemon --port 17654",
+    "dev": "LATTICE_HOME=.lattice-dev NODE_ENV=development node --import tsx/esm --watch-path=src/server --watch-path=src/shared src/server/index.ts daemon --port 17654",
     "build:server": "tsc -p tsconfig.server.json && node scripts/fix-esm-imports.cjs",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
