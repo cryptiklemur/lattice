@@ -1,12 +1,11 @@
-import { memo, useMemo, useCallback, useState, useEffect } from "react";
+import { memo, useMemo, useCallback, useState } from "react";
 import { useTheme } from "../../hooks/useTheme";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { Sun, Moon, Check, Plus, Pencil, Trash2, Download } from "lucide-react";
-import type { ThemeEntry, Theme } from "../../themes/index";
+import type { ThemeEntry } from "../../themes/index";
 import { ThemeWizard } from "./ThemeWizard";
 import { ThemeSwatches } from "./ThemePreview";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
-import type { ServerMessage } from "#shared";
 
 var SWATCH_KEYS = [
   "base00", "base01", "base02", "base03",
@@ -113,46 +112,29 @@ export function Appearance() {
   var ws = useWebSocket();
   var [wizardOpen, setWizardOpen] = useState(false);
   var [editTheme, setEditTheme] = useState<CustomTheme | null>(null);
-  var [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   var ctxMenu = useContextMenu<CustomTheme>();
 
-  useEffect(function () {
-    function handleCustomList(msg: ServerMessage) {
-      if ((msg as any).type === "theme:custom_list") {
-        setCustomThemes((msg as any).themes || []);
-      }
-    }
-    function handleSaved(msg: ServerMessage) {
-      if ((msg as any).type === "theme:saved" || (msg as any).type === "theme:deleted") {
-        ws.send({ type: "theme:list_custom" } as any);
-      }
-    }
-    ws.subscribe("theme:custom_list", handleCustomList);
-    ws.subscribe("theme:saved", handleSaved);
-    ws.subscribe("theme:deleted", handleSaved);
-    ws.send({ type: "theme:list_custom" } as any);
-    return function () {
-      ws.unsubscribe("theme:custom_list", handleCustomList);
-      ws.unsubscribe("theme:saved", handleSaved);
-      ws.unsubscribe("theme:deleted", handleSaved);
-    };
-  }, []);
+  var { mode, currentThemeId, toggleMode, setTheme, themes, allThemes } = useTheme();
 
-  var customEntries = useMemo(function () {
-    return customThemes.map(function (ct): ThemeEntry {
-      return {
-        id: "custom:" + ct.filename,
-        theme: {
-          name: ct.name,
-          author: ct.author,
-          variant: ct.variant as "dark" | "light",
-          ...ct.colors,
-        } as Theme,
-      };
-    });
-  }, [customThemes]);
-
-  var { mode, currentThemeId, toggleMode, setTheme, themes } = useTheme(customEntries);
+  var customThemes = useMemo(function () {
+    return allThemes
+      .filter(function (e) { return e.id.startsWith("custom:"); })
+      .map(function (e): CustomTheme {
+        var colors: Record<string, string> = {};
+        for (var key of Object.keys(e.theme)) {
+          if (key.startsWith("base0")) {
+            colors[key] = (e.theme as any)[key];
+          }
+        }
+        return {
+          name: e.theme.name,
+          author: e.theme.author,
+          variant: e.theme.variant,
+          filename: e.id.replace("custom:", ""),
+          colors,
+        };
+      });
+  }, [allThemes]);
 
   var darkThemes = useMemo(function () {
     return themes.filter(function (e) { return e.theme.variant === "dark"; });

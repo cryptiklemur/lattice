@@ -89,12 +89,12 @@ function applyTheme(entry: ThemeEntry): void {
   root.style.colorScheme = entry.theme.variant === "dark" ? "dark" : "light";
 }
 
-export function useTheme(customThemes?: ThemeEntry[]) {
+export function useTheme() {
   var store = getThemeStore();
   var state = useStore(store, function (s) { return s; });
 
-  var allThemes = customThemes && customThemes.length > 0
-    ? themes.concat(customThemes)
+  var allThemes = state.customThemes.length > 0
+    ? themes.concat(state.customThemes)
     : themes;
 
   var currentThemeId = state.mode === "dark" ? state.darkThemeId : state.lightThemeId;

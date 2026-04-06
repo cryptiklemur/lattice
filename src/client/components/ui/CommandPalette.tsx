@@ -28,7 +28,7 @@ export function CommandPalette() {
 
   var { projects, setActiveProject } = useProjects();
   var skills = useSkills();
-  var { mode, toggleMode, themes, setTheme, currentThemeId } = useTheme();
+  var { mode, toggleMode, allThemes, setTheme, currentThemeId } = useTheme();
   var ws = useWebSocket();
   var sidebar = useSidebar();
 
@@ -135,7 +135,7 @@ export function CommandPalette() {
     });
 
     var themeVariant = mode === "dark" ? "dark" : "light";
-    themes.filter(function (t) { return t.theme.variant === themeVariant; }).forEach(function (t) {
+    allThemes.filter(function (t) { return t.theme.variant === themeVariant; }).forEach(function (t) {
       if (t.id === currentThemeId) return;
       cmds.push({
         id: "theme:" + t.id,
@@ -180,7 +180,7 @@ export function CommandPalette() {
     });
 
     return cmds;
-  }, [projects, skills, mode, themes, currentThemeId, sidebar, ws, close, setActiveProject, toggleMode, setTheme]);
+  }, [projects, skills, mode, allThemes, currentThemeId, sidebar, ws, close, setActiveProject, toggleMode, setTheme]);
 
   // Filter commands
   var filtered = useMemo(function () {

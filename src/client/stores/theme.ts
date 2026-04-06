@@ -1,9 +1,11 @@
 import { Store } from "@tanstack/react-store";
+import type { ThemeEntry } from "../themes/index";
 
 export interface ThemeState {
   mode: "dark" | "light";
   darkThemeId: string;
   lightThemeId: string;
+  customThemes: ThemeEntry[];
 }
 
 function loadInitialState(): ThemeState {
@@ -15,6 +17,7 @@ function loadInitialState(): ThemeState {
     mode: mode === "light" ? "light" : "dark",
     darkThemeId: darkThemeId ?? "dracula",
     lightThemeId: lightThemeId ?? "ayu-light",
+    customThemes: [],
   };
 }
 
@@ -40,5 +43,11 @@ export function setThemeForMode(themeId: string): void {
     }
     localStorage.setItem("lattice-theme-light", themeId);
     return { ...state, lightThemeId: themeId };
+  });
+}
+
+export function setCustomThemes(entries: ThemeEntry[]): void {
+  themeStore.setState(function (state) {
+    return { ...state, customThemes: entries };
   });
 }
