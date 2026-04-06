@@ -240,6 +240,7 @@ export function useSession(): UseSessionReturn {
     function handleError(msg: ServerMessage) {
       if (isStaleStream()) return;
       var m = msg as { type: string; message?: string };
+      if (m.message && m.message.includes("Sent before connected")) return;
       setIsProcessing(false);
       setCurrentStatus(null);
       setCurrentAssistantUuid(null);
