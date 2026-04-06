@@ -1,9 +1,8 @@
 {
   "branches": [
-    "main",
     {
-      "name": "alpha",
-      "prerelease": true
+      "name": "main",
+      "prerelease": "beta"
     }
   ],
   "plugins": [
@@ -12,9 +11,10 @@
       {
         "preset": "angular",
         "releaseRules": [
-          { "type": "refactor", "release": "major" },
+          { "type": "refactor", "release": "minor" },
           { "type": "feat", "release": "minor" },
-          { "type": "fix", "release": "patch" }
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" }
         ]
       }
     ],
