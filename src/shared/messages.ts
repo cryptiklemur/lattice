@@ -1,4 +1,5 @@
 import type { AnalyticsPayload, AnalyticsSectionName } from "./analytics.js";
+import type { Spec, SpecStatus, SpecPriority, SpecEffort, SpecSection, SpecActivityType } from "./specs.js";
 import type {
   FileEntry,
   HistoryMessage,
@@ -622,6 +623,68 @@ export interface WarmupAccountMessage {
   apiProvider?: string;
 }
 
+export interface SpecsListMessage {
+  type: "specs:list";
+  projectSlug?: string;
+}
+
+export interface SpecsGetMessage {
+  type: "specs:get";
+  id: string;
+}
+
+export interface SpecsCreateMessage {
+  type: "specs:create";
+  projectSlug: string;
+  title: string;
+  tagline?: string;
+  author?: string;
+  priority?: SpecPriority;
+  estimatedEffort?: SpecEffort;
+  tags?: string[];
+}
+
+export interface SpecsUpdateMessage {
+  type: "specs:update";
+  id: string;
+  title?: string;
+  tagline?: string;
+  status?: SpecStatus;
+  priority?: SpecPriority;
+  estimatedEffort?: SpecEffort;
+  author?: string;
+  tags?: string[];
+  requires?: string[];
+  blockedBy?: string[];
+  sections?: Partial<SpecSection>;
+}
+
+export interface SpecsDeleteMessage {
+  type: "specs:delete";
+  id: string;
+}
+
+export interface SpecsLinkSessionMessage {
+  type: "specs:link-session";
+  id: string;
+  sessionId: string;
+  note?: string;
+}
+
+export interface SpecsUnlinkSessionMessage {
+  type: "specs:unlink-session";
+  id: string;
+  sessionId: string;
+}
+
+export interface SpecsActivityMessage {
+  type: "specs:activity";
+  id: string;
+  activityType: SpecActivityType;
+  detail: string;
+  sessionId?: string;
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
@@ -704,7 +767,15 @@ export type ClientMessage =
   | ThemeSaveMessage
   | ThemeDeleteMessage
   | BrainstormSelectMessage
-  | BrainstormStatusRequestMessage;
+  | BrainstormStatusRequestMessage
+  | SpecsListMessage
+  | SpecsGetMessage
+  | SpecsCreateMessage
+  | SpecsUpdateMessage
+  | SpecsDeleteMessage
+  | SpecsLinkSessionMessage
+  | SpecsUnlinkSessionMessage
+  | SpecsActivityMessage;
 
 export interface SessionListMessage {
   type: "session:list";
@@ -1141,6 +1212,46 @@ export interface ThemeDeletedMessage {
   filename: string;
 }
 
+export interface SpecsListResultMessage {
+  type: "specs:list_result";
+  specs: Spec[];
+}
+
+export interface SpecsGetResultMessage {
+  type: "specs:get_result";
+  spec: Spec;
+}
+
+export interface SpecsCreatedMessage {
+  type: "specs:created";
+  spec: Spec;
+}
+
+export interface SpecsUpdatedMessage {
+  type: "specs:updated";
+  spec: Spec;
+}
+
+export interface SpecsDeletedMessage {
+  type: "specs:deleted";
+  id: string;
+}
+
+export interface SpecsSessionLinkedMessage {
+  type: "specs:session_linked";
+  spec: Spec;
+}
+
+export interface SpecsSessionUnlinkedMessage {
+  type: "specs:session_unlinked";
+  spec: Spec;
+}
+
+export interface SpecsActivityAddedMessage {
+  type: "specs:activity_added";
+  spec: Spec;
+}
+
 export type ServerMessage =
   | SessionListMessage
   | SessionCreatedMessage
@@ -1237,7 +1348,15 @@ export type ServerMessage =
   | SessionLoadingProgressMessage
   | BrainstormContentMessage
   | BrainstormClearedMessage
-  | BrainstormStatusMessage;
+  | BrainstormStatusMessage
+  | SpecsListResultMessage
+  | SpecsGetResultMessage
+  | SpecsCreatedMessage
+  | SpecsUpdatedMessage
+  | SpecsDeletedMessage
+  | SpecsSessionLinkedMessage
+  | SpecsSessionUnlinkedMessage
+  | SpecsActivityAddedMessage;
 
 export interface ChatRateLimitMessage {
   type: "chat:rate_limit";
