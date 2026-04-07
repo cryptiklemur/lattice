@@ -13,6 +13,8 @@ import { BookmarksView } from "./BookmarksView";
 import { BrainstormView } from "./BrainstormView";
 import { AnalyticsView } from "../analytics/AnalyticsView";
 import { SpecsView } from "./SpecsView";
+import { DragProvider } from "./DragContext";
+import { DropZoneOverlay } from "./DropZoneOverlay";
 import type { Pane, Tab } from "../../stores/workspace";
 
 var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
@@ -50,6 +52,7 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
         </div>
       )}
       <div className="flex-1 min-h-0 relative">
+        <DropZoneOverlay paneId={pane.id} />
         {paneTabs.map(function (tab) {
           var isTabActive = tab.id === pane.activeTabId;
           if (tab.type === "chat") {
@@ -80,7 +83,7 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
   );
 }
 
-export function WorkspaceView() {
+function WorkspaceViewInner() {
   var { tabs, panes, activePaneId, splitDirection, splitRatio, setSplitRatio, setActivePaneId } = useWorkspace();
   var online = useOnline();
 
@@ -96,6 +99,7 @@ export function WorkspaceView() {
           </div>
         )}
         <div className="flex-1 min-h-0 relative order-0 sm:order-none">
+          <DropZoneOverlay paneId={singlePane?.id || "pane-1"} />
           {tabs.map(function (tab) {
             var isActive = singlePane ? tab.id === singlePane.activeTabId : tab.id === "chat";
             if (tab.type === "chat") {
@@ -141,5 +145,13 @@ export function WorkspaceView() {
         onFocus={function () { setActivePaneId(panes[1].id); }}
       />
     </SplitPane>
+  );
+}
+
+export function WorkspaceView() {
+  return (
+    <DragProvider>
+      <WorkspaceViewInner />
+    </DragProvider>
   );
 }
