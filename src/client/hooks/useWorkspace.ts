@@ -26,7 +26,7 @@ export interface UseWorkspaceReturn extends WorkspaceState {
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   resetWorkspace: () => void;
-  splitPane: (tabId: string, direction: "horizontal" | "vertical") => void;
+  splitPane: (tabId: string, direction: "horizontal" | "vertical", position?: "before" | "after") => void;
   closePane: (paneId: string) => void;
   setPaneActiveTab: (paneId: string, tabId: string) => void;
   setSplitRatio: (ratio: number) => void;

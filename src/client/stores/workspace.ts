@@ -314,7 +314,7 @@ export function resetWorkspace(): void {
   });
 }
 
-export function splitPane(tabId: string, direction: "horizontal" | "vertical"): void {
+export function splitPane(tabId: string, direction: "horizontal" | "vertical", position?: "before" | "after"): void {
   workspaceStore.setState(function (state) {
     if (state.panes.length >= 2) return state;
 
@@ -346,7 +346,12 @@ export function splitPane(tabId: string, direction: "horizontal" | "vertical"): 
       if (p.id === sourcePane!.id) return updatedSourcePane;
       return p;
     });
-    newPanes.push(newPane);
+    if (position === "before") {
+      var sourceIndex = newPanes.findIndex(function (p) { return p.id === sourcePane!.id; });
+      newPanes.splice(sourceIndex, 0, newPane);
+    } else {
+      newPanes.push(newPane);
+    }
 
     return {
       ...state,

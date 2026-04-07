@@ -106,6 +106,8 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
     e.dataTransfer.setData("text/plain", tab.id);
     e.dataTransfer.effectAllowed = "move";
+    var target = e.currentTarget as HTMLElement;
+    e.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
     drag.startDrag(tab.id, effectivePaneId);
   }
 
@@ -115,7 +117,6 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     if (!drag.isDragging) return;
     var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
     if (drag.sourcePaneId !== effectivePaneId) {
-      setDropIndex(null);
       return;
     }
     var rect = e.currentTarget.getBoundingClientRect();
@@ -130,8 +131,16 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
-    if (!drag.isDragging || dropIndex === null) return;
     var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
+
+    if (drag.sourcePaneId !== effectivePaneId && drag.draggedTabId && drag.sourcePaneId) {
+      workspace.moveTabToPane(drag.draggedTabId, drag.sourcePaneId, effectivePaneId);
+      setDropIndex(null);
+      drag.endDrag();
+      return;
+    }
+
+    if (!drag.isDragging || dropIndex === null) return;
     if (drag.sourcePaneId !== effectivePaneId) return;
     var fromIndex = paneTabs.findIndex(function (t) { return t.id === drag.draggedTabId; });
     if (fromIndex === -1) return;

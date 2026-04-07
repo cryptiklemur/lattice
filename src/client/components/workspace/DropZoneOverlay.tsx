@@ -61,10 +61,14 @@ export function DropZoneOverlay({ paneId }: DropZoneOverlayProps) {
 
     if (zone === "center" && !isSourcePane) {
       workspace.moveTabToPane(drag.draggedTabId, drag.sourcePaneId, paneId);
-    } else if (zone === "left" || zone === "right") {
-      workspace.splitPane(drag.draggedTabId, "horizontal");
-    } else if (zone === "top" || zone === "bottom") {
-      workspace.splitPane(drag.draggedTabId, "vertical");
+    } else if (zone === "left") {
+      workspace.splitPane(drag.draggedTabId, "horizontal", "before");
+    } else if (zone === "right") {
+      workspace.splitPane(drag.draggedTabId, "horizontal", "after");
+    } else if (zone === "top") {
+      workspace.splitPane(drag.draggedTabId, "vertical", "before");
+    } else if (zone === "bottom") {
+      workspace.splitPane(drag.draggedTabId, "vertical", "after");
     }
 
     setActiveZone(null);
