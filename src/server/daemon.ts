@@ -1,7 +1,8 @@
 import { join, resolve } from "node:path";
 import { createServer as createHttpServer } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
-import { readFileSync, existsSync, createReadStream, statSync } from "node:fs";
+import { readFileSync, existsSync, createReadStream } from "node:fs";
+import { stat as fsStat } from "node:fs/promises";
 import { lookup } from "node:dns";
 import express from "express";
 import { WebSocketServer } from "ws";
@@ -11,7 +12,7 @@ import { getClientDir } from "./assets";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
 import { addClient, removeClient, routeMessage } from "./ws/server";
-import { broadcast, sendTo } from "./ws/broadcast";
+import { broadcast, sendTo, markClientAlive, startHeartbeat, subscribeClientToProject } from "./ws/broadcast";
 import { buildNodesMessage } from "./handlers/mesh";
 import { startDiscovery } from "./mesh/discovery";
 import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessage, getAllRemoteProjects } from "./mesh/connector";
@@ -268,6 +269,7 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
   }
   for (var pi = 0; pi < connectConfig.projects.length; pi++) {
     var proj = connectConfig.projects[pi];
+    subscribeClientToProject(clientId, proj.slug);
     void listSessions(proj.slug, { limit: 40 }).then(function (result) {
       sendTo(clientId, {
         type: "session:list",
@@ -276,7 +278,9 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
         totalCount: result.totalCount,
         offset: 0,
       });
-    }).catch(function () {});
+    }).catch(function (err) {
+      log.session("Failed to pre-populate sessions for %s: %O", proj.slug, err);
+    });
   }
 }
 
@@ -393,7 +397,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     }
   });
 
-  app.get("/api/file", function (req, res) {
+  app.get("/api/file", async function (req, res) {
     var reqFilePath = req.query.path as string | undefined;
     if (!reqFilePath) {
       res.status(400).send("Missing path parameter");
@@ -416,9 +420,9 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
       return;
     }
 
-    var stat = statSync(resolved);
+    var fileStat = await fsStat(resolved);
     res.setHeader("Content-Type", getMimeType(resolved));
-    res.setHeader("Content-Length", stat.size);
+    res.setHeader("Content-Length", fileStat.size);
     createReadStream(resolved).pipe(res);
   });
 
@@ -505,7 +509,13 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     });
   }
 
-  var wss = new WebSocketServer({ noServer: true });
+  var wss = new WebSocketServer({
+    noServer: true,
+    perMessageDeflate: {
+      zlibDeflateOptions: { level: 1 },
+      threshold: 128,
+    },
+  });
 
   httpServer.on("upgrade", function (req: IncomingMessage, socket, head) {
     var url = new URL(req.url || "/", "http://localhost");
@@ -519,6 +529,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     wss.handleUpgrade(req, socket, head, function (ws) {
       var clientId = crypto.randomUUID();
       handleWsOpen(ws, clientId);
+      ws.on("pong", function () { markClientAlive(clientId); });
       ws.on("message", function (data) { handleWsMessage(ws, data as Buffer); });
       ws.on("close", function () { handleWsClose(ws); });
     });
@@ -548,6 +559,19 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
 
   log.server("Listening on %s://0.0.0.0:%d", protocol, effectivePort);
 
+  startHeartbeat(function (deadClientId) {
+    clearActiveSession(deadClientId);
+    clearActiveProject(deadClientId);
+    clearClientRemoteNode(deadClientId);
+    removeClient(deadClientId);
+    cleanupClientTerminals(deadClientId);
+    cleanupClientAttachments(deadClientId);
+    cleanupClientPermissions(deadClientId);
+    cleanupClientElicitations(deadClientId);
+    clientRateLimits.delete(deadClientId);
+    log.ws("Client removed via heartbeat: %s", deadClientId);
+  });
+
   startDiscovery(identity.id, config.name, effectivePort);
   startMeshConnections();
   startScheduler();
@@ -563,11 +587,18 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     void runWarmup(firstProject.path);
   }
 
+  var meshDirty = true;
+  var lastNodesJson = "";
+  var lastProjectsJson = "";
+  var broadcastTick = 0;
+
   onPeerConnected(function (nodeId: string) {
+    meshDirty = true;
     broadcast({ type: "mesh:node_online", nodeId: nodeId });
   });
 
   onPeerDisconnected(function (nodeId: string) {
+    meshDirty = true;
     broadcast({ type: "mesh:node_offline", nodeId: nodeId });
   });
 
@@ -582,14 +613,17 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     }
   });
 
-  var lastNodesHash = "";
-  var lastProjectsHash = "";
   setInterval(function () {
-    var nodesPayload = buildNodesMessage();
-    var nodesHash = JSON.stringify(nodesPayload);
-    if (nodesHash !== lastNodesHash) {
-      lastNodesHash = nodesHash;
-      broadcast({ type: "mesh:nodes", nodes: nodesPayload });
+    broadcastTick++;
+
+    if (meshDirty) {
+      var nodesPayload = buildNodesMessage();
+      var nodesJson = JSON.stringify(nodesPayload);
+      if (nodesJson !== lastNodesJson) {
+        lastNodesJson = nodesJson;
+        broadcast({ type: "mesh:nodes", nodes: nodesPayload });
+      }
+      meshDirty = false;
     }
 
     var currentConfig = loadConfig();
@@ -599,22 +633,24 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     });
     var remoteProjects = getAllRemoteProjects(currentIdentity.id);
     var allProjects = localProjects.concat(remoteProjects as unknown as typeof localProjects);
-    var projectsHash = JSON.stringify(allProjects);
-    if (projectsHash !== lastProjectsHash) {
-      lastProjectsHash = projectsHash;
+    var projectsJson = JSON.stringify(allProjects);
+    if (projectsJson !== lastProjectsJson) {
+      lastProjectsJson = projectsJson;
       broadcast({ type: "projects:list", projects: allProjects });
     }
 
-    var updateInfo = getCachedUpdateInfo();
-    if (updateInfo && updateInfo.updateAvailable) {
-      broadcast({
-        type: "update:status",
-        currentVersion: updateInfo.currentVersion,
-        latestVersion: updateInfo.latestVersion,
-        updateAvailable: updateInfo.updateAvailable,
-        releaseUrl: updateInfo.releaseUrl,
-        installMode: updateInfo.installMode,
-      });
+    if (broadcastTick % 3 === 0) {
+      var updateInfo = getCachedUpdateInfo();
+      if (updateInfo && updateInfo.updateAvailable) {
+        broadcast({
+          type: "update:status",
+          currentVersion: updateInfo.currentVersion,
+          latestVersion: updateInfo.latestVersion,
+          updateAvailable: updateInfo.updateAvailable,
+          releaseUrl: updateInfo.releaseUrl,
+          installMode: updateInfo.installMode,
+        });
+      }
     }
   }, 10000);
 }
