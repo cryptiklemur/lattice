@@ -46,8 +46,10 @@ import "./handlers/brainstorm";
 import "./handlers/plugins";
 import "./handlers/update";
 import "./handlers/themes";
+import "./handlers/specs";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
+import { loadSpecs } from "./features/specs";
 import { startPeriodicUpdateCheck, getCachedUpdateInfo } from "./update-checker";
 import { loadBookmarks } from "./project/bookmarks";
 import { listSessions } from "./project/session";
@@ -576,6 +578,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   startMeshConnections();
   startScheduler();
   loadNotes();
+  loadSpecs();
   loadBookmarks();
   startBrainstormWatchers();
   startPeriodicUpdateCheck();
