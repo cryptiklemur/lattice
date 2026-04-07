@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb, ClipboardList } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
@@ -5,6 +6,7 @@ import type { Tab, TabType } from "../../stores/workspace";
 import { pinTab } from "../../stores/workspace";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
+import { useTabDrag } from "./DragContext";
 
 interface TabBarProps {
   paneId?: string;
@@ -27,6 +29,8 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
   var workspace = useWorkspace();
   var session = useSession();
   var ctxMenu = useContextMenu<string>();
+  var drag = useTabDrag();
+  var [dropIndex, setDropIndex] = useState<number | null>(null);
 
   var paneTabs: Tab[];
   var activeTabId: string;
@@ -98,6 +102,50 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     }
   }
 
+  function handleDragStart(e: React.DragEvent, tab: Tab) {
+    var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
+    e.dataTransfer.setData("text/plain", tab.id);
+    e.dataTransfer.effectAllowed = "move";
+    drag.startDrag(tab.id, effectivePaneId);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!drag.isDragging) return;
+    var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
+    if (drag.sourcePaneId !== effectivePaneId) {
+      setDropIndex(null);
+      return;
+    }
+    var rect = e.currentTarget.getBoundingClientRect();
+    var midX = rect.left + rect.width / 2;
+    var targetIndex = e.clientX < midX ? index : index + 1;
+    setDropIndex(targetIndex);
+  }
+
+  function handleDragLeave() {
+    setDropIndex(null);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    if (!drag.isDragging || dropIndex === null) return;
+    var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
+    if (drag.sourcePaneId !== effectivePaneId) return;
+    var fromIndex = paneTabs.findIndex(function (t) { return t.id === drag.draggedTabId; });
+    if (fromIndex === -1) return;
+    var adjustedTo = dropIndex > fromIndex ? dropIndex - 1 : dropIndex;
+    workspace.reorderTab(effectivePaneId, fromIndex, adjustedTo);
+    setDropIndex(null);
+    drag.endDrag();
+  }
+
+  function handleDragEnd() {
+    setDropIndex(null);
+    drag.endDrag();
+  }
+
   return (
     <>
       <div
@@ -112,51 +160,68 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
           overflow: shouldShow ? undefined : "hidden",
           transition: "max-height 0.2s ease, opacity 0.15s ease",
         }}
+        onDragOver={function (e) { e.preventDefault(); }}
+        onDrop={handleDrop}
       >
-        {paneTabs.map(function (tab) {
+        {paneTabs.map(function (tab, index) {
           var isActive = tab.id === activeTabId;
           var Icon = TAB_ICONS[tab.type] || MessageSquare;
           var label = getTabLabel(tab);
           return (
-            <div
-              key={tab.id}
-              role="tab"
-              tabIndex={0}
-              aria-selected={isActive}
-              onClick={function () { handleTabClick(tab.id); }}
-              onDoubleClick={function () { if (!tab.pinned) pinTab(tab.id); }}
-              onMouseDown={function (e) { handleMiddleClick(e, tab); }}
-              onKeyDown={function (e) {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleTabClick(tab.id);
-                }
-              }}
-              onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
-              className={
-                "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset max-w-[200px] " +
-                (isActive
-                  ? "bg-base-100 text-base-content border-b-2 border-b-primary"
-                  : "text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30")
-              }
-            >
-              <Icon size={14} className={isActive ? "text-primary" : ""} />
-              <span className={"truncate text-[12px]" + (tab.pinned ? "" : " italic")}>{label}</span>
-              {tab.closeable && (
-                <button
-                  aria-label={"Close " + label + " tab"}
-                  onClick={function (e) {
-                    e.stopPropagation();
-                    handleCloseTab(tab.id);
-                  }}
-                  className="ml-0.5 p-1 rounded hover:bg-base-content/15 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                >
-                  <X size={12} />
-                </button>
+            <>
+              {dropIndex === index && drag.sourcePaneId === (paneId || workspace.panes[0]?.id || "pane-1") && (
+                <div className="w-0.5 bg-primary self-stretch flex-shrink-0 rounded-full" />
               )}
-            </div>
+              <div
+                key={tab.id}
+                role="tab"
+                tabIndex={0}
+                aria-selected={isActive}
+                draggable={true}
+                onClick={function () { handleTabClick(tab.id); }}
+                onDoubleClick={function () { if (!tab.pinned) pinTab(tab.id); }}
+                onMouseDown={function (e) { handleMiddleClick(e, tab); }}
+                onKeyDown={function (e) {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleTabClick(tab.id);
+                  }
+                }}
+                onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
+                onDragStart={function (e) { handleDragStart(e, tab); }}
+                onDragOver={function (e) { handleDragOver(e, index); }}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
+                className={
+                  "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset max-w-[200px] " +
+                  (isActive
+                    ? "bg-base-100 text-base-content border-b-2 border-b-primary"
+                    : "text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30") +
+                  (drag.draggedTabId === tab.id ? " opacity-30" : "")
+                }
+              >
+                <Icon size={14} className={isActive ? "text-primary" : ""} />
+                <span className={"truncate text-[12px]" + (tab.pinned ? "" : " italic")}>{label}</span>
+                {tab.closeable && (
+                  <button
+                    aria-label={"Close " + label + " tab"}
+                    onClick={function (e) {
+                      e.stopPropagation();
+                      handleCloseTab(tab.id);
+                    }}
+                    className="ml-0.5 p-1 rounded hover:bg-base-content/15 text-base-content/30 hover:text-base-content/60 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </>
           );
         })}
+        {dropIndex !== null && dropIndex >= paneTabs.length && drag.sourcePaneId === (paneId || workspace.panes[0]?.id || "pane-1") && (
+          <div className="w-0.5 bg-primary self-stretch flex-shrink-0 rounded-full" />
+        )}
       </div>
       {ctxMenu.state !== null && (
         <ContextMenu
