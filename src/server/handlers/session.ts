@@ -9,7 +9,7 @@ import type {
   SessionRenameMessage,
 } from "#shared";
 import { registerHandler } from "../ws/router";
-import { sendTo, broadcast } from "../ws/broadcast";
+import { sendTo, broadcast, broadcastToProject } from "../ws/broadcast";
 import { loadConfig } from "../config";
 import {
   createSession,
@@ -34,7 +34,7 @@ import { setActiveProject } from "./fs";
 import { wasSessionInterrupted, clearInterruptedFlag } from "../project/sdk-bridge";
 import { log } from "../logger";
 
-registerHandler("session", function (clientId: string, message: ClientMessage) {
+registerHandler("session", async function (clientId: string, message: ClientMessage) {
   if (message.type === "session:list_request") {
     var listReqMsg = message as SessionListRequestMessage;
     var offset = listReqMsg.offset || 0;
@@ -104,7 +104,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     var session = createSession(createMsg.projectSlug);
     updateSessionInIndex(createMsg.projectSlug, session);
     sendTo(clientId, { type: "session:created", session });
-    broadcast({
+    broadcastToProject(createMsg.projectSlug, {
       type: "session:list",
       projectSlug: createMsg.projectSlug,
       sessions: [session],
@@ -119,74 +119,61 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
     setActiveSession(clientId, activateMsg.projectSlug, activateMsg.sessionId);
     setActiveProject(clientId, activateMsg.projectSlug);
     invalidateHistoryCache(activateMsg.sessionId);
-    var fileSize = getSessionFileSizeBytes(activateMsg.projectSlug, activateMsg.sessionId);
+    var fileSize = await getSessionFileSizeBytes(activateMsg.projectSlug, activateMsg.sessionId);
     sendTo(clientId, { type: "session:loading_progress", sessionId: activateMsg.sessionId, fileSize });
     var activateT0 = Date.now();
-    void loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId).then(function (historyResult) {
-      log.session("session:activate history: %dms", Date.now() - activateT0);
-      var title: string | null = null;
+    void Promise.all([
+      loadSessionHistory(activateMsg.projectSlug, activateMsg.sessionId),
+      getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
+      getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
+      getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
+    ]).then(function (results) {
+      var historyResult = results[0];
+      var sessionTitle = results[1];
+      var usage = results[2];
+      var breakdown = results[3];
+
+      log.session("session:activate: %dms", Date.now() - activateT0);
+
       var interrupted = wasSessionInterrupted(activateMsg.sessionId);
       if (interrupted) {
         clearInterruptedFlag(activateMsg.sessionId);
       }
+
       sendTo(clientId, {
         type: "session:history",
         projectSlug: activateMsg.projectSlug,
         sessionId: activateMsg.sessionId,
         messages: historyResult.messages,
-        title: title,
+        title: sessionTitle,
         interrupted: interrupted || undefined,
         totalMessages: historyResult.totalMessages,
         hasMore: historyResult.hasMore,
       });
-    }).catch(function (err) {
-      log.session("Error sending session history: %O", err);
-      sendTo(clientId, { type: "chat:error", message: "Failed to load session history" });
-    });
 
-    setTimeout(function () {
-    void getSessionTitle(activateMsg.projectSlug, activateMsg.sessionId).then(function (sessionTitle) {
-      if (sessionTitle) {
-        sendTo(clientId, { type: "session:history", projectSlug: activateMsg.projectSlug, sessionId: activateMsg.sessionId, messages: [], title: sessionTitle });
+      if (usage) {
+        sendTo(clientId, {
+          type: "chat:context_usage",
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          cacheReadTokens: usage.cacheReadTokens,
+          cacheCreationTokens: usage.cacheCreationTokens,
+          contextWindow: usage.contextWindow,
+        });
       }
-    }).catch(function () {});
-    void Promise.all([
-      getSessionUsage(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
-      getContextBreakdown(activateMsg.projectSlug, activateMsg.sessionId).catch(function () { return null; }),
-    ]).then(function (results) {
-      try {
-        var usage = results[0];
-        if (usage) {
-          sendTo(clientId, {
-            type: "chat:context_usage",
-            inputTokens: usage.inputTokens,
-            outputTokens: usage.outputTokens,
-            cacheReadTokens: usage.cacheReadTokens,
-            cacheCreationTokens: usage.cacheCreationTokens,
-            contextWindow: usage.contextWindow,
-          });
-        }
-      } catch (err) {
-        log.session("Error sending context usage: %O", err);
-      }
-      try {
-        var breakdown = results[1];
-        if (breakdown) {
-          sendTo(clientId, {
-            type: "chat:context_breakdown",
-            segments: breakdown.segments,
-            contextWindow: breakdown.contextWindow,
-            autocompactAt: breakdown.autocompactAt,
-          });
-        }
-      } catch (err) {
-        log.session("Error sending context breakdown: %O", err);
+
+      if (breakdown) {
+        sendTo(clientId, {
+          type: "chat:context_breakdown",
+          segments: breakdown.segments,
+          contextWindow: breakdown.contextWindow,
+          autocompactAt: breakdown.autocompactAt,
+        });
       }
     }).catch(function (err) {
       log.session("Failed to activate session: %O", err);
-      sendTo(clientId, { type: "chat:error", message: "Failed to activate session" });
+      sendTo(clientId, { type: "chat:error", message: "Failed to load session" });
     });
-    }, 50);
     return;
   }
 
@@ -200,7 +187,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
       void renameSession(projectSlug, renameMsg.sessionId, renameMsg.title).then(function () {
         invalidateSessionCache(projectSlug);
         void listSessions(projectSlug, { limit: 40 }).then(function (result) {
-          broadcast({
+          broadcastToProject(projectSlug, {
             type: "session:list",
             projectSlug,
             sessions: result.sessions,
@@ -222,7 +209,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
       void deleteSession(deleteProjectSlug, deleteMsg.sessionId).then(function () {
         removeSessionFromIndex(deleteProjectSlug, deleteMsg.sessionId);
         void listSessions(deleteProjectSlug, { limit: 40 }).then(function (result) {
-          broadcast({
+          broadcastToProject(deleteProjectSlug, {
             type: "session:list",
             projectSlug: deleteProjectSlug,
             sessions: result.sessions,

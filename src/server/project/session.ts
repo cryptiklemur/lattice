@@ -66,7 +66,9 @@ export function loadPricing(): void {
       };
       pricingCache[key] = pricingCache[modelId];
     }
-  }).catch(function () {});
+  }).catch(function (err) {
+    log.session("Failed to load pricing data: %O", err);
+  });
 }
 
 loadPricing();
@@ -610,11 +612,12 @@ function getSessionFilePath(projectSlug: string, sessionId: string): string | nu
   return existsSync(filePath) ? filePath : null;
 }
 
-export function getSessionFileSizeBytes(projectSlug: string, sessionId: string): number | null {
+export async function getSessionFileSizeBytes(projectSlug: string, sessionId: string): Promise<number | null> {
   var filePath = getSessionFilePath(projectSlug, sessionId);
   if (!filePath) return null;
   try {
-    return statSync(filePath).size;
+    var fileStat = await fsPromises.stat(filePath);
+    return fileStat.size;
   } catch {
     return null;
   }

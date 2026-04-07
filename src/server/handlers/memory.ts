@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
+import { readdir, readFile, writeFile, unlink, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { ClientMessage } from "#shared";
@@ -37,9 +38,9 @@ function parseFrontmatter(content: string): { name: string; description: string;
   return { name, description, type };
 }
 
-function regenerateIndex(memoryDir: string): void {
+async function regenerateIndex(memoryDir: string): Promise<void> {
   if (!existsSync(memoryDir)) return;
-  var files = readdirSync(memoryDir).filter(function (f) {
+  var files = (await readdir(memoryDir)).filter(function (f) {
     return f.endsWith(".md") && f !== "MEMORY.md";
   });
 
@@ -47,7 +48,7 @@ function regenerateIndex(memoryDir: string): void {
 
   for (var i = 0; i < files.length; i++) {
     try {
-      var content = readFileSync(join(memoryDir, files[i]), "utf-8");
+      var content = await readFile(join(memoryDir, files[i]), "utf-8");
       var meta = parseFrontmatter(content);
       var type = meta.type || "other";
       if (!grouped[type]) grouped[type] = [];
@@ -67,10 +68,31 @@ function regenerateIndex(memoryDir: string): void {
     lines.push("");
   }
 
-  writeFileSync(join(memoryDir, "MEMORY.md"), lines.join("\n"), "utf-8");
+  await writeFile(join(memoryDir, "MEMORY.md"), lines.join("\n"), "utf-8");
 }
 
-registerHandler("memory", function (clientId: string, message: ClientMessage) {
+async function listMemoryFiles(memDir: string): Promise<Array<{ filename: string; name: string; description: string; type: string }>> {
+  var files = (await readdir(memDir)).filter(function (f) {
+    return f.endsWith(".md") && f !== "MEMORY.md";
+  });
+  var memories: Array<{ filename: string; name: string; description: string; type: string }> = [];
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var content = await readFile(join(memDir, files[i]), "utf-8");
+      var meta = parseFrontmatter(content);
+      memories.push({
+        filename: files[i],
+        name: meta.name || files[i].replace(/\.md$/, ""),
+        description: meta.description,
+        type: meta.type || "other",
+      });
+    } catch {}
+  }
+  memories.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  return memories;
+}
+
+registerHandler("memory", async function (clientId: string, message: ClientMessage) {
   if (message.type === "memory:list") {
     var listMsg = message as { type: "memory:list"; projectSlug: string };
     var memDir = getMemoryDir(listMsg.projectSlug);
@@ -79,25 +101,7 @@ registerHandler("memory", function (clientId: string, message: ClientMessage) {
       return;
     }
 
-    var files = readdirSync(memDir).filter(function (f) {
-      return f.endsWith(".md") && f !== "MEMORY.md";
-    });
-
-    var memories: Array<{ filename: string; name: string; description: string; type: string }> = [];
-    for (var i = 0; i < files.length; i++) {
-      try {
-        var content = readFileSync(join(memDir, files[i]), "utf-8");
-        var meta = parseFrontmatter(content);
-        memories.push({
-          filename: files[i],
-          name: meta.name || files[i].replace(/\.md$/, ""),
-          description: meta.description,
-          type: meta.type || "other",
-        });
-      } catch {}
-    }
-
-    memories.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var memories = await listMemoryFiles(memDir);
     sendTo(clientId, { type: "memory:list_result", projectSlug: listMsg.projectSlug, memories: memories });
     return;
   }
@@ -110,7 +114,7 @@ registerHandler("memory", function (clientId: string, message: ClientMessage) {
       return;
     }
     try {
-      var viewContent = readFileSync(join(viewDir, viewMsg.filename), "utf-8");
+      var viewContent = await readFile(join(viewDir, viewMsg.filename), "utf-8");
       sendTo(clientId, { type: "memory:view_result", filename: viewMsg.filename, content: viewContent });
     } catch {
       sendTo(clientId, { type: "memory:view_result", filename: viewMsg.filename, content: "File not found." });
@@ -126,20 +130,11 @@ registerHandler("memory", function (clientId: string, message: ClientMessage) {
       return;
     }
     try {
-      mkdirSync(saveDir, { recursive: true });
-      writeFileSync(join(saveDir, saveMsg.filename), saveMsg.content, "utf-8");
-      regenerateIndex(saveDir);
+      await mkdir(saveDir, { recursive: true });
+      await writeFile(join(saveDir, saveMsg.filename), saveMsg.content, "utf-8");
+      await regenerateIndex(saveDir);
       sendTo(clientId, { type: "memory:save_result", success: true });
-      var updatedFiles = readdirSync(saveDir).filter(function (f) { return f.endsWith(".md") && f !== "MEMORY.md"; });
-      var updatedMemories: Array<{ filename: string; name: string; description: string; type: string }> = [];
-      for (var j = 0; j < updatedFiles.length; j++) {
-        try {
-          var c = readFileSync(join(saveDir, updatedFiles[j]), "utf-8");
-          var m = parseFrontmatter(c);
-          updatedMemories.push({ filename: updatedFiles[j], name: m.name || updatedFiles[j].replace(/\.md$/, ""), description: m.description, type: m.type || "other" });
-        } catch {}
-      }
-      updatedMemories.sort(function (a, b) { return a.name.localeCompare(b.name); });
+      var updatedMemories = await listMemoryFiles(saveDir);
       sendTo(clientId, { type: "memory:list_result", projectSlug: saveMsg.projectSlug, memories: updatedMemories });
     } catch (err) {
       sendTo(clientId, { type: "memory:save_result", success: false, message: "Failed to save: " + String(err) });
@@ -160,19 +155,10 @@ registerHandler("memory", function (clientId: string, message: ClientMessage) {
         sendTo(clientId, { type: "memory:delete_result", success: false, message: "Memory not found." });
         return;
       }
-      unlinkSync(filePath);
-      regenerateIndex(delDir);
+      await unlink(filePath);
+      await regenerateIndex(delDir);
       sendTo(clientId, { type: "memory:delete_result", success: true });
-      var remainingFiles = readdirSync(delDir).filter(function (f) { return f.endsWith(".md") && f !== "MEMORY.md"; });
-      var remainingMemories: Array<{ filename: string; name: string; description: string; type: string }> = [];
-      for (var k = 0; k < remainingFiles.length; k++) {
-        try {
-          var rc = readFileSync(join(delDir, remainingFiles[k]), "utf-8");
-          var rm = parseFrontmatter(rc);
-          remainingMemories.push({ filename: remainingFiles[k], name: rm.name || remainingFiles[k].replace(/\.md$/, ""), description: rm.description, type: rm.type || "other" });
-        } catch {}
-      }
-      remainingMemories.sort(function (a, b) { return a.name.localeCompare(b.name); });
+      var remainingMemories = await listMemoryFiles(delDir);
       sendTo(clientId, { type: "memory:list_result", projectSlug: delMsg.projectSlug, memories: remainingMemories });
     } catch (err) {
       sendTo(clientId, { type: "memory:delete_result", success: false, message: "Failed to delete: " + String(err) });

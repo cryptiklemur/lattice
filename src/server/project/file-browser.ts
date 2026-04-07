@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { readdir, readFile as fsReadFile, stat, writeFile as fsWriteFile } from "node:fs/promises";
 import { join, resolve, relative } from "node:path";
 import type { FileEntry } from "#shared";
 
@@ -13,7 +13,7 @@ export function validatePath(projectPath: string, relativePath: string): string 
   return resolved;
 }
 
-export function listDirectory(projectPath: string, relativePath: string): FileEntry[] {
+export async function listDirectory(projectPath: string, relativePath: string): Promise<FileEntry[]> {
   var fullPath = validatePath(projectPath, relativePath);
   if (!fullPath) {
     return [];
@@ -22,7 +22,7 @@ export function listDirectory(projectPath: string, relativePath: string): FileEn
   var entries: FileEntry[] = [];
   var names: string[];
   try {
-    names = readdirSync(fullPath);
+    names = await readdir(fullPath);
   } catch {
     return [];
   }
@@ -34,14 +34,14 @@ export function listDirectory(projectPath: string, relativePath: string): FileEn
     }
     var entryFull = join(fullPath, name);
     try {
-      var stat = statSync(entryFull);
+      var entryStat = await stat(entryFull);
       var entryRelative = relative(projectPath, entryFull);
       entries.push({
         name: name,
         path: entryRelative,
-        isDirectory: stat.isDirectory(),
-        size: stat.isDirectory() ? 0 : stat.size,
-        modifiedAt: stat.mtimeMs,
+        isDirectory: entryStat.isDirectory(),
+        size: entryStat.isDirectory() ? 0 : entryStat.size,
+        modifiedAt: entryStat.mtimeMs,
       });
     } catch {
       // skip entries we can't stat
@@ -57,26 +57,26 @@ export function listDirectory(projectPath: string, relativePath: string): FileEn
   return entries;
 }
 
-export function readFile(projectPath: string, relativePath: string): string | null {
+export async function readFile(projectPath: string, relativePath: string): Promise<string | null> {
   var fullPath = validatePath(projectPath, relativePath);
   if (!fullPath) {
     return null;
   }
 
-  var stat: ReturnType<typeof statSync>;
+  var fileStat: Awaited<ReturnType<typeof stat>>;
   try {
-    stat = statSync(fullPath);
+    fileStat = await stat(fullPath);
   } catch {
     return null;
   }
 
-  if (stat.size > MAX_FILE_SIZE) {
+  if (fileStat.size > MAX_FILE_SIZE) {
     return null;
   }
 
   var buf: Buffer;
   try {
-    buf = readFileSync(fullPath);
+    buf = await fsReadFile(fullPath);
   } catch {
     return null;
   }
@@ -91,14 +91,14 @@ export function readFile(projectPath: string, relativePath: string): string | nu
   return buf.toString("utf-8");
 }
 
-export function writeFile(projectPath: string, relativePath: string, content: string): boolean {
+export async function writeFile(projectPath: string, relativePath: string, content: string): Promise<boolean> {
   var fullPath = validatePath(projectPath, relativePath);
   if (!fullPath) {
     return false;
   }
 
   try {
-    writeFileSync(fullPath, content, "utf-8");
+    await fsWriteFile(fullPath, content, "utf-8");
     return true;
   } catch {
     return false;
