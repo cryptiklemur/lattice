@@ -13,6 +13,7 @@ interface WebSocketProviderProps {
 }
 
 var MAX_BACKOFF = 30000;
+var MAX_QUEUE_SIZE = 100;
 
 export function WebSocketProvider(props: WebSocketProviderProps) {
   var [status, setStatus] = useState<WebSocketStatus>("connecting");
@@ -140,6 +141,9 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
     } else {
+      if (outgoingQueueRef.current.length >= MAX_QUEUE_SIZE) {
+        outgoingQueueRef.current.shift();
+      }
       outgoingQueueRef.current.push(msg);
     }
   }
