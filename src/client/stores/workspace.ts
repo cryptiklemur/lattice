@@ -83,15 +83,15 @@ export function openTab(type: TabType): void {
     };
 
     var defaultChat = state.tabs.find(function (t) { return t.id === "chat" && !t.sessionId; });
-    var hasOnlyDefaultChat = defaultChat && state.tabs.length === 1;
+    var shouldReplace = defaultChat && state.tabs.length === 1 && type !== "brainstorm";
 
-    var newTabs = hasOnlyDefaultChat
+    var newTabs = shouldReplace
       ? [tab]
       : [...state.tabs, tab];
 
     var newPanes = state.panes.map(function (p) {
       if (p.id === state.activePaneId) {
-        var updatedTabIds = hasOnlyDefaultChat
+        var updatedTabIds = shouldReplace
           ? p.tabIds.map(function (id) { return id === "chat" ? tab.id : id; })
           : [...p.tabIds, tab.id];
         return {

@@ -67,5 +67,8 @@ export default defineConfig({
       host: "localhost",
     },
     open: true,
+    watch: {
+      ignored: ["**/.superpowers/**"],
+    },
   },
 });

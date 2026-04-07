@@ -265,6 +265,12 @@ export function getActiveBrainstorm(projectSlug: string): ActiveBrainstorm | nul
   return activeBrainstorms[projectSlug] || null;
 }
 
+export function getAnyActiveBrainstorm(): ActiveBrainstorm | null {
+  var keys = Object.keys(activeBrainstorms);
+  if (keys.length === 0) return null;
+  return activeBrainstorms[keys[0]];
+}
+
 export function writeBrainstormEvent(sessionDir: string, event: object): void {
   var stateDir = join(sessionDir, "state");
   if (!existsSync(stateDir)) {

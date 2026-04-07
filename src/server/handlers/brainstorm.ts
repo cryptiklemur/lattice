@@ -1,7 +1,7 @@
 import type { ClientMessage, BrainstormSelectMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
-import { getActiveBrainstorm, writeBrainstormEvent } from "../features/brainstorm";
+import { getActiveBrainstorm, getAnyActiveBrainstorm, writeBrainstormEvent } from "../features/brainstorm";
 import { getActiveProjectForClient } from "./fs";
 
 registerHandler("brainstorm", function (clientId: string, message: ClientMessage) {
@@ -18,11 +18,7 @@ registerHandler("brainstorm", function (clientId: string, message: ClientMessage
 
   if (message.type === "brainstorm:status_request") {
     var projectSlug = getActiveProjectForClient(clientId);
-    if (!projectSlug) {
-      sendTo(clientId, { type: "brainstorm:status", active: false });
-      return;
-    }
-    var active = getActiveBrainstorm(projectSlug);
+    var active = projectSlug ? getActiveBrainstorm(projectSlug) : getAnyActiveBrainstorm();
     if (active) {
       sendTo(clientId, {
         type: "brainstorm:status",

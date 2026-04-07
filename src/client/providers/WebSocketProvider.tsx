@@ -56,6 +56,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
         }
       }
       hasConnectedRef.current = true;
+      ws.send(JSON.stringify({ type: "brainstorm:status_request" }));
       var queued = outgoingQueueRef.current;
       outgoingQueueRef.current = [];
       queued.forEach(function (msg) {
@@ -166,9 +167,16 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
     function handleBrainstormContent() {
       openTab("brainstorm");
     }
+    function handleBrainstormStatus(msg: ServerMessage) {
+      if (msg.type === "brainstorm:status" && msg.active) {
+        openTab("brainstorm");
+      }
+    }
     subscribe("brainstorm:content", handleBrainstormContent);
+    subscribe("brainstorm:status", handleBrainstormStatus);
     return function () {
       unsubscribe("brainstorm:content", handleBrainstormContent);
+      unsubscribe("brainstorm:status", handleBrainstormStatus);
     };
   }, []);
 
