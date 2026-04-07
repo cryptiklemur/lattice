@@ -9,7 +9,7 @@ import type {
   SessionRenameMessage,
 } from "#shared";
 import { registerHandler } from "../ws/router";
-import { sendTo } from "../ws/broadcast";
+import { sendTo, broadcast } from "../ws/broadcast";
 import { loadConfig } from "../config";
 import {
   createSession,
@@ -25,6 +25,8 @@ import {
   loadSessionHistory,
   renameSession,
   getSessionFileSizeBytes,
+  updateSessionInIndex,
+  removeSessionFromIndex,
 } from "../project/session";
 import { getContextBreakdown } from "../project/context-breakdown";
 import { setActiveSession, getActiveSession } from "./chat";
@@ -100,7 +102,15 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
   if (message.type === "session:create") {
     var createMsg = message as SessionCreateMessage;
     var session = createSession(createMsg.projectSlug);
+    updateSessionInIndex(createMsg.projectSlug, session);
     sendTo(clientId, { type: "session:created", session });
+    broadcast({
+      type: "session:list",
+      projectSlug: createMsg.projectSlug,
+      sessions: [session],
+      totalCount: undefined,
+      offset: 0,
+    } as any);
     return;
   }
 
@@ -190,7 +200,7 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
       void renameSession(projectSlug, renameMsg.sessionId, renameMsg.title).then(function () {
         invalidateSessionCache(projectSlug);
         void listSessions(projectSlug, { limit: 40 }).then(function (result) {
-          sendTo(clientId, {
+          broadcast({
             type: "session:list",
             projectSlug,
             sessions: result.sessions,
@@ -210,9 +220,9 @@ registerHandler("session", function (clientId: string, message: ClientMessage) {
         return;
       }
       void deleteSession(deleteProjectSlug, deleteMsg.sessionId).then(function () {
-        invalidateSessionCache(deleteProjectSlug);
+        removeSessionFromIndex(deleteProjectSlug, deleteMsg.sessionId);
         void listSessions(deleteProjectSlug, { limit: 40 }).then(function (result) {
-          sendTo(clientId, {
+          broadcast({
             type: "session:list",
             projectSlug: deleteProjectSlug,
             sessions: result.sessions,

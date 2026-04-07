@@ -5,13 +5,13 @@ import {
   renameSession as sdkRenameSession,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKSessionInfo, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
-import { existsSync, unlinkSync, readFileSync, statSync } from "node:fs";
+import { existsSync, unlinkSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import * as fsPromises from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import type { HistoryMessage, SessionPreview, SessionSummary } from "#shared";
-import { loadConfig } from "../config";
+import { loadConfig, getLatticeHome } from "../config";
 import { log } from "../logger";
 
 function getProjectPath(projectSlug: string): string | null {
@@ -438,7 +438,79 @@ export async function getSessionPreview(projectSlug: string, sessionId: string):
 }
 
 var sessionListCache = new Map<string, { sessions: SessionSummary[]; time: number }>();
-var SESSION_CACHE_TTL = 5000;
+var SESSION_CACHE_TTL = 60000;
+var RECONCILE_INTERVAL = 5 * 60 * 1000;
+var lastReconcile = new Map<string, number>();
+
+function getIndexPath(): string {
+  return join(getLatticeHome(), "session-index.json");
+}
+
+function loadSessionIndex(): Record<string, SessionSummary[]> {
+  var indexPath = getIndexPath();
+  if (!existsSync(indexPath)) return {};
+  try {
+    return JSON.parse(readFileSync(indexPath, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+function saveSessionIndex(index: Record<string, SessionSummary[]>): void {
+  try {
+    writeFileSync(getIndexPath(), JSON.stringify(index), "utf-8");
+  } catch (err) {
+    log.session("Failed to save session index: %O", err);
+  }
+}
+
+export function updateSessionInIndex(projectSlug: string, session: SessionSummary): void {
+  var index = loadSessionIndex();
+  var sessions = index[projectSlug] || [];
+  var existing = -1;
+  for (var i = 0; i < sessions.length; i++) {
+    if (sessions[i].id === session.id) { existing = i; break; }
+  }
+  if (existing >= 0) {
+    sessions[existing] = session;
+  } else {
+    sessions.push(session);
+  }
+  sessions.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+  index[projectSlug] = sessions;
+  saveSessionIndex(index);
+  sessionListCache.set(projectSlug, { sessions, time: Date.now() });
+}
+
+export function removeSessionFromIndex(projectSlug: string, sessionId: string): void {
+  var index = loadSessionIndex();
+  var sessions = index[projectSlug] || [];
+  index[projectSlug] = sessions.filter(function (s) { return s.id !== sessionId; });
+  saveSessionIndex(index);
+  sessionListCache.set(projectSlug, { sessions: index[projectSlug], time: Date.now() });
+}
+
+async function reconcileWithSDK(projectSlug: string): Promise<SessionSummary[]> {
+  var projectPath = getProjectPath(projectSlug);
+  if (!projectPath) return [];
+  var sdkT0 = Date.now();
+  var sdkSessions = await sdkListSessions({ dir: projectPath });
+  log.session("sdkListSessions for %s: %dms (%d sessions)", projectSlug, Date.now() - sdkT0, sdkSessions.length);
+  var summaries = sdkSessions.map(function (s) { return mapSDKSession(s, projectSlug); });
+  summaries.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+  var index = loadSessionIndex();
+  index[projectSlug] = summaries;
+  saveSessionIndex(index);
+  sessionListCache.set(projectSlug, { sessions: summaries, time: Date.now() });
+  lastReconcile.set(projectSlug, Date.now());
+  return summaries;
+}
+
+function needsReconcile(projectSlug: string): boolean {
+  var last = lastReconcile.get(projectSlug);
+  if (!last) return true;
+  return Date.now() - last > RECONCILE_INTERVAL;
+}
 
 export async function listSessions(projectSlug: string, options?: { offset?: number; limit?: number; noCache?: boolean }): Promise<{ sessions: SessionSummary[]; totalCount: number }> {
   var projectPath = getProjectPath(projectSlug);
@@ -454,16 +526,23 @@ export async function listSessions(projectSlug: string, options?: { offset?: num
     return { sessions: sliced, totalCount: cached.sessions.length };
   }
 
-  try {
-    var sdkT0 = Date.now();
-    var sdkSessions = await sdkListSessions({ dir: projectPath });
-    log.session("sdkListSessions for %s: %dms (%d sessions)", projectSlug, Date.now() - sdkT0, sdkSessions.length);
-    var summaries = sdkSessions.map(function (s) {
-      return mapSDKSession(s, projectSlug);
-    });
-    summaries.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
-    sessionListCache.set(projectSlug, { sessions: summaries, time: Date.now() });
+  var index = loadSessionIndex();
+  var indexed = index[projectSlug];
+  if (indexed && indexed.length > 0) {
+    sessionListCache.set(projectSlug, { sessions: indexed, time: Date.now() });
+    if (needsReconcile(projectSlug)) {
+      reconcileWithSDK(projectSlug).catch(function (err) {
+        log.session("Background reconcile failed: %O", err);
+      });
+    }
+    var offset3 = options?.offset ?? 0;
+    var limit3 = options?.limit ?? 0;
+    var sliced3 = limit3 > 0 ? indexed.slice(offset3, offset3 + limit3) : indexed;
+    return { sessions: sliced3, totalCount: indexed.length };
+  }
 
+  try {
+    var summaries = await reconcileWithSDK(projectSlug);
     var offset2 = options?.offset ?? 0;
     var limit2 = options?.limit ?? 0;
     var sliced2 = limit2 > 0 ? summaries.slice(offset2, offset2 + limit2) : summaries;

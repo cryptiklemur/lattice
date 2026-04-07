@@ -309,7 +309,7 @@ export function SessionList(props: SessionListProps) {
         if (props.projectSlug && ws.status === "connected") {
           sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
         }
-      }, 30000);
+      }, 120000);
       return function () { clearInterval(interval); };
     }
   }, [props.projectSlug, ws.status]);

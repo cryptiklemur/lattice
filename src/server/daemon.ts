@@ -49,6 +49,7 @@ import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
 import { startPeriodicUpdateCheck, getCachedUpdateInfo } from "./update-checker";
 import { loadBookmarks } from "./project/bookmarks";
+import { listSessions } from "./project/session";
 import { startBrainstormWatchers } from "./features/brainstorm";
 import { cleanupClientTerminals } from "./handlers/terminal";
 import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
@@ -264,6 +265,18 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
         isUsingOverage: rl.isUsingOverage,
       } as any);
     }
+  }
+  for (var pi = 0; pi < connectConfig.projects.length; pi++) {
+    var proj = connectConfig.projects[pi];
+    void listSessions(proj.slug, { limit: 40 }).then(function (result) {
+      sendTo(clientId, {
+        type: "session:list",
+        projectSlug: proj.slug,
+        sessions: result.sessions,
+        totalCount: result.totalCount,
+        offset: 0,
+      });
+    }).catch(function () {});
   }
 }
 
