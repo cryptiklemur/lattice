@@ -177,7 +177,9 @@ export function SpecsView() {
         ) : viewMode === "list" ? (
           <SpecListView specs={specs} onSelectSpec={handleSelectSpec} filter={statusFilter} onFilterChange={setStatusFilter} />
         ) : (
-          <SpecBoardView specs={specs} onSelectSpec={handleSelectSpec} />
+          <SpecBoardView specs={specs} onSelectSpec={handleSelectSpec} onStatusChange={function (specId: string, status: SpecStatus) {
+            send({ type: "specs:update", id: specId, status: status });
+          }} />
         )}
       </div>
     </div>
