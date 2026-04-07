@@ -118,6 +118,7 @@ export function useSession(): UseSessionReturn {
     lastUsedEffortRef.current = effort;
     setFailedInput(null);
     setPromptSuggestion(null);
+    setWasInterrupted(false);
     setIsProcessing(true);
     addSessionMessage({
       type: "user",
