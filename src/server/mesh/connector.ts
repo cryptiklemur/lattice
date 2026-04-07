@@ -1,4 +1,4 @@
-import type { MeshMessage, MeshHelloMessage, MeshSessionSyncMessage, MeshSessionRequestMessage } from "#shared";
+import type { MeshMessage, MeshHelloMessage, MeshSessionSyncMessage, MeshSessionRequestMessage, MeshPingMessage, MeshPongMessage } from "#shared";
 import * as peersModule from "./peers";
 import { loadPeers } from "./peers";
 import { loadOrCreateIdentity } from "../identity";
@@ -38,6 +38,90 @@ interface CircuitState {
 var circuitBreakers = new Map<string, CircuitState>();
 
 var RECONNECT_INTERVAL_MS = 15000;
+var HEALTH_CHECK_INTERVAL_MS = 30000;
+var HEALTH_MISS_THRESHOLD = 3;
+
+interface HealthState {
+  lastPongAt: number;
+  latencyMs: number;
+  missedPongs: number;
+  healthy: boolean;
+  pingTimer: ReturnType<typeof setInterval> | null;
+}
+
+var healthStates = new Map<string, HealthState>();
+
+export function getPeerHealth(nodeId: string): { latencyMs: number; healthy: boolean } | undefined {
+  var state = healthStates.get(nodeId);
+  if (!state) return undefined;
+  return { latencyMs: state.latencyMs, healthy: state.healthy };
+}
+
+export function getAllPeerHealth(): Map<string, { latencyMs: number; healthy: boolean }> {
+  var result = new Map<string, { latencyMs: number; healthy: boolean }>();
+  for (var [nodeId, state] of healthStates) {
+    result.set(nodeId, { latencyMs: state.latencyMs, healthy: state.healthy });
+  }
+  return result;
+}
+
+function startHealthCheck(conn: PeerConnection): void {
+  var state = healthStates.get(conn.nodeId);
+  if (state && state.pingTimer) return;
+
+  var healthState: HealthState = {
+    lastPongAt: Date.now(),
+    latencyMs: 0,
+    missedPongs: 0,
+    healthy: true,
+    pingTimer: null,
+  };
+  healthStates.set(conn.nodeId, healthState);
+
+  var lastPingSentAt = 0;
+
+  healthState.pingTimer = setInterval(function () {
+    if (conn.dead || !isWebSocketOpen(conn.ws)) {
+      stopHealthCheck(conn.nodeId);
+      return;
+    }
+    if (lastPingSentAt > 0 && healthState.lastPongAt < lastPingSentAt) {
+      healthState.missedPongs++;
+      if (healthState.missedPongs >= HEALTH_MISS_THRESHOLD && healthState.healthy) {
+        healthState.healthy = false;
+        log.mesh("Health check: peer %s marked unhealthy (%d missed pongs)", conn.nodeId.slice(0, 8), healthState.missedPongs);
+      }
+    }
+    lastPingSentAt = Date.now();
+    try {
+      conn.ws.send(JSON.stringify({ type: "mesh:ping", timestamp: lastPingSentAt }));
+    } catch {
+      healthState.missedPongs++;
+    }
+  }, HEALTH_CHECK_INTERVAL_MS);
+  (healthState.pingTimer as ReturnType<typeof setInterval>).unref?.();
+}
+
+function stopHealthCheck(nodeId: string): void {
+  var state = healthStates.get(nodeId);
+  if (state && state.pingTimer) {
+    clearInterval(state.pingTimer);
+    state.pingTimer = null;
+  }
+  healthStates.delete(nodeId);
+}
+
+function handlePong(nodeId: string, timestamp: number): void {
+  var state = healthStates.get(nodeId);
+  if (!state) return;
+  state.lastPongAt = Date.now();
+  state.latencyMs = Date.now() - timestamp;
+  state.missedPongs = 0;
+  if (!state.healthy) {
+    state.healthy = true;
+    log.mesh("Health check: peer %s recovered (latency: %dms)", nodeId.slice(0, 8), state.latencyMs);
+  }
+}
 
 export function startMeshConnections(): void {
   reconcilePeers();
@@ -67,12 +151,13 @@ function reconcilePeers(): void {
 }
 
 export function stopMeshConnections(): void {
-  for (var [, conn] of connections) {
+  for (var [nodeId, conn] of connections) {
     conn.dead = true;
     if (conn.retryTimer !== null) {
       clearTimeout(conn.retryTimer);
       conn.retryTimer = null;
     }
+    stopHealthCheck(nodeId);
     conn.ws.close();
   }
   connections.clear();
@@ -181,6 +266,15 @@ function openConnection(conn: PeerConnection, url: string): void {
         if (msg.projects.length > 0) {
           lastKnownProjects.set(conn.nodeId, msg.projects);
         }
+        startHealthCheck(conn);
+      } else if (msg.type === "mesh:ping") {
+        var pingMsg = msg as MeshPingMessage;
+        conn.ws.send(JSON.stringify({ type: "mesh:pong", timestamp: pingMsg.timestamp }));
+        return;
+      } else if (msg.type === "mesh:pong") {
+        var pongMsg = msg as MeshPongMessage;
+        handlePong(conn.nodeId, pongMsg.timestamp);
+        return;
       } else if (msg.type === "mesh:session_sync") {
         handleSessionSync(conn.nodeId, msg as MeshSessionSyncMessage);
       } else if (msg.type === "mesh:session_request") {
@@ -317,6 +411,7 @@ export function disconnectPeer(nodeId: string): void {
     existing.ws.close();
     connections.delete(nodeId);
   }
+  stopHealthCheck(nodeId);
   circuitBreakers.delete(nodeId);
 }
 

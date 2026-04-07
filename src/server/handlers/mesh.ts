@@ -8,7 +8,7 @@ import { loadConfig } from "../config";
 import { loadOrCreateIdentity } from "../identity";
 import { generateInviteCode, parseInviteCode, validatePairingToken, consumePairingToken } from "../mesh/pairing";
 import { addPeer, removePeer, loadPeers, getPeer } from "../mesh/peers";
-import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer, getConnectedPeerProjects, registerInboundPeer } from "../mesh/connector";
+import { getConnectedPeerIds, connectToPeer, reconnectPeer, getPeerConnection, disconnectPeer, getConnectedPeerProjects, registerInboundPeer, getPeerHealth } from "../mesh/connector";
 import { getClientWebSocket, registerVirtualClient, removeVirtualClient } from "../ws/broadcast";
 import type { PeerInfo } from "#shared";
 import { networkInterfaces } from "node:os";
@@ -107,6 +107,7 @@ export function buildNodesMessage(): NodeInfo[] {
 
   var remotes: NodeInfo[] = peers.map(function (peer) {
     var peerProjects = getConnectedPeerProjects(peer.id);
+    var health = getPeerHealth(peer.id);
     return {
       id: peer.id,
       name: peer.name,
@@ -118,6 +119,8 @@ export function buildNodesMessage(): NodeInfo[] {
       projects: peerProjects.map(function (p) {
         return { slug: p.slug, path: "", title: p.title, nodeId: peer.id };
       }),
+      latencyMs: health?.latencyMs,
+      healthy: health?.healthy,
     };
   });
 

@@ -9,6 +9,8 @@ export interface NodeInfo {
   online: boolean;
   isLocal: boolean;
   projects: ProjectSummary[];
+  latencyMs?: number;
+  healthy?: boolean;
 }
 
 export interface ProjectSummary {

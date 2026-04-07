@@ -1329,9 +1329,21 @@ export interface MeshSessionRequestMessage {
   fromOffset: number;
 }
 
+export interface MeshPingMessage {
+  type: "mesh:ping";
+  timestamp: number;
+}
+
+export interface MeshPongMessage {
+  type: "mesh:pong";
+  timestamp: number;
+}
+
 export type MeshMessage =
   | MeshHelloMessage
   | MeshProxyRequestMessage
   | MeshProxyResponseMessage
   | MeshSessionSyncMessage
-  | MeshSessionRequestMessage;
+  | MeshSessionRequestMessage
+  | MeshPingMessage
+  | MeshPongMessage;
