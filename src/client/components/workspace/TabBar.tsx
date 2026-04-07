@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb, ClipboardList } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
@@ -31,6 +31,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
   var ctxMenu = useContextMenu<string>();
   var drag = useTabDrag();
   var [dropIndex, setDropIndex] = useState<number | null>(null);
+  var tabBarRef = useRef<HTMLDivElement>(null);
 
   var paneTabs: Tab[];
   var activeTabId: string;
@@ -111,30 +112,34 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     drag.startDrag(tab.id, effectivePaneId);
   }
 
-  function handleDragOver(e: React.DragEvent, index: number) {
+  function handleContainerDragOver(e: React.DragEvent) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     if (!drag.isDragging) return;
     var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
-    if (drag.sourcePaneId !== effectivePaneId) {
-      return;
+    if (drag.sourcePaneId !== effectivePaneId) return;
+    if (!tabBarRef.current) return;
+
+    var tabElements = tabBarRef.current.querySelectorAll("[role='tab']");
+    var clientX = e.clientX;
+    var targetIndex = paneTabs.length;
+
+    for (var i = 0; i < tabElements.length; i++) {
+      var rect = tabElements[i].getBoundingClientRect();
+      var midX = rect.left + rect.width / 2;
+      if (clientX < midX) {
+        targetIndex = i;
+        break;
+      }
     }
-    var fromIndex = paneTabs.findIndex(function (t) { return t.id === drag.draggedTabId; });
-    var rect = e.currentTarget.getBoundingClientRect();
-    var fraction = (e.clientX - rect.left) / rect.width;
-    var targetIndex: number;
-    if (fromIndex < index) {
-      targetIndex = fraction > 0.25 ? index + 1 : index;
-    } else if (fromIndex > index) {
-      targetIndex = fraction < 0.75 ? index : index + 1;
-    } else {
-      targetIndex = index;
-    }
+
     setDropIndex(targetIndex);
   }
 
-  function handleDragLeave() {
-    setDropIndex(null);
+  function handleDragLeave(e: React.DragEvent) {
+    if (tabBarRef.current && !tabBarRef.current.contains(e.relatedTarget as Node)) {
+      setDropIndex(null);
+    }
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -166,6 +171,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
   return (
     <>
       <div
+        ref={tabBarRef}
         className={
           "flex items-stretch bg-base-200 overflow-x-auto flex-shrink-0 order-1 sm:order-none" +
           (shouldShow ? " border-b border-t sm:border-t-0 border-base-content/15" : "") +
@@ -177,7 +183,8 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
           overflow: shouldShow ? undefined : "hidden",
           transition: "max-height 0.2s ease, opacity 0.15s ease",
         }}
-        onDragOver={function (e) { e.preventDefault(); }}
+        onDragOver={handleContainerDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         {paneTabs.map(function (tab, index) {
@@ -205,9 +212,6 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
                 }}
                 onContextMenu={function (e) { handleContextMenu(e, tab.id); }}
                 onDragStart={function (e) { handleDragStart(e, tab); }}
-                onDragOver={function (e) { handleDragOver(e, index); }}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
                 onDragEnd={handleDragEnd}
                 className={
                   "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset max-w-[200px] " +
