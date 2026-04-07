@@ -12,6 +12,7 @@ import { ScheduledTasksView } from "./ScheduledTasksView";
 import { BookmarksView } from "./BookmarksView";
 import { BrainstormView } from "./BrainstormView";
 import { AnalyticsView } from "../analytics/AnalyticsView";
+import { SpecsView } from "./SpecsView";
 import type { Pane, Tab } from "../../stores/workspace";
 
 var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
@@ -22,6 +23,7 @@ var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
   bookmarks: BookmarksView,
   brainstorm: BrainstormView,
   analytics: AnalyticsView,
+  specs: SpecsView,
 };
 
 function PaneContent({ pane, tabs, isActive, onFocus }: {

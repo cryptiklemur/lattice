@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark, Settings, Network } from "lucide-react";
+import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark, ClipboardList, Settings, Network } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import type { SessionSummary, ServerMessage, SettingsDataMessage } from "#shared";
 import type { DateRange } from "./SessionList";
@@ -19,6 +19,7 @@ import { UserMenu } from "./UserMenu";
 import { SearchFilter } from "./SearchFilter";
 import { ProjectDropdown } from "./ProjectDropdown";
 import { SettingsSidebar } from "./SettingsSidebar";
+import { SpecsSidebarWidget } from "./SpecsSidebarWidget";
 
 type DatePreset = "all" | "today" | "yesterday" | "week" | "month" | "custom";
 
@@ -361,6 +362,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     { type: "notes" as const, icon: StickyNote, label: "Notes", localOnly: false },
                     { type: "tasks" as const, icon: Calendar, label: "Scheduled Tasks", localOnly: false },
                     { type: "bookmarks" as const, icon: Bookmark, label: "Bookmarks", localOnly: false },
+                    { type: "specs" as const, icon: ClipboardList, label: "Specs", localOnly: false },
                   ].map(function (item) {
                     var isDisabled = item.localOnly && activeProject?.isRemote;
                     return (
@@ -400,6 +402,8 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     <span className="font-mono tracking-wide">Analytics</span>
                   </button>
                 </div>
+
+                <SpecsSidebarWidget />
 
                 <SectionLabel
                   label="Sessions"
