@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb, ClipboardList } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
@@ -177,12 +177,11 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
           var Icon = TAB_ICONS[tab.type] || MessageSquare;
           var label = getTabLabel(tab);
           return (
-            <>
+            <React.Fragment key={tab.id}>
               {dropIndex === index && drag.sourcePaneId === (paneId || workspace.panes[0]?.id || "pane-1") && (
                 <div className="w-0.5 bg-primary self-stretch flex-shrink-0 rounded-full" />
               )}
               <div
-                key={tab.id}
                 role="tab"
                 tabIndex={0}
                 aria-selected={isActive}
@@ -225,7 +224,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
                   </button>
                 )}
               </div>
-            </>
+            </React.Fragment>
           );
         })}
         {dropIndex !== null && dropIndex >= paneTabs.length && drag.sourcePaneId === (paneId || workspace.panes[0]?.id || "pane-1") && (
