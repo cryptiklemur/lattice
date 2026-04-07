@@ -711,7 +711,7 @@ export async function loadSessionHistory(projectSlug: string, sessionId: string)
   }
 }
 
-export async function getSessionHistoryPage(sessionId: string, beforeIndex: number, limit: number, projectSlug?: string): Promise<{ messages: HistoryMessage[]; hasMore: boolean; totalMessages: number }> {
+export async function getSessionHistoryPage(sessionId: string, beforeIndex: number | undefined, limit: number, projectSlug?: string, loaded?: number): Promise<{ messages: HistoryMessage[]; hasMore: boolean; totalMessages: number }> {
   var cached = historyCache.get(sessionId);
   if (!cached && projectSlug) {
     var projectPath = getProjectPath(projectSlug);
@@ -731,7 +731,14 @@ export async function getSessionHistoryPage(sessionId: string, beforeIndex: numb
   if (!cached) return { messages: [], hasMore: false, totalMessages: 0 };
 
   var total = cached.messages.length;
-  var endIdx = Math.min(Math.max(0, beforeIndex), total);
+  var endIdx: number;
+  if (loaded !== undefined) {
+    endIdx = Math.max(0, total - loaded);
+  } else if (beforeIndex !== undefined) {
+    endIdx = Math.min(Math.max(0, beforeIndex), total);
+  } else {
+    endIdx = total;
+  }
   var startIdx = Math.max(0, endIdx - limit);
   var page = cached.messages.slice(startIdx, endIdx);
 

@@ -85,9 +85,9 @@ registerHandler("session", async function (clientId: string, message: ClientMess
   }
 
   if (message.type === "session:history_page") {
-    var pageMsg = message as { type: "session:history_page"; sessionId: string; before: number; limit: number };
+    var pageMsg = message as { type: "session:history_page"; sessionId: string; before?: number; loaded?: number; limit: number };
     var activeSession = getActiveSession(clientId);
-    void getSessionHistoryPage(pageMsg.sessionId, pageMsg.before, pageMsg.limit, activeSession?.projectSlug).then(function (page) {
+    void getSessionHistoryPage(pageMsg.sessionId, pageMsg.before, pageMsg.limit, activeSession?.projectSlug, pageMsg.loaded).then(function (page) {
       sendTo(clientId, {
         type: "session:history_page_result",
         sessionId: pageMsg.sessionId,

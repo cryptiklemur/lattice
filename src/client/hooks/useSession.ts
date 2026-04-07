@@ -547,10 +547,7 @@ export function useSession(): UseSessionReturn {
     historyTotalMessages: state.historyTotalMessages,
     loadMoreHistory: function () {
       if (!state.historyHasMore || !state.activeSessionId) return;
-      var totalMessages = state.historyTotalMessages;
-      var loadedCount = state.messages.length;
-      var beforeIndex = totalMessages - loadedCount;
-      sendRef.current({ type: "session:history_page", sessionId: state.activeSessionId, before: beforeIndex, limit: 100 } as any);
+      sendRef.current({ type: "session:history_page", sessionId: state.activeSessionId, loaded: state.messages.length, limit: 100 } as any);
     },
     wasInterrupted: state.wasInterrupted,
     promptSuggestion: state.promptSuggestion,
