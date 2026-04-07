@@ -1027,13 +1027,18 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
     var dur = Date.now() - ss.turnStartTime;
     var cost = resultMsg.total_cost_usd || 0;
 
-    if (resultMsg.usage && resultMsg.modelUsage) {
+    if (resultMsg.usage) {
       var contextWindow = 0;
-      var modelKeys = Object.keys(resultMsg.modelUsage);
-      for (var mk = 0; mk < modelKeys.length; mk++) {
-        var mu = resultMsg.modelUsage[modelKeys[mk]];
-        if (mu.contextWindow > contextWindow) {
-          contextWindow = mu.contextWindow;
+      if (resultMsg.modelUsage) {
+        var modelKeys = Object.keys(resultMsg.modelUsage);
+        for (var mk = 0; mk < modelKeys.length; mk++) {
+          var mu = resultMsg.modelUsage[modelKeys[mk]];
+          if (mu.contextWindow > contextWindow) {
+            contextWindow = mu.contextWindow;
+          }
+        }
+        if (contextWindow === 0 && modelKeys.length > 0) {
+          contextWindow = guessContextWindow(modelKeys[0]);
         }
       }
       sendTo(ss.clientId, {

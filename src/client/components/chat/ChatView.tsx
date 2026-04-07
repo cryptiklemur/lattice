@@ -310,7 +310,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     var percent = 0;
     var filled = 0;
     if (contextUsage && contextUsage.contextWindow > 0) {
-      filled = contextUsage.inputTokens + contextUsage.cacheReadTokens + contextUsage.cacheCreationTokens;
+      filled = contextUsage.inputTokens + contextUsage.outputTokens + contextUsage.cacheReadTokens + contextUsage.cacheCreationTokens;
       percent = Math.min(100, Math.round((filled / contextUsage.contextWindow) * 100));
     }
     var autocompact = contextBreakdown && contextBreakdown.contextWindow > 0 ? Math.round((contextBreakdown.autocompactAt / contextBreakdown.contextWindow) * 100) : 90;
