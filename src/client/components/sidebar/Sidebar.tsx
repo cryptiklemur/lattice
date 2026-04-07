@@ -359,6 +359,8 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     { type: "files" as const, icon: FolderOpen, label: "Files", localOnly: true },
                     { type: "terminal" as const, icon: TerminalSquare, label: "Terminal", localOnly: true },
                     { type: "notes" as const, icon: StickyNote, label: "Notes", localOnly: false },
+                    { type: "tasks" as const, icon: Calendar, label: "Scheduled Tasks", localOnly: false },
+                    { type: "bookmarks" as const, icon: Bookmark, label: "Bookmarks", localOnly: false },
                   ].map(function (item) {
                     var isDisabled = item.localOnly && activeProject?.isRemote;
                     return (
