@@ -27,7 +27,7 @@ export interface WorkspaceState {
   splitRatio: number;
 }
 
-var CHAT_TAB: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false, pinned: true };
+var CHAT_TAB: Tab = { id: "chat", type: "chat", label: "Chat", closeable: true, pinned: true };
 
 var DEFAULT_PANE: Pane = { id: "pane-1", tabIds: ["chat"], activeTabId: "chat" };
 
@@ -79,7 +79,7 @@ export function openTab(type: TabType): void {
       id: type,
       type: type,
       label: labels[type],
-      closeable: type !== "chat",
+      closeable: true,
       pinned: true,
     };
 
@@ -208,37 +208,21 @@ export function updateSessionTabTitle(sessionId: string, title: string): void {
   });
 }
 
+type TabCloseListener = (tab: Tab) => void;
+var tabCloseListeners: TabCloseListener[] = [];
+
+export function onTabClose(listener: TabCloseListener): () => void {
+  tabCloseListeners.push(listener);
+  return function () {
+    tabCloseListeners = tabCloseListeners.filter(function (l) { return l !== listener; });
+  };
+}
+
 export function closeTab(tabId: string): void {
+  var closingTab = workspaceStore.state.tabs.find(function (t) { return t.id === tabId; });
   workspaceStore.setState(function (state) {
     var tab = state.tabs.find(function (t) { return t.id === tabId; });
     if (!tab || !tab.closeable) return state;
-
-    var chatTabCount = 0;
-    for (var i = 0; i < state.tabs.length; i++) {
-      if (state.tabs[i].type === "chat") chatTabCount++;
-    }
-
-    var isLastChatTab = tab.type === "chat" && chatTabCount <= 1;
-
-    if (isLastChatTab) {
-      var replacementTab: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false, pinned: true };
-      var replacedTabs = state.tabs.map(function (t) {
-        if (t.id === tabId) return replacementTab;
-        return t;
-      });
-      var replacedPanes = state.panes.map(function (p) {
-        var newTabIds = p.tabIds.map(function (id) { return id === tabId ? "chat" : id; });
-        var seen = new Set<string>();
-        newTabIds = newTabIds.filter(function (id) {
-          if (seen.has(id)) return false;
-          seen.add(id);
-          return true;
-        });
-        var newActiveTabId = p.activeTabId === tabId ? "chat" : p.activeTabId;
-        return { ...p, tabIds: newTabIds, activeTabId: newActiveTabId };
-      });
-      return { ...state, tabs: replacedTabs, panes: replacedPanes };
-    }
 
     var filteredTabs = state.tabs.filter(function (t) { return t.id !== tabId; });
     var newPanes = state.panes.map(function (p) {
@@ -263,24 +247,19 @@ export function closeTab(tabId: string): void {
       };
     }
 
-    var hasEmptySinglePane = newPanes.length === 1 && newPanes[0].tabIds.length === 0;
-    if (hasEmptySinglePane) {
-      var defaultTab: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false, pinned: true };
-      return {
-        tabs: [defaultTab],
-        panes: [{ ...newPanes[0], tabIds: ["chat"], activeTabId: "chat" }],
-        activePaneId: newPanes[0].id,
-        splitDirection: null,
-        splitRatio: 0.5,
-      };
-    }
-
     return {
       ...state,
       tabs: filteredTabs,
       panes: newPanes,
+      splitDirection: newPanes.length < 2 ? null : state.splitDirection,
+      splitRatio: newPanes.length < 2 ? 0.5 : state.splitRatio,
     };
   });
+  if (closingTab && closingTab.closeable) {
+    for (var i = 0; i < tabCloseListeners.length; i++) {
+      tabCloseListeners[i](closingTab);
+    }
+  }
 }
 
 export function setActiveTab(tabId: string): void {
@@ -537,10 +516,23 @@ function storageKey(projectSlug: string | null): string {
 export function saveWorkspaceForProject(projectSlug: string | null): void {
   let key = storageKey(projectSlug);
   let state = workspaceStore.state;
+  let persistedTabs = state.tabs.filter(function (t) { return t.type !== "brainstorm"; });
+  let persistedPanes = state.panes.map(function (p) {
+    let filteredIds = p.tabIds.filter(function (id) {
+      return !state.tabs.some(function (t) { return t.id === id && t.type === "brainstorm"; });
+    });
+    if (filteredIds.length === 0) return null;
+    let activeStillExists = filteredIds.indexOf(p.activeTabId) !== -1;
+    return { ...p, tabIds: filteredIds, activeTabId: activeStillExists ? p.activeTabId : filteredIds[0] };
+  }).filter(function (p) { return p !== null; }) as Pane[];
+  if (persistedPanes.length === 0) {
+    persistedTabs = [];
+    persistedPanes = [{ id: "pane-1", tabIds: [], activeTabId: "" }];
+  }
   try {
     localStorage.setItem(key, JSON.stringify({
-      tabs: state.tabs,
-      panes: state.panes,
+      tabs: persistedTabs,
+      panes: persistedPanes,
       activePaneId: state.activePaneId,
       splitDirection: state.splitDirection,
       splitRatio: state.splitRatio,
@@ -556,7 +548,7 @@ export function loadWorkspaceForProject(projectSlug: string | null): void {
     let raw = localStorage.getItem(key);
     if (raw) {
       let saved = JSON.parse(raw) as WorkspaceState;
-      if (saved.tabs && saved.panes && saved.tabs.length > 0 && saved.panes.length > 0) {
+      if (saved.tabs && saved.panes && saved.panes.length > 0) {
         let sanitizedPanes = saved.panes.map(function (p: Pane) {
           let seen = new Set<string>();
           let deduped = p.tabIds.filter(function (id: string) {
@@ -585,8 +577,8 @@ export function loadWorkspaceForProject(projectSlug: string | null): void {
   urlSyncSuppressed = true;
   workspaceStore.setState(function () {
     return {
-      tabs: [{ id: "chat", type: "chat" as TabType, label: "Chat", closeable: false, pinned: true }],
-      panes: [{ id: "pane-1", tabIds: ["chat"], activeTabId: "chat" }],
+      tabs: [],
+      panes: [{ id: "pane-1", tabIds: [], activeTabId: "" }],
       activePaneId: "pane-1",
       splitDirection: null,
       splitRatio: 0.5,

@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch, writeFileSync } from "node:fs";
 import type { FSWatcher } from "node:fs";
 import { join } from "node:path";
 import { loadConfig } from "../config";
@@ -104,16 +104,19 @@ function watchSessionDir(projectSlug: string, sessionDir: string): void {
     mkdirSync(stateDir, { recursive: true });
   }
 
-  var existingFiles: string[] = [];
-  try {
-    existingFiles = readdirSync(contentDir);
-  } catch {
-    // ok
-  }
-  for (var i = 0; i < existingFiles.length; i++) {
-    var fname = existingFiles[i];
-    if (fname.endsWith(".html") && !isWaitingFile(fname)) {
-      handleContentFile(projectSlug, contentDir, sessionDir, fname);
+  var alreadyStopped = existsSync(join(stateDir, "server-stopped"));
+  if (!alreadyStopped) {
+    var existingFiles: string[] = [];
+    try {
+      existingFiles = readdirSync(contentDir);
+    } catch {
+      // ok
+    }
+    for (var i = 0; i < existingFiles.length; i++) {
+      var fname = existingFiles[i];
+      if (fname.endsWith(".html") && !isWaitingFile(fname)) {
+        handleContentFile(projectSlug, contentDir, sessionDir, fname);
+      }
     }
   }
 
@@ -269,6 +272,30 @@ export function getAnyActiveBrainstorm(): ActiveBrainstorm | null {
   var keys = Object.keys(activeBrainstorms);
   if (keys.length === 0) return null;
   return activeBrainstorms[keys[0]];
+}
+
+export function stopBrainstorm(projectSlug?: string): void {
+  var slugs = projectSlug ? [projectSlug] : Object.keys(activeBrainstorms);
+  for (var i = 0; i < slugs.length; i++) {
+    var slug = slugs[i];
+    var active = activeBrainstorms[slug];
+    if (!active) continue;
+    var stateDir = join(active.sessionDir, "state");
+    if (!existsSync(stateDir)) {
+      mkdirSync(stateDir, { recursive: true });
+    }
+    var stoppedPath = join(stateDir, "server-stopped");
+    if (!existsSync(stoppedPath)) {
+      try {
+        writeFileSync(stoppedPath, String(Date.now()));
+      } catch (err) {
+        log.server("[brainstorm] failed to write server-stopped: %s", err);
+      }
+    }
+    delete activeBrainstorms[slug];
+    log.server("[brainstorm] stopped brainstorm for project %s", slug);
+  }
+  broadcast({ type: "brainstorm:cleared" });
 }
 
 export function writeBrainstormEvent(sessionDir: string, event: object): void {

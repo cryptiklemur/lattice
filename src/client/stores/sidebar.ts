@@ -87,7 +87,7 @@ function parseInitialUrl(): ParsedUrl {
 
   if (parts.length >= 1 && parts[0] !== "settings") {
     const projectSlug = parts[0];
-    if (tParam) {
+    if (tParam != null) {
       const decoded = decodeWorkspaceUrl(tParam, projectSlug, resolveFullIdFromNothing);
       let sessionId: string | null = null;
       const activePane = decoded.panes.find(function (p) { return p.id === decoded.activePaneId; });
@@ -121,7 +121,7 @@ const sidebarStore = new Store<SidebarState>({
     : initialUrl.projectSettingsSection
     ? { type: "project-settings", section: initialUrl.projectSettingsSection }
     : initialUrl.projectSlug
-    ? (initialUrl.sessionId || initialUrl.tParam ? { type: "chat" } : { type: "project-dashboard" })
+    ? (initialUrl.sessionId || initialUrl.tParam != null ? { type: "chat" } : { type: "project-dashboard" })
     : { type: "dashboard" },
   previousView: null,
   userMenuOpen: false,
@@ -139,10 +139,7 @@ function pushUrl(projectSlug: string | null, replace: boolean = false): void {
   const encoded = encodeWorkspaceUrl(wsState, wsState.tabs, projectSlug);
   let path = "/";
   if (projectSlug) {
-    path = "/" + projectSlug;
-    if (encoded) {
-      path += "?t=" + encoded;
-    }
+    path = "/" + projectSlug + "?t=" + encoded;
   }
   const hash = window.location.hash;
   const fullUrl = path + hash;
@@ -169,10 +166,7 @@ export function syncUrlFromWorkspace(): void {
   const isActiveTabChangeOnly = detectActiveTabChangeOnly(lastEncodedUrl, encoded);
   lastEncodedUrl = encoded;
 
-  let path = "/" + state.activeProjectSlug;
-  if (encoded) {
-    path += "?t=" + encoded;
-  }
+  let path = "/" + state.activeProjectSlug + "?t=" + encoded;
   const hash = window.location.hash;
   const fullUrl = path + hash;
 
@@ -409,7 +403,7 @@ export function handlePopState(): void {
 
   const projectSlug = parts.length > 0 ? parts[0] : null;
 
-  if (tParam && projectSlug) {
+  if (tParam != null && projectSlug) {
     const decoded = decodeWorkspaceUrl(tParam, projectSlug, resolveFullIdFromNothing);
     restoreWorkspace(decoded);
     lastEncodedUrl = tParam;
@@ -429,7 +423,7 @@ export function handlePopState(): void {
         activeProjectSlug: projectSlug,
         activeSessionId: sessionId,
         sidebarMode: "project",
-        activeView: sessionId || decoded.tabs.length > 0 ? { type: "chat" } : { type: "project-dashboard" },
+        activeView: { type: "chat" },
         userMenuOpen: false,
         projectDropdownOpen: false,
       };

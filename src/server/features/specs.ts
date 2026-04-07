@@ -1,11 +1,13 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, watch } from "node:fs";
+import { join, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
 import { getLatticeHome } from "../config";
 import type { Spec, SpecStatus, SpecPriority, SpecEffort, SpecSection, SpecActivityType } from "#shared";
 
 var specsFile = "";
 var specs: Spec[] = [];
+var lastSaveTime = 0;
+var onReloadCallback: (() => void) | null = null;
 
 function getSpecsPath(): string {
   if (!specsFile) {
@@ -16,17 +18,59 @@ function getSpecsPath(): string {
 
 export function loadSpecs(): void {
   var path = getSpecsPath();
-  if (!existsSync(path)) {
+  if (existsSync(path)) {
+    try {
+      var raw = readFileSync(path, "utf-8");
+      specs = JSON.parse(raw) as Spec[];
+    } catch (err) {
+      console.error("[specs] Failed to load specs:", err);
+      specs = [];
+    }
+  } else {
     specs = [];
-    return;
   }
+  watchSpecsFile();
+}
+
+export function onSpecsReloaded(callback: () => void): void {
+  onReloadCallback = callback;
+}
+
+var watcher: ReturnType<typeof watch> | null = null;
+var reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+function reloadFromDisk(): void {
+  var path = getSpecsPath();
   try {
     var raw = readFileSync(path, "utf-8");
     specs = JSON.parse(raw) as Spec[];
+    if (onReloadCallback) onReloadCallback();
   } catch (err) {
-    console.error("[specs] Failed to load specs:", err);
-    specs = [];
+    console.error("[specs] Failed to reload specs:", err);
   }
+}
+
+function watchSpecsFile(): void {
+  if (watcher) return;
+  var path = getSpecsPath();
+  var dir = dirname(path);
+  var filename = path.slice(dir.length + 1);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  try {
+    watcher = watch(dir, function (_eventType, changedFile) {
+      if (changedFile && changedFile !== filename && changedFile !== filename + ".tmp") return;
+      if (Date.now() - lastSaveTime < 500) return;
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(function () {
+        reloadTimer = null;
+        if (!existsSync(path)) return;
+        console.log("[specs] External change detected, reloading");
+        reloadFromDisk();
+      }, 300);
+    });
+  } catch {}
 }
 
 function saveSpecs(): void {
@@ -37,6 +81,7 @@ function saveSpecs(): void {
   }
   var tmp = path + ".tmp";
   try {
+    lastSaveTime = Date.now();
     writeFileSync(tmp, JSON.stringify(specs, null, 2));
     renameSync(tmp, path);
   } catch (err) {

@@ -6,7 +6,7 @@ import type { WebSocketStatus } from "../hooks/useWebSocket";
 import { showToast } from "../components/ui/Toast";
 import { getSessionStore } from "../stores/session";
 import { sendNotification } from "../hooks/useNotifications";
-import { openTab } from "../stores/workspace";
+import { openTab, onTabClose } from "../stores/workspace";
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -178,9 +178,15 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
     }
     subscribe("brainstorm:content", handleBrainstormContent);
     subscribe("brainstorm:status", handleBrainstormStatus);
+    var unregisterTabClose = onTabClose(function (tab) {
+      if (tab.type === "brainstorm") {
+        send({ type: "brainstorm:stop" } as ClientMessage);
+      }
+    });
     return function () {
       unsubscribe("brainstorm:content", handleBrainstormContent);
       unsubscribe("brainstorm:status", handleBrainstormStatus);
+      unregisterTabClose();
     };
   }, []);
 

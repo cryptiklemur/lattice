@@ -12,7 +12,7 @@ import { getClientDir } from "./assets";
 import { getLatticeHome, loadConfig } from "./config";
 import { loadOrCreateIdentity } from "./identity";
 import { addClient, removeClient, routeMessage } from "./ws/server";
-import { broadcast, sendTo, markClientAlive, startHeartbeat, subscribeClientToProject } from "./ws/broadcast";
+import { broadcast, broadcastToProject, sendTo, markClientAlive, startHeartbeat, subscribeClientToProject } from "./ws/broadcast";
 import { buildNodesMessage } from "./handlers/mesh";
 import { startDiscovery } from "./mesh/discovery";
 import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessage, getAllRemoteProjects } from "./mesh/connector";
@@ -49,7 +49,7 @@ import "./handlers/themes";
 import "./handlers/specs";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
-import { loadSpecs } from "./features/specs";
+import { loadSpecs, onSpecsReloaded, listSpecs } from "./features/specs";
 import { startPeriodicUpdateCheck, getCachedUpdateInfo } from "./update-checker";
 import { loadBookmarks } from "./project/bookmarks";
 import { listSessions } from "./project/session";
@@ -579,6 +579,13 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   startScheduler();
   loadNotes();
   loadSpecs();
+  onSpecsReloaded(function () {
+    var allSpecs = listSpecs();
+    var slugs = new Set(allSpecs.map(function (s) { return s.projectSlug; }));
+    for (var slug of slugs) {
+      broadcastToProject(slug, { type: "specs:list_result", specs: listSpecs(slug) });
+    }
+  });
   loadBookmarks();
   startBrainstormWatchers();
   startPeriodicUpdateCheck();

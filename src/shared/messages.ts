@@ -768,6 +768,7 @@ export type ClientMessage =
   | ThemeDeleteMessage
   | BrainstormSelectMessage
   | BrainstormStatusRequestMessage
+  | BrainstormStopMessage
   | SpecsListMessage
   | SpecsGetMessage
   | SpecsCreateMessage
@@ -1410,6 +1411,10 @@ export interface BrainstormSelectMessage {
 
 export interface BrainstormStatusRequestMessage {
   type: "brainstorm:status_request";
+}
+
+export interface BrainstormStopMessage {
+  type: "brainstorm:stop";
 }
 
 export interface MeshHelloMessage {

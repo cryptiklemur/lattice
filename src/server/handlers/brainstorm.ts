@@ -1,7 +1,7 @@
 import type { ClientMessage, BrainstormSelectMessage } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
-import { getActiveBrainstorm, getAnyActiveBrainstorm, writeBrainstormEvent } from "../features/brainstorm";
+import { getActiveBrainstorm, getAnyActiveBrainstorm, writeBrainstormEvent, stopBrainstorm } from "../features/brainstorm";
 import { getActiveProjectForClient } from "./fs";
 
 registerHandler("brainstorm", function (clientId: string, message: ClientMessage) {
@@ -13,6 +13,12 @@ registerHandler("brainstorm", function (clientId: string, message: ClientMessage
       text: selectMsg.text,
       timestamp: Date.now(),
     });
+    return;
+  }
+
+  if (message.type === "brainstorm:stop") {
+    var stopProjectSlug = getActiveProjectForClient(clientId);
+    stopBrainstorm(stopProjectSlug || undefined);
     return;
   }
 

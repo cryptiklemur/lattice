@@ -163,7 +163,7 @@ export function decodeWorkspaceUrl(
           projectSlug: projectSlug,
         };
       } else if (tabType === "chat") {
-        tab = { id: "chat", type: "chat", label: "Chat", closeable: false, pinned: true };
+        tab = { id: "chat", type: "chat", label: "Chat", closeable: true, pinned: true };
       } else {
         tab = {
           id: tabType,
@@ -194,9 +194,7 @@ export function decodeWorkspaceUrl(
   }
 
   if (panes.length === 0) {
-    const defaultTab: Tab = { id: "chat", type: "chat", label: "Chat", closeable: false, pinned: true };
-    tabs.push(defaultTab);
-    panes.push({ id: "pane-1", tabIds: ["chat"], activeTabId: "chat" });
+    panes.push({ id: "pane-1", tabIds: [], activeTabId: "" });
   }
 
   const resolvedActivePaneIndex = Math.min(activePaneIndex, panes.length - 1);
