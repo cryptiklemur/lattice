@@ -60,6 +60,8 @@ import type { SessionState, BudgetStatus } from "../stores/session";
 
 export type { SessionState };
 
+var globalSubscriptionCount = 0;
+
 export interface UseSessionReturn extends SessionState {
   sendMessage: (text: string, attachmentIds?: string[], model?: string, effort?: string) => void;
   activateSession: (projectSlug: string, sessionId: string) => void;
@@ -83,7 +85,6 @@ export function useSession(): UseSessionReturn {
   var sendRef = useRef(send);
   sendRef.current = send;
   var sendMessageRef = useRef(function (_text: string, _attachmentIds?: string[], _model?: string, _effort?: string) {});
-  var subscriptionsActiveRef = useRef(0);
   var activeStreamGenerationRef = useRef(0);
   var streamSessionIdRef = useRef<string | null>(null);
   var lastSentTextRef = useRef<string | null>(null);
@@ -133,9 +134,9 @@ export function useSession(): UseSessionReturn {
   sendMessageRef.current = sendMessage;
 
   useEffect(function () {
-    subscriptionsActiveRef.current++;
-    if (subscriptionsActiveRef.current > 1) {
-      return function () { subscriptionsActiveRef.current--; };
+    globalSubscriptionCount++;
+    if (globalSubscriptionCount > 1) {
+      return function () { globalSubscriptionCount--; };
     }
 
     function isStaleStream(): boolean {
@@ -287,6 +288,10 @@ export function useSession(): UseSessionReturn {
 
     function handlePermissionRequest(msg: ServerMessage) {
       var m = msg as ChatPermissionRequestMessage;
+      var existing = getSessionStore().state.messages.findLastIndex(function (msg) {
+        return msg.toolId === m.requestId && msg.type === "permission_request";
+      });
+      if (existing >= 0) return;
       setCurrentAssistantUuid(null);
       addSessionMessage({
         type: "permission_request",
@@ -498,7 +503,7 @@ export function useSession(): UseSessionReturn {
     subscribe("chat:rate_limit", handleRateLimit);
 
     return function () {
-      subscriptionsActiveRef.current--;
+      globalSubscriptionCount--;
       unsubscribe("session:loading_progress", handleLoadingProgress);
       unsubscribe("chat:user_message", handleUserMessage);
       unsubscribe("chat:delta", handleDelta);
