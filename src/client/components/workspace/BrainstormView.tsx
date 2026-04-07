@@ -1,21 +1,42 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Lightbulb } from "lucide-react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSession } from "../../hooks/useSession";
+import { useTheme } from "../../hooks/useTheme";
 import type { ServerMessage } from "#shared";
 
-var IFRAME_CSS = `
-  :root {
-    --bg-primary: oklch(var(--b1));
-    --bg-secondary: oklch(var(--b2));
-    --bg-tertiary: oklch(var(--b3));
-    --border: oklch(var(--bc) / 0.15);
-    --text-primary: oklch(var(--bc));
-    --text-secondary: oklch(var(--bc) / 0.6);
-    --accent: oklch(var(--p));
-    --selected-bg: oklch(var(--p) / 0.12);
-    --selected-border: oklch(var(--p));
+function resolveThemeVars(): string {
+  var style = getComputedStyle(document.documentElement);
+  var base100 = style.getPropertyValue("--color-base-100").trim();
+  var base200 = style.getPropertyValue("--color-base-200").trim();
+  var base300 = style.getPropertyValue("--color-base-300").trim();
+  var baseContent = style.getPropertyValue("--color-base-content").trim();
+  var primary = style.getPropertyValue("--color-primary").trim();
+  var primaryContent = style.getPropertyValue("--color-primary-content").trim();
+
+  // Extract raw oklch values (strip "oklch(" and ")")
+  function raw(v: string): string {
+    return v.replace(/^oklch\(/, "").replace(/\)$/, "");
   }
+  var bc = raw(baseContent);
+  var p = raw(primary);
+
+  return `
+  :root {
+    --bg-primary: ${base100};
+    --bg-secondary: ${base200};
+    --bg-tertiary: ${base300};
+    --border: oklch(${bc} / 0.15);
+    --text-primary: ${baseContent};
+    --text-secondary: oklch(${bc} / 0.6);
+    --accent: ${primary};
+    --accent-content: ${primaryContent};
+    --selected-bg: oklch(${p} / 0.12);
+    --selected-border: ${primary};
+  }`;
+}
+
+var IFRAME_CSS_BODY = `
 
   *, *::before, *::after { box-sizing: border-box; }
 
@@ -90,7 +111,7 @@ var IFRAME_CSS = `
     font-size: 11px;
     font-weight: 700;
     color: var(--accent);
-    background: oklch(var(--p) / 0.15);
+    background: var(--selected-bg);
     border-radius: 4px;
     padding: 2px 6px;
     flex-shrink: 0;
@@ -193,7 +214,7 @@ var IFRAME_CSS = `
   .mock-button {
     display: inline-block;
     background: var(--accent);
-    color: oklch(var(--pc));
+    color: var(--accent-content);
     border-radius: 4px;
     padding: 4px 10px;
     font-size: 11px;
@@ -307,8 +328,11 @@ export function BrainstormView() {
     };
   }, []);
 
+  var { currentThemeId } = useTheme();
+  var themeVars = useMemo(resolveThemeVars, [currentThemeId]);
+
   var srcdoc = html
-    ? `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${IFRAME_CSS}</style></head><body>${html}<script>${CLICK_SCRIPT}</script></body></html>`
+    ? `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${themeVars}\n${IFRAME_CSS_BODY}</style></head><body>${html}<script>${CLICK_SCRIPT}</script></body></html>`
     : null;
 
   return (
