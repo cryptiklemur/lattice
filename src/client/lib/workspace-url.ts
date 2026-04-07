@@ -1,6 +1,6 @@
 import type { Tab, Pane, TabType, WorkspaceState } from "../stores/workspace";
 
-const TAB_TYPES: Set<string> = new Set(["chat", "files", "terminal", "notes", "tasks", "bookmarks", "analytics"]);
+const TAB_TYPES: Set<string> = new Set(["chat", "files", "terminal", "notes", "tasks", "bookmarks", "analytics", "specs"]);
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -93,6 +93,7 @@ export function decodeWorkspaceUrl(
     bookmarks: "Bookmarks",
     analytics: "Analytics",
     brainstorm: "Brainstorm",
+    specs: "Specs",
   };
 
   let splitMeta: string | null = null;

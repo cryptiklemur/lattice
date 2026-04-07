@@ -1,7 +1,7 @@
 import { Store } from "@tanstack/react-store";
 import type { DecodedWorkspace } from "../lib/workspace-url";
 
-export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks" | "analytics" | "brainstorm";
+export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks" | "analytics" | "brainstorm" | "specs";
 
 export interface Tab {
   id: string;
@@ -73,6 +73,7 @@ export function openTab(type: TabType): void {
       bookmarks: "Bookmarks",
       analytics: "Analytics",
       brainstorm: "Brainstorm",
+      specs: "Specs",
     };
     var tab: Tab = {
       id: type,
