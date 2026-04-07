@@ -40,10 +40,11 @@ function relativeTime(ts: number): string {
 interface SpecListViewProps {
   specs: Spec[];
   onSelectSpec: (spec: Spec) => void;
+  filter: SpecStatus | "all";
+  onFilterChange: (filter: SpecStatus | "all") => void;
 }
 
-export function SpecListView({ specs, onSelectSpec }: SpecListViewProps) {
-  var [filter, setFilter] = useState<SpecStatus | "all">("all");
+export function SpecListView({ specs, onSelectSpec, filter, onFilterChange }: SpecListViewProps) {
   var [sortField, setSortField] = useState<SortField>("updatedAt");
   var [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -93,7 +94,7 @@ export function SpecListView({ specs, onSelectSpec }: SpecListViewProps) {
             <button
               key={opt.value}
               type="button"
-              onClick={function () { setFilter(opt.value); }}
+              onClick={function () { onFilterChange(opt.value); }}
               className={
                 "px-2.5 py-1 rounded-full text-[11px] font-mono transition-colors " +
                 (isActive

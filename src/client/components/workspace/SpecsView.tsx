@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ClipboardList, Plus, List, LayoutGrid } from "lucide-react";
-import type { Spec, ServerMessage } from "#shared";
+import type { Spec, SpecStatus, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
@@ -23,12 +23,15 @@ export function SpecsView() {
   var { activeProjectSlug } = useSidebar();
   var online = useOnline();
   var [specs, setSpecs] = useState<Spec[]>([]);
+  var [loading, setLoading] = useState(true);
   var [viewMode, setViewMode] = useState<ViewMode>(getPersistedViewMode);
+  var [statusFilter, setStatusFilter] = useState<SpecStatus | "all">("in-progress");
   var [editingSpecId, setEditingSpecId] = useState<string | null>(null);
 
   var handleMessage = useCallback(function (msg: ServerMessage) {
     if (msg.type === "specs:list_result") {
       setSpecs(msg.specs);
+      setLoading(false);
       return;
     }
     if (msg.type === "specs:created") {
@@ -51,6 +54,7 @@ export function SpecsView() {
   }, [editingSpecId]);
 
   useEffect(function () {
+    setLoading(true);
     subscribe("specs:list_result", handleMessage);
     subscribe("specs:created", handleMessage);
     subscribe("specs:updated", handleMessage);
@@ -146,7 +150,13 @@ export function SpecsView() {
       </div>
 
       <div className="flex-1 overflow-auto p-4">
-        {specs.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col gap-3 mt-2">
+            <div className="h-12 bg-base-content/10 animate-pulse rounded" />
+            <div className="h-12 bg-base-content/10 animate-pulse rounded" />
+            <div className="h-12 bg-base-content/10 animate-pulse rounded" />
+          </div>
+        ) : specs.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center mt-16 gap-3">
             <ClipboardList size={28} className="text-base-content/15" />
             <div>
@@ -165,7 +175,7 @@ export function SpecsView() {
             </button>
           </div>
         ) : viewMode === "list" ? (
-          <SpecListView specs={specs} onSelectSpec={handleSelectSpec} />
+          <SpecListView specs={specs} onSelectSpec={handleSelectSpec} filter={statusFilter} onFilterChange={setStatusFilter} />
         ) : (
           <SpecBoardView specs={specs} onSelectSpec={handleSelectSpec} />
         )}

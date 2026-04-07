@@ -119,9 +119,17 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     if (drag.sourcePaneId !== effectivePaneId) {
       return;
     }
+    var fromIndex = paneTabs.findIndex(function (t) { return t.id === drag.draggedTabId; });
     var rect = e.currentTarget.getBoundingClientRect();
-    var midX = rect.left + rect.width / 2;
-    var targetIndex = e.clientX < midX ? index : index + 1;
+    var fraction = (e.clientX - rect.left) / rect.width;
+    var targetIndex: number;
+    if (fromIndex < index) {
+      targetIndex = fraction > 0.25 ? index + 1 : index;
+    } else if (fromIndex > index) {
+      targetIndex = fraction < 0.75 ? index : index + 1;
+    } else {
+      targetIndex = index;
+    }
     setDropIndex(targetIndex);
   }
 
