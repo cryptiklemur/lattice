@@ -13,6 +13,8 @@ import {
   setSplitRatio,
   setActivePaneId,
   getActiveSessionTab,
+  reorderTab,
+  moveTabToPane,
 } from "../stores/workspace";
 import type { WorkspaceState, TabType, Tab } from "../stores/workspace";
 
@@ -30,6 +32,8 @@ export interface UseWorkspaceReturn extends WorkspaceState {
   setSplitRatio: (ratio: number) => void;
   setActivePaneId: (paneId: string) => void;
   getActiveSessionTab: () => Tab | null;
+  reorderTab: (paneId: string, fromIndex: number, toIndex: number) => void;
+  moveTabToPane: (tabId: string, sourcePaneId: string, targetPaneId: string) => void;
 }
 
 export function useWorkspace(): UseWorkspaceReturn {
@@ -53,5 +57,7 @@ export function useWorkspace(): UseWorkspaceReturn {
     setSplitRatio: setSplitRatio,
     setActivePaneId: setActivePaneId,
     getActiveSessionTab: getActiveSessionTab,
+    reorderTab: reorderTab,
+    moveTabToPane: moveTabToPane,
   };
 }

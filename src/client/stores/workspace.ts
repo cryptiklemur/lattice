@@ -417,6 +417,72 @@ export function setActivePaneId(paneId: string): void {
   });
 }
 
+export function reorderTab(paneId: string, fromIndex: number, toIndex: number): void {
+  if (fromIndex === toIndex) return;
+  workspaceStore.setState(function (state) {
+    var pane = state.panes.find(function (p) { return p.id === paneId; });
+    if (!pane) return state;
+    if (fromIndex < 0 || fromIndex >= pane.tabIds.length) return state;
+    if (toIndex < 0 || toIndex >= pane.tabIds.length) return state;
+    var newTabIds = [...pane.tabIds];
+    var [moved] = newTabIds.splice(fromIndex, 1);
+    newTabIds.splice(toIndex, 0, moved);
+    return {
+      ...state,
+      panes: state.panes.map(function (p) {
+        if (p.id === paneId) return { ...p, tabIds: newTabIds };
+        return p;
+      }),
+    };
+  });
+}
+
+export function moveTabToPane(tabId: string, sourcePaneId: string, targetPaneId: string): void {
+  if (sourcePaneId === targetPaneId) return;
+  workspaceStore.setState(function (state) {
+    var sourcePane = state.panes.find(function (p) { return p.id === sourcePaneId; });
+    var targetPane = state.panes.find(function (p) { return p.id === targetPaneId; });
+    if (!sourcePane || !targetPane) return state;
+    if (sourcePane.tabIds.indexOf(tabId) === -1) return state;
+    if (targetPane.tabIds.indexOf(tabId) !== -1) return state;
+
+    var newSourceTabIds = sourcePane.tabIds.filter(function (id) { return id !== tabId; });
+    var newTargetTabIds = [...targetPane.tabIds, tabId];
+
+    var newSourceActiveTabId = sourcePane.activeTabId === tabId
+      ? (newSourceTabIds.length > 0 ? newSourceTabIds[Math.max(0, sourcePane.tabIds.indexOf(tabId) - 1)] : "")
+      : sourcePane.activeTabId;
+
+    var newPanes = state.panes.map(function (p) {
+      if (p.id === sourcePaneId) {
+        return { ...p, tabIds: newSourceTabIds, activeTabId: newSourceActiveTabId };
+      }
+      if (p.id === targetPaneId) {
+        return { ...p, tabIds: newTargetTabIds, activeTabId: tabId };
+      }
+      return p;
+    });
+
+    var emptyPane = newPanes.find(function (p) { return p.tabIds.length === 0; });
+    if (emptyPane && newPanes.length > 1) {
+      var remainingPanes = newPanes.filter(function (p) { return p.tabIds.length > 0; });
+      return {
+        tabs: state.tabs,
+        panes: remainingPanes,
+        activePaneId: targetPaneId,
+        splitDirection: null,
+        splitRatio: 0.5,
+      };
+    }
+
+    return {
+      ...state,
+      panes: newPanes,
+      activePaneId: targetPaneId,
+    };
+  });
+}
+
 export function getActiveSessionTab(): Tab | null {
   var state = workspaceStore.state;
   var activePane = state.panes.find(function (p) { return p.id === state.activePaneId; });
