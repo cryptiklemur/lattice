@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ClipboardList, Plus, List, LayoutGrid } from "lucide-react";
 import type { Spec, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { useSession } from "../../hooks/useSession";
+import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
 import { SpecEditor } from "./specs/SpecEditor";
 import { SpecListView } from "./specs/SpecListView";
@@ -20,7 +20,7 @@ function getPersistedViewMode(): ViewMode {
 
 export function SpecsView() {
   var { send, subscribe, unsubscribe } = useWebSocket();
-  var { activeProjectSlug } = useSession();
+  var { activeProjectSlug } = useSidebar();
   var online = useOnline();
   var [specs, setSpecs] = useState<Spec[]>([]);
   var [viewMode, setViewMode] = useState<ViewMode>(getPersistedViewMode);

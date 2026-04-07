@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Spec, SpecStatus, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { useSession } from "../../hooks/useSession";
+import { useSidebar } from "../../hooks/useSidebar";
 import { openTab } from "../../stores/workspace";
 import { getSidebarStore } from "../../stores/sidebar";
 import { STATUS_DOT, PRIORITY_COLOR } from "../workspace/specs/SpecCard";
@@ -16,7 +16,7 @@ var STATUS_ABBREV: Record<SpecStatus, string> = {
 
 export function SpecsSidebarWidget() {
   var { send, subscribe, unsubscribe } = useWebSocket();
-  var { activeProjectSlug } = useSession();
+  var { activeProjectSlug } = useSidebar();
   var [specs, setSpecs] = useState<Spec[]>([]);
   var [collapsed, setCollapsed] = useState(false);
 
