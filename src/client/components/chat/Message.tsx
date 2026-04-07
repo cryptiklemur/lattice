@@ -47,6 +47,9 @@ function TableWrapper(props: React.HTMLAttributes<HTMLTableElement>) {
 
 var mdComponents = {
   table: TableWrapper,
+  a: function MdLink(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+    return <a {...props} target="_blank" rel="noopener noreferrer" />;
+  },
 };
 
 interface MessageProps {

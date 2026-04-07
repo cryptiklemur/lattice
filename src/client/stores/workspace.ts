@@ -227,6 +227,12 @@ export function closeTab(tabId: string): void {
       });
       var replacedPanes = state.panes.map(function (p) {
         var newTabIds = p.tabIds.map(function (id) { return id === tabId ? "chat" : id; });
+        var seen = new Set<string>();
+        newTabIds = newTabIds.filter(function (id) {
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
         var newActiveTabId = p.activeTabId === tabId ? "chat" : p.activeTabId;
         return { ...p, tabIds: newTabIds, activeTabId: newActiveTabId };
       });
@@ -359,7 +365,15 @@ export function closePane(paneId: string): void {
     var remainingPane = state.panes.find(function (p) { return p.id !== paneId; });
     if (!closingPane || !remainingPane) return state;
 
-    var mergedTabIds = [...remainingPane.tabIds, ...closingPane.tabIds];
+    var mergedTabIds: string[] = [];
+    var mergedSeen = new Set<string>();
+    var allIds = [...remainingPane.tabIds, ...closingPane.tabIds];
+    for (let i = 0; i < allIds.length; i++) {
+      if (!mergedSeen.has(allIds[i])) {
+        mergedSeen.add(allIds[i]);
+        mergedTabIds.push(allIds[i]);
+      }
+    }
 
     return {
       ...state,
@@ -471,12 +485,21 @@ export function loadWorkspaceForProject(projectSlug: string | null): void {
     if (raw) {
       let saved = JSON.parse(raw) as WorkspaceState;
       if (saved.tabs && saved.panes && saved.tabs.length > 0 && saved.panes.length > 0) {
+        let sanitizedPanes = saved.panes.map(function (p: Pane) {
+          let seen = new Set<string>();
+          let deduped = p.tabIds.filter(function (id: string) {
+            if (seen.has(id)) return false;
+            seen.add(id);
+            return true;
+          });
+          return deduped.length !== p.tabIds.length ? { ...p, tabIds: deduped } : p;
+        });
         urlSyncSuppressed = true;
         workspaceStore.setState(function () {
           return {
             tabs: saved.tabs,
-            panes: saved.panes,
-            activePaneId: saved.activePaneId || saved.panes[0].id,
+            panes: sanitizedPanes,
+            activePaneId: saved.activePaneId || sanitizedPanes[0].id,
             splitDirection: saved.splitDirection || null,
             splitRatio: saved.splitRatio || 0.5,
           };

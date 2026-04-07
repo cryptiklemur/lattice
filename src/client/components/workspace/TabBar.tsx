@@ -33,7 +33,10 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
   if (paneId) {
     var pane = workspace.panes.find(function (p) { return p.id === paneId; });
     if (!pane) return null;
+    var seenIds = new Set<string>();
     paneTabs = pane.tabIds.map(function (id) {
+      if (seenIds.has(id)) return null;
+      seenIds.add(id);
       return workspace.tabs.find(function (t) { return t.id === id; });
     }).filter(function (t): t is Tab { return t != null; });
     activeTabId = pane.activeTabId;
