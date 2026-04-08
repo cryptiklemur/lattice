@@ -18,6 +18,7 @@ export type ActiveView =
   | { type: "dashboard" }
   | { type: "project-dashboard" }
   | { type: "analytics" }
+  | { type: "context" }
   | { type: "chat" }
   | { type: "settings"; section: SettingsSection }
   | { type: "project-settings"; section: ProjectSettingsSection };

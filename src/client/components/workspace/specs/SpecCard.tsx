@@ -1,17 +1,5 @@
-import type { Spec, SpecStatus, SpecPriority } from "#shared";
-
-export var STATUS_DOT: Record<SpecStatus, string> = {
-  "draft": "bg-info",
-  "in-progress": "bg-warning",
-  "on-hold": "bg-base-content/40",
-  "completed": "bg-success",
-};
-
-export var PRIORITY_COLOR: Record<SpecPriority, string> = {
-  "high": "text-error",
-  "medium": "text-warning",
-  "low": "text-base-content/40",
-};
+import type { Spec } from "#shared";
+import { STATUS_DOT, PRIORITY_COLOR, PRIORITY_LABELS, EFFORT_LABELS } from "./spec-constants";
 
 interface SpecCardProps {
   spec: Spec;
@@ -20,21 +8,12 @@ interface SpecCardProps {
 }
 
 export function SpecCard({ spec, onClick, compact }: SpecCardProps) {
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onClick();
-    }
-  }
-
   return (
-    <div
-      tabIndex={0}
-      role="button"
+    <button
+      type="button"
       onClick={onClick}
-      onKeyDown={handleKeyDown}
       className={
-        "flex flex-col gap-1 p-2.5 rounded-lg border border-base-content/10 bg-base-100 hover:bg-base-content/5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" +
+        "flex flex-col gap-1 p-2.5 rounded-lg border border-base-content/10 bg-base-100 hover:bg-base-content/5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 text-left w-full" +
         (spec.status === "completed" ? " opacity-60" : "")
       }
     >
@@ -51,12 +30,12 @@ export function SpecCard({ spec, onClick, compact }: SpecCardProps) {
       )}
       <div className="flex items-center gap-2 pl-3.5">
         <span className={"text-[10px] font-mono " + PRIORITY_COLOR[spec.priority]}>
-          {spec.priority}
+          {PRIORITY_LABELS[spec.priority]}
         </span>
         <span className="text-[10px] font-mono text-base-content/30">
-          {spec.estimatedEffort}
+          {EFFORT_LABELS[spec.estimatedEffort]}
         </span>
       </div>
-    </div>
+    </button>
   );
 }

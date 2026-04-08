@@ -22,7 +22,7 @@ interface SpecRichEditorProps {
 function tryParseJson(str: string): Record<string, unknown> | null {
   if (!str) return null;
   try {
-    var parsed = JSON.parse(str);
+    const parsed = JSON.parse(str);
     if (typeof parsed === "object" && parsed !== null) return parsed as Record<string, unknown>;
   } catch {
     // not JSON
@@ -58,13 +58,14 @@ function ToolbarButton({ active, onClick, disabled, label, children }: {
 }
 
 export function SpecRichEditor({ content, onChange, placeholder, disabled }: SpecRichEditorProps) {
-  var contentRef = useRef(content);
+  const contentRef = useRef(content);
   contentRef.current = content;
 
-  var editor = useEditor({
+  const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2] },
+        link: false,
       }),
       Link.configure({ openOnClick: true }),
       TaskList,
@@ -74,7 +75,7 @@ export function SpecRichEditor({ content, onChange, placeholder, disabled }: Spe
     editable: !disabled,
     content: tryParseJson(content) ?? (content || ""),
     onUpdate: function ({ editor }) {
-      var json = JSON.stringify(editor.getJSON());
+      const json = JSON.stringify(editor.getJSON());
       onChange(json);
     },
   });
@@ -86,8 +87,8 @@ export function SpecRichEditor({ content, onChange, placeholder, disabled }: Spe
 
   useEffect(function () {
     if (!editor || editor.isFocused) return;
-    var parsed = tryParseJson(content);
-    var currentJson = JSON.stringify(editor.getJSON());
+    const parsed = tryParseJson(content);
+    const currentJson = JSON.stringify(editor.getJSON());
     if (parsed && JSON.stringify(parsed) !== currentJson) {
       editor.commands.setContent(parsed);
     } else if (!parsed && content !== currentJson) {
@@ -99,7 +100,7 @@ export function SpecRichEditor({ content, onChange, placeholder, disabled }: Spe
 
   function handleLinkInsert() {
     if (!editor) return;
-    var url = window.prompt("URL:");
+    const url = window.prompt("Enter a URL (e.g. https://example.com):");
     if (url) {
       editor.chain().focus().setLink({ href: url }).run();
     }

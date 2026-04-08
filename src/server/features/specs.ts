@@ -211,7 +211,80 @@ export function deleteSpec(id: string): boolean {
   return false;
 }
 
-export function linkSession(specId: string, sessionId: string, note?: string): Spec | null {
+export function populateSpec(id: string, fields: Record<string, unknown>, sessionId?: string): Spec | null {
+  for (var i = 0; i < specs.length; i++) {
+    if (specs[i].id !== id) continue;
+    var spec = specs[i];
+    if (fields.title && typeof fields.title === "string") spec.title = fields.title;
+    if (fields.tagline && typeof fields.tagline === "string") spec.tagline = fields.tagline;
+    if (fields.priority && typeof fields.priority === "string") spec.priority = fields.priority as SpecPriority;
+    if (fields.estimatedEffort && typeof fields.estimatedEffort === "string") spec.estimatedEffort = fields.estimatedEffort as SpecEffort;
+    if (fields.tags && Array.isArray(fields.tags)) spec.tags = fields.tags;
+    if (fields.summary && typeof fields.summary === "string") spec.sections.summary = fields.summary;
+    if (fields.currentState && typeof fields.currentState === "string") spec.sections.currentState = fields.currentState;
+    if (fields.requirements && typeof fields.requirements === "string") spec.sections.requirements = fields.requirements;
+    if (fields.implementationPlan && typeof fields.implementationPlan === "string") spec.sections.implementationPlan = fields.implementationPlan;
+    if (fields.testing && typeof fields.testing === "string") spec.sections.testing = fields.testing;
+    spec.updatedAt = Date.now();
+    spec.activity.push({
+      timestamp: Date.now(),
+      type: "ai-note",
+      detail: "Spec populated from brainstorm session",
+      sessionId,
+    });
+    saveSpecs();
+    return spec;
+  }
+  return null;
+}
+
+export function parseSpecPopulate(text: string): Record<string, unknown> | null {
+  var startTag = "<spec-populate>";
+  var endTag = "</spec-populate>";
+  var startIdx = text.indexOf(startTag);
+  var endIdx = text.indexOf(endTag);
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
+  var jsonStr = text.slice(startIdx + startTag.length, endIdx).trim();
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
+}
+
+export function parsePlanContent(text: string): string | null {
+  var startTag = "<plan-content>";
+  var endTag = "</plan-content>";
+  var startIdx = text.indexOf(startTag);
+  var endIdx = text.indexOf(endTag);
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
+  return text.slice(startIdx + startTag.length, endIdx).trim();
+}
+
+export function parseSpecActivity(text: string): { type: string; detail: string } | null {
+  var startTag = "<spec-activity>";
+  var endTag = "</spec-activity>";
+  var startIdx = text.indexOf(startTag);
+  var endIdx = text.indexOf(endTag);
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
+  var jsonStr = text.slice(startIdx + startTag.length, endIdx).trim();
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
+}
+
+export function findSpecBySession(sessionId: string): Spec | null {
+  for (var i = 0; i < specs.length; i++) {
+    for (var j = 0; j < specs[i].linkedSessions.length; j++) {
+      if (specs[i].linkedSessions[j].sessionId === sessionId) return specs[i];
+    }
+  }
+  return null;
+}
+
+export function linkSession(specId: string, sessionId: string, note?: string, sessionType?: string): Spec | null {
   for (var i = 0; i < specs.length; i++) {
     if (specs[i].id !== specId) continue;
     var spec = specs[i];
@@ -220,6 +293,7 @@ export function linkSession(specId: string, sessionId: string, note?: string): S
       sessionId,
       linkedAt: now,
       note,
+      sessionType,
     });
     spec.activity.push({
       timestamp: now,

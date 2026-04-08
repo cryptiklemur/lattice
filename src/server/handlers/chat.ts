@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { getDailySpend } from "../analytics/engine";
 import { log } from "../logger";
+import { findSpecBySession } from "../features/specs";
 
 function formatSdkRule(rule: { toolName: string; ruleContent?: string }): string {
   if (!rule.ruleContent) return rule.toolName;
@@ -192,6 +193,8 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
       ? getAttachments(clientId, sendMsg.attachmentIds)
       : [];
 
+    var linkedSpec = findSpecBySession(active.sessionId);
+
     startChatStream({
       projectSlug: active.projectSlug,
       sessionId: active.sessionId,
@@ -202,6 +205,8 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
       env: Object.keys(env).length > 0 ? env : undefined,
       model: sendMsg.model,
       effort: sendMsg.effort as "low" | "medium" | "high" | "max" | undefined,
+      systemPrompt: sendMsg.systemPrompt,
+      specId: linkedSpec ? linkedSpec.id : undefined,
     });
 
     return;

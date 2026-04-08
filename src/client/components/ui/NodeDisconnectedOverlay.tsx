@@ -15,8 +15,8 @@ export function NodeDisconnectedOverlay() {
   if (!remoteNode || remoteNode.online) return null;
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-base-100/80 backdrop-blur-sm">
-      <div className="bg-base-300 border border-base-content/15 rounded-2xl shadow-2xl px-8 py-6 max-w-sm text-center">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-base-100/80">
+      <div className="bg-base-300 border border-base-content/15 rounded-xl shadow-lg px-8 py-6 max-w-sm text-center">
         <WifiOff size={28} className="text-warning mx-auto mb-3" />
         <h3 className="text-[15px] font-mono font-bold text-base-content mb-1">Node Disconnected</h3>
         <p className="text-[13px] text-base-content/50 mb-3">

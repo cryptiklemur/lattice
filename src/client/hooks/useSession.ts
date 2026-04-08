@@ -55,8 +55,30 @@ import {
   setBudgetStatus,
   setBudgetExceeded,
   updateRateLimit,
+  setPendingSystemPrompt,
 } from "../stores/session";
 import type { SessionState, BudgetStatus } from "../stores/session";
+import {
+  addToolDelta,
+  addToolEvent,
+  addAnomaly,
+  updateBaselines,
+  updateBurnRate,
+  resetContextAnalyzer,
+  setHooksStatus,
+  updateExternalSession,
+  markExternalSessionEnded,
+} from "../stores/context-analyzer";
+import type {
+  ContextToolDeltaMessage,
+  ContextAnomalyMessage,
+  ContextBaselineStatsMessage,
+  ContextBurnRateMessage,
+  ContextHooksStatusMessage,
+  ContextStatuslineMessage,
+  ContextSessionEventMessage,
+  ContextToolEventMessage,
+} from "#shared";
 
 export type { SessionState };
 
@@ -92,6 +114,7 @@ export function useSession(): UseSessionReturn {
   var lastUsedEffortRef = useRef<string | undefined>(undefined);
 
   function activateSession(projectSlug: string, sessionId: string) {
+    resetContextAnalyzer();
     setActiveSession(projectSlug, sessionId);
     setSidebarSessionId(sessionId);
     sendRef.current({ type: "session:activate", projectSlug, sessionId });
@@ -111,6 +134,11 @@ export function useSession(): UseSessionReturn {
     }
     if (effort) {
       msg.effort = effort;
+    }
+    var pendingPrompt = getSessionStore().state.pendingSystemPrompt;
+    if (pendingPrompt) {
+      (msg as any).systemPrompt = pendingPrompt;
+      setPendingSystemPrompt(null);
     }
     activeStreamGenerationRef.current = getStreamGeneration();
     streamSessionIdRef.current = currentSessionId;
@@ -478,6 +506,72 @@ export function useSession(): UseSessionReturn {
       setCurrentStatus(null);
     }
 
+    function handleContextToolDelta(msg: ServerMessage) {
+      var m = msg as ContextToolDeltaMessage & { hookSessionId?: string };
+      addToolDelta({ toolId: m.toolId, toolName: m.toolName, delta: m.delta, timestamp: m.timestamp }, m.hookSessionId);
+    }
+
+    function handleContextAnomaly(msg: ServerMessage) {
+      var m = msg as ContextAnomalyMessage & { hookSessionId?: string };
+      addAnomaly({ toolId: m.toolId, toolName: m.toolName, observed: m.observed, expected: m.expected, stddev: m.stddev, zScore: m.zScore, timestamp: m.timestamp }, m.hookSessionId);
+    }
+
+    function handleContextBaselines(msg: ServerMessage) {
+      var m = msg as ContextBaselineStatsMessage & { hookSessionId?: string };
+      updateBaselines(m.tools, m.hookSessionId);
+    }
+
+    function handleContextBurnRate(msg: ServerMessage) {
+      var m = msg as ContextBurnRateMessage & { hookSessionId?: string };
+      updateBurnRate({ tokensPerMinute: m.tokensPerMinute, estimatedSecondsToCompact: m.estimatedSecondsToCompact, currentUsage: m.currentUsage, compactThreshold: m.compactThreshold }, m.hookSessionId);
+    }
+
+    function handleHooksStatus(msg: ServerMessage) {
+      var m = msg as ContextHooksStatusMessage;
+      setHooksStatus(m.installed, m.message);
+    }
+
+    function handleStatusline(msg: ServerMessage) {
+      var m = msg as ContextStatuslineMessage;
+      updateExternalSession({
+        hookSessionId: m.hookSessionId,
+        inputTokens: m.inputTokens,
+        outputTokens: m.outputTokens,
+        cacheReadTokens: m.cacheReadTokens,
+        cacheCreationTokens: m.cacheCreationTokens,
+        contextWindow: m.contextWindow,
+        usedPercent: m.usedPercent,
+        costUsd: m.costUsd,
+        durationMs: m.durationMs,
+        modelId: m.modelId,
+        modelName: m.modelName,
+        timestamp: m.timestamp,
+        active: true,
+        projectName: m.projectName || null,
+        projectSlug: m.projectSlug || null,
+      });
+    }
+
+    function handleToolEvent(msg: ServerMessage) {
+      var m = msg as ContextToolEventMessage;
+      addToolEvent({
+        hookSessionId: m.hookSessionId,
+        toolName: m.toolName,
+        inputSummary: m.inputSummary,
+        estimatedInputTokens: m.estimatedInputTokens,
+        estimatedOutputTokens: m.estimatedOutputTokens,
+        estimatedTotalTokens: m.estimatedTotalTokens,
+        timestamp: m.timestamp,
+      }, m.hookSessionId, m.projectName, m.projectSlug);
+    }
+
+    function handleSessionEvent(msg: ServerMessage) {
+      var m = msg as ContextSessionEventMessage;
+      if (m.type === "context:session_ended") {
+        markExternalSessionEnded(m.hookSessionId);
+      }
+    }
+
     subscribe("session:loading_progress", handleLoadingProgress);
     subscribe("chat:user_message", handleUserMessage);
     subscribe("chat:delta", handleDelta);
@@ -501,6 +595,16 @@ export function useSession(): UseSessionReturn {
     subscribe("budget:exceeded", handleBudgetExceeded);
     subscribe("chat:elicitation_request", handleElicitationRequest);
     subscribe("chat:rate_limit", handleRateLimit);
+    subscribe("context:tool_delta", handleContextToolDelta);
+    subscribe("context:anomaly", handleContextAnomaly);
+    subscribe("context:baseline_stats", handleContextBaselines);
+    subscribe("context:burn_rate", handleContextBurnRate);
+    subscribe("context:hooks_status", handleHooksStatus);
+    subscribe("context:statusline", handleStatusline);
+    subscribe("context:tool_event", handleToolEvent);
+    subscribe("context:session_started", handleSessionEvent);
+    subscribe("context:session_ended", handleSessionEvent);
+    subscribe("context:compact", handleSessionEvent);
 
     return function () {
       globalSubscriptionCount--;
@@ -527,6 +631,16 @@ export function useSession(): UseSessionReturn {
       unsubscribe("budget:exceeded", handleBudgetExceeded);
       unsubscribe("chat:elicitation_request", handleElicitationRequest);
       unsubscribe("chat:rate_limit", handleRateLimit);
+      unsubscribe("context:tool_delta", handleContextToolDelta);
+      unsubscribe("context:anomaly", handleContextAnomaly);
+      unsubscribe("context:baseline_stats", handleContextBaselines);
+      unsubscribe("context:burn_rate", handleContextBurnRate);
+      unsubscribe("context:hooks_status", handleHooksStatus);
+      unsubscribe("context:statusline", handleStatusline);
+      unsubscribe("context:tool_event", handleToolEvent);
+      unsubscribe("context:session_started", handleSessionEvent);
+      unsubscribe("context:session_ended", handleSessionEvent);
+      unsubscribe("context:compact", handleSessionEvent);
     };
   }, [subscribe, unsubscribe]);
 
@@ -579,5 +693,6 @@ export function useSession(): UseSessionReturn {
       }
     },
     rateLimits: state.rateLimits,
+    pendingSystemPrompt: state.pendingSystemPrompt,
   };
 }

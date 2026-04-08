@@ -65,7 +65,7 @@ export function PermissionBreakdown({ data }: PermissionBreakdownProps) {
             endAngle={-270}
           >
             {pieData.map(function (entry) {
-              return <Cell key={entry.name} fill={colorMap[entry.name] || "#888"} />;
+              return <Cell key={entry.name} fill={colorMap[entry.name] || "oklch(0.6 0 0)"} />;
             })}
           </Pie>
           <Tooltip content={<CustomTooltip />} />

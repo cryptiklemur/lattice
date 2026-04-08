@@ -149,7 +149,7 @@ export function SetupWizard(props: SetupWizardProps) {
           </div>
         </div>
       ) : (
-        <div className="w-[480px] max-w-[calc(100vw-24px)] bg-base-200 border border-base-300 rounded-xl flex flex-col overflow-hidden shadow-2xl">
+        <div className="w-full sm:w-[480px] max-w-[calc(100vw-24px)] bg-base-200 border border-base-300 rounded-xl flex flex-col overflow-hidden shadow-lg">
           <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 bg-base-100">
             <div className="flex items-center gap-1.5">
               {Array.from({ length: TOTAL_STEPS - 1 }, function (_, i) {
@@ -287,7 +287,7 @@ function TerminalPreview() {
   }, []);
 
   return (
-    <div className="w-[380px] max-w-[calc(100vw-48px)] bg-base-200 border border-base-300 rounded-xl overflow-hidden shadow-2xl">
+    <div className="w-full sm:w-[380px] max-w-[calc(100vw-48px)] bg-base-200 border border-base-300 rounded-xl overflow-hidden shadow-lg">
       <div className="flex items-center gap-1.5 px-3.5 py-2.5 bg-base-300 border-b border-base-300">
         <span className="w-2.5 h-2.5 rounded-full bg-error opacity-80 flex-shrink-0" />
         <span className="w-2.5 h-2.5 rounded-full bg-warning opacity-80 flex-shrink-0" />

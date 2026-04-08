@@ -94,6 +94,7 @@ export function decodeWorkspaceUrl(
     analytics: "Analytics",
     brainstorm: "Brainstorm",
     specs: "Specs",
+    context: "Context",
   };
 
   let splitMeta: string | null = null;

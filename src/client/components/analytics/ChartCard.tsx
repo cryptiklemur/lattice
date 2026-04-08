@@ -131,7 +131,7 @@ export function ChartCard(props: ChartCardProps) {
         </div>
 
         <div
-          className="fixed inset-0 z-[9998] bg-base-content/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[9998] bg-base-content/60"
           style={overlayStyle}
           onClick={closeFullscreen}
         />
@@ -144,7 +144,7 @@ export function ChartCard(props: ChartCardProps) {
           aria-label={props.title + " (fullscreen)"}
         >
           <div
-            className="w-full max-w-[1100px] rounded-2xl border border-base-content/10 bg-base-200 shadow-2xl overflow-hidden flex flex-col"
+            className="w-full max-w-[1100px] rounded-xl border border-base-content/10 bg-base-200 shadow-lg overflow-hidden flex flex-col"
             style={Object.assign(
               { maxHeight: "65vh", pointerEvents: "auto" as const },
               animating

@@ -25,6 +25,7 @@ import type { McpServerConfig, ProjectSettings } from "./project-settings.js";
 export interface SessionCreateMessage {
   type: "session:create";
   projectSlug: string;
+  sessionType?: string;
 }
 
 export interface SessionActivateMessage {
@@ -77,6 +78,7 @@ export interface ChatSendMessage {
   attachmentIds?: string[];
   model?: string;
   effort?: string;
+  systemPrompt?: string | { type: "preset"; preset: "claude_code"; append?: string };
 }
 
 export interface ChatPermissionResponseMessage {
@@ -685,6 +687,44 @@ export interface SpecsActivityMessage {
   sessionId?: string;
 }
 
+export interface SpecsCreateWithBrainstormMessage {
+  type: "specs:create-with-brainstorm";
+  projectSlug: string;
+}
+
+export interface SpecsBrainstormStartedMessage {
+  type: "specs:brainstorm-started";
+  spec: Spec;
+  sessionId: string;
+  systemPrompt: string | { type: "preset"; preset: "claude_code"; append?: string };
+}
+
+export interface SpecsStartPlanMessage {
+  type: "specs:start-plan";
+  specId: string;
+  projectSlug: string;
+}
+
+export interface SpecsStartExecuteMessage {
+  type: "specs:start-execute";
+  specId: string;
+  projectSlug: string;
+}
+
+export interface SpecsPlanStartedMessage {
+  type: "specs:plan-started";
+  spec: Spec;
+  sessionId: string;
+  systemPrompt: string | { type: "preset"; preset: "claude_code"; append?: string };
+}
+
+export interface SpecsExecuteStartedMessage {
+  type: "specs:execute-started";
+  spec: Spec;
+  sessionId: string;
+  systemPrompt: string | { type: "preset"; preset: "claude_code"; append?: string };
+}
+
 export type ClientMessage =
   | SessionCreateMessage
   | SessionActivateMessage
@@ -776,7 +816,17 @@ export type ClientMessage =
   | SpecsDeleteMessage
   | SpecsLinkSessionMessage
   | SpecsUnlinkSessionMessage
-  | SpecsActivityMessage;
+  | SpecsActivityMessage
+  | SpecsCreateWithBrainstormMessage
+  | SpecsStartPlanMessage
+  | SpecsStartExecuteMessage
+  | SuperpowersStatusRequestMessage
+  | ContextActionMessage;
+
+export interface ContextActionMessage {
+  type: "context:action";
+  action: "install_hooks" | "uninstall_hooks" | "check_hooks";
+}
 
 export interface SessionListMessage {
   type: "session:list";
@@ -1357,7 +1407,19 @@ export type ServerMessage =
   | SpecsDeletedMessage
   | SpecsSessionLinkedMessage
   | SpecsSessionUnlinkedMessage
-  | SpecsActivityAddedMessage;
+  | SpecsActivityAddedMessage
+  | SpecsBrainstormStartedMessage
+  | SpecsPlanStartedMessage
+  | SpecsExecuteStartedMessage
+  | SuperpowersStatusMessage
+  | ContextToolDeltaMessage
+  | ContextAnomalyMessage
+  | ContextBaselineStatsMessage
+  | ContextBurnRateMessage
+  | ContextHooksStatusMessage
+  | ContextStatuslineMessage
+  | ContextSessionEventMessage
+  | ContextToolEventMessage;
 
 export interface ChatRateLimitMessage {
   type: "chat:rate_limit";
@@ -1415,6 +1477,109 @@ export interface BrainstormStatusRequestMessage {
 
 export interface BrainstormStopMessage {
   type: "brainstorm:stop";
+}
+
+export interface SuperpowersStatusRequestMessage {
+  type: "superpowers:status_request";
+}
+
+export interface SuperpowersStatusMessage {
+  type: "superpowers:status";
+  installed: boolean;
+  version: string | null;
+  skillsAvailable: string[];
+}
+
+export interface TokenDelta {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  total: number;
+}
+
+export interface ToolBaseline {
+  count: number;
+  mean: number;
+  stddev: number;
+  min: number;
+  max: number;
+}
+
+export interface ContextToolDeltaMessage {
+  type: "context:tool_delta";
+  toolId: string;
+  toolName: string;
+  delta: TokenDelta;
+  timestamp: number;
+}
+
+export interface ContextAnomalyMessage {
+  type: "context:anomaly";
+  toolId: string;
+  toolName: string;
+  observed: number;
+  expected: number;
+  stddev: number;
+  zScore: number;
+  timestamp: number;
+}
+
+export interface ContextBaselineStatsMessage {
+  type: "context:baseline_stats";
+  tools: Record<string, ToolBaseline>;
+}
+
+export interface ContextBurnRateMessage {
+  type: "context:burn_rate";
+  tokensPerMinute: number;
+  estimatedSecondsToCompact: number | null;
+  currentUsage: number;
+  compactThreshold: number;
+}
+
+export interface ContextHooksStatusMessage {
+  type: "context:hooks_status";
+  installed: boolean;
+  message?: string;
+}
+
+export interface ContextStatuslineMessage {
+  type: "context:statusline";
+  hookSessionId: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  contextWindow: number;
+  usedPercent: number;
+  costUsd: number;
+  durationMs: number;
+  modelId: string;
+  modelName: string;
+  timestamp: number;
+  projectName?: string | null;
+  projectSlug?: string | null;
+}
+
+export interface ContextSessionEventMessage {
+  type: "context:session_started" | "context:session_ended" | "context:compact";
+  hookSessionId: string;
+  phase?: "pre" | "post";
+  timestamp: number;
+}
+
+export interface ContextToolEventMessage {
+  type: "context:tool_event";
+  hookSessionId: string;
+  toolName: string;
+  inputSummary: string;
+  estimatedInputTokens: number;
+  estimatedOutputTokens: number;
+  estimatedTotalTokens: number;
+  timestamp: number;
+  projectName?: string | null;
+  projectSlug?: string | null;
 }
 
 export interface MeshHelloMessage {

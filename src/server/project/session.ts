@@ -745,7 +745,7 @@ export async function getSessionHistoryPage(sessionId: string, beforeIndex: numb
   return { messages: page, hasMore: startIdx > 0, totalMessages: total };
 }
 
-export function createSession(projectSlug: string): SessionSummary {
+export function createSession(projectSlug: string, sessionType?: string): SessionSummary {
   var sessionId = randomUUID();
   var now = Date.now();
   return {
@@ -754,6 +754,7 @@ export function createSession(projectSlug: string): SessionSummary {
     title: "Session " + new Date(now).toLocaleString(),
     createdAt: now,
     updatedAt: now,
+    sessionType: (sessionType || "chat") as any,
   };
 }
 

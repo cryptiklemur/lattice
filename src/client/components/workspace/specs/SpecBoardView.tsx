@@ -1,15 +1,15 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Spec, SpecStatus } from "#shared";
 import { SpecCard } from "./SpecCard";
 
-var COLUMNS: Array<{ status: SpecStatus; label: string; color: string; borderColor: string }> = [
+const COLUMNS: Array<{ status: SpecStatus; label: string; color: string; borderColor: string }> = [
   { status: "draft", label: "Draft", color: "text-info", borderColor: "border-info/40" },
   { status: "in-progress", label: "In Progress", color: "text-warning", borderColor: "border-warning/40" },
   { status: "on-hold", label: "On Hold", color: "text-base-content/50", borderColor: "border-base-content/20" },
   { status: "completed", label: "Completed", color: "text-success", borderColor: "border-success/40" },
 ];
 
-var DROP_BG: Record<SpecStatus, string> = {
+const DROP_BG: Record<SpecStatus, string> = {
   "draft": "bg-info/5",
   "in-progress": "bg-warning/5",
   "on-hold": "bg-base-content/5",
@@ -23,18 +23,18 @@ interface SpecBoardViewProps {
 }
 
 export function SpecBoardView({ specs, onSelectSpec, onStatusChange }: SpecBoardViewProps) {
-  var [draggedSpecId, setDraggedSpecId] = useState<string | null>(null);
-  var [dropTarget, setDropTarget] = useState<SpecStatus | null>(null);
+  const [draggedSpecId, setDraggedSpecId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<SpecStatus | null>(null);
 
-  var grouped = useMemo(function () {
-    var map: Record<SpecStatus, Spec[]> = {
+  const grouped = useMemo(function () {
+    const map: Record<SpecStatus, Spec[]> = {
       "draft": [],
       "in-progress": [],
       "on-hold": [],
       "completed": [],
     };
-    for (var i = 0; i < specs.length; i++) {
-      var spec = specs[i];
+    for (let i = 0; i < specs.length; i++) {
+      const spec = specs[i];
       if (map[spec.status]) {
         map[spec.status].push(spec);
       }
@@ -63,7 +63,7 @@ export function SpecBoardView({ specs, onSelectSpec, onStatusChange }: SpecBoard
   function handleDrop(e: React.DragEvent, status: SpecStatus) {
     e.preventDefault();
     if (draggedSpecId) {
-      var spec = specs.find(function (s) { return s.id === draggedSpecId; });
+      const spec = specs.find(function (s) { return s.id === draggedSpecId; });
       if (spec && spec.status !== status) {
         onStatusChange(draggedSpecId, status);
       }
@@ -77,21 +77,33 @@ export function SpecBoardView({ specs, onSelectSpec, onStatusChange }: SpecBoard
     setDropTarget(null);
   }
 
+  const handleColumnDragOver = useCallback(function (e: React.DragEvent, status: SpecStatus) {
+    handleDragOver(e, status);
+  }, []);
+
+  const handleColumnDragLeave = useCallback(function (e: React.DragEvent) {
+    handleDragLeave(e, e.currentTarget as HTMLElement);
+  }, []);
+
+  const handleColumnDrop = useCallback(function (e: React.DragEvent, status: SpecStatus) {
+    handleDrop(e, status);
+  }, [draggedSpecId, specs, onStatusChange]);
+
   return (
-    <div className="flex gap-4 h-full overflow-x-auto pb-2">
+    <div className="flex flex-col sm:flex-row gap-4 h-full sm:overflow-x-auto pb-2">
       {COLUMNS.map(function (col) {
-        var columnSpecs = grouped[col.status];
-        var isDropTarget = dropTarget === col.status;
+        const columnSpecs = grouped[col.status];
+        const isDropTarget = dropTarget === col.status;
         return (
           <div
             key={col.status}
             className={
-              "flex flex-col min-h-0 min-w-[240px] w-[280px] flex-shrink-0 rounded-lg transition-colors " +
+              "flex flex-col min-h-0 sm:min-w-[240px] sm:w-[280px] sm:flex-shrink-0 rounded-lg transition-colors motion-reduce:transition-none " +
               (isDropTarget ? DROP_BG[col.status] : "")
             }
-            onDragOver={function (e) { handleDragOver(e, col.status); }}
-            onDragLeave={function (e) { handleDragLeave(e, e.currentTarget as HTMLElement); }}
-            onDrop={function (e) { handleDrop(e, col.status); }}
+            onDragOver={function (e) { handleColumnDragOver(e, col.status); }}
+            onDragLeave={handleColumnDragLeave}
+            onDrop={function (e) { handleColumnDrop(e, col.status); }}
           >
             <div className={"flex items-center gap-2 pb-2 mb-2 border-b-2 px-1 " + col.borderColor}>
               <span className={"text-[12px] font-mono font-bold " + col.color}>

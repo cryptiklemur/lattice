@@ -218,7 +218,7 @@ function ImageRenderer(props: { path: string }) {
       {modalOpen && createPortal(
         <div
           ref={imageModalRef}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-8 cursor-pointer overscroll-contain"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 sm:p-8 cursor-pointer overscroll-contain"
           onClick={function () { setModalOpen(false); }}
           onWheel={function (e) { e.stopPropagation(); }}
           onTouchMove={function (e) { e.stopPropagation(); }}

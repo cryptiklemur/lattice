@@ -161,9 +161,9 @@ export function ThemeWizard(props: ThemeWizardProps) {
   var canProceed = step === 1 ? name.trim().length > 0 : true;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-content/60 backdrop-blur-sm" onClick={props.onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-content/60" onClick={props.onClose}>
       <div
-        className="bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-[90vw] max-w-[860px] max-h-[85vh] flex flex-col overflow-hidden"
+        className="bg-base-200 border border-base-content/15 rounded-xl shadow-lg w-[90vw] max-w-[860px] max-h-[85vh] flex flex-col overflow-hidden"
         onClick={function (e) { e.stopPropagation(); }}
       >
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-base-content/10">
@@ -183,7 +183,7 @@ export function ThemeWizard(props: ThemeWizardProps) {
               })}
             </div>
           </div>
-          <button onClick={props.onClose} className="btn btn-ghost btn-sm btn-circle">
+          <button onClick={props.onClose} aria-label="Close" className="btn btn-ghost btn-sm btn-circle">
             <X size={16} />
           </button>
         </div>

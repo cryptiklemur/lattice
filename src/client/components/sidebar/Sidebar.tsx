@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark, ClipboardList, Settings, Network } from "lucide-react";
+import { Plus, ChevronDown, Search, LayoutDashboard, FolderOpen, TerminalSquare, StickyNote, Calendar, BarChart3, Bookmark, ClipboardList, Settings, Network, Activity } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import type { SessionSummary, ServerMessage, SettingsDataMessage } from "#shared";
 import type { DateRange } from "./SessionList";
@@ -259,7 +259,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
       <div className="flex flex-col flex-1 overflow-hidden min-h-0 bg-base-200 border-r border-base-300">
         {sidebar.sidebarMode === "project" ? (
           <>
-            {(sidebar.activeView.type === "dashboard" || (sidebar.activeView.type === "analytics" && !sidebar.activeProjectSlug)) ? (
+            {(sidebar.activeView.type === "dashboard" || ((sidebar.activeView.type === "analytics" || sidebar.activeView.type === "context") && !sidebar.activeProjectSlug)) ? (
               <>
                 <div className="px-4 h-12 border-b border-base-300 flex-shrink-0 flex items-center gap-2">
                   <LatticeLogomark size={18} />
@@ -295,6 +295,19 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     </button>
                     <button
                       type="button"
+                      onClick={function () {
+                        openTab("context");
+                        getSidebarStore().setState(function (s) {
+                          return { ...s, activeView: { type: "context" } };
+                        });
+                      }}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
+                    >
+                      <Activity size={12} />
+                      <span className="font-mono tracking-wide">Context Analyzer</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={function () { openSettings("nodes"); }}
                       className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30 transition-colors"
                     >
@@ -318,7 +331,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     </div>
                   ) : (
                     <div className="text-[12px] text-base-content/25 px-4">
-                      Select a project from the rail to view sessions.
+                      Select a project from the left to get started.
                     </div>
                   )}
                 </div>
@@ -363,6 +376,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     { type: "tasks" as const, icon: Calendar, label: "Scheduled Tasks", localOnly: false },
                     { type: "bookmarks" as const, icon: Bookmark, label: "Bookmarks", localOnly: false },
                     { type: "specs" as const, icon: ClipboardList, label: "Specs", localOnly: false },
+                    { type: "context" as const, icon: Activity, label: "Context Analyzer", localOnly: false },
                   ].map(function (item) {
                     var isDisabled = item.localOnly && activeProject?.isRemote;
                     return (

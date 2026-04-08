@@ -65,6 +65,7 @@ export interface SessionState {
   budgetStatus: BudgetStatus | null;
   budgetExceeded: boolean;
   rateLimits: Record<string, RateLimitEntry>;
+  pendingSystemPrompt: string | { type: "preset"; preset: "claude_code"; append?: string } | null;
 }
 
 var sessionStore = new Store<SessionState>({
@@ -93,6 +94,7 @@ var sessionStore = new Store<SessionState>({
   budgetStatus: null,
   budgetExceeded: false,
   rateLimits: {},
+  pendingSystemPrompt: null,
 });
 
 export interface ModelOption {
@@ -368,6 +370,7 @@ export function clearSession(): void {
       budgetStatus: null,
       budgetExceeded: false,
       rateLimits: {},
+      pendingSystemPrompt: null,
     };
   });
 }
@@ -442,6 +445,12 @@ export function setBudgetExceeded(exceeded: boolean): void {
 export function setPendingPrefill(text: string | null): void {
   sessionStore.setState(function (state) {
     return { ...state, pendingPrefill: text };
+  });
+}
+
+export function setPendingSystemPrompt(prompt: string | { type: "preset"; preset: "claude_code"; append?: string } | null): void {
+  sessionStore.setState(function (state) {
+    return { ...state, pendingSystemPrompt: prompt };
   });
 }
 

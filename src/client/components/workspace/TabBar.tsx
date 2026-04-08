@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb, ClipboardList } from "lucide-react";
+import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb, ClipboardList, Activity } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
 import type { Tab, TabType } from "../../stores/workspace";
@@ -23,6 +23,7 @@ var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
   analytics: BarChart3,
   brainstorm: Lightbulb,
   specs: ClipboardList,
+  context: Activity,
 };
 
 export function TabBar({ paneId, isActivePane }: TabBarProps) {
@@ -214,7 +215,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
                 onDragStart={function (e) { handleDragStart(e, tab); }}
                 onDragEnd={handleDragEnd}
                 className={
-                  "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors whitespace-nowrap flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset max-w-[200px] " +
+                  "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors overflow-hidden flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset max-w-[200px] " +
                   (isActive
                     ? "bg-base-100 text-base-content border-b-2 border-b-primary"
                     : "text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30") +

@@ -73,7 +73,7 @@ export function UserIsland(props: UserIslandProps) {
             <button
               aria-label="Install Lattice"
               onClick={install}
-              className="btn btn-ghost btn-xs btn-square text-primary/60 hover:text-primary transition-colors"
+              className="btn btn-ghost btn-xs btn-square text-primary/60 hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <Download size={14} />
             </button>
@@ -81,14 +81,14 @@ export function UserIsland(props: UserIslandProps) {
           <button
             aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             onClick={function (e) { e.stopPropagation(); toggleMode(); }}
-            className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors"
+            className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             {mode === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
           <button
             aria-label="Global settings"
             onClick={function () { sidebar.openSettings("appearance"); }}
-            className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors"
+            className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-base-content transition-colors focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <Settings size={14} />
           </button>

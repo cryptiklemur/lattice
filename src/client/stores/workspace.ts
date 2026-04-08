@@ -1,7 +1,7 @@
 import { Store } from "@tanstack/react-store";
 import type { DecodedWorkspace } from "../lib/workspace-url";
 
-export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks" | "analytics" | "brainstorm" | "specs";
+export type TabType = "chat" | "files" | "terminal" | "notes" | "tasks" | "bookmarks" | "analytics" | "brainstorm" | "specs" | "context";
 
 export interface Tab {
   id: string;
@@ -74,6 +74,7 @@ export function openTab(type: TabType): void {
       analytics: "Analytics",
       brainstorm: "Brainstorm",
       specs: "Specs",
+      context: "Context",
     };
     var tab: Tab = {
       id: type,
@@ -155,10 +156,11 @@ export function openSessionTab(sessionId: string, projectSlug: string, title: st
       newTabs = state.tabs.map(function (t) { return t.id === oldId ? tab : t; });
       newPanes = state.panes.map(function (p) {
         var updatedTabIds = p.tabIds.map(function (id) { return id === oldId ? tabId : id; });
+        var shouldActivate = p.activeTabId === oldId || p.id === state.activePaneId;
         return {
           ...p,
           tabIds: updatedTabIds,
-          activeTabId: p.activeTabId === oldId ? tabId : p.activeTabId,
+          activeTabId: shouldActivate ? tabId : p.activeTabId,
         };
       });
     } else if (hadDefaultChat) {

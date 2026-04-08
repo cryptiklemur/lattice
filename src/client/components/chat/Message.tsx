@@ -116,14 +116,14 @@ function stripMarkdown(text: string): string {
 function MessageActions(props: { text: string; showNewSession?: boolean; messageUuid?: string; messageType?: "user" | "assistant" }) {
   var [copied, setCopied] = useState(false);
   var ws = useWebSocket();
-  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s; });
+  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
   var isBookmarked = useMemo(function () {
     if (!props.messageUuid) return false;
-    for (var i = 0; i < bookmarkState.bookmarks.length; i++) {
-      if (bookmarkState.bookmarks[i].messageUuid === props.messageUuid) return true;
+    for (var i = 0; i < bookmarkState.length; i++) {
+      if (bookmarkState[i].messageUuid === props.messageUuid) return true;
     }
     return false;
-  }, [props.messageUuid, bookmarkState.bookmarks]);
+  }, [props.messageUuid, bookmarkState]);
 
   function handleCopy(e: React.MouseEvent) {
     var content = e.shiftKey ? stripMarkdown(props.text) : props.text;
@@ -276,7 +276,7 @@ function RewindButton(props: { uuid: string }) {
       <span className="flex items-center gap-1">
         <button
           onClick={handleClick}
-          className="btn btn-ghost btn-xs h-4 min-h-0 px-1 text-warning/70 hover:text-warning"
+          className="btn btn-ghost btn-xs px-1 text-warning/70 hover:text-warning"
           title={"Rewind files (" + (preview.filesChanged || 0) + " changed)"}
         >
           <RotateCcw className="!size-3" />
@@ -284,7 +284,7 @@ function RewindButton(props: { uuid: string }) {
         </button>
         <button
           onClick={function () { setPreview(null); }}
-          className="btn btn-ghost btn-xs h-4 min-h-0 px-0.5 text-base-content/30 hover:text-base-content/60"
+          className="btn btn-ghost btn-xs px-0.5 text-base-content/30 hover:text-base-content/60"
         >
           <X className="!size-3" />
         </button>
@@ -296,7 +296,7 @@ function RewindButton(props: { uuid: string }) {
     <button
       onClick={handleClick}
       disabled={pending}
-      className="btn btn-ghost btn-xs h-4 min-h-0 px-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity text-base-content/30 hover:text-base-content/60"
+      className="btn btn-ghost btn-xs px-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity text-base-content/30 hover:text-base-content/60"
       title="Rewind files to this point"
     >
       <RotateCcw className={"!size-3" + (pending ? " animate-spin" : "")} />
@@ -311,14 +311,14 @@ function UserMessage(props: { message: HistoryMessage }) {
   var skill = parseSkillInvocation(text);
   var ctxMenu = useContextMenu<HistoryMessage>();
   var ws = useWebSocket();
-  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s; });
+  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
   var isBookmarked = useMemo(function () {
     if (!msg.uuid) return false;
-    for (var i = 0; i < bookmarkState.bookmarks.length; i++) {
-      if (bookmarkState.bookmarks[i].messageUuid === msg.uuid) return true;
+    for (var i = 0; i < bookmarkState.length; i++) {
+      if (bookmarkState[i].messageUuid === msg.uuid) return true;
     }
     return false;
-  }, [msg.uuid, bookmarkState.bookmarks]);
+  }, [msg.uuid, bookmarkState]);
 
   function handleNewSession() {
     var state = getSessionStore().state;
@@ -402,14 +402,14 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
   var text = msg.text || "";
   var ctxMenu = useContextMenu<HistoryMessage>();
   var ws = useWebSocket();
-  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s; });
+  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
   var isBookmarked = useMemo(function () {
     if (!msg.uuid) return false;
-    for (var i = 0; i < bookmarkState.bookmarks.length; i++) {
-      if (bookmarkState.bookmarks[i].messageUuid === msg.uuid) return true;
+    for (var i = 0; i < bookmarkState.length; i++) {
+      if (bookmarkState[i].messageUuid === msg.uuid) return true;
     }
     return false;
-  }, [msg.uuid, bookmarkState.bookmarks]);
+  }, [msg.uuid, bookmarkState]);
 
   function handleNewSession() {
     var state = getSessionStore().state;

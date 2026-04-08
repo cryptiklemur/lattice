@@ -7,7 +7,7 @@ import type { Attachment } from "#shared";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
-import { sendTo, broadcast } from "../ws/broadcast";
+import { sendTo, broadcast, broadcastToProject } from "../ws/broadcast";
 import { syncSessionToPeers } from "../mesh/session-sync";
 import { resolveSkillContent } from "../handlers/skills";
 import { getPluginMcpServers } from "../handlers/plugins";
@@ -18,6 +18,8 @@ import { getDailySpend, invalidateDailySpendCache } from "../analytics/engine";
 import { getWarmupModels, cacheRateLimitEntry } from "./warmup";
 import { execSync } from "node:child_process";
 import { sendPush } from "../push";
+import { parseSpecPopulate, parsePlanContent, parseSpecActivity, populateSpec, updateSpec as updateSpecData, getSpec, addActivity } from "../features/specs";
+import { ContextAnalyzer } from "../features/context-analyzer";
 
 var HIDDEN_TOOLS = new Set([
   "TaskUpdate", "TaskCreate", "TaskGet", "TaskList", "TaskOutput", "TaskStop",
@@ -74,6 +76,8 @@ export interface ChatStreamOptions {
   model?: string;
   effort?: "low" | "medium" | "high" | "max";
   isNewSession?: boolean;
+  systemPrompt?: string | { type: "preset"; preset: "claude_code"; append?: string };
+  specId?: string;
 }
 
 export interface ModelEntry {
@@ -148,6 +152,9 @@ interface SessionStream {
   turnDoneSent: boolean;
   messageUUIDs: Array<{ uuid: string; type: string }>;
   ended: boolean;
+  accumulatedText: string;
+  specId?: string;
+  analyzer: ContextAnalyzer;
 }
 
 var sessionStreams = new Map<string, SessionStream>();
@@ -767,6 +774,10 @@ export function startChatStream(options: ChatStreamOptions): void {
     queryOptions.env = env;
   }
 
+  if (options.systemPrompt) {
+    (queryOptions as any).systemPrompt = options.systemPrompt;
+  }
+
   var prompt = resolvePromptText(text);
 
   sendTo(clientId, {
@@ -797,6 +808,12 @@ export function startChatStream(options: ChatStreamOptions): void {
     turnDoneSent: false,
     messageUUIDs: [],
     ended: false,
+    accumulatedText: "",
+    specId: options.specId,
+    analyzer: new ContextAnalyzer(function (msg) {
+      var ss = sessionStreams.get(sessionId);
+      if (ss) sendTo(ss.clientId, msg as any);
+    }),
   };
   sessionStreams.set(sessionId, sessionStream);
   persistStreamState();
@@ -860,6 +877,43 @@ export function startChatStream(options: ChatStreamOptions): void {
   })();
 }
 
+function processStructuredOutput(ss: SessionStream): void {
+  var text = ss.accumulatedText;
+  var specId = ss.specId!;
+
+  var specFields = parseSpecPopulate(text);
+  if (specFields) {
+    var updated = populateSpec(specId, specFields, ss.sessionId);
+    if (updated) {
+      broadcastToProject(ss.projectSlug, { type: "specs:updated", spec: updated });
+    }
+  }
+
+  var planContent = parsePlanContent(text);
+  if (planContent) {
+    var updatedPlan = updateSpecData(specId, {
+      sections: { implementationPlan: planContent },
+    });
+    if (updatedPlan) {
+      broadcastToProject(ss.projectSlug, { type: "specs:updated", spec: updatedPlan });
+    }
+  }
+
+  var searchText = text;
+  var activityData = parseSpecActivity(searchText);
+  while (activityData) {
+    var updatedActivity = addActivity(specId, activityData.type as any, activityData.detail, ss.sessionId);
+    if (updatedActivity) {
+      broadcastToProject(ss.projectSlug, { type: "specs:activity_added", spec: updatedActivity });
+    }
+    var endIdx = searchText.indexOf("</spec-activity>");
+    searchText = searchText.slice(endIdx + "</spec-activity>".length);
+    activityData = parseSpecActivity(searchText);
+  }
+
+  ss.accumulatedText = "";
+}
+
 function processMessage(ss: SessionStream, msg: SDKMessage): void {
   var sessionId = ss.sessionId;
 
@@ -877,14 +931,21 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
     var assistantMsg = msg as { type: "assistant"; message: { content: unknown; model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } } };
     var msgUsage = assistantMsg.message.usage;
     if (msgUsage && msgUsage.input_tokens != null) {
+      var ctxWindow = guessContextWindow(assistantMsg.message.model || "");
       sendTo(ss.clientId, {
         type: "chat:context_usage",
         inputTokens: msgUsage.input_tokens || 0,
         outputTokens: msgUsage.output_tokens || 0,
         cacheReadTokens: msgUsage.cache_read_input_tokens || 0,
         cacheCreationTokens: msgUsage.cache_creation_input_tokens || 0,
-        contextWindow: guessContextWindow(assistantMsg.message.model || ""),
+        contextWindow: ctxWindow,
       });
+      ss.analyzer.updateUsage({
+        inputTokens: msgUsage.input_tokens || 0,
+        outputTokens: msgUsage.output_tokens || 0,
+        cacheReadTokens: msgUsage.cache_read_input_tokens || 0,
+        cacheCreationTokens: msgUsage.cache_creation_input_tokens || 0,
+      }, ctxWindow);
     }
     return;
   }
@@ -898,6 +959,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
       var idx = (evt as { index: number }).index;
       if (block.type === "tool_use" && block.id && block.name) {
         ss.activeToolBlocks[idx] = { id: block.id, name: block.name, inputJson: "" };
+        ss.analyzer.onToolStart(block.id, block.name);
         if (HIDDEN_TOOLS.has(block.name)) {
           ss.hiddenToolIds.add(block.id);
         } else {
@@ -918,6 +980,9 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
 
       if (deltaEvt.delta.type === "text_delta" && typeof deltaEvt.delta.text === "string") {
         sendTo(ss.clientId, { type: "chat:delta", text: deltaEvt.delta.text });
+        if (ss.specId) {
+          ss.accumulatedText += deltaEvt.delta.text;
+        }
       } else if (deltaEvt.delta.type === "input_json_delta" && ss.activeToolBlocks[blockIdx]) {
         ss.activeToolBlocks[blockIdx].inputJson += deltaEvt.delta.partial_json || "";
       }
@@ -974,6 +1039,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
       for (var i = 0; i < content.length; i++) {
         var item = content[i] as { type?: string; tool_use_id?: string; content?: unknown };
         if (item.type === "tool_result" && item.tool_use_id) {
+          ss.analyzer.onToolResult(item.tool_use_id);
           if (ss.hiddenToolIds.has(item.tool_use_id)) continue;
           var resultContent = typeof item.content === "string"
             ? item.content
@@ -1049,6 +1115,16 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
         cacheCreationTokens: resultMsg.usage.cache_creation_input_tokens || 0,
         contextWindow: contextWindow,
       });
+      ss.analyzer.updateUsage({
+        inputTokens: resultMsg.usage.input_tokens || 0,
+        outputTokens: resultMsg.usage.output_tokens || 0,
+        cacheReadTokens: resultMsg.usage.cache_read_input_tokens || 0,
+        cacheCreationTokens: resultMsg.usage.cache_creation_input_tokens || 0,
+      }, contextWindow);
+    }
+
+    if (ss.specId && ss.accumulatedText) {
+      processStructuredOutput(ss);
     }
 
     ss.turnDoneSent = true;

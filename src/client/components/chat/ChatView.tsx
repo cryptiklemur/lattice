@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
-import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark, RefreshCw, Loader2 } from "lucide-react";
+import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark, RefreshCw, Loader2, Activity } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
@@ -20,6 +20,8 @@ import { useOnline } from "../../hooks/useOnline";
 import { useSpinnerVerb } from "../../hooks/useSpinnerVerb";
 import { useBookmarks } from "../../hooks/useBookmarks";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
+import { useStore } from "@tanstack/react-store";
+import { getContextAnalyzerStore, dismissAnomaly } from "../../stores/context-analyzer";
 
 function SessionLoadingState({ fileSize }: { fileSize: number | null }) {
   var [progress, setProgress] = useState(0);
@@ -63,6 +65,9 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
   var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyLoadingFileSize, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
   var { activeProject } = useProjects();
   var { toggleDrawer } = useSidebar();
+  var activeAnomalies = useStore(getContextAnalyzerStore(), function (s) {
+    return s.activeSession.anomalies.filter(function (a) { return !a.dismissed; });
+  });
 
   useEffect(function () {
     if (!tabSessionId || !tabProjectSlug) return;
@@ -449,6 +454,12 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     return -1;
   }, [messages, isProcessing, lastResponseCost]);
 
+  var cumulativeCost = useMemo(function () {
+    return messages.reduce(function (sum, m) {
+      return sum + (m.costEstimate || 0);
+    }, 0);
+  }, [messages]);
+
   return (
     <div className="flex flex-col h-full w-full bg-base-100 overflow-hidden relative">
       <div className="bg-base-100 border-b border-base-300 flex-shrink-0 px-2 sm:px-4">
@@ -535,6 +546,11 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
             )}
           </div>
           <div className="flex gap-1.5 items-center relative">
+            {activeSessionId && cumulativeCost > 0 && (
+              <span className="hidden sm:flex items-center text-[10px] font-mono tabular-nums text-base-content/35">
+                ${cumulativeCost.toFixed(4)}
+              </span>
+            )}
             {activeSessionId && (
               <button
                 ref={contextBarRef}
@@ -705,6 +721,14 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                     Approaching auto-compact threshold
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={function () { openTab("context"); setShowContext(false); }}
+                  className="w-full flex items-center justify-center gap-1.5 text-[10px] font-mono text-primary/70 hover:text-primary transition-colors pt-1"
+                >
+                  <Activity size={10} />
+                  Open Context Analyzer
+                </button>
               </div>
             </div>
           )}
@@ -730,6 +754,14 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                     </button>
                   </div>
                 </div>
+                {selectedModel && selectedModel !== "default" && (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-base-content/40 mb-1 font-mono font-bold">Model</div>
+                    <code className="text-[12px] font-mono text-base-content/70 bg-base-200 px-2 py-1 rounded block truncate">
+                      {selectedModel}
+                    </code>
+                  </div>
+                )}
                 <div>
                   <div className="text-[10px] uppercase tracking-widest text-base-content/40 mb-1 font-mono font-bold">Resume Command</div>
                   <div className="flex items-center gap-1.5">
@@ -959,7 +991,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
 
       {isProcessing && (
         <div className="flex-shrink-0 flex items-center justify-center gap-4 my-4 pointer-events-none relative z-10">
-          <div className="flex items-center gap-4 pointer-events-auto bg-base-200/90 backdrop-blur-sm border border-base-content/10 rounded-full px-5 py-2 shadow-lg">
+          <div className="flex items-center gap-4 pointer-events-auto bg-base-200/90 border border-base-content/10 rounded-full px-5 py-2 shadow-lg">
             <span className="text-[14px] text-base-content/40 font-mono animate-pulse">{spinnerVerb}...</span>
             <button
               onClick={handleCancel}
@@ -1048,6 +1080,23 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         </div>
       )}
 
+      {activeAnomalies.length > 0 && (
+        <div className="flex-shrink-0 px-2 sm:px-4 pb-1">
+          {activeAnomalies.slice(-2).map(function (a, i) {
+            return (
+              <div key={a.toolId + "-" + a.timestamp + "-" + i} className="flex items-center gap-2 px-3 py-1.5 mb-1 rounded-lg bg-warning/10 border border-warning/15 text-xs font-mono">
+                <AlertTriangle size={11} className="text-warning flex-shrink-0" />
+                <span className="text-base-content/60 flex-1 min-w-0 truncate">
+                  <span className="text-warning font-semibold">{a.toolName}</span> used {formatTokens(a.observed)} tokens (expected ~{formatTokens(a.expected)})
+                </span>
+                <button type="button" onClick={function () { dismissAnomaly(a.toolId, a.timestamp); }} className="text-base-content/25 hover:text-base-content/50 flex-shrink-0">
+                  <X size={11} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="flex-shrink-0 border-t border-base-300 bg-base-200 px-2 sm:px-4 pb-3 pt-2">
         <ChatInput
           sessionId={activeSessionId}

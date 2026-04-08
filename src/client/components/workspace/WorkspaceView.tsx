@@ -13,6 +13,7 @@ import { BookmarksView } from "./BookmarksView";
 import { BrainstormView } from "./BrainstormView";
 import { AnalyticsView } from "../analytics/AnalyticsView";
 import { SpecsView } from "./SpecsView";
+import { ContextAnalyzerView } from "./ContextAnalyzerView";
 import { DragProvider } from "./DragContext";
 import { DropZoneOverlay } from "./DropZoneOverlay";
 import { openTab } from "../../stores/workspace";
@@ -27,6 +28,7 @@ var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
   brainstorm: BrainstormView,
   analytics: AnalyticsView,
   specs: SpecsView,
+  context: ContextAnalyzerView,
 };
 
 var QUICK_ACTIONS: Array<{ type: TabType; icon: typeof MessageSquare; label: string; hint: string }> = [

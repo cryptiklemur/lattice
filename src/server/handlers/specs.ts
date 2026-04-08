@@ -8,6 +8,9 @@ import type {
   SpecsLinkSessionMessage,
   SpecsUnlinkSessionMessage,
   SpecsActivityMessage,
+  SpecsCreateWithBrainstormMessage,
+  SpecsStartPlanMessage,
+  SpecsStartExecuteMessage,
 } from "#shared";
 import { registerHandler } from "../ws/router";
 import { sendTo, broadcastToProject } from "../ws/broadcast";
@@ -21,6 +24,8 @@ import {
   unlinkSession,
   addActivity,
 } from "../features/specs";
+import { createSession, updateSessionInIndex } from "../project/session";
+import { buildBrainstormPrompt, buildWritePlanPrompt, buildExecutePrompt } from "../features/superpowers";
 
 registerHandler("specs", function (clientId: string, message: ClientMessage) {
   if (message.type === "specs:list") {
@@ -52,6 +57,64 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
       tags: createMsg.tags,
     });
     broadcastToProject(created.projectSlug, { type: "specs:created", spec: created });
+    return;
+  }
+
+  if (message.type === "specs:create-with-brainstorm") {
+    var brainstormMsg = message as SpecsCreateWithBrainstormMessage;
+    var slug = brainstormMsg.projectSlug;
+    var newSpec = createSpec({ projectSlug: slug, title: "New Spec" });
+    var brainstormSession = createSession(slug, "brainstorm");
+    updateSessionInIndex(slug, brainstormSession);
+    linkSession(newSpec.id, brainstormSession.id, "Brainstorm session", "brainstorm");
+    var brainstormPrompt = buildBrainstormPrompt(newSpec, slug);
+    sendTo(clientId, {
+      type: "specs:brainstorm-started",
+      spec: newSpec,
+      sessionId: brainstormSession.id,
+      systemPrompt: { type: "preset", preset: "claude_code", append: brainstormPrompt },
+    });
+    broadcastToProject(slug, { type: "specs:created", spec: newSpec });
+    return;
+  }
+
+  if (message.type === "specs:start-plan") {
+    var planMsg = message as SpecsStartPlanMessage;
+    var planSpec = getSpec(planMsg.specId);
+    if (!planSpec) {
+      sendTo(clientId, { type: "chat:error", message: "Spec not found" });
+      return;
+    }
+    var planSession = createSession(planMsg.projectSlug, "write-plan");
+    updateSessionInIndex(planMsg.projectSlug, planSession);
+    linkSession(planSpec.id, planSession.id, "Write plan session", "write-plan");
+    var planPrompt = buildWritePlanPrompt(planSpec, planMsg.projectSlug);
+    sendTo(clientId, {
+      type: "specs:plan-started",
+      spec: planSpec,
+      sessionId: planSession.id,
+      systemPrompt: { type: "preset", preset: "claude_code", append: planPrompt },
+    });
+    return;
+  }
+
+  if (message.type === "specs:start-execute") {
+    var execMsg = message as SpecsStartExecuteMessage;
+    var execSpec = getSpec(execMsg.specId);
+    if (!execSpec) {
+      sendTo(clientId, { type: "chat:error", message: "Spec not found" });
+      return;
+    }
+    var execSession = createSession(execMsg.projectSlug, "execute");
+    updateSessionInIndex(execMsg.projectSlug, execSession);
+    linkSession(execSpec.id, execSession.id, "Execute session", "execute");
+    var execPrompt = buildExecutePrompt(execSpec, execMsg.projectSlug);
+    sendTo(clientId, {
+      type: "specs:execute-started",
+      spec: execSpec,
+      sessionId: execSession.id,
+      systemPrompt: { type: "preset", preset: "claude_code", append: execPrompt },
+    });
     return;
   }
 

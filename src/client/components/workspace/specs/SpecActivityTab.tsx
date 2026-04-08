@@ -1,6 +1,7 @@
 import type { SpecActivity, SpecActivityType } from "#shared";
+import { relativeTime } from "../../../utils/relativeTime";
 
-var TYPE_COLORS: Record<SpecActivityType, string> = {
+const TYPE_COLORS: Record<SpecActivityType, string> = {
   "created": "bg-info/20 text-info",
   "status-change": "bg-warning/20 text-warning",
   "session-linked": "bg-accent/20 text-accent",
@@ -8,7 +9,7 @@ var TYPE_COLORS: Record<SpecActivityType, string> = {
   "ai-note": "bg-secondary/20 text-secondary",
 };
 
-var TYPE_LABELS: Record<SpecActivityType, string> = {
+const TYPE_LABELS: Record<SpecActivityType, string> = {
   "created": "Created",
   "status-change": "Status",
   "session-linked": "Session",
@@ -16,29 +17,18 @@ var TYPE_LABELS: Record<SpecActivityType, string> = {
   "ai-note": "AI Note",
 };
 
-function relativeTime(ts: number): string {
-  var diff = Date.now() - ts;
-  var seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return seconds + "s ago";
-  var minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return minutes + "m ago";
-  var hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + "h ago";
-  var days = Math.floor(hours / 24);
-  return days + "d ago";
-}
-
 interface SpecActivityTabProps {
   activity: SpecActivity[];
 }
 
 export function SpecActivityTab({ activity }: SpecActivityTabProps) {
-  var reversed = [...activity].reverse();
+  const reversed = [...activity].reverse();
 
   if (reversed.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12 text-[13px] text-base-content/30 font-mono">
-        No activity yet
+      <div className="flex flex-col items-center justify-center py-12 gap-1">
+        <span className="text-[13px] text-base-content/30 font-mono">No activity yet</span>
+        <span className="text-[11px] text-base-content/20">Edits, status changes, and linked sessions will appear here</span>
       </div>
     );
   }

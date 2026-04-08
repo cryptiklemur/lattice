@@ -1,29 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Loader2, Check, Trash2, X, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Check, Trash2, X, ClipboardList, Play } from "lucide-react";
 import type { Spec, SpecSection, SpecStatus, SpecPriority, SpecEffort } from "#shared";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useOnline } from "../../../hooks/useOnline";
 import { SpecRichEditor } from "./SpecRichEditor";
 import { SpecActivityTab } from "./SpecActivityTab";
 import { SpecSessionsTab } from "./SpecSessionsTab";
-import { STATUS_DOT } from "./SpecCard";
+import { DeleteSpecModal } from "./DeleteSpecModal";
 
 type SectionKey = keyof SpecSection;
 
-var SECTION_TABS: Array<{ key: string; label: string }> = [
-  { key: "summary", label: "Summary" },
-  { key: "currentState", label: "Current State" },
-  { key: "requirements", label: "Requirements" },
-  { key: "implementationPlan", label: "Implementation" },
-  { key: "migrationMap", label: "Migration" },
-  { key: "testing", label: "Testing" },
-  { key: "activity", label: "Activity" },
-  { key: "sessions", label: "Sessions" },
+const SECTION_TABS: Array<{ key: string; label: string; placeholder: string }> = [
+  { key: "summary", label: "Summary", placeholder: "Describe what this spec covers and why it matters..." },
+  { key: "currentState", label: "Current State", placeholder: "What exists today? Describe the current implementation..." },
+  { key: "requirements", label: "Requirements", placeholder: "What needs to change? List acceptance criteria..." },
+  { key: "implementationPlan", label: "Implementation", placeholder: "How will this be built? Outline the approach..." },
+  { key: "migrationMap", label: "Migration", placeholder: "What needs to be created, updated, or removed..." },
+  { key: "testing", label: "Testing", placeholder: "How will this be verified? Describe the test plan..." },
+  { key: "activity", label: "Activity", placeholder: "" },
+  { key: "sessions", label: "Sessions", placeholder: "" },
 ];
 
-var STATUS_OPTIONS: SpecStatus[] = ["draft", "in-progress", "on-hold", "completed"];
-var PRIORITY_OPTIONS: SpecPriority[] = ["high", "medium", "low"];
-var EFFORT_OPTIONS: SpecEffort[] = ["small", "medium", "large", "xl"];
+const STATUS_OPTIONS: SpecStatus[] = ["draft", "in-progress", "on-hold", "completed"];
+const PRIORITY_OPTIONS: SpecPriority[] = ["high", "medium", "low"];
+const EFFORT_OPTIONS: SpecEffort[] = ["small", "medium", "large", "xl"];
 
 interface SpecEditorProps {
   spec: Spec;
@@ -31,25 +31,25 @@ interface SpecEditorProps {
 }
 
 export function SpecEditor({ spec, onBack }: SpecEditorProps) {
-  var { send } = useWebSocket();
-  var online = useOnline();
+  const { send } = useWebSocket();
+  const online = useOnline();
 
-  var [title, setTitle] = useState(spec.title);
-  var [tagline, setTagline] = useState(spec.tagline);
-  var [status, setStatus] = useState(spec.status);
-  var [priority, setPriority] = useState(spec.priority);
-  var [effort, setEffort] = useState(spec.estimatedEffort);
-  var [author, setAuthor] = useState(spec.author);
-  var [tags, setTags] = useState(spec.tags);
-  var [sections, setSections] = useState(spec.sections);
-  var [activeTab, setActiveTab] = useState("summary");
-  var [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
-  var [showDeleteModal, setShowDeleteModal] = useState(false);
-  var [tagInput, setTagInput] = useState("");
+  const [title, setTitle] = useState(spec.title);
+  const [tagline, setTagline] = useState(spec.tagline);
+  const [status, setStatus] = useState(spec.status);
+  const [priority, setPriority] = useState(spec.priority);
+  const [effort, setEffort] = useState(spec.estimatedEffort);
+  const [author, setAuthor] = useState(spec.author);
+  const [tags, setTags] = useState(spec.tags);
+  const [sections, setSections] = useState(spec.sections);
+  const [activeTab, setActiveTab] = useState("summary");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [tagInput, setTagInput] = useState("");
 
-  var debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var pendingSectionRef = useRef<SpecSection | null>(null);
-  var specIdRef = useRef(spec.id);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSectionRef = useRef<SpecSection | null>(null);
+  const specIdRef = useRef(spec.id);
   specIdRef.current = spec.id;
 
   useEffect(function () {
@@ -63,7 +63,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
     setSections(spec.sections);
   }, [spec.id]);
 
-  var flushPending = useCallback(function () {
+  const flushPending = useCallback(function () {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
@@ -81,7 +81,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
   }, [flushPending]);
 
   function handleSectionChange(key: SectionKey, content: string) {
-    var updated = { ...sections, [key]: content };
+    const updated = { ...sections, [key]: content };
     setSections(updated);
     pendingSectionRef.current = updated;
     setSaveState("saving");
@@ -129,7 +129,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
 
   function handleAddTag(e: React.KeyboardEvent) {
     if (e.key === "Enter" && tagInput.trim()) {
-      var newTags = [...tags, tagInput.trim()];
+      const newTags = [...tags, tagInput.trim()];
       setTags(newTags);
       setTagInput("");
       sendMetadata({ tags: newTags });
@@ -137,7 +137,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
   }
 
   function handleRemoveTag(index: number) {
-    var newTags = tags.filter(function (_, i) { return i !== index; });
+    const newTags = tags.filter(function (_, i) { return i !== index; });
     setTags(newTags);
     sendMetadata({ tags: newTags });
   }
@@ -156,7 +156,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
     send({ type: "specs:unlink-session", id: spec.id, sessionId });
   }
 
-  var isSectionTab = activeTab !== "activity" && activeTab !== "sessions";
+  const isSectionTab = activeTab !== "activity" && activeTab !== "sessions";
 
   return (
     <div className="flex flex-col h-full bg-base-100">
@@ -164,15 +164,15 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
         <button
           type="button"
           onClick={handleBack}
-          className="p-1 rounded text-base-content/40 hover:text-base-content hover:bg-base-content/5 transition-colors"
+          className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-base-content/40 hover:text-base-content hover:bg-base-content/5 transition-colors"
           aria-label="Back to specs"
         >
           <ArrowLeft size={16} />
         </button>
-        <div className="flex items-center gap-1.5 ml-auto text-[11px] text-base-content/30 font-mono">
+        <div className="flex items-center gap-1.5 ml-auto text-[11px] text-base-content/30 font-mono" aria-live="polite" aria-atomic="true">
           {saveState === "saving" && (
             <>
-              <Loader2 size={12} className="animate-spin" />
+              <Loader2 size={12} className="animate-spin motion-reduce:animate-none" />
               <span>Saving...</span>
             </>
           )}
@@ -183,11 +183,39 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
             </>
           )}
         </div>
+        {spec.sections.summary && spec.sections.requirements && (
+          <button
+            type="button"
+            onClick={function () {
+              send({ type: "specs:start-plan", specId: spec.id, projectSlug: spec.projectSlug } as any);
+            }}
+            disabled={!online}
+            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content"
+            aria-label="Write Plan"
+          >
+            <ClipboardList size={12} />
+            <span className="hidden sm:inline">Write Plan</span>
+          </button>
+        )}
+        {spec.sections.implementationPlan && (
+          <button
+            type="button"
+            onClick={function () {
+              send({ type: "specs:start-execute", specId: spec.id, projectSlug: spec.projectSlug } as any);
+            }}
+            disabled={!online}
+            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content"
+            aria-label="Execute Plan"
+          >
+            <Play size={12} />
+            <span className="hidden sm:inline">Execute Plan</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={function () { setShowDeleteModal(true); }}
           disabled={!online}
-          className="p-1 rounded text-base-content/30 hover:text-error hover:bg-error/10 transition-colors disabled:opacity-30"
+          className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-base-content/30 hover:text-error hover:bg-error/10 transition-colors disabled:opacity-30"
           aria-label="Delete spec"
         >
           <Trash2 size={14} />
@@ -218,47 +246,51 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 px-4 py-2">
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Status</label>
+            <label htmlFor="spec-status" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Status</label>
             <select
+              id="spec-status"
               value={status}
               onChange={function (e) { handleStatusChange(e.target.value as SpecStatus); }}
               disabled={!online}
               className="h-7 px-2 bg-base-200 border border-base-content/10 rounded text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors"
             >
               {STATUS_OPTIONS.map(function (s) {
-                return <option key={s} value={s}>{s}</option>;
+                return <option key={s} value={s}>{{ "draft": "Draft", "in-progress": "In Progress", "on-hold": "On Hold", "completed": "Completed" }[s]}</option>;
               })}
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Priority</label>
+            <label htmlFor="spec-priority" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Priority</label>
             <select
+              id="spec-priority"
               value={priority}
               onChange={function (e) { handlePriorityChange(e.target.value as SpecPriority); }}
               disabled={!online}
               className="h-7 px-2 bg-base-200 border border-base-content/10 rounded text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors"
             >
               {PRIORITY_OPTIONS.map(function (p) {
-                return <option key={p} value={p}>{p}</option>;
+                return <option key={p} value={p}>{{ "high": "High", "medium": "Medium", "low": "Low" }[p]}</option>;
               })}
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Effort</label>
+            <label htmlFor="spec-effort" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Effort</label>
             <select
+              id="spec-effort"
               value={effort}
               onChange={function (e) { handleEffortChange(e.target.value as SpecEffort); }}
               disabled={!online}
               className="h-7 px-2 bg-base-200 border border-base-content/10 rounded text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors"
             >
               {EFFORT_OPTIONS.map(function (e) {
-                return <option key={e} value={e}>{e}</option>;
+                return <option key={e} value={e}>{{ "small": "Small", "medium": "Medium", "large": "Large", "xl": "XL" }[e]}</option>;
               })}
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Author</label>
+            <label htmlFor="spec-author" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Author</label>
             <input
+              id="spec-author"
               type="text"
               value={author}
               onChange={function (e) { setAuthor(e.target.value); }}
@@ -294,6 +326,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
             onKeyDown={handleAddTag}
             disabled={!online}
             placeholder="Add tag..."
+            aria-label="Add tag"
             className="bg-transparent text-[11px] text-base-content/60 placeholder:text-base-content/20 outline-none border-none w-20"
           />
         </div>
@@ -301,16 +334,18 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
         <div className="border-b border-base-content/10 overflow-x-auto flex-shrink-0" role="tablist">
           <div className="flex px-4 gap-0">
             {SECTION_TABS.map(function (tab) {
-              var isActive = activeTab === tab.key;
+              const isActive = activeTab === tab.key;
               return (
                 <button
                   key={tab.key}
+                  id={"spec-tab-" + tab.key}
                   type="button"
                   role="tab"
                   aria-selected={isActive}
+                  aria-controls="spec-tabpanel"
                   onClick={function () { setActiveTab(tab.key); }}
                   className={
-                    "px-3 py-2 text-[11px] font-mono whitespace-nowrap border-b-2 transition-colors " +
+                    "px-3 py-2 text-[11px] font-mono truncate border-b-2 transition-colors " +
                     (isActive
                       ? "border-primary text-primary"
                       : "border-transparent text-base-content/40 hover:text-base-content/70")
@@ -323,12 +358,12 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
           </div>
         </div>
 
-        <div className="px-4 py-3">
+        <div id="spec-tabpanel" role="tabpanel" aria-labelledby={"spec-tab-" + activeTab} className="px-4 py-3">
           {isSectionTab && (
             <SpecRichEditor
               content={sections[activeTab as SectionKey]}
               onChange={function (content) { handleSectionChange(activeTab as SectionKey, content); }}
-              placeholder={"Write " + activeTab + " details..."}
+              placeholder={SECTION_TABS.find(function (t) { return t.key === activeTab; })?.placeholder || "Write something..."}
               disabled={!online}
             />
           )}
@@ -346,30 +381,11 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
       </div>
 
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-          <div className="bg-base-300 border border-base-content/15 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-[15px] font-mono font-bold text-base-content mb-2">Delete spec?</h3>
-            <p className="text-[13px] text-base-content/60 mb-4">
-              This will permanently delete "{spec.title || "Untitled"}". This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={function () { setShowDeleteModal(false); }}
-                className="btn btn-ghost btn-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="btn btn-error btn-sm"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteSpecModal
+          title={spec.title}
+          onCancel={function () { setShowDeleteModal(false); }}
+          onConfirm={handleDelete}
+        />
       )}
     </div>
   );

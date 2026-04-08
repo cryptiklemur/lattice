@@ -46,13 +46,13 @@ export function TaskEditModal(props: TaskEditModalProps) {
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-content/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-content/50"
       onClick={handleBackdrop}
       role="dialog"
       aria-modal="true"
       aria-label={task ? "Edit Task" : "New Scheduled Task"}
     >
-      <div className="bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+      <div className="bg-base-200 border border-base-content/15 rounded-xl shadow-lg w-full max-w-md mx-4">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15">
           <h2 className="text-[14px] font-semibold text-base-content">
             {task ? "Edit Task" : "New Scheduled Task"}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Wrench, ChevronDown, Check, FileText, Search, Terminal, Pencil, FolderOpen } from "lucide-react";
 import type { HistoryMessage } from "#shared";
 import { ToolResultRenderer } from "./ToolResultRenderer";
@@ -87,7 +87,9 @@ export function ToolGroup(props: ToolGroupProps) {
   var [expanded, setExpanded] = useState(false);
   var tools = props.tools;
   var allDone = tools.every(function (t) { return Boolean(t.content); });
-  var uniqueNames = Array.from(new Set(tools.map(function (t) { return t.name || "unknown"; })));
+  var uniqueNames = useMemo(function () {
+    return Array.from(new Set(tools.map(function (t) { return t.name || "unknown"; })));
+  }, [tools]);
   var summary = uniqueNames.length <= 3
     ? uniqueNames.join(", ")
     : uniqueNames.slice(0, 2).join(", ") + " + " + (uniqueNames.length - 2) + " more";

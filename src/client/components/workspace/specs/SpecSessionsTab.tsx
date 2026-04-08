@@ -1,17 +1,13 @@
-import { Link2Off } from "lucide-react";
+import { Link2Off, MessageSquare, Lightbulb, ClipboardList, Play } from "lucide-react";
 import type { SpecLinkedSession } from "#shared";
+import { relativeTime } from "../../../utils/relativeTime";
 
-function relativeTime(ts: number): string {
-  var diff = Date.now() - ts;
-  var seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return seconds + "s ago";
-  var minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return minutes + "m ago";
-  var hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + "h ago";
-  var days = Math.floor(hours / 24);
-  return days + "d ago";
-}
+const SESSION_TYPE_CONFIG: Record<string, { icon: typeof MessageSquare; label: string; color: string }> = {
+  "brainstorm": { icon: Lightbulb, label: "Brainstorm", color: "text-warning" },
+  "write-plan": { icon: ClipboardList, label: "Plan", color: "text-info" },
+  "execute": { icon: Play, label: "Execute", color: "text-success" },
+  "chat": { icon: MessageSquare, label: "Chat", color: "text-base-content/50" },
+};
 
 interface SpecSessionsTabProps {
   linkedSessions: SpecLinkedSession[];
@@ -22,8 +18,9 @@ interface SpecSessionsTabProps {
 export function SpecSessionsTab({ linkedSessions, onUnlink, disabled }: SpecSessionsTabProps) {
   if (linkedSessions.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12 text-[13px] text-base-content/30 font-mono">
-        No linked sessions
+      <div className="flex flex-col items-center justify-center py-12 gap-1">
+        <span className="text-[13px] text-base-content/30 font-mono">No linked sessions</span>
+        <span className="text-[11px] text-base-content/20">Chat sessions linked to this spec will appear here</span>
       </div>
     );
   }
@@ -32,7 +29,17 @@ export function SpecSessionsTab({ linkedSessions, onUnlink, disabled }: SpecSess
     <div className="flex flex-col gap-1 py-2">
       {linkedSessions.map(function (session) {
         return (
-          <div key={session.sessionId} className="flex items-center gap-3 px-1 py-1.5 rounded hover:bg-base-content/5 transition-colors">
+          <div key={session.sessionId} className="flex items-center gap-2 sm:gap-3 px-1 py-1.5 rounded hover:bg-base-content/5 transition-colors flex-wrap sm:flex-nowrap">
+            {(function () {
+              const config = SESSION_TYPE_CONFIG[session.sessionType || "chat"] || SESSION_TYPE_CONFIG["chat"];
+              const Icon = config.icon;
+              return (
+                <span className={"flex items-center gap-1 flex-shrink-0 " + config.color}>
+                  <Icon size={13} />
+                  <span className="text-[10px] font-mono">{config.label}</span>
+                </span>
+              );
+            })()}
             <span className="text-[12px] font-mono text-base-content/70 flex-shrink-0">
               {session.sessionId.slice(0, 8)}
             </span>
@@ -48,7 +55,7 @@ export function SpecSessionsTab({ linkedSessions, onUnlink, disabled }: SpecSess
               type="button"
               onClick={function () { onUnlink(session.sessionId); }}
               disabled={disabled}
-              className="p-1 rounded text-base-content/30 hover:text-error hover:bg-error/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-base-content/30 hover:text-error hover:bg-error/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label={"Unlink session " + session.sessionId.slice(0, 8)}
             >
               <Link2Off size={13} />

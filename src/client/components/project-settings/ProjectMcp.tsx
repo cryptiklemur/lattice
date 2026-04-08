@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
@@ -94,10 +94,12 @@ export function ProjectMcp({
     updateSection("mcp", { mcpServers: servers });
   }
 
-  var existingNamesForAdd = new Set(Object.keys(servers));
-  var existingNamesForEdit = new Set(
-    Object.keys(servers).filter(function (n) { return n !== editingName; })
-  );
+  var existingNamesForAdd = useMemo(function () {
+    return new Set(Object.keys(servers));
+  }, [servers]);
+  var existingNamesForEdit = useMemo(function () {
+    return new Set(Object.keys(servers).filter(function (n) { return n !== editingName; }));
+  }, [servers, editingName]);
 
   return (
     <div className="py-2">

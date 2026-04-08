@@ -15,6 +15,7 @@ export interface SpecLinkedSession {
   sessionId: string;
   linkedAt: number;
   note?: string;
+  sessionType?: string;
 }
 
 export type SpecActivityType = "created" | "status-change" | "session-linked" | "edited" | "ai-note";

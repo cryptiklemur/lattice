@@ -32,7 +32,7 @@ function Sparkline({ data, stroke }: SparklineProps) {
 }
 
 export function QuickStats() {
-  const analytics = useStore(getAnalyticsStore(), function (s) { return s; });
+  const analytics = useStore(getAnalyticsStore(), function (s) { return { data: s.data, loadedSections: s.loadedSections }; });
   const summaryLoaded = analytics.loadedSections.includes("summary");
 
   if (!summaryLoaded) {

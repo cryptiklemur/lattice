@@ -28,6 +28,8 @@ export interface ProjectInfo extends ProjectSummary {
   activeSessions?: number;
 }
 
+export type SessionType = "chat" | "brainstorm" | "write-plan" | "execute";
+
 export interface SessionSummary {
   id: string;
   projectSlug: string;
@@ -35,6 +37,7 @@ export interface SessionSummary {
   createdAt: number;
   updatedAt: number;
   messageCount?: number;
+  sessionType?: SessionType;
 }
 
 export interface SessionPreview {

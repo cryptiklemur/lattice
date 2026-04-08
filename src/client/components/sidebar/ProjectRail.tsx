@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Settings, PlusCircle, Trash2, Unplug, RefreshCw } from "lucide-react";
 import type { ProjectInfo, NodeInfo } from "#shared";
@@ -123,12 +123,12 @@ function ProjectButton(props: ProjectButtonProps) {
             transform: "translateY(-50%)",
           }}
         >
-          <div className="text-[12px] font-bold text-base-content whitespace-nowrap">{props.group.title}</div>
+          <div className="text-[12px] font-bold text-base-content truncate">{props.group.title}</div>
           {props.group.nodes.map(function (n) {
             return (
               <div key={n.nodeId} className="flex items-center gap-1.5 mt-0.5">
                 <div className={"w-[6px] h-[6px] rounded-full flex-shrink-0 " + (n.online ? "bg-success" : "bg-error")} />
-                <span className="text-[10px] text-base-content/50 whitespace-nowrap">
+                <span className="text-[10px] text-base-content/50 truncate">
                   {n.nodeName}
                   {n.path ? " \u00B7 " + n.path : ""}
                 </span>
@@ -180,10 +180,10 @@ function NodeIndicator({ node, onContextMenu }: { node: NodeInfo; onContextMenu:
         >
           <div className="flex items-center gap-1.5">
             <div className={"w-[6px] h-[6px] rounded-full flex-shrink-0 " + (node.online ? "bg-success" : "bg-error")} />
-            <span className="text-[12px] font-bold text-base-content whitespace-nowrap">{node.name}</span>
+            <span className="text-[12px] font-bold text-base-content truncate">{node.name}</span>
           </div>
           {node.addresses && node.addresses.length > 0 && (
-            <div className="text-[10px] text-base-content/40 mt-0.5 whitespace-nowrap">
+            <div className="text-[10px] text-base-content/40 mt-0.5 truncate">
               {node.addresses[0]}
             </div>
           )}
@@ -210,10 +210,10 @@ interface ProjectRailProps {
 export function ProjectRail(props: ProjectRailProps) {
   var ws = useWebSocket();
   var sidebar = useSidebar();
-  var groups = groupProjectsBySlug(props.projects, props.nodes);
-  var localNode = props.nodes.find(function (n) { return n.isLocal; });
-  var remoteNodes = props.nodes.filter(function (n) { return !n.isLocal; });
-  var allMeshNodes = localNode ? [localNode].concat(remoteNodes) : remoteNodes;
+  var groups = useMemo(function () { return groupProjectsBySlug(props.projects, props.nodes); }, [props.projects, props.nodes]);
+  var localNode = useMemo(function () { return props.nodes.find(function (n) { return n.isLocal; }); }, [props.nodes]);
+  var remoteNodes = useMemo(function () { return props.nodes.filter(function (n) { return !n.isLocal; }); }, [props.nodes]);
+  var allMeshNodes = useMemo(function () { return localNode ? [localNode].concat(remoteNodes) : remoteNodes; }, [localNode, remoteNodes]);
   var projectCtx = useContextMenu<string>();
   var nodeCtx = useContextMenu<NodeInfo>();
 

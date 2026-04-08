@@ -96,8 +96,8 @@ export function getChartColors(): ChartColors {
   var b04 = css("--base04");
   var b02 = css("--base02");
 
-  var tickFill = b04 || b03 || "#9ea8c7";
-  var gridStroke = b02 || "#44475a";
+  var tickFill = b04 || b03 || "oklch(0.7 0.03 260)";
+  var gridStroke = b02 || "oklch(0.35 0.02 260)";
 
   _cache = {
     primary,

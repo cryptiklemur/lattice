@@ -5,18 +5,7 @@ import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
 import { openTab } from "../../stores/workspace";
 import type { MessageBookmark } from "#shared";
-
-function relativeTime(ts: number): string {
-  var diff = Date.now() - ts;
-  var seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return seconds + "s ago";
-  var minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return minutes + "m ago";
-  var hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + "h ago";
-  var days = Math.floor(hours / 24);
-  return days + "d ago";
-}
+import { relativeTime } from "../../utils/relativeTime";
 
 interface GroupedBookmarks {
   projectSlug: string;

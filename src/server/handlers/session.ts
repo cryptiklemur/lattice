@@ -101,7 +101,7 @@ registerHandler("session", async function (clientId: string, message: ClientMess
 
   if (message.type === "session:create") {
     var createMsg = message as SessionCreateMessage;
-    var session = createSession(createMsg.projectSlug);
+    var session = createSession(createMsg.projectSlug, createMsg.sessionType);
     updateSessionInIndex(createMsg.projectSlug, session);
     sendTo(clientId, { type: "session:created", session });
     broadcastToProject(createMsg.projectSlug, {

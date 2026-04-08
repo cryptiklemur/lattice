@@ -120,7 +120,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
       ref={menuRef}
       role="menu"
       aria-label="Project actions"
-      className="fixed z-[9999] bg-base-300 border border-base-content/15 rounded-xl shadow-2xl overflow-hidden"
+      className="fixed z-[9999] bg-base-300 border border-base-content/15 rounded-xl shadow-lg overflow-hidden"
       style={style}
     >
       <div className="px-3 py-2.5 border-b border-base-content/10">

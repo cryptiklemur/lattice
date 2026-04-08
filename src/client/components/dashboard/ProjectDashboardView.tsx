@@ -11,9 +11,9 @@ import type { ProjectSettingsSection } from "../../stores/sidebar";
 import type { SessionSummary, ServerMessage } from "#shared";
 import { openSessionTab } from "../../stores/workspace";
 
-function StatCard({ label, value, icon, loading }: { label: string; value: string | number; icon: React.ReactNode; loading?: boolean }) {
-  return (
-    <div className="bg-base-300 rounded-xl border border-base-content/15 p-3 px-4">
+function StatCard({ label, value, icon, loading, onClick, subtitle }: { label: string; value: string | number; icon: React.ReactNode; loading?: boolean; onClick?: () => void; subtitle?: string }) {
+  var inner = (
+    <>
       <div className="flex items-center gap-2 mb-1.5">
         {icon}
         <span className="text-[11px] font-semibold tracking-wider uppercase text-base-content/40">{label}</span>
@@ -21,8 +21,28 @@ function StatCard({ label, value, icon, loading }: { label: string; value: strin
       {loading ? (
         <div className="h-7 w-10 bg-base-content/10 rounded animate-pulse" />
       ) : (
-        <div className="text-xl font-mono font-bold text-base-content">{value}</div>
+        <>
+          <div className="text-xl font-mono font-bold text-base-content">{value}</div>
+          {subtitle && <div className="text-[10px] text-base-content/25 font-mono mt-0.5">{subtitle}</div>}
+        </>
       )}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className="bg-base-300 rounded-xl border border-base-content/15 p-3 px-4 text-left hover:border-base-content/30 transition-colors duration-[120ms] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-base-300 rounded-xl border border-base-content/15 p-3 px-4">
+      {inner}
     </div>
   );
 }
@@ -114,9 +134,9 @@ export function ProjectDashboardView() {
       <div className="space-y-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard label="Sessions" value={sessionCount} icon={<MessageSquare size={14} className="text-primary" />} loading={sessionsLoading} />
-          <StatCard label="MCP Servers" value={mcpCount + globalMcpCount} icon={<Plug size={14} className="text-accent" />} loading={settingsLoading} />
-          <StatCard label="Rules" value={rulesCount + globalRulesCount} icon={<ScrollText size={14} className="text-info" />} loading={settingsLoading} />
-          <StatCard label="Env Vars" value={envCount} icon={<Terminal size={14} className="text-success" />} loading={settingsLoading} />
+          <StatCard label="MCP Servers" value={mcpCount + globalMcpCount} icon={<Plug size={14} className="text-accent" />} loading={settingsLoading} onClick={function () { goToSection("mcp"); }} subtitle={mcpCount > 0 && globalMcpCount > 0 ? mcpCount + " project + " + globalMcpCount + " global" : undefined} />
+          <StatCard label="Rules" value={rulesCount + globalRulesCount} icon={<ScrollText size={14} className="text-info" />} loading={settingsLoading} onClick={function () { goToSection("rules"); }} subtitle={rulesCount > 0 && globalRulesCount > 0 ? rulesCount + " project + " + globalRulesCount + " global" : undefined} />
+          <StatCard label="Env Vars" value={envCount} icon={<Terminal size={14} className="text-success" />} loading={settingsLoading} onClick={function () { goToSection("environment"); }} />
         </div>
 
         {settingsLoading ? (
@@ -158,7 +178,11 @@ export function ProjectDashboardView() {
               })}
             </div>
           ) : (
-            <div className="text-[12px] text-base-content/30">No sessions yet</div>
+            <div className="flex flex-col items-center py-6 gap-2">
+              <MessageSquare size={24} className="text-base-content/15" />
+              <div className="text-[12px] text-base-content/30">No sessions yet</div>
+              <div className="text-[11px] text-base-content/20">Start a new session from the sidebar</div>
+            </div>
           )}
         </div>
 

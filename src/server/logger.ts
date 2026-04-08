@@ -18,4 +18,5 @@ export var log = {
   update: createDebug("lattice:update"),
   terminal: createDebug("lattice:terminal"),
   settings: createDebug("lattice:settings"),
+  superpowers: createDebug("lattice:superpowers"),
 };

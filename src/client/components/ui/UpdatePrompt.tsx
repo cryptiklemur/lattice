@@ -33,7 +33,7 @@ export function UpdatePrompt() {
   if (!showUpdate) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9998] bg-base-300 border border-base-content/15 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-3 max-w-sm">
+    <div className="fixed bottom-4 right-4 z-[9998] bg-base-300 border border-base-content/15 rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 max-w-sm">
       <RefreshCw size={16} className="text-primary flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="text-[13px] text-base-content font-semibold">Update available</div>

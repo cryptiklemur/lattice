@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Blocks, Trash2, RefreshCw, Loader2, X, Download, Search,
   ChevronRight, Package, Webhook, ScrollText, Puzzle, ExternalLink,
@@ -165,6 +165,10 @@ export function GlobalPlugins() {
     }, 300);
   }, [send]);
 
+  var installedKeys = useMemo(function () {
+    return new Set(plugins.map(function (p) { return p.key; }));
+  }, [plugins]);
+
   if (!loaded) {
     return (
       <div className="py-4 space-y-3 animate-pulse">
@@ -207,7 +211,7 @@ export function GlobalPlugins() {
         searching={searching}
         hasSearched={hasSearched}
         installingKey={installingKey}
-        installedKeys={new Set(plugins.map(function (p) { return p.key; }))}
+        installedKeys={installedKeys}
         onSearch={handleSearchInput}
         onInstall={handleInstall}
       />
@@ -216,7 +220,7 @@ export function GlobalPlugins() {
         plugins={discoverPlugins}
         loaded={discoverLoaded}
         installingKey={installingKey}
-        installedKeys={new Set(plugins.map(function (p) { return p.key; }))}
+        installedKeys={installedKeys}
         onInstall={handleInstall}
       />
 
@@ -504,7 +508,7 @@ function PluginDetailModal({ plugin, onClose }: { plugin: PluginDetails; onClose
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-label={"Plugin: " + plugin.name}>
       <div className="absolute inset-0 bg-base-content/50" onClick={onClose} />
-      <div className="relative bg-base-200 border border-base-content/15 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="relative bg-base-200 border border-base-content/15 rounded-xl shadow-lg w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/15 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <Blocks size={16} className="text-primary flex-shrink-0" />

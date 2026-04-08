@@ -1,7 +1,7 @@
 import { join, resolve } from "node:path";
 import { createServer as createHttpServer } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
-import { readFileSync, existsSync, createReadStream } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, createReadStream } from "node:fs";
 import { stat as fsStat } from "node:fs/promises";
 import { lookup } from "node:dns";
 import express from "express";
@@ -47,13 +47,18 @@ import "./handlers/plugins";
 import "./handlers/update";
 import "./handlers/themes";
 import "./handlers/specs";
+import "./handlers/superpowers";
+import { installHooks } from "./handlers/context-hooks";
+import { handleHookStatusline, handleHookEvent, handleHookToolUse } from "./handlers/hooks";
 import { startScheduler } from "./features/scheduler";
 import { loadNotes } from "./features/sticky-notes";
+import { loadSessionHistory, listSessions as listHistoricalSessions, getSession as getHistoricalSession } from "./features/session-history";
 import { loadSpecs, onSpecsReloaded, listSpecs } from "./features/specs";
 import { startPeriodicUpdateCheck, getCachedUpdateInfo } from "./update-checker";
 import { loadBookmarks } from "./project/bookmarks";
 import { listSessions } from "./project/session";
 import { startBrainstormWatchers } from "./features/brainstorm";
+import { initSuperpowers } from "./features/superpowers";
 import { cleanupClientTerminals } from "./handlers/terminal";
 import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
 import { initPush, getVapidPublicKey, addPushSubscription } from "./push";
@@ -373,7 +378,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   });
 
   app.use(function (req, res, next) {
-    if (req.path === "/ws" || req.path === "/auth") {
+    if (req.path === "/ws" || req.path === "/auth" || req.path.startsWith("/api/hook/")) {
       next();
       return;
     }
@@ -397,6 +402,33 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     } catch {
       res.status(400).json({ ok: false });
     }
+  });
+
+  app.post("/api/hook/statusline", handleHookStatusline);
+  app.post("/api/hook/event", handleHookEvent);
+  app.post("/api/hook/tool_use", handleHookToolUse);
+
+  app.get("/api/session-history", function (req, res) {
+    const projectSlug = req.query.project as string | undefined;
+    const activeParam = req.query.active as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    const sessions = listHistoricalSessions({
+      projectSlug: projectSlug || undefined,
+      active: activeParam === "true" ? true : activeParam === "false" ? false : undefined,
+      limit: limitParam ? parseInt(limitParam, 10) : 100,
+    });
+    res.json(sessions.map(function (s) {
+      return { ...s, toolEvents: undefined, toolDeltas: undefined, toolEventCount: s.toolEvents.length, toolDeltaCount: s.toolDeltas.length };
+    }));
+  });
+
+  app.get("/api/session-history/:id", function (req, res) {
+    const session = getHistoricalSession(req.params.id);
+    if (!session) {
+      res.status(404).json({ error: "session not found" });
+      return;
+    }
+    res.json(session);
   });
 
   app.get("/api/file", async function (req, res) {
@@ -561,6 +593,9 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
 
   log.server("Listening on %s://0.0.0.0:%d", protocol, effectivePort);
 
+  // Write runtime port so hook scripts can find it
+  writeFileSync(join(getLatticeHome(), "port"), String(effectivePort));
+
   startHeartbeat(function (deadClientId) {
     clearActiveSession(deadClientId);
     clearActiveProject(deadClientId);
@@ -578,6 +613,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   startMeshConnections();
   startScheduler();
   loadNotes();
+  loadSessionHistory();
   loadSpecs();
   onSpecsReloaded(function () {
     var allSpecs = listSpecs();
@@ -588,7 +624,14 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   });
   loadBookmarks();
   startBrainstormWatchers();
+  initSuperpowers();
   startPeriodicUpdateCheck();
+  var hookResult = installHooks();
+  if (hookResult.success) {
+    log.server("Claude Code hooks installed/updated");
+  } else {
+    log.server("Failed to install hooks: %s", hookResult.message);
+  }
   loadInterruptedSessions();
   initPush();
 

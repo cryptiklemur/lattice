@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
-import { ClipboardList, Plus, List, LayoutGrid } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ClipboardList, Plus, List, LayoutGrid, ChevronDown, Sparkles } from "lucide-react";
 import type { Spec, SpecStatus, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
+import { useSession } from "../../hooks/useSession";
+import { openSessionTab } from "../../stores/workspace";
+import { setPendingSystemPrompt } from "../../stores/session";
 import { SpecEditor } from "./specs/SpecEditor";
 import { SpecListView } from "./specs/SpecListView";
 import { SpecBoardView } from "./specs/SpecBoardView";
@@ -12,30 +15,37 @@ type ViewMode = "list" | "board";
 
 function getPersistedViewMode(): ViewMode {
   try {
-    var stored = localStorage.getItem("lattice:specs:viewMode");
+    const stored = localStorage.getItem("lattice:specs:viewMode");
     if (stored === "list" || stored === "board") return stored;
   } catch {}
   return "list";
 }
 
 export function SpecsView() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { activeProjectSlug } = useSidebar();
-  var online = useOnline();
-  var [specs, setSpecs] = useState<Spec[]>([]);
-  var [loading, setLoading] = useState(true);
-  var [viewMode, setViewMode] = useState<ViewMode>(getPersistedViewMode);
-  var [statusFilter, setStatusFilter] = useState<SpecStatus | "all">("in-progress");
-  var [editingSpecId, setEditingSpecId] = useState<string | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { activeProjectSlug } = useSidebar();
+  const online = useOnline();
+  const session = useSession();
+  const [specs, setSpecs] = useState<Spec[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>(getPersistedViewMode);
+  const [statusFilter, setStatusFilter] = useState<SpecStatus | "all">("in-progress");
+  const [editingSpecId, setEditingSpecId] = useState<string | null>(null);
+  const [showNewMenu, setShowNewMenu] = useState(false);
+  const [superpowersInstalled, setSuperpowersInstalled] = useState(false);
+  const newMenuRef = useRef<HTMLDivElement>(null);
 
-  var handleMessage = useCallback(function (msg: ServerMessage) {
+  const handleMessage = useCallback(function (msg: ServerMessage) {
     if (msg.type === "specs:list_result") {
       setSpecs(msg.specs);
       setLoading(false);
       return;
     }
     if (msg.type === "specs:created") {
-      setSpecs(function (prev) { return [...prev, msg.spec]; });
+      setSpecs(function (prev) {
+        if (prev.some(function (s) { return s.id === msg.spec.id; })) return prev;
+        return [...prev, msg.spec];
+      });
       return;
     }
     if (msg.type === "specs:updated" || msg.type === "specs:session_linked" || msg.type === "specs:session_unlinked" || msg.type === "specs:activity_added") {
@@ -74,6 +84,64 @@ export function SpecsView() {
     };
   }, [send, subscribe, unsubscribe, handleMessage, activeProjectSlug]);
 
+  useEffect(function () {
+    function handleSuperpowersStatus(msg: ServerMessage) {
+      if (msg.type === "superpowers:status") {
+        setSuperpowersInstalled((msg as any).installed);
+      }
+    }
+    subscribe("superpowers:status", handleSuperpowersStatus);
+    send({ type: "superpowers:status_request" } as any);
+    return function () {
+      unsubscribe("superpowers:status", handleSuperpowersStatus);
+    };
+  }, [send, subscribe, unsubscribe]);
+
+  useEffect(function () {
+    function handleBrainstormStarted(msg: ServerMessage) {
+      if ((msg as any).type === "specs:brainstorm-started") {
+        const data = msg as any;
+        setPendingSystemPrompt(data.systemPrompt);
+        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Brainstorm");
+        session.activateSession(activeProjectSlug ?? "", data.sessionId);
+      }
+    }
+    function handlePlanStarted(msg: ServerMessage) {
+      if ((msg as any).type === "specs:plan-started") {
+        const data = msg as any;
+        setPendingSystemPrompt(data.systemPrompt);
+        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Write Plan");
+        session.activateSession(activeProjectSlug ?? "", data.sessionId);
+      }
+    }
+    function handleExecuteStarted(msg: ServerMessage) {
+      if ((msg as any).type === "specs:execute-started") {
+        const data = msg as any;
+        setPendingSystemPrompt(data.systemPrompt);
+        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Execute");
+        session.activateSession(activeProjectSlug ?? "", data.sessionId);
+      }
+    }
+    subscribe("specs:brainstorm-started", handleBrainstormStarted);
+    subscribe("specs:plan-started", handlePlanStarted);
+    subscribe("specs:execute-started", handleExecuteStarted);
+    return function () {
+      unsubscribe("specs:brainstorm-started", handleBrainstormStarted);
+      unsubscribe("specs:plan-started", handlePlanStarted);
+      unsubscribe("specs:execute-started", handleExecuteStarted);
+    };
+  }, [subscribe, unsubscribe, activeProjectSlug, session]);
+
+  useEffect(function () {
+    function handleClickOutside(e: MouseEvent) {
+      if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) {
+        setShowNewMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return function () { document.removeEventListener("mousedown", handleClickOutside); };
+  }, []);
+
   function handleChangeViewMode(mode: ViewMode) {
     setViewMode(mode);
     try {
@@ -89,11 +157,15 @@ export function SpecsView() {
     });
   }
 
+  function handleCreateWithBrainstorm() {
+    send({ type: "specs:create-with-brainstorm", projectSlug: activeProjectSlug ?? "" } as any);
+  }
+
   function handleSelectSpec(spec: Spec) {
     setEditingSpecId(spec.id);
   }
 
-  var editingSpec = editingSpecId ? specs.find(function (s) { return s.id === editingSpecId; }) : null;
+  const editingSpec = editingSpecId ? specs.find(function (s) { return s.id === editingSpecId; }) : null;
 
   if (editingSpec) {
     return (
@@ -137,24 +209,64 @@ export function SpecsView() {
               <LayoutGrid size={14} />
             </button>
           </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={!online}
-            className="btn btn-primary btn-xs gap-1"
-          >
-            <Plus size={12} />
-            New Spec
-          </button>
+          <div className="relative" ref={newMenuRef}>
+            <button
+              type="button"
+              onClick={function () { setShowNewMenu(!showNewMenu); }}
+              disabled={!online}
+              className="btn btn-primary btn-xs gap-1"
+            >
+              <Plus size={12} />
+              New Spec
+              <ChevronDown size={10} />
+            </button>
+            {showNewMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-base-200 border border-base-content/15 rounded-lg shadow-lg z-50 min-w-[220px] py-1">
+                <button
+                  type="button"
+                  onClick={function () {
+                    setShowNewMenu(false);
+                    handleCreateWithBrainstorm();
+                  }}
+                  disabled={!superpowersInstalled}
+                  className="w-full text-left px-3 py-2 text-[12px] hover:bg-base-content/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-start gap-2"
+                >
+                  <Sparkles size={14} className="text-warning mt-0.5 flex-shrink-0" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-mono font-medium text-base-content">Brainstorm with AI</span>
+                    {superpowersInstalled ? (
+                      <span className="text-[10px] text-base-content/40">AI-guided brainstorm into a structured spec</span>
+                    ) : (
+                      <span className="text-[10px] text-warning/70">Requires: claude plugins install superpowers</span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={function () {
+                    setShowNewMenu(false);
+                    handleCreate();
+                  }}
+                  className="w-full text-left px-3 py-2 text-[12px] hover:bg-base-content/5 transition-colors flex items-start gap-2"
+                >
+                  <ClipboardList size={14} className="text-base-content/40 mt-0.5 flex-shrink-0" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-mono font-medium text-base-content">Blank Spec</span>
+                    <span className="text-[10px] text-base-content/40">Create an empty spec manually</span>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto p-4">
         {loading ? (
           <div className="flex flex-col gap-3 mt-2">
-            <div className="h-12 bg-base-content/10 animate-pulse rounded" />
-            <div className="h-12 bg-base-content/10 animate-pulse rounded" />
-            <div className="h-12 bg-base-content/10 animate-pulse rounded" />
+            <div className="h-12 bg-base-content/10 animate-pulse motion-reduce:animate-none rounded" />
+            <div className="h-12 bg-base-content/10 animate-pulse motion-reduce:animate-none rounded" />
+            <div className="h-12 bg-base-content/10 animate-pulse motion-reduce:animate-none rounded" />
           </div>
         ) : specs.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center mt-16 gap-3">
@@ -175,7 +287,14 @@ export function SpecsView() {
             </button>
           </div>
         ) : viewMode === "list" ? (
-          <SpecListView specs={specs} onSelectSpec={handleSelectSpec} filter={statusFilter} onFilterChange={setStatusFilter} />
+          <SpecListView
+            specs={specs}
+            onSelectSpec={handleSelectSpec}
+            onUpdateSpec={function (id, updates) { send({ type: "specs:update", id, ...updates } as any); }}
+            onDeleteSpec={function (id) { send({ type: "specs:delete", id } as any); }}
+            filter={statusFilter}
+            onFilterChange={setStatusFilter}
+          />
         ) : (
           <SpecBoardView specs={specs} onSelectSpec={handleSelectSpec} onStatusChange={function (specId: string, status: SpecStatus) {
             send({ type: "specs:update", id: specId, status: status });

@@ -5,7 +5,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { openTab } from "../../stores/workspace";
 import { getSidebarStore } from "../../stores/sidebar";
-import { STATUS_DOT, PRIORITY_COLOR } from "../workspace/specs/SpecCard";
+import { STATUS_DOT, PRIORITY_COLOR, STATUS_LABELS, PRIORITY_LABELS } from "../workspace/specs/spec-constants";
 
 var STATUS_ABBREV: Record<SpecStatus, string> = {
   "draft": "DFT",
@@ -96,14 +96,14 @@ export function SpecsSidebarWidget() {
                 onClick={handleSpecClick}
                 className="flex items-center gap-2 px-2 py-1 rounded-lg text-left hover:bg-base-content/5 transition-colors w-full"
               >
-                <span className={"w-1.5 h-1.5 rounded-full flex-shrink-0 " + STATUS_DOT[spec.status]} />
-                <span className="text-[9px] font-mono text-base-content/30 flex-shrink-0 w-7">
+                <span className={"w-2 h-2 rounded-full flex-shrink-0 " + STATUS_DOT[spec.status]} title={STATUS_LABELS[spec.status]} />
+                <span className="text-[10px] font-mono text-base-content/30 flex-shrink-0 w-7" title={STATUS_LABELS[spec.status]}>
                   {STATUS_ABBREV[spec.status]}
                 </span>
-                <span className="text-[11px] text-base-content/60 truncate min-w-0 flex-1">
+                <span className={"text-[11px] truncate min-w-0 flex-1 " + (!spec.title || spec.title === "Untitled" || spec.title === "Untitled Spec" ? "text-base-content/30 italic" : "text-base-content/60")}>
                   {spec.title || "Untitled"}
                 </span>
-                <span className={"text-[9px] font-mono flex-shrink-0 " + PRIORITY_COLOR[spec.priority]}>
+                <span className={"text-[10px] font-mono flex-shrink-0 " + PRIORITY_COLOR[spec.priority]} title={PRIORITY_LABELS[spec.priority] + " priority"}>
                   {spec.priority[0].toUpperCase()}
                 </span>
               </button>
