@@ -474,6 +474,7 @@ function buildSDKUserMessage(prompt: string, attachments: Attachment[] | undefin
 
 function pushToExistingStream(session: SessionStream, options: ChatStreamOptions): void {
   const { text, attachments, clientId, sessionId, model } = options;
+  log.chat("Session %s pushing to existing stream (ended=%s)", sessionId, String(session.ended));
 
   session.clientId = clientId;
   session.turnStartTime = Date.now();
@@ -502,6 +503,7 @@ function pushToExistingStream(session: SessionStream, options: ChatStreamOptions
 
 export function startChatStream(options: ChatStreamOptions): void {
   const { projectSlug, sessionId, text, attachments, clientId, cwd, env, model, effort, isNewSession } = options;
+  log.chat("startChatStream called: session=%s project=%s client=%s", sessionId, projectSlug, clientId);
 
   const existing = sessionStreams.get(sessionId);
   if (existing && !existing.ended) {
@@ -582,9 +584,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     additionalDirectories: savedAdditionalDirs.length > 0 ? savedAdditionalDirs : undefined,
     mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers as Record<string, any> : undefined,
     stderr: function (data: string) {
-      if (data.includes("error") || data.includes("Error") || data.includes("credit") || data.includes("Credit") || data.includes("billing") || data.includes("auth")) {
-        log.chat("SDK stderr: %s", data.trim());
-      }
+      log.chat("Session %s SDK stderr: %s", sessionId, data.trim());
     },
   };
 
@@ -822,18 +822,29 @@ export function startChatStream(options: ChatStreamOptions): void {
   broadcast({ type: "session:busy", sessionId, busy: true }, clientId);
 
   void (async function () {
+    log.chat("Session %s stream starting (resume=%s, model=%s)", sessionId, String(shouldResume), model || "default");
     try {
       await stream.initializationResult();
+      log.chat("Session %s SDK initialized", sessionId);
     } catch (initErr) {
-      log.chat("Session %s SDK initialization warning: %O", sessionId, initErr);
+      log.chat("Session %s SDK initialization FAILED: %O", sessionId, initErr);
     }
+    log.chat("Session %s pushing first message to queue", sessionId);
     mq.push(firstMsg);
     try {
+      log.chat("Session %s entering stream loop", sessionId);
+      let msgCount = 0;
       for await (const msg of stream) {
+        msgCount++;
+        if (msgCount <= 3 || msg.type === "result") {
+          log.chat("Session %s msg #%d type=%s", sessionId, msgCount, msg.type);
+        }
         processMessage(sessionStream, msg);
       }
+      log.chat("Session %s stream ended normally after %d messages", sessionId, msgCount);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      log.chat("Session %s stream error: %s", sessionId, errMsg);
       if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
         log.chat("Session %s stream aborted", sessionId);
       } else if (errMsg.includes("Sent before connected")) {

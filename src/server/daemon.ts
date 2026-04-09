@@ -19,7 +19,7 @@ import { startMeshConnections, onPeerConnected, onPeerDisconnected, onPeerMessag
 import { handleProxyRequest, handleProxyResponse } from "./mesh/proxy";
 import { verifyPassphrase, generateSessionToken, addSession, isValidSession } from "./auth/passphrase";
 import type { ClientMessage, MeshMessage } from "#shared";
-import { log } from "./logger";
+import { log, initFileLogger } from "./logger";
 import { detectIdeProjectName } from "./handlers/settings";
 import "./handlers/session";
 import "./handlers/chat";
@@ -338,6 +338,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   if (tlsOverride !== null && tlsOverride !== undefined) {
     config.tls = tlsOverride;
   }
+  initFileLogger(getLatticeHome());
   const identity = loadOrCreateIdentity();
 
   log.server("Node: %s (%s)", config.name, identity.id);
