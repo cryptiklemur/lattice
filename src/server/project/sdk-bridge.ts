@@ -78,6 +78,7 @@ export interface ChatStreamOptions {
   isNewSession?: boolean;
   systemPrompt?: string | { type: "preset"; preset: "claude_code"; append?: string };
   specId?: string;
+  _retryCount?: number;
 }
 
 export interface ModelEntry {
@@ -853,13 +854,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     } catch (initErr) {
       log.chat("Session %s SDK initialization FAILED: %O", sessionId, initErr);
     }
-    if (shouldResume) {
-      log.chat("Session %s waiting for SDK read #2 before pushing message", sessionId);
-      await mq.waitForRead(2);
-      log.chat("Session %s SDK read #2 triggered, pushing first message", sessionId);
-    } else {
-      log.chat("Session %s pushing first message to queue", sessionId);
-    }
+    log.chat("Session %s pushing first message to queue", sessionId);
     mq.push(firstMsg);
     let retrying = false;
     const TURN_TIMEOUT_MS = 30000;
@@ -891,10 +886,18 @@ export function startChatStream(options: ChatStreamOptions): void {
       if (turnTimer) clearTimeout(turnTimer);
       const errMsg = err instanceof Error ? err.message : String(err);
       log.chat("Session %s stream error: %s", sessionId, errMsg);
-      if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
-        log.chat("Session %s stream aborted", sessionId);
-      } else if (errMsg.includes("Sent before connected") && shouldResume) {
-        log.chat("Session %s WebSocket not ready after resume, retrying in 500ms", sessionId);
+      const retryCount = options._retryCount || 0;
+      const canRetry = shouldResume && retryCount < 1;
+      if ((errMsg.includes("aborted") || errMsg.includes("AbortError")) && canRetry && !sessionStream.sawNewTurnContent) {
+        log.chat("Session %s stream aborted after resume with no new content, retrying (attempt %d)", sessionId, retryCount + 1);
+        retrying = true;
+      } else if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
+        log.chat("Session %s stream aborted (sawContent=%s)", sessionId, String(sessionStream.sawNewTurnContent));
+        if (!sessionStream.sawNewTurnContent) {
+          sendTo(sessionStream.clientId, { type: "chat:error", message: "Failed to get a response. Try sending your message again or start a new session." });
+        }
+      } else if (errMsg.includes("Sent before connected") && canRetry) {
+        log.chat("Session %s WebSocket not ready after resume, retrying (attempt %d)", sessionId, retryCount + 1);
         retrying = true;
       } else {
         console.error("[lattice] SDK stream error: " + errMsg);
@@ -907,9 +910,10 @@ export function startChatStream(options: ChatStreamOptions): void {
       persistStreamState();
 
       if (retrying) {
-        log.chat("Session %s cleaning up for retry", sessionId);
+        const retryCount = (options._retryCount || 0) + 1;
+        log.chat("Session %s cleaning up for retry #%d", sessionId, retryCount);
         await new Promise(function (resolve) { setTimeout(resolve, 500); });
-        startChatStream(options);
+        startChatStream({ ...options, _retryCount: retryCount });
         return;
       }
 
