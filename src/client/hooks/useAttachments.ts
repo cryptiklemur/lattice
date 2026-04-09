@@ -129,14 +129,25 @@ export function useAttachments(): UseAttachmentsReturn {
   }, [subscribe, unsubscribe, updateAttachment]);
 
   const uploadFile = useCallback(function (attachment: ClientAttachment, file: File) {
+    const attachmentId = attachment.id;
+
+    const overallTimer = setTimeout(function () {
+      updateAttachment(attachmentId, { status: "failed", error: "Upload timed out" });
+    }, UPLOAD_TIMEOUT_MS);
+    uploadTimers.current.set(attachmentId, overallTimer);
+
     const reader = new FileReader();
+    reader.onerror = function () {
+      clearTimeout(overallTimer);
+      uploadTimers.current.delete(attachmentId);
+      updateAttachment(attachmentId, { status: "failed", error: "Failed to read file" });
+    };
     reader.onload = function () {
       const buffer = reader.result as ArrayBuffer;
       const bytes = new Uint8Array(buffer);
       const totalChunks = Math.ceil(bytes.length / CHUNK_SIZE);
 
       let chunkIndex = 0;
-      const attachmentId = attachment.id;
 
       function sendNextChunk() {
         if (chunkIndex >= totalChunks) {
@@ -190,11 +201,6 @@ export function useAttachments(): UseAttachmentsReturn {
           timer: chunkTimer,
         });
       }
-
-      const overallTimer = setTimeout(function () {
-        updateAttachment(attachmentId, { status: "failed", error: "Upload timed out" });
-      }, UPLOAD_TIMEOUT_MS);
-      uploadTimers.current.set(attachmentId, overallTimer);
 
       sendNextChunk();
     };
