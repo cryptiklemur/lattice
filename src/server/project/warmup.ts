@@ -5,6 +5,7 @@ import { log } from "../logger";
 import { loadConfig } from "../config";
 import { listSessions, loadSessionHistory } from "./session";
 import { execSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -88,7 +89,7 @@ export async function runWarmup(cwd: string): Promise<void> {
   try {
     const ac = new AbortController();
     let ended = false;
-    const WARMUP_SESSION_ID = "lattice-warmup";
+    const WARMUP_SESSION_ID = randomUUID();
 
     const mq = {
       [Symbol.asyncIterator]: function () {

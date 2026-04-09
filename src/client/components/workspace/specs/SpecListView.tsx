@@ -313,6 +313,9 @@ export function SpecListView({ specs, onSelectSpec, onUpdateSpec, onDeleteSpec, 
                         <span className="text-[12px] font-mono font-semibold text-base-content truncate max-w-[160px] sm:max-w-[300px]">
                           {spec.title || "Untitled"}
                         </span>
+                        <span className="text-[10px] font-mono text-base-content/20 truncate max-w-[160px] sm:max-w-[300px]">
+                          {spec.id}
+                        </span>
                         {spec.tagline && (
                           <span className="text-[10px] text-base-content/30 truncate max-w-[160px] sm:max-w-[300px]">
                             {spec.tagline}

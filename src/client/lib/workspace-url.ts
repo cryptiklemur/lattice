@@ -28,6 +28,8 @@ export function encodeWorkspaceUrl(
       } else {
         token += ":" + shortId;
       }
+    } else if (tab.type === "specs" && tab.specId) {
+      token += ":" + tab.specId;
     }
     if (isActive) {
       token += "*";
@@ -162,6 +164,15 @@ export function decodeWorkspaceUrl(
           pinned: true,
           sessionId: resolvedId,
           projectSlug: projectSlug,
+        };
+      } else if (tabType === "specs" && sessionShortId) {
+        tab = {
+          id: "specs",
+          type: "specs",
+          label: "Specs",
+          closeable: true,
+          pinned: true,
+          specId: sessionShortId,
         };
       } else if (tabType === "chat") {
         tab = { id: "chat", type: "chat", label: "Chat", closeable: true, pinned: true };

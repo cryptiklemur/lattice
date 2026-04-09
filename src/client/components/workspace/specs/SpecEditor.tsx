@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Loader2, Check, Trash2, X, ClipboardList, Play } from "lucide-react";
+import { ArrowLeft, Loader2, Check, Trash2, X, ClipboardList, Play, Copy } from "lucide-react";
 import type { Spec, SpecSection, SpecStatus, SpecPriority, SpecEffort } from "#shared";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useOnline } from "../../../hooks/useOnline";
-import { SpecRichEditor } from "./SpecRichEditor";
+import { SpecMarkdownEditor } from "./SpecMarkdownEditor";
 import { SpecActivityTab } from "./SpecActivityTab";
 import { SpecSessionsTab } from "./SpecSessionsTab";
 import { DeleteSpecModal } from "./DeleteSpecModal";
@@ -24,6 +24,10 @@ const SECTION_TABS: Array<{ key: string; label: string; placeholder: string }> =
 const STATUS_OPTIONS: SpecStatus[] = ["draft", "in-progress", "on-hold", "completed"];
 const PRIORITY_OPTIONS: SpecPriority[] = ["high", "medium", "low"];
 const EFFORT_OPTIONS: SpecEffort[] = ["small", "medium", "large", "xl"];
+
+const STATUS_LABEL: Record<string, string> = { "draft": "Draft", "in-progress": "In Progress", "on-hold": "On Hold", "completed": "Completed" };
+const PRIORITY_LABEL: Record<string, string> = { "high": "High", "medium": "Medium", "low": "Low" };
+const EFFORT_LABEL: Record<string, string> = { "small": "Small", "medium": "Medium", "large": "Large", "xl": "XL" };
 
 interface SpecEditorProps {
   spec: Spec;
@@ -46,6 +50,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [idCopied, setIdCopied] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSectionRef = useRef<SpecSection | null>(null);
@@ -156,74 +161,84 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
     send({ type: "specs:unlink-session", id: spec.id, sessionId });
   }
 
+  function handleCopyId() {
+    navigator.clipboard.writeText(spec.id);
+    setIdCopied(true);
+    setTimeout(function () { setIdCopied(false); }, 1500);
+  }
+
   const isSectionTab = activeTab !== "activity" && activeTab !== "sessions";
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-base-content/15 flex-shrink-0">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-base-content/15 flex-shrink-0 bg-base-200">
         <button
           type="button"
           onClick={handleBack}
-          className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-base-content/40 hover:text-base-content hover:bg-base-content/5 transition-colors"
+          className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content"
           aria-label="Back to specs"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={15} />
         </button>
+
         <div className="flex items-center gap-1.5 ml-auto text-[11px] text-base-content/30 font-mono" aria-live="polite" aria-atomic="true">
           {saveState === "saving" && (
             <>
-              <Loader2 size={12} className="animate-spin motion-reduce:animate-none" />
-              <span>Saving...</span>
+              <Loader2 size={11} className="animate-spin motion-reduce:animate-none" />
+              <span>Saving</span>
             </>
           )}
           {saveState === "saved" && (
             <>
-              <Check size={12} className="text-success" />
+              <Check size={11} className="text-success" />
               <span>Saved</span>
             </>
           )}
         </div>
-        <div className="tooltip tooltip-bottom" data-tip={!spec.sections.summary || !spec.sections.requirements ? "Fill in Summary and Requirements first" : undefined}>
+
+        <div className="tooltip tooltip-bottom" data-tip={!spec.sections.summary || !spec.sections.requirements ? "Fill in Summary and Requirements first" : "Start a plan session"}>
           <button
             type="button"
             onClick={function () {
               send({ type: "specs:start-plan", specId: spec.id, projectSlug: spec.projectSlug } as any);
             }}
             disabled={!online || !spec.sections.summary || !spec.sections.requirements}
-            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content disabled:text-base-content/20"
+            className="btn btn-xs btn-ghost gap-1.5 text-base-content/50 hover:text-base-content disabled:text-base-content/20"
             aria-label="Write Plan"
           >
             <ClipboardList size={12} />
-            <span className="hidden sm:inline">Write Plan</span>
+            <span className="hidden sm:inline text-[11px] font-mono">Write Plan</span>
           </button>
         </div>
-        <div className="tooltip tooltip-bottom" data-tip={!spec.sections.implementationPlan ? "Write an Implementation Plan first" : undefined}>
+
+        <div className="tooltip tooltip-bottom" data-tip={!spec.sections.implementationPlan ? "Write an Implementation Plan first" : "Start an execution session"}>
           <button
             type="button"
             onClick={function () {
               send({ type: "specs:start-execute", specId: spec.id, projectSlug: spec.projectSlug } as any);
             }}
             disabled={!online || !spec.sections.implementationPlan}
-            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content disabled:text-base-content/20"
+            className="btn btn-xs btn-ghost gap-1.5 text-base-content/50 hover:text-base-content disabled:text-base-content/20"
             aria-label="Execute Plan"
           >
             <Play size={12} />
-            <span className="hidden sm:inline">Execute Plan</span>
+            <span className="hidden sm:inline text-[11px] font-mono">Execute</span>
           </button>
         </div>
+
         <button
           type="button"
           onClick={function () { setShowDeleteModal(true); }}
           disabled={!online}
-          className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-base-content/30 hover:text-error hover:bg-error/10 transition-colors disabled:opacity-30"
+          className="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error hover:bg-error/10 disabled:opacity-30"
           aria-label="Delete spec"
         >
-          <Trash2 size={14} />
+          <Trash2 size={13} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 pt-4 pb-2">
+        <div className="px-5 pt-5 pb-1">
           <input
             type="text"
             value={title}
@@ -240,55 +255,64 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
             onBlur={handleTaglineBlur}
             disabled={!online}
             placeholder="Add a tagline..."
-            className="w-full bg-transparent text-[13px] text-base-content/40 placeholder:text-base-content/20 outline-none border-none mt-0.5"
+            className="w-full bg-transparent text-[13px] text-base-content/40 placeholder:text-base-content/20 outline-none border-none mt-1"
           />
+          <button
+            type="button"
+            onClick={handleCopyId}
+            className="flex items-center gap-1.5 mt-2 text-[10px] font-mono text-base-content/20 hover:text-base-content/40 transition-colors duration-[120ms]"
+            title="Copy spec ID"
+          >
+            {idCopied ? <Check size={9} className="text-success" /> : <Copy size={9} />}
+            {spec.id}
+          </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 px-4 py-2">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 px-5 py-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="spec-status" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Status</label>
+            <label htmlFor="spec-status" className="text-[10px] font-mono font-semibold text-base-content/30 uppercase tracking-wider">Status</label>
             <select
               id="spec-status"
               value={status}
               onChange={function (e) { handleStatusChange(e.target.value as SpecStatus); }}
               disabled={!online}
-              className="h-7 px-2 bg-base-200 border border-base-content/10 rounded text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors"
+              className="h-8 px-3 bg-base-300 border border-base-content/15 rounded-xl text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
             >
               {STATUS_OPTIONS.map(function (s) {
-                return <option key={s} value={s}>{{ "draft": "Draft", "in-progress": "In Progress", "on-hold": "On Hold", "completed": "Completed" }[s]}</option>;
+                return <option key={s} value={s}>{STATUS_LABEL[s]}</option>;
               })}
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="spec-priority" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Priority</label>
+            <label htmlFor="spec-priority" className="text-[10px] font-mono font-semibold text-base-content/30 uppercase tracking-wider">Priority</label>
             <select
               id="spec-priority"
               value={priority}
               onChange={function (e) { handlePriorityChange(e.target.value as SpecPriority); }}
               disabled={!online}
-              className="h-7 px-2 bg-base-200 border border-base-content/10 rounded text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors"
+              className="h-8 px-3 bg-base-300 border border-base-content/15 rounded-xl text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
             >
               {PRIORITY_OPTIONS.map(function (p) {
-                return <option key={p} value={p}>{{ "high": "High", "medium": "Medium", "low": "Low" }[p]}</option>;
+                return <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>;
               })}
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="spec-effort" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Effort</label>
+            <label htmlFor="spec-effort" className="text-[10px] font-mono font-semibold text-base-content/30 uppercase tracking-wider">Effort</label>
             <select
               id="spec-effort"
               value={effort}
               onChange={function (e) { handleEffortChange(e.target.value as SpecEffort); }}
               disabled={!online}
-              className="h-7 px-2 bg-base-200 border border-base-content/10 rounded text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors"
+              className="h-8 px-3 bg-base-300 border border-base-content/15 rounded-xl text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
             >
               {EFFORT_OPTIONS.map(function (e) {
-                return <option key={e} value={e}>{{ "small": "Small", "medium": "Medium", "large": "Large", "xl": "XL" }[e]}</option>;
+                return <option key={e} value={e}>{EFFORT_LABEL[e]}</option>;
               })}
             </select>
           </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="spec-author" className="text-[10px] text-base-content/30 font-mono uppercase tracking-wider">Author</label>
+          <div className="flex flex-col gap-1 col-span-2 lg:col-span-2">
+            <label htmlFor="spec-author" className="text-[10px] font-mono font-semibold text-base-content/30 uppercase tracking-wider">Author</label>
             <input
               id="spec-author"
               type="text"
@@ -297,42 +321,44 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
               onBlur={handleAuthorBlur}
               disabled={!online}
               placeholder="Author"
-              className="h-7 px-2 bg-base-200 border border-base-content/10 rounded text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors"
+              className="h-8 px-3 bg-base-300 border border-base-content/15 rounded-xl text-[12px] text-base-content font-mono focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-4 py-2 flex-wrap">
-          {tags.map(function (tag, i) {
-            return (
-              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-base-content/10 text-[11px] font-mono text-base-content/60">
-                {tag}
-                <button
-                  type="button"
-                  onClick={function () { handleRemoveTag(i); }}
-                  disabled={!online}
-                  className="text-base-content/30 hover:text-base-content transition-colors"
-                  aria-label={"Remove tag " + tag}
-                >
-                  <X size={10} />
-                </button>
-              </span>
-            );
-          })}
-          <input
-            type="text"
-            value={tagInput}
-            onChange={function (e) { setTagInput(e.target.value); }}
-            onKeyDown={handleAddTag}
-            disabled={!online}
-            placeholder="Add tag..."
-            aria-label="Add tag"
-            className="bg-transparent text-[11px] text-base-content/60 placeholder:text-base-content/20 outline-none border-none w-20"
-          />
-        </div>
+        {(tags.length > 0 || online) && (
+          <div className="flex items-center gap-1.5 px-5 pb-3 flex-wrap">
+            {tags.map(function (tag, i) {
+              return (
+                <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-base-content/8 text-[11px] font-mono text-base-content/50">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={function () { handleRemoveTag(i); }}
+                    disabled={!online}
+                    className="text-base-content/30 hover:text-base-content transition-colors duration-[120ms]"
+                    aria-label={"Remove tag " + tag}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              );
+            })}
+            <input
+              type="text"
+              value={tagInput}
+              onChange={function (e) { setTagInput(e.target.value); }}
+              onKeyDown={handleAddTag}
+              disabled={!online}
+              placeholder="+ tag"
+              aria-label="Add tag"
+              className="bg-transparent text-[11px] font-mono text-base-content/50 placeholder:text-base-content/20 outline-none border-none w-16"
+            />
+          </div>
+        )}
 
-        <div className="border-b border-base-content/10 overflow-x-auto flex-shrink-0" role="tablist">
-          <div className="flex px-4 gap-0">
+        <div className="border-b border-base-content/15 overflow-x-auto flex-shrink-0" role="tablist">
+          <div className="flex px-5 gap-0">
             {SECTION_TABS.map(function (tab) {
               const isActive = activeTab === tab.key;
               return (
@@ -345,7 +371,7 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
                   aria-controls="spec-tabpanel"
                   onClick={function () { setActiveTab(tab.key); }}
                   className={
-                    "px-3 py-2 text-[11px] font-mono truncate border-b-2 transition-colors " +
+                    "px-3 py-2.5 text-[11px] font-mono truncate border-b-2 transition-colors duration-[120ms] " +
                     (isActive
                       ? "border-primary text-primary"
                       : "border-transparent text-base-content/40 hover:text-base-content/70")
@@ -358,9 +384,9 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
           </div>
         </div>
 
-        <div id="spec-tabpanel" role="tabpanel" aria-labelledby={"spec-tab-" + activeTab} className="px-4 py-3">
+        <div id="spec-tabpanel" role="tabpanel" aria-labelledby={"spec-tab-" + activeTab} className="p-5">
           {isSectionTab && (
-            <SpecRichEditor
+            <SpecMarkdownEditor
               content={sections[activeTab as SectionKey]}
               onChange={function (content) { handleSectionChange(activeTab as SectionKey, content); }}
               placeholder={SECTION_TABS.find(function (t) { return t.key === activeTab; })?.placeholder || "Write something..."}

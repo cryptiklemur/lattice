@@ -13,8 +13,8 @@ export function SpecCard({ spec, onClick, compact }: SpecCardProps) {
       type="button"
       onClick={onClick}
       className={
-        "flex flex-col gap-1 p-2.5 rounded-lg border border-base-content/10 bg-base-100 hover:bg-base-content/5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 text-left w-full" +
-        (spec.status === "completed" ? " opacity-60" : "")
+        "flex flex-col gap-1.5 p-3 rounded-xl border border-base-content/15 bg-base-200 hover:bg-base-content/5 cursor-pointer transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 text-left w-full" +
+        (spec.status === "completed" ? " opacity-50" : "")
       }
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -23,6 +23,9 @@ export function SpecCard({ spec, onClick, compact }: SpecCardProps) {
           {spec.title || "Untitled"}
         </span>
       </div>
+      <span className="text-[9px] font-mono text-base-content/20 truncate pl-3.5">
+        {spec.id}
+      </span>
       {!compact && spec.tagline && (
         <span className="text-[11px] text-base-content/40 truncate pl-3.5">
           {spec.tagline}

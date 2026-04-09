@@ -12,6 +12,7 @@ export interface Tab {
   sessionId?: string;
   projectSlug?: string;
   sessionType?: string;
+  specId?: string;
 }
 
 export interface Pane {
@@ -126,6 +127,22 @@ export function clearPendingSpecId(): void {
 export function openSpecById(specId: string): void {
   pendingSpecId = specId;
   openTab("specs");
+  setSpecIdOnTab(specId);
+}
+
+export function setSpecIdOnTab(specId: string | null): void {
+  workspaceStore.setState(function (state) {
+    const specsTab = state.tabs.find(function (t) { return t.type === "specs"; });
+    if (!specsTab) return state;
+    if (specsTab.specId === (specId || undefined)) return state;
+    return {
+      ...state,
+      tabs: state.tabs.map(function (t) {
+        if (t.type === "specs") return { ...t, specId: specId || undefined };
+        return t;
+      }),
+    };
+  });
 }
 
 export function openSessionTab(sessionId: string, projectSlug: string, title: string, sessionType?: string): void {

@@ -5,7 +5,8 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
 import { useSession } from "../../hooks/useSession";
-import { openSessionTab, getPendingSpecId, clearPendingSpecId } from "../../stores/workspace";
+import { openSessionTab, getPendingSpecId, clearPendingSpecId, setSpecIdOnTab, getWorkspaceStore } from "../../stores/workspace";
+import { useStore } from "@tanstack/react-store";
 import { setPendingSystemPrompt, setPendingAutoSend, setSpecContext } from "../../stores/session";
 import { SpecEditor } from "./specs/SpecEditor";
 import { SpecListView } from "./specs/SpecListView";
@@ -26,11 +27,15 @@ export function SpecsView() {
   const { activeProjectSlug } = useSidebar();
   const online = useOnline();
   const session = useSession();
+  const urlSpecId = useStore(getWorkspaceStore(), function (s) {
+    const specsTab = s.tabs.find(function (t) { return t.type === "specs"; });
+    return specsTab?.specId || null;
+  });
   const [specs, setSpecs] = useState<Spec[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(getPersistedViewMode);
   const [statusFilter, setStatusFilter] = useState<SpecStatus | "all">("in-progress");
-  const [editingSpecId, setEditingSpecId] = useState<string | null>(null);
+  const [editingSpecId, setEditingSpecId] = useState<string | null>(urlSpecId);
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [superpowersInstalled, setSuperpowersInstalled] = useState(false);
   const newMenuRef = useRef<HTMLDivElement>(null);
@@ -189,6 +194,7 @@ export function SpecsView() {
 
   function handleSelectSpec(spec: Spec) {
     setEditingSpecId(spec.id);
+    setSpecIdOnTab(spec.id);
   }
 
   const editingSpec = editingSpecId ? specs.find(function (s) { return s.id === editingSpecId; }) : null;
@@ -197,7 +203,7 @@ export function SpecsView() {
     return (
       <SpecEditor
         spec={editingSpec}
-        onBack={function () { setEditingSpecId(null); }}
+        onBack={function () { setEditingSpecId(null); setSpecIdOnTab(null); }}
       />
     );
   }
