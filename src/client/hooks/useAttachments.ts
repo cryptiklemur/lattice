@@ -76,7 +76,10 @@ export function useAttachments(): UseAttachmentsReturn {
   const [attachments, setAttachments] = useState<ClientAttachment[]>([]);
   const { send, subscribe, unsubscribe } = useWebSocket();
   const pendingResolvers = useRef(new Map<string, { resolve: () => void; reject: (err: string) => void; timer: ReturnType<typeof setTimeout> }>());
+  const uploadTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const fileCache = useRef(new Map<string, File>());
+  const sendRef = useRef(send);
+  sendRef.current = send;
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
@@ -88,6 +91,43 @@ export function useAttachments(): UseAttachmentsReturn {
     });
   }, []);
 
+  useEffect(function () {
+    function handleProgress(msg: ServerMessage) {
+      const m = msg as { type: string; attachmentId: string; received: number; total: number };
+      const key = m.attachmentId + ":" + (m.received - 1);
+      const resolver = pendingResolvers.current.get(key);
+      if (resolver) {
+        pendingResolvers.current.delete(key);
+        resolver.resolve();
+      }
+      if (m.received === m.total) {
+        updateAttachment(m.attachmentId, { status: "ready", progress: 100 });
+        const timer = uploadTimers.current.get(m.attachmentId);
+        if (timer) {
+          clearTimeout(timer);
+          uploadTimers.current.delete(m.attachmentId);
+        }
+      }
+    }
+
+    function handleError(msg: ServerMessage) {
+      const m = msg as { type: string; attachmentId: string; error: string };
+      updateAttachment(m.attachmentId, { status: "failed", error: m.error });
+      const timer = uploadTimers.current.get(m.attachmentId);
+      if (timer) {
+        clearTimeout(timer);
+        uploadTimers.current.delete(m.attachmentId);
+      }
+    }
+
+    subscribe("attachment:progress", handleProgress);
+    subscribe("attachment:error", handleError);
+    return function () {
+      unsubscribe("attachment:progress", handleProgress);
+      unsubscribe("attachment:error", handleError);
+    };
+  }, [subscribe, unsubscribe, updateAttachment]);
+
   const uploadFile = useCallback(function (attachment: ClientAttachment, file: File) {
     const reader = new FileReader();
     reader.onload = function () {
@@ -96,12 +136,13 @@ export function useAttachments(): UseAttachmentsReturn {
       const totalChunks = Math.ceil(bytes.length / CHUNK_SIZE);
 
       let chunkIndex = 0;
+      const attachmentId = attachment.id;
 
       function sendNextChunk() {
         if (chunkIndex >= totalChunks) {
-          send({
+          sendRef.current({
             type: "attachment:complete",
-            attachmentId: attachment.id,
+            attachmentId: attachmentId,
             attachmentType: attachment.type,
             name: attachment.name,
             mimeType: attachment.mimeType,
@@ -120,80 +161,45 @@ export function useAttachments(): UseAttachmentsReturn {
         }
         const base64 = btoa(binary);
 
-        send({
+        sendRef.current({
           type: "attachment:chunk",
-          attachmentId: attachment.id,
+          attachmentId: attachmentId,
           chunkIndex,
           totalChunks,
           data: base64,
         });
 
         const currentChunk = chunkIndex;
-        const timer = setTimeout(function () {
-          pendingResolvers.current.delete(attachment.id + ":" + currentChunk);
-          updateAttachment(attachment.id, { status: "failed", error: "Upload timed out" });
+        const chunkTimer = setTimeout(function () {
+          pendingResolvers.current.delete(attachmentId + ":" + currentChunk);
+          updateAttachment(attachmentId, { status: "failed", error: "Chunk upload timed out" });
         }, CHUNK_TIMEOUT_MS);
 
-        pendingResolvers.current.set(attachment.id + ":" + currentChunk, {
+        pendingResolvers.current.set(attachmentId + ":" + currentChunk, {
           resolve: function () {
-            clearTimeout(timer);
+            clearTimeout(chunkTimer);
             chunkIndex++;
             const progress = Math.round((chunkIndex / totalChunks) * 100);
-            updateAttachment(attachment.id, { progress });
+            updateAttachment(attachmentId, { progress });
             sendNextChunk();
           },
           reject: function (err: string) {
-            clearTimeout(timer);
-            updateAttachment(attachment.id, { status: "failed", error: err });
+            clearTimeout(chunkTimer);
+            updateAttachment(attachmentId, { status: "failed", error: err });
           },
-          timer,
+          timer: chunkTimer,
         });
       }
 
-      let uploadTimer: ReturnType<typeof setTimeout> | null = null;
-
-      function cleanup() {
-        if (uploadTimer) clearTimeout(uploadTimer);
-        unsubscribe("attachment:progress", handleProgress);
-        unsubscribe("attachment:error", handleError);
-      }
-
-      function handleProgress(msg: ServerMessage) {
-        const m = msg as { type: string; attachmentId: string; received: number; total: number };
-        if (m.attachmentId !== attachment.id) return;
-        const key = attachment.id + ":" + (m.received - 1);
-        const resolver = pendingResolvers.current.get(key);
-        if (resolver) {
-          pendingResolvers.current.delete(key);
-          resolver.resolve();
-        }
-        if (m.received === m.total) {
-          updateAttachment(attachment.id, { status: "ready", progress: 100 });
-          cleanup();
-        }
-      }
-
-      function handleError(msg: ServerMessage) {
-        const m = msg as { type: string; attachmentId: string; error: string };
-        if (m.attachmentId !== attachment.id) return;
-        updateAttachment(attachment.id, { status: "failed", error: m.error });
-        cleanup();
-      }
-
-      uploadTimer = setTimeout(function () {
-        const current = attachmentsRef.current.find(function (a) { return a.id === attachment.id; });
-        if (current && current.status === "uploading") {
-          updateAttachment(attachment.id, { status: "failed", error: "Upload timed out" });
-          cleanup();
-        }
+      const overallTimer = setTimeout(function () {
+        updateAttachment(attachmentId, { status: "failed", error: "Upload timed out" });
       }, UPLOAD_TIMEOUT_MS);
+      uploadTimers.current.set(attachmentId, overallTimer);
 
-      subscribe("attachment:progress", handleProgress);
-      subscribe("attachment:error", handleError);
       sendNextChunk();
     };
     reader.readAsArrayBuffer(file);
-  }, [send, subscribe, unsubscribe, updateAttachment]);
+  }, [updateAttachment]);
 
   const addFile = useCallback(function (file: File) {
     if (file.size > MAX_FILE_SIZE) {
@@ -279,23 +285,38 @@ export function useAttachments(): UseAttachmentsReturn {
       return prev.filter(function (a) { return a.id !== id; });
     });
     fileCache.current.delete(id);
+    const timer = uploadTimers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      uploadTimers.current.delete(id);
+    }
   }, []);
 
   const retryAttachment = useCallback(function (id: string) {
     const file = fileCache.current.get(id);
-    const att = attachments.find(function (a) { return a.id === id; });
-    if (!file || !att) return;
-    updateAttachment(id, { status: "uploading", progress: 0, error: undefined });
-    uploadFile(att, file);
-  }, [attachments, uploadFile, updateAttachment]);
+    if (!file) return;
+    setAttachments(function (prev) {
+      const att = prev.find(function (a) { return a.id === id; });
+      if (!att) return prev;
+      return prev.map(function (a) {
+        return a.id === id ? { ...a, status: "uploading" as const, progress: 0, error: undefined } : a;
+      });
+    });
+    const att = attachmentsRef.current.find(function (a) { return a.id === id; });
+    if (att) uploadFile(att, file);
+  }, [uploadFile]);
 
   const clearAll = useCallback(function () {
-    attachments.forEach(function (a) {
-      if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+    setAttachments(function (prev) {
+      prev.forEach(function (a) {
+        if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      });
+      return [];
     });
-    setAttachments([]);
     fileCache.current.clear();
-  }, [attachments]);
+    uploadTimers.current.forEach(function (timer) { clearTimeout(timer); });
+    uploadTimers.current.clear();
+  }, []);
 
   useEffect(function () {
     return function () {
@@ -304,6 +325,7 @@ export function useAttachments(): UseAttachmentsReturn {
           URL.revokeObjectURL(att.previewUrl);
         }
       });
+      uploadTimers.current.forEach(function (timer) { clearTimeout(timer); });
     };
   }, []);
 
