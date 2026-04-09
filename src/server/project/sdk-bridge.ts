@@ -432,7 +432,9 @@ function resolvePromptText(text: string): string {
 function buildSDKUserMessage(prompt: string, attachments: Attachment[] | undefined, sessionId: string): SDKUserMessage {
   if (attachments && attachments.length > 0) {
     const contentBlocks: Array<{ type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
-    contentBlocks.push({ type: "text", text: prompt });
+    if (prompt) {
+      contentBlocks.push({ type: "text", text: prompt });
+    }
 
     for (let ai = 0; ai < attachments.length; ai++) {
       const att = attachments[ai];

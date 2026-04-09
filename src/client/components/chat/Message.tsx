@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, memo, useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck, RotateCcw, ClipboardCopy, FileText, MessageSquarePlus, History } from "lucide-react";
+import { Wrench, TriangleAlert, ChevronDown, ChevronRight, Check, X, Shield, Zap, Link, Copy, SquarePlus, Bookmark, BookmarkCheck, RotateCcw, ClipboardCopy, FileText, MessageSquarePlus, History, Paperclip } from "lucide-react";
 import type { HistoryMessage, ChatPermissionResponseMessage } from "#shared";
 import { useStore } from "@tanstack/react-store";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -370,7 +370,14 @@ function UserMessage(props: { message: HistoryMessage }) {
     <div id={msg.uuid ? "msg-" + msg.uuid : undefined} data-allow-context-menu className="chat chat-end px-5 py-1 group/msg" onContextMenu={function (e) { ctxMenu.open(e, msg); }}>
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-headings:text-primary-content prose-p:text-primary-content prose-strong:text-primary-content prose-code:text-primary-content/80 prose-pre:bg-primary/20 prose-a:text-primary-content/90 prose-a:underline prose-li:text-primary-content [&_ul>li::marker]:text-primary-content [&_ol>li::marker]:text-primary-content">
-          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
+          {text ? (
+            <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</Markdown>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-primary-content/60 italic">
+              <Paperclip size={12} />
+              <span>Pasted content</span>
+            </span>
+          )}
         </div>
       </div>
       {time && (
