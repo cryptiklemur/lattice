@@ -6,6 +6,7 @@ const CHUNK_SIZE = 64 * 1024;
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_ATTACHMENTS = 20;
 const CHUNK_TIMEOUT_MS = 10000;
+const UPLOAD_TIMEOUT_MS = 30000;
 
 export type AttachmentStatus = "uploading" | "ready" | "failed";
 
@@ -149,6 +150,14 @@ export function useAttachments(): UseAttachmentsReturn {
         });
       }
 
+      let uploadTimer: ReturnType<typeof setTimeout> | null = null;
+
+      function cleanup() {
+        if (uploadTimer) clearTimeout(uploadTimer);
+        unsubscribe("attachment:progress", handleProgress);
+        unsubscribe("attachment:error", handleError);
+      }
+
       function handleProgress(msg: ServerMessage) {
         const m = msg as { type: string; attachmentId: string; received: number; total: number };
         if (m.attachmentId !== attachment.id) return;
@@ -160,8 +169,7 @@ export function useAttachments(): UseAttachmentsReturn {
         }
         if (m.received === m.total) {
           updateAttachment(attachment.id, { status: "ready", progress: 100 });
-          unsubscribe("attachment:progress", handleProgress);
-          unsubscribe("attachment:error", handleError);
+          cleanup();
         }
       }
 
@@ -169,9 +177,16 @@ export function useAttachments(): UseAttachmentsReturn {
         const m = msg as { type: string; attachmentId: string; error: string };
         if (m.attachmentId !== attachment.id) return;
         updateAttachment(attachment.id, { status: "failed", error: m.error });
-        unsubscribe("attachment:progress", handleProgress);
-        unsubscribe("attachment:error", handleError);
+        cleanup();
       }
+
+      uploadTimer = setTimeout(function () {
+        const current = attachmentsRef.current.find(function (a) { return a.id === attachment.id; });
+        if (current && current.status === "uploading") {
+          updateAttachment(attachment.id, { status: "failed", error: "Upload timed out" });
+          cleanup();
+        }
+      }, UPLOAD_TIMEOUT_MS);
 
       subscribe("attachment:progress", handleProgress);
       subscribe("attachment:error", handleError);
