@@ -92,6 +92,7 @@ export function getAvailableModels(): ModelEntry[] {
 interface MessageQueue {
   push(msg: SDKUserMessage): void;
   end(): void;
+  waitForRead(n: number): Promise<void>;
   [Symbol.asyncIterator](): AsyncIterator<SDKUserMessage>;
 }
 
@@ -100,6 +101,7 @@ function createMessageQueue(label?: string): MessageQueue {
   let waiting: ((result: IteratorResult<SDKUserMessage>) => void) | null = null;
   let ended = false;
   let readCount = 0;
+  const readWaiters = new Map<number, () => void>();
 
   return {
     push: function (msg: SDKUserMessage) {
@@ -122,10 +124,21 @@ function createMessageQueue(label?: string): MessageQueue {
         resolve({ value: undefined as any, done: true });
       }
     },
+    waitForRead: function (n: number): Promise<void> {
+      if (readCount >= n) return Promise.resolve();
+      return new Promise(function (resolve) {
+        readWaiters.set(n, resolve);
+      });
+    },
     [Symbol.asyncIterator]: function () {
       return {
         next: function (): Promise<IteratorResult<SDKUserMessage>> {
           readCount++;
+          const waiter = readWaiters.get(readCount);
+          if (waiter) {
+            readWaiters.delete(readCount);
+            waiter();
+          }
           if (queue.length > 0) {
             log.chat("MQ[%s] read #%d: from buffer (remaining=%d)", label || "?", readCount, queue.length - 1);
             return Promise.resolve({ value: queue.shift()!, done: false });
@@ -840,7 +853,13 @@ export function startChatStream(options: ChatStreamOptions): void {
     } catch (initErr) {
       log.chat("Session %s SDK initialization FAILED: %O", sessionId, initErr);
     }
-    log.chat("Session %s pushing first message to queue", sessionId);
+    if (shouldResume) {
+      log.chat("Session %s waiting for SDK read #2 before pushing message", sessionId);
+      await mq.waitForRead(2);
+      log.chat("Session %s SDK read #2 triggered, pushing first message", sessionId);
+    } else {
+      log.chat("Session %s pushing first message to queue", sessionId);
+    }
     mq.push(firstMsg);
     let retrying = false;
     const TURN_TIMEOUT_MS = 30000;
