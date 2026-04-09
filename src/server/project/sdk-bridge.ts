@@ -155,6 +155,7 @@ interface SessionStream {
   accumulatedText: string;
   specId?: string;
   analyzer: ContextAnalyzer;
+  sawNewTurnContent: boolean;
 }
 
 const sessionStreams = new Map<string, SessionStream>();
@@ -479,6 +480,7 @@ function pushToExistingStream(session: SessionStream, options: ChatStreamOptions
   session.clientId = clientId;
   session.turnStartTime = Date.now();
   session.turnDoneSent = false;
+  session.sawNewTurnContent = false;
   session.activeToolBlocks = {};
 
   const prompt = resolvePromptText(text);
@@ -812,6 +814,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     ended: false,
     accumulatedText: "",
     specId: options.specId,
+    sawNewTurnContent: false,
     analyzer: new ContextAnalyzer(function (msg) {
       const ss = sessionStreams.get(sessionId);
       if (ss) sendTo(ss.clientId, msg as any);
@@ -829,15 +832,26 @@ export function startChatStream(options: ChatStreamOptions): void {
     } catch (initErr) {
       log.chat("Session %s SDK initialization FAILED: %O", sessionId, initErr);
     }
-    log.chat("Session %s pushing first message to queue", sessionId);
-    mq.push(firstMsg);
+    if (!shouldResume) {
+      log.chat("Session %s pushing first message to queue", sessionId);
+      mq.push(firstMsg);
+    }
     try {
       log.chat("Session %s entering stream loop", sessionId);
       let msgCount = 0;
+      let replayDone = !shouldResume;
       for await (const msg of stream) {
         msgCount++;
-        if (msgCount <= 3 || msg.type === "result") {
+        if (msgCount <= 5 || msg.type === "result") {
           log.chat("Session %s msg #%d type=%s", sessionId, msgCount, msg.type);
+        }
+        if (!replayDone && msg.type === "result") {
+          replayDone = true;
+          log.chat("Session %s replay complete at msg #%d, waiting for connection settle", sessionId, msgCount);
+          await new Promise(function (resolve) { setTimeout(resolve, 200); });
+          log.chat("Session %s pushing first message after replay", sessionId);
+          mq.push(firstMsg);
+          continue;
         }
         processMessage(sessionStream, msg);
       }
@@ -849,6 +863,7 @@ export function startChatStream(options: ChatStreamOptions): void {
         log.chat("Session %s stream aborted", sessionId);
       } else if (errMsg.includes("Sent before connected")) {
         log.chat("Session %s SDK WebSocket race condition: %s", sessionId, errMsg);
+        sendTo(sessionStream.clientId, { type: "chat:error", message: "Connection failed. Please try again." });
       } else {
         console.error("[lattice] SDK stream error: " + errMsg);
         sendTo(sessionStream.clientId, { type: "chat:error", message: errMsg });
@@ -968,6 +983,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
     const evt = partial.event;
 
     if (evt.type === "content_block_start") {
+      ss.sawNewTurnContent = true;
       const block = (evt as { content_block: { type: string; id?: string; name?: string }; index: number }).content_block;
       const idx = (evt as { index: number }).index;
       if (block.type === "tool_use" && block.id && block.name) {
@@ -1102,6 +1118,10 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
   }
 
   if (msg.type === "result") {
+    if (!ss.sawNewTurnContent) {
+      log.chat("Session %s ignoring replayed result (no new turn content seen)", sessionId);
+      return;
+    }
     const resultMsg = msg as SDKResultMessage;
     const dur = Date.now() - ss.turnStartTime;
     const cost = resultMsg.total_cost_usd || 0;
