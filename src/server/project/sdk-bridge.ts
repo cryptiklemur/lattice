@@ -95,23 +95,27 @@ interface MessageQueue {
   [Symbol.asyncIterator](): AsyncIterator<SDKUserMessage>;
 }
 
-function createMessageQueue(): MessageQueue {
+function createMessageQueue(label?: string): MessageQueue {
   const queue: SDKUserMessage[] = [];
   let waiting: ((result: IteratorResult<SDKUserMessage>) => void) | null = null;
   let ended = false;
+  let readCount = 0;
 
   return {
     push: function (msg: SDKUserMessage) {
       if (waiting) {
+        log.chat("MQ[%s] push: SDK was waiting, delivering immediately (queued=%d)", label || "?", queue.length);
         const resolve = waiting;
         waiting = null;
         resolve({ value: msg, done: false });
       } else {
         queue.push(msg);
+        log.chat("MQ[%s] push: buffered (queued=%d)", label || "?", queue.length);
       }
     },
     end: function () {
       ended = true;
+      log.chat("MQ[%s] end called (queued=%d, waiting=%s)", label || "?", queue.length, String(!!waiting));
       if (waiting) {
         const resolve = waiting;
         waiting = null;
@@ -121,12 +125,16 @@ function createMessageQueue(): MessageQueue {
     [Symbol.asyncIterator]: function () {
       return {
         next: function (): Promise<IteratorResult<SDKUserMessage>> {
+          readCount++;
           if (queue.length > 0) {
+            log.chat("MQ[%s] read #%d: from buffer (remaining=%d)", label || "?", readCount, queue.length - 1);
             return Promise.resolve({ value: queue.shift()!, done: false });
           }
           if (ended) {
+            log.chat("MQ[%s] read #%d: ended", label || "?", readCount);
             return Promise.resolve({ value: undefined as any, done: true });
           }
+          log.chat("MQ[%s] read #%d: waiting for push", label || "?", readCount);
           return new Promise(function (resolve) {
             waiting = resolve;
           });
@@ -790,7 +798,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     uuid: crypto.randomUUID(),
   });
 
-  const mq = createMessageQueue();
+  const mq = createMessageQueue(sessionId.slice(0, 8));
   const firstMsg = buildSDKUserMessage(prompt, attachments, sessionId);
 
   const stream = query({ prompt: mq as any, options: queryOptions });
@@ -835,16 +843,33 @@ export function startChatStream(options: ChatStreamOptions): void {
     log.chat("Session %s pushing first message to queue", sessionId);
     mq.push(firstMsg);
     let retrying = false;
+    const TURN_TIMEOUT_MS = 30000;
+    let turnTimer: ReturnType<typeof setTimeout> | null = null;
+    function resetTurnTimer() {
+      if (turnTimer) clearTimeout(turnTimer);
+      turnTimer = setTimeout(function () {
+        if (!sessionStream.sawNewTurnContent && !sessionStream.ended) {
+          log.chat("Session %s turn timeout: no new content after %dms, aborting", sessionId, TURN_TIMEOUT_MS);
+          abortController.abort();
+        }
+      }, TURN_TIMEOUT_MS);
+    }
+    resetTurnTimer();
     try {
       log.chat("Session %s entering stream loop", sessionId);
       let msgCount = 0;
       for await (const msg of stream) {
         msgCount++;
         log.chat("Session %s msg #%d type=%s", sessionId, msgCount, msg.type);
+        if (msg.type === "stream_event" || (msg.type === "assistant" && (msg as any).message?.model !== "<synthetic>")) {
+          resetTurnTimer();
+        }
         processMessage(sessionStream, msg);
       }
+      if (turnTimer) clearTimeout(turnTimer);
       log.chat("Session %s stream ended normally after %d messages", sessionId, msgCount);
     } catch (err: unknown) {
+      if (turnTimer) clearTimeout(turnTimer);
       const errMsg = err instanceof Error ? err.message : String(err);
       log.chat("Session %s stream error: %s", sessionId, errMsg);
       if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
