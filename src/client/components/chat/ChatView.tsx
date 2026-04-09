@@ -1111,6 +1111,8 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           disabledPlaceholder={
             (budgetStatus !== null && budgetStatus.enforcement === "hard-block" && budgetStatus.dailySpend >= budgetStatus.dailyLimit)
               ? "Daily budget exceeded ($" + budgetStatus.dailySpend.toFixed(2) + " / $" + budgetStatus.dailyLimit.toFixed(2) + ")"
+              : !activeSessionId ? "No active session"
+              : !online ? "Disconnected from server"
               : undefined
           }
           failedInput={failedInput}

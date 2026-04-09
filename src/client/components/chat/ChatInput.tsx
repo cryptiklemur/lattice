@@ -506,7 +506,7 @@ export function ChatInput(props: ChatInputProps) {
               aria-label="Send message"
               disabled={props.disabled || attachmentsHook.hasUploading}
               onClick={submit}
-              title={attachmentsHook.hasUploading ? "Uploading..." : "Send message"}
+              title={attachmentsHook.hasUploading ? "Uploading..." : props.disabled ? (props.disabledPlaceholder || "Cannot send") : "Send message"}
               className={
                 "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-150 outline-none " +
                 (props.disabled || attachmentsHook.hasUploading

@@ -419,9 +419,9 @@ export function useSession(): UseSessionReturn {
           });
         } else {
           getSessionStore().setState(function (state) {
-            const hasStreamingMessages = state.messages.length > 0 && state.activeSessionId === m.sessionId;
+            const isActivelyStreaming = state.isProcessing && state.activeSessionId === m.sessionId;
             const historyMessages = mergeToolResults(m.messages);
-            const finalMessages = hasStreamingMessages
+            const finalMessages = isActivelyStreaming
               ? state.messages
               : historyMessages;
             return {
@@ -430,17 +430,17 @@ export function useSession(): UseSessionReturn {
               activeSessionId: m.sessionId,
               activeSessionTitle: m.title ?? state.activeSessionTitle,
               messages: finalMessages,
-              isProcessing: hasStreamingMessages ? state.isProcessing : false,
-              currentStatus: hasStreamingMessages ? state.currentStatus : null,
-              pendingPermissionCount: hasStreamingMessages ? state.pendingPermissionCount : 0,
-              lastResponseCost: hasStreamingMessages ? state.lastResponseCost : null,
-              lastResponseDuration: hasStreamingMessages ? state.lastResponseDuration : null,
+              isProcessing: isActivelyStreaming ? state.isProcessing : false,
+              currentStatus: isActivelyStreaming ? state.currentStatus : null,
+              pendingPermissionCount: isActivelyStreaming ? state.pendingPermissionCount : 0,
+              lastResponseCost: isActivelyStreaming ? state.lastResponseCost : null,
+              lastResponseDuration: isActivelyStreaming ? state.lastResponseDuration : null,
               lastReadIndex: null,
               historyLoading: false,
               historyHasMore: m.hasMore || false,
               historyTotalMessages: m.totalMessages || m.messages.length,
-              wasInterrupted: hasStreamingMessages ? state.wasInterrupted : (m.interrupted || false),
-              isPlanMode: hasStreamingMessages ? state.isPlanMode : false,
+              wasInterrupted: isActivelyStreaming ? state.wasInterrupted : (m.interrupted || false),
+              isPlanMode: isActivelyStreaming ? state.isPlanMode : false,
             };
           });
         }
