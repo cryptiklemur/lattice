@@ -136,14 +136,7 @@ export function useAttachments(): UseAttachmentsReturn {
     }, UPLOAD_TIMEOUT_MS);
     uploadTimers.current.set(attachmentId, overallTimer);
 
-    const reader = new FileReader();
-    reader.onerror = function () {
-      clearTimeout(overallTimer);
-      uploadTimers.current.delete(attachmentId);
-      updateAttachment(attachmentId, { status: "failed", error: "Failed to read file" });
-    };
-    reader.onload = function () {
-      const buffer = reader.result as ArrayBuffer;
+    file.arrayBuffer().then(function (buffer) {
       const bytes = new Uint8Array(buffer);
       const totalChunks = Math.ceil(bytes.length / CHUNK_SIZE);
 
@@ -203,8 +196,11 @@ export function useAttachments(): UseAttachmentsReturn {
       }
 
       sendNextChunk();
-    };
-    reader.readAsArrayBuffer(file);
+    }).catch(function () {
+      clearTimeout(overallTimer);
+      uploadTimers.current.delete(attachmentId);
+      updateAttachment(attachmentId, { status: "failed", error: "Failed to read file" });
+    });
   }, [updateAttachment]);
 
   const addFile = useCallback(function (file: File) {
