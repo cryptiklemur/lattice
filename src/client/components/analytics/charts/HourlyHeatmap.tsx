@@ -12,20 +12,20 @@ interface HourlyHeatmapProps {
   data: HeatmapDatum[];
 }
 
-var CELL_SIZE = 18;
-var CELL_GAP = 2;
-var CELL_STEP = CELL_SIZE + CELL_GAP;
-var DAY_LABEL_WIDTH = 32;
-var HOUR_LABEL_HEIGHT = 16;
+const CELL_SIZE = 18;
+const CELL_GAP = 2;
+const CELL_STEP = CELL_SIZE + CELL_GAP;
+const DAY_LABEL_WIDTH = 32;
+const HOUR_LABEL_HEIGHT = 16;
 
-var DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-var DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-var HOUR_LABELS = [0, 3, 6, 9, 12, 15, 18, 21];
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const HOUR_LABELS = [0, 3, 6, 9, 12, 15, 18, 21];
 
 export function HourlyHeatmap({ data }: HourlyHeatmapProps) {
-  var colors = getChartColors();
-  var PRIMARY_COLOR = colors.primary;
-  var [hover, setHover] = useState<{ x: number; y: number; day: string; hour: number; count: number } | null>(null);
+  const colors = getChartColors();
+  const PRIMARY_COLOR = colors.primary;
+  const [hover, setHover] = useState<{ x: number; y: number; day: string; hour: number; count: number } | null>(null);
 
   if (!data || data.length === 0) {
     return (
@@ -36,16 +36,16 @@ export function HourlyHeatmap({ data }: HourlyHeatmapProps) {
     );
   }
 
-  var grid = new Map<string, number>();
-  var maxCount = 0;
-  for (var i = 0; i < data.length; i++) {
-    var key = data[i].day + ":" + data[i].hour;
+  const grid = new Map<string, number>();
+  let maxCount = 0;
+  for (let i = 0; i < data.length; i++) {
+    const key = data[i].day + ":" + data[i].hour;
     grid.set(key, data[i].count);
     if (data[i].count > maxCount) maxCount = data[i].count;
   }
 
-  var svgWidth = DAY_LABEL_WIDTH + 24 * CELL_STEP;
-  var svgHeight = HOUR_LABEL_HEIGHT + 7 * CELL_STEP;
+  const svgWidth = DAY_LABEL_WIDTH + 24 * CELL_STEP;
+  const svgHeight = HOUR_LABEL_HEIGHT + 7 * CELL_STEP;
 
   return (
     <div className="relative overflow-x-auto">
@@ -81,12 +81,12 @@ export function HourlyHeatmap({ data }: HourlyHeatmapProps) {
 
         {DAY_ORDER.map(function (dayIdx, row) {
           return Array.from({ length: 24 }, function (_, h) {
-            var cellKey = dayIdx + ":" + h;
-            var count = grid.get(cellKey) || 0;
-            var opacity = maxCount > 0 && count > 0 ? Math.max(0.1, count / maxCount) : 0.05;
-            var x = DAY_LABEL_WIDTH + h * CELL_STEP;
-            var y = HOUR_LABEL_HEIGHT + row * CELL_STEP;
-            var dayName = DAY_NAMES[dayIdx];
+            const cellKey = dayIdx + ":" + h;
+            const count = grid.get(cellKey) || 0;
+            const opacity = maxCount > 0 && count > 0 ? Math.max(0.1, count / maxCount) : 0.05;
+            const x = DAY_LABEL_WIDTH + h * CELL_STEP;
+            const y = HOUR_LABEL_HEIGHT + row * CELL_STEP;
+            const dayName = DAY_NAMES[dayIdx];
 
             return (
               <rect
@@ -115,7 +115,6 @@ export function HourlyHeatmap({ data }: HourlyHeatmapProps) {
           });
         })}
       </svg>
-
       {hover && createPortal(
         <div
           className="fixed z-[9999] rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none"

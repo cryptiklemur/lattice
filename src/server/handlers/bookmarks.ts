@@ -10,8 +10,8 @@ import { listBookmarks, addBookmark, removeBookmark } from "../project/bookmarks
 
 registerHandler("bookmark", function (clientId: string, message: ClientMessage) {
   if (message.type === "bookmark:list") {
-    var listMsg = message as BookmarkListMessage;
-    var isSessionScoped = Boolean(listMsg.sessionId);
+    const listMsg = message as BookmarkListMessage;
+    const isSessionScoped = Boolean(listMsg.sessionId);
     sendTo(clientId, {
       type: "bookmark:list_result",
       scope: isSessionScoped ? "session" : "all",
@@ -21,7 +21,7 @@ registerHandler("bookmark", function (clientId: string, message: ClientMessage) 
   }
 
   if (message.type === "bookmark:add") {
-    var addMsg = message as BookmarkAddMessage;
+    const addMsg = message as BookmarkAddMessage;
     addBookmark({
       sessionId: addMsg.sessionId,
       projectSlug: addMsg.projectSlug,
@@ -38,7 +38,7 @@ registerHandler("bookmark", function (clientId: string, message: ClientMessage) 
   }
 
   if (message.type === "bookmark:remove") {
-    var removeMsg = message as BookmarkRemoveMessage;
+    const removeMsg = message as BookmarkRemoveMessage;
     removeBookmark(removeMsg.id);
     sendTo(clientId, {
       type: "bookmark:list_result",

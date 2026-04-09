@@ -8,24 +8,24 @@ import { fileURLToPath } from "node:url";
 import { spawn, execSync } from "node:child_process";
 import { getLatticeHome, loadConfig } from "./config";
 
-var __filename_local = fileURLToPath(import.meta.url);
-var __dirname_local = dirname(__filename_local);
+const __filename_local = fileURLToPath(import.meta.url);
+const __dirname_local = dirname(__filename_local);
 
 function getCurrentVersion(): string {
   try {
-    var pkg = JSON.parse(readFileSync(join(__dirname_local, "../../package.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(__dirname_local, "../../package.json"), "utf-8"));
     return pkg.version || "0.0.0";
   } catch {
     return "0.0.0";
   }
 }
 
-var args = process.argv.slice(2);
-var command = "help";
-var portOverride: number | null = null;
-var tlsOverride: boolean | null = null;
+const args = process.argv.slice(2);
+let command = "help";
+let portOverride: number | null = null;
+let tlsOverride: boolean | null = null;
 
-for (var i = 0; i < args.length; i++) {
+for (let i = 0; i < args.length; i++) {
   if (args[i] === "--port" && i + 1 < args.length) {
     portOverride = parseInt(args[i + 1], 10);
     i++;
@@ -45,18 +45,18 @@ function getEffectivePort(): number {
 }
 
 function getPidPath(port?: number): string {
-  var p = port ?? getEffectivePort();
+  const p = port ?? getEffectivePort();
   return join(getLatticeHome(), "daemon-" + p + ".pid");
 }
 
 function readPid(port?: number): number | null {
-  var pidPath = getPidPath(port);
+  const pidPath = getPidPath(port);
   if (!existsSync(pidPath)) {
     return null;
   }
   try {
-    var raw = readFileSync(pidPath, "utf-8").trim();
-    var pid = parseInt(raw, 10);
+    const raw = readFileSync(pidPath, "utf-8").trim();
+    const pid = parseInt(raw, 10);
     return isNaN(pid) ? null : pid;
   } catch {
     return null;
@@ -68,7 +68,7 @@ function writePid(pid: number, port?: number): void {
 }
 
 function removePid(port?: number): void {
-  var pidPath = getPidPath(port);
+  const pidPath = getPidPath(port);
   if (existsSync(pidPath)) {
     try {
       unlinkSync(pidPath);
@@ -87,14 +87,14 @@ function isDaemonRunning(pid: number): boolean {
 }
 
 function spawnDaemon(port: number, tls?: boolean | null): number {
-  var logPath = join(getLatticeHome(), "daemon.log");
-  var logFd = openSync(logPath, "a");
-  var isDev = __filename_local.endsWith(".ts");
-  var spawnCmd: string;
-  var spawnArgs: string[];
+  const logPath = join(getLatticeHome(), "daemon.log");
+  const logFd = openSync(logPath, "a");
+  const isDev = __filename_local.endsWith(".ts");
+  let spawnCmd: string;
+  let spawnArgs: string[];
   if (isDev) {
-    var pkgRoot = join(__dirname_local, "..");
-    var localTsx = join(pkgRoot, "node_modules", ".bin", "tsx");
+    const pkgRoot = join(__dirname_local, "..");
+    const localTsx = join(pkgRoot, "node_modules", ".bin", "tsx");
     spawnCmd = existsSync(localTsx) ? localTsx : "tsx";
     spawnArgs = ["--tsconfig", join(pkgRoot, "tsconfig.json"), __filename_local, "run", "--port", String(port)];
   } else {
@@ -103,7 +103,7 @@ function spawnDaemon(port: number, tls?: boolean | null): number {
   }
   if (tls === true) spawnArgs.push("--tls");
   if (tls === false) spawnArgs.push("--no-tls");
-  var child = spawn(spawnCmd, spawnArgs, {
+  const child = spawn(spawnCmd, spawnArgs, {
     detached: true,
     stdio: ["ignore", logFd, logFd],
     env: { ...process.env, LATTICE_PORT: undefined },
@@ -159,25 +159,25 @@ switch (command) {
 }
 
 async function runDaemon(): Promise<void> {
-  var { printBanner, printStatus, printQrCode, runOnboarding } = await import("./tui");
-  var { startDaemon } = await import("./daemon");
-  var { broadcast, closeAllClients } = await import("./ws/broadcast");
-  var { getActiveStreamCount } = await import("./project/sdk-bridge");
-  var { stopMeshConnections } = await import("./mesh/connector");
+  const { printBanner, printStatus, printQrCode, runOnboarding } = await import("./tui");
+  const { startDaemon } = await import("./daemon");
+  const { broadcast, closeAllClients } = await import("./ws/broadcast");
+  const { getActiveStreamCount } = await import("./project/sdk-bridge");
+  const { stopMeshConnections } = await import("./mesh/connector");
 
-  var onboarding = await runOnboarding();
+  const onboarding = await runOnboarding();
   if (onboarding.passphrase) {
-    var { hashPassphrase } = await import("./auth/passphrase");
-    var config = loadConfig();
+    const { hashPassphrase } = await import("./auth/passphrase");
+    const config = loadConfig();
     config.passphraseHash = await hashPassphrase(onboarding.passphrase);
-    var { saveConfig: saveCfg } = await import("./config");
+    const { saveConfig: saveCfg } = await import("./config");
     saveCfg(config);
   }
 
-  var effectivePort = portOverride ?? onboarding.port;
+  const effectivePort = portOverride ?? onboarding.port;
 
   writePid(process.pid);
-  var shutdownInProgress = false;
+  let shutdownInProgress = false;
   function gracefulShutdown(): void {
     if (shutdownInProgress) return;
     shutdownInProgress = true;
@@ -186,10 +186,10 @@ async function runDaemon(): Promise<void> {
     broadcast({ type: "chat:error", message: "Server is shutting down" });
     stopMeshConnections();
 
-    var waited = 0;
-    var maxWait = 2000;
-    var checkInterval = setInterval(function () {
-      var activeCount = getActiveStreamCount();
+    let waited = 0;
+    const maxWait = 2000;
+    const checkInterval = setInterval(function () {
+      const activeCount = getActiveStreamCount();
       waited += 500;
       if (activeCount === 0 || waited >= maxWait) {
         clearInterval(checkInterval);
@@ -203,24 +203,24 @@ async function runDaemon(): Promise<void> {
   process.on("SIGINT", gracefulShutdown);
   await startDaemon(effectivePort, tlsOverride);
 
-  var config = loadConfig();
-  var protocol = config.tls ? "https" : "http";
-  var url = protocol + "://localhost:" + config.port;
-  var version = getCurrentVersion();
-  var projectCount = config.projects.length;
-  var sessionCount = 0;
+  const config = loadConfig();
+  const protocol = config.tls ? "https" : "http";
+  const url = protocol + "://localhost:" + config.port;
+  const version = getCurrentVersion();
+  const projectCount = config.projects.length;
+  let sessionCount = 0;
   try {
-    var { listSessions } = await import("./project/session");
-    for (var i = 0; i < config.projects.length; i++) {
-      var result = await listSessions(config.projects[i].slug, { limit: 0 });
+    const { listSessions } = await import("./project/session");
+    for (let i = 0; i < config.projects.length; i++) {
+      const result = await listSessions(config.projects[i].slug, { limit: 0 });
       sessionCount += result.totalCount;
     }
   } catch {}
 
-  var tailscaleUrl: string | undefined;
+  let tailscaleUrl: string | undefined;
   try {
-    var tsResult = execSync("tailscale status --json", { encoding: "utf-8" });
-    var tsHostname = JSON.parse(tsResult).Self.DNSName.replace(/\.$/, "");
+    const tsResult = execSync("tailscale status --json", { encoding: "utf-8" });
+    const tsHostname = JSON.parse(tsResult).Self.DNSName.replace(/\.$/, "");
     if (tsHostname) {
       tailscaleUrl = protocol + "://" + tsHostname + ":" + config.port;
     }
@@ -232,20 +232,20 @@ async function runDaemon(): Promise<void> {
 }
 
 async function runStart(): Promise<void> {
-  var pid = readPid();
+  const pid = readPid();
   if (pid !== null && isDaemonRunning(pid)) {
     console.log("[lattice] Daemon is already running (PID " + pid + ")");
-    var config = loadConfig();
-    var url = (config.tls ? "https" : "http") + "://localhost:" + config.port;
+    const config = loadConfig();
+    const url = (config.tls ? "https" : "http") + "://localhost:" + config.port;
     openBrowser(url);
     return;
   }
 
   removePid();
 
-  var config = loadConfig();
-  var port = portOverride ?? config.port;
-  var childPid = spawnDaemon(port, tlsOverride);
+  const config = loadConfig();
+  const port = portOverride ?? config.port;
+  const childPid = spawnDaemon(port, tlsOverride);
   writePid(childPid);
   console.log("[lattice] Daemon started (PID " + childPid + ")");
   console.log("[lattice] Logs: " + join(getLatticeHome(), "daemon.log"));
@@ -254,13 +254,13 @@ async function runStart(): Promise<void> {
     setTimeout(resolve, 800);
   });
 
-  var url = (config.tls ? "https" : "http") + "://localhost:" + port;
+  const url = (config.tls ? "https" : "http") + "://localhost:" + port;
   console.log("[lattice] Opening " + url);
   openBrowser(url);
 }
 
 function runStop(): void {
-  var pid = readPid();
+  const pid = readPid();
   if (pid === null) {
     console.log("[lattice] No PID file found. Daemon may not be running.");
     process.exit(1);
@@ -314,15 +314,15 @@ function runHelp(): void {
 }
 
 async function runSetupTls(): Promise<void> {
-  var { spawnSync } = await import("node:child_process");
-  var { createInterface } = await import("node:readline");
-  var { mkdirSync, chmodSync, chownSync, statSync } = await import("node:fs");
-  var certsDir = join(getLatticeHome(), "certs");
-  var certPath = join(certsDir, "cert.pem");
-  var keyPath = join(certsDir, "key.pem");
+  const { spawnSync } = await import("node:child_process");
+  const { createInterface } = await import("node:readline");
+  const { mkdirSync, chmodSync, chownSync, statSync } = await import("node:fs");
+  const certsDir = join(getLatticeHome(), "certs");
+  const certPath = join(certsDir, "cert.pem");
+  const keyPath = join(certsDir, "key.pem");
 
   function prompt(question: string): Promise<string> {
-    var rl = createInterface({ input: process.stdin, output: process.stdout });
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
     return new Promise(function (resolve) {
       rl.question(question, function (answer) {
         rl.close();
@@ -335,12 +335,12 @@ async function runSetupTls(): Promise<void> {
   console.log("  lattice — TLS Setup");
   console.log("");
 
-  var hasTailscale = false;
-  var hostname = "";
+  let hasTailscale = false;
+  let hostname = "";
   try {
     spawnSync("tailscale", ["version"], { stdio: "ignore" });
     hasTailscale = true;
-    var statusResult = spawnSync("tailscale", ["status", "--json"], { encoding: "utf-8" });
+    const statusResult = spawnSync("tailscale", ["status", "--json"], { encoding: "utf-8" });
     if (statusResult.status === 0) {
       hostname = JSON.parse(statusResult.stdout).Self.DNSName.replace(/\.$/, "");
     }
@@ -350,7 +350,7 @@ async function runSetupTls(): Promise<void> {
     console.log("  Tailscale detected: " + hostname);
     console.log("");
 
-    var answer = await prompt("  Set up Tailscale HTTPS certs automatically? [Y/n] ");
+    const answer = await prompt("  Set up Tailscale HTTPS certs automatically? [Y/n] ");
     if (answer !== "n" && answer !== "no") {
       if (!existsSync(certsDir)) {
         mkdirSync(certsDir, { recursive: true });
@@ -360,7 +360,7 @@ async function runSetupTls(): Promise<void> {
       console.log("  Generating Tailscale cert (sudo required)...");
       console.log("");
 
-      var certResult = spawnSync(
+      const certResult = spawnSync(
         "sudo",
         ["tailscale", "cert", "--cert-file", certPath, "--key-file", keyPath, hostname],
         { stdio: "inherit" }
@@ -374,8 +374,8 @@ async function runSetupTls(): Promise<void> {
         process.exit(1);
       }
 
-      var uid = process.getuid ? process.getuid() : 0;
-      var gid = process.getgid ? process.getgid() : 0;
+      const uid = process.getuid ? process.getuid() : 0;
+      const gid = process.getgid ? process.getgid() : 0;
       try {
         chownSync(certPath, uid, gid);
         chownSync(keyPath, uid, gid);
@@ -391,24 +391,24 @@ async function runSetupTls(): Promise<void> {
       console.log("");
       console.log("  Certs installed and permissions fixed.");
 
-      var config = loadConfig();
+      const config = loadConfig();
       if (!config.tls) {
-        var { saveConfig: saveCfg } = await import("./config");
+        const { saveConfig: saveCfg } = await import("./config");
         config.tls = true;
         saveCfg(config);
         console.log("  TLS enabled in config.");
       }
 
-      var pid = readPid();
+      const pid = readPid();
       if (pid !== null && isDaemonRunning(pid)) {
-        var restartAnswer = await prompt("  Daemon is running. Restart with TLS? [Y/n] ");
+        const restartAnswer = await prompt("  Daemon is running. Restart with TLS? [Y/n] ");
         if (restartAnswer !== "n" && restartAnswer !== "no") {
           console.log("  Restarting daemon...");
           try { process.kill(pid, "SIGTERM"); } catch {}
           removePid();
           await new Promise<void>(function (r) { setTimeout(r, 1500); });
-          var port = portOverride ?? config.port;
-          var childPid = spawnDaemon(port, true);
+          const port = portOverride ?? config.port;
+          const childPid = spawnDaemon(port, true);
           writePid(childPid);
           console.log("  Daemon restarted (PID " + childPid + ")");
         }
@@ -432,31 +432,31 @@ async function runSetupTls(): Promise<void> {
     console.log("  Cert exists: " + certPath);
     console.log("  To regenerate: rm -rf " + certsDir + " && lattice setup-tls");
   } else {
-    var selfSignAnswer = await prompt("  Generate a self-signed certificate? [Y/n] ");
+    const selfSignAnswer = await prompt("  Generate a self-signed certificate? [Y/n] ");
     if (selfSignAnswer !== "n" && selfSignAnswer !== "no") {
-      var { ensureCerts } = await import("./tls");
+      const { ensureCerts } = await import("./tls");
       try {
-        var certs = ensureCerts();
+        const certs = ensureCerts();
         console.log("  Certificate generated: " + certs.cert);
 
-        var config = loadConfig();
+        const config = loadConfig();
         if (!config.tls) {
-          var { saveConfig: saveCfg } = await import("./config");
+          const { saveConfig: saveCfg } = await import("./config");
           config.tls = true;
           saveCfg(config);
           console.log("  TLS enabled in config.");
         }
 
-        var pid = readPid();
+        const pid = readPid();
         if (pid !== null && isDaemonRunning(pid)) {
-          var restartAnswer = await prompt("  Daemon is running. Restart with TLS? [Y/n] ");
+          const restartAnswer = await prompt("  Daemon is running. Restart with TLS? [Y/n] ");
           if (restartAnswer !== "n" && restartAnswer !== "no") {
             console.log("  Restarting daemon...");
             try { process.kill(pid, "SIGTERM"); } catch {}
             removePid();
             await new Promise<void>(function (r) { setTimeout(r, 1500); });
-            var port = portOverride ?? config.port;
-            var childPid = spawnDaemon(port, true);
+            const port = portOverride ?? config.port;
+            const childPid = spawnDaemon(port, true);
             writePid(childPid);
             console.log("  Daemon restarted (PID " + childPid + ")");
           }
@@ -485,7 +485,7 @@ async function runSetupTls(): Promise<void> {
 }
 
 async function runRestart(): Promise<void> {
-  var pid = readPid();
+  const pid = readPid();
   if (pid !== null && isDaemonRunning(pid)) {
     console.log("[lattice] Stopping daemon (PID " + pid + ")...");
     try {
@@ -493,7 +493,7 @@ async function runRestart(): Promise<void> {
     } catch {}
     removePid();
 
-    var waited = 0;
+    let waited = 0;
     while (waited < 5000) {
       try {
         process.kill(pid, 0);
@@ -506,15 +506,15 @@ async function runRestart(): Promise<void> {
   }
 
   console.log("[lattice] Starting daemon...");
-  var restartPort = portOverride ?? loadConfig().port;
-  var childPid = spawnDaemon(restartPort, tlsOverride);
+  const restartPort = portOverride ?? loadConfig().port;
+  const childPid = spawnDaemon(restartPort, tlsOverride);
   writePid(childPid);
   console.log("[lattice] Daemon started (PID " + childPid + ")");
 }
 
 async function runVersion(): Promise<void> {
-  var { checkForUpdate } = await import("./update-checker");
-  var info = await checkForUpdate(true);
+  const { checkForUpdate } = await import("./update-checker");
+  const info = await checkForUpdate(true);
   console.log("[lattice] Current: v" + info.currentVersion);
   if (info.latestVersion) {
     if (info.updateAvailable) {
@@ -528,13 +528,13 @@ async function runVersion(): Promise<void> {
 }
 
 function runLogs(): void {
-  var logPath = join(getLatticeHome(), "daemon.log");
+  const logPath = join(getLatticeHome(), "daemon.log");
   if (!existsSync(logPath)) {
     console.log("[lattice] No log file found at " + logPath);
     process.exit(1);
   }
   console.log("[lattice] Tailing " + logPath + " (Ctrl+C to stop)");
-  var proc = spawn("tail", ["-f", "-n", "50", logPath], {
+  const proc = spawn("tail", ["-f", "-n", "50", logPath], {
     stdio: ["ignore", "inherit", "inherit"],
   });
   process.on("SIGINT", function () {
@@ -544,27 +544,27 @@ function runLogs(): void {
 }
 
 function runOpen(): void {
-  var config = loadConfig();
-  var pid = readPid();
+  const config = loadConfig();
+  const pid = readPid();
   if (pid === null || !isDaemonRunning(pid)) {
     console.log("[lattice] Daemon is not running. Start it with 'lattice start'");
     process.exit(1);
   }
-  var url = (config.tls ? "https" : "http") + "://localhost:" + config.port;
+  const url = (config.tls ? "https" : "http") + "://localhost:" + config.port;
   console.log("[lattice] Opening " + url);
   openBrowser(url);
 }
 
 function runConfigInfo(): void {
-  var config = loadConfig();
-  var home = getLatticeHome();
+  const config = loadConfig();
+  const home = getLatticeHome();
   console.log("[lattice] Home:       " + home);
   console.log("[lattice] Config:     " + join(home, "config.json"));
   console.log("[lattice] Port:       " + config.port);
   console.log("[lattice] Name:       " + config.name);
   console.log("[lattice] TLS:        " + (config.tls ? "enabled" : "disabled"));
   console.log("[lattice] Projects:   " + config.projects.length);
-  for (var i = 0; i < config.projects.length; i++) {
+  for (let i = 0; i < config.projects.length; i++) {
     console.log("             " + config.projects[i].slug + " → " + config.projects[i].path);
   }
   if (config.passphraseHash) {
@@ -576,7 +576,7 @@ function runConfigInfo(): void {
 }
 
 function runStatus(): void {
-  var pid = readPid();
+  const pid = readPid();
   if (pid === null) {
     console.log("[lattice] Status: not running (no PID file)");
     process.exit(0);
@@ -588,8 +588,8 @@ function runStatus(): void {
     process.exit(0);
   }
 
-  var config = loadConfig();
-  var url = (config.tls ? "https" : "http") + "://localhost:" + config.port;
+  const config = loadConfig();
+  const url = (config.tls ? "https" : "http") + "://localhost:" + config.port;
   console.log("[lattice] Status: running");
   console.log("[lattice] PID:    " + pid);
   console.log("[lattice] Port:   " + config.port);
@@ -597,9 +597,9 @@ function runStatus(): void {
 }
 
 async function runUpdate(): Promise<void> {
-  var { checkForUpdate, getPackageName } = await import("./update-checker");
+  const { checkForUpdate, getPackageName } = await import("./update-checker");
   console.log("[lattice] Checking for updates...");
-  var info = await checkForUpdate(true);
+  const info = await checkForUpdate(true);
 
   if (!info.latestVersion) {
     console.log("[lattice] Could not check for updates. Try again later.");
@@ -614,18 +614,18 @@ async function runUpdate(): Promise<void> {
   console.log("[lattice] Update available: %s -> %s", info.currentVersion, info.latestVersion);
   console.log("[lattice] Installing...");
 
-  var pkgName = getPackageName();
-  var proc = spawn("npm", ["install", "-g", pkgName + "@latest"], {
+  const pkgName = getPackageName();
+  const proc = spawn("npm", ["install", "-g", pkgName + "@latest"], {
     stdio: ["ignore", "inherit", "inherit"],
   });
-  var code = await new Promise<number>(function (resolve) {
+  const code = await new Promise<number>(function (resolve) {
     proc.on("close", function (c) { resolve(c ?? 1); });
   });
 
   if (code === 0) {
     console.log("[lattice] Updated to %s", info.latestVersion);
 
-    var pid = readPid();
+    const pid = readPid();
     if (pid !== null && isDaemonRunning(pid)) {
       console.log("[lattice] Restarting daemon...");
       try {
@@ -634,8 +634,8 @@ async function runUpdate(): Promise<void> {
       removePid();
       await new Promise<void>(function (resolve) { setTimeout(resolve, 1000); });
 
-      var updatePort = portOverride ?? loadConfig().port;
-      var childPid = spawnDaemon(updatePort, tlsOverride);
+      const updatePort = portOverride ?? loadConfig().port;
+      const childPid = spawnDaemon(updatePort, tlsOverride);
       writePid(childPid);
       console.log("[lattice] Daemon restarted (PID %d)", childPid);
     }
@@ -646,7 +646,7 @@ async function runUpdate(): Promise<void> {
 }
 
 function openBrowser(url: string): void {
-  var platform = process.platform;
+  const platform = process.platform;
   try {
     if (platform === "win32") {
       spawn("cmd", ["/c", "start", url], { detached: true, stdio: "ignore" }).unref();

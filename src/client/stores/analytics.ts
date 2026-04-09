@@ -11,7 +11,7 @@ export interface AnalyticsState {
   projectSlug: string | null;
 }
 
-var analyticsStore = new Store<AnalyticsState>({
+const analyticsStore = new Store<AnalyticsState>({
   data: {},
   loadedSections: [],
   loading: false,

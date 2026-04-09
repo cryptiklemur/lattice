@@ -11,21 +11,21 @@ import { listNotes, createNote, updateNote, deleteNote } from "../features/stick
 
 registerHandler("notes", function (clientId: string, message: ClientMessage) {
   if (message.type === "notes:list") {
-    var listMsg = message as NotesListMessage;
+    const listMsg = message as NotesListMessage;
     sendTo(clientId, { type: "notes:list_result", notes: listNotes(listMsg.projectSlug) });
     return;
   }
 
   if (message.type === "notes:create") {
-    var createMsg = message as NotesCreateMessage;
-    var note = createNote(createMsg.content, createMsg.projectSlug);
+    const createMsg = message as NotesCreateMessage;
+    const note = createNote(createMsg.content, createMsg.projectSlug);
     broadcast({ type: "notes:created", note });
     return;
   }
 
   if (message.type === "notes:update") {
-    var updateMsg = message as NotesUpdateMessage;
-    var updated = updateNote(updateMsg.id, updateMsg.content);
+    const updateMsg = message as NotesUpdateMessage;
+    const updated = updateNote(updateMsg.id, updateMsg.content);
     if (!updated) {
       sendTo(clientId, { type: "chat:error", message: "Note not found" });
       return;
@@ -35,8 +35,8 @@ registerHandler("notes", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "notes:delete") {
-    var deleteMsg = message as NotesDeleteMessage;
-    var deleted = deleteNote(deleteMsg.id);
+    const deleteMsg = message as NotesDeleteMessage;
+    const deleted = deleteNote(deleteMsg.id);
     if (!deleted) {
       sendTo(clientId, { type: "chat:error", message: "Note not found" });
       return;

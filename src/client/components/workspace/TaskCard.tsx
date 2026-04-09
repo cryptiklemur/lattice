@@ -30,9 +30,9 @@ function humanCron(expr: string): string {
 }
 
 export function TaskCard(props: TaskCardProps) {
-  var { task, onToggle, onEdit, onDelete, disabled } = props;
-  var [expanded, setExpanded] = useState(false);
-  var [confirming, setConfirming] = useState(false);
+  const { task, onToggle, onEdit, onDelete, disabled } = props;
+  const [expanded, setExpanded] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   function handleToggleExpand(e: React.MouseEvent) {
     e.stopPropagation();

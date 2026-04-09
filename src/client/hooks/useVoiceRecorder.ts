@@ -55,27 +55,27 @@ export interface UseVoiceRecorderReturn {
 }
 
 export function useVoiceRecorder(): UseVoiceRecorderReturn {
-  var [isRecording, setIsRecording] = useState(false);
-  var [isSpeaking, setIsSpeaking] = useState(false);
-  var [elapsed, setElapsed] = useState(0);
-  var [interimTranscript, setInterimTranscript] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [interimTranscript, setInterimTranscript] = useState("");
 
-  var recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  var timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  var finalTranscriptRef = useRef("");
-  var interimTranscriptRef = useRef("");
-  var startTimeRef = useRef(0);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const finalTranscriptRef = useRef("");
+  const interimTranscriptRef = useRef("");
+  const startTimeRef = useRef(0);
 
   interimTranscriptRef.current = interimTranscript;
 
-  var SpeechRecognitionClass = typeof window !== "undefined"
+  const SpeechRecognitionClass = typeof window !== "undefined"
     ? (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition
       || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition
     : undefined;
 
-  var isSupported = !!SpeechRecognitionClass;
+  const isSupported = !!SpeechRecognitionClass;
 
-  var cleanup = useCallback(function () {
+  const cleanup = useCallback(function () {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -87,10 +87,10 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     recognitionRef.current = null;
   }, []);
 
-  var start = useCallback(function () {
+  const start = useCallback(function () {
     if (!SpeechRecognitionClass || isRecording) return;
 
-    var recognition = new SpeechRecognitionClass();
+    const recognition = new SpeechRecognitionClass();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = navigator.language || "en-US";
@@ -99,10 +99,10 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     finalTranscriptRef.current = "";
 
     recognition.onresult = function (event: SpeechRecognitionEvent) {
-      var interim = "";
-      var final = "";
-      for (var i = 0; i < event.results.length; i++) {
-        var result = event.results[i];
+      let interim = "";
+      let final = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
         if (result.isFinal) {
           final += result[0].transcript;
         } else {
@@ -139,16 +139,16 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     }, 1000);
   }, [SpeechRecognitionClass, isRecording, cleanup]);
 
-  var stop = useCallback(function (): string {
+  const stop = useCallback(function (): string {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    var transcript = finalTranscriptRef.current || interimTranscriptRef.current;
+    const transcript = finalTranscriptRef.current || interimTranscriptRef.current;
     cleanup();
     return transcript;
   }, [cleanup]);
 
-  var cancel = useCallback(function () {
+  const cancel = useCallback(function () {
     if (recognitionRef.current) {
       recognitionRef.current.abort();
     }

@@ -16,11 +16,11 @@ function StatusIcon(props: { status: string }) {
 }
 
 export function TodoCard(props: TodoCardProps) {
-  var todos = props.message.todos || [];
+  const todos = props.message.todos || [];
   if (todos.length === 0) return null;
 
-  var completed = todos.filter(function (t: typeof todos[number]) { return t.status === "completed"; }).length;
-  var total = todos.length;
+  const completed = todos.filter(function (t: typeof todos[number]) { return t.status === "completed"; }).length;
+  const total = todos.length;
 
   return (
     <div className="px-5 py-2">

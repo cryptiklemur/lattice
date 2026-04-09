@@ -11,24 +11,24 @@ import { FileViewer } from "./FileViewer";
 import type { TreeNode } from "./FileTree";
 
 export function FileBrowser() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { activeProjectSlug } = useSidebar();
-  var { activeProject } = useProjects();
-  var { editorType, wslDistro } = useEditorConfig();
-  var projectSlugRef = useRef<string | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { activeProjectSlug } = useSidebar();
+  const { activeProject } = useProjects();
+  const { editorType, wslDistro } = useEditorConfig();
+  const projectSlugRef = useRef<string | null>(null);
   projectSlugRef.current = activeProjectSlug;
-  var [rootNodes, setRootNodes] = useState<TreeNode[]>([]);
-  var [selectedPath, setSelectedPath] = useState<string | null>(null);
-  var [fileContent, setFileContent] = useState<string | null>(null);
-  var [loadingContent, setLoadingContent] = useState(false);
-  var [mobileShowViewer, setMobileShowViewer] = useState(false);
-  var nodesRef = useRef<TreeNode[]>([]);
+  const [rootNodes, setRootNodes] = useState<TreeNode[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [mobileShowViewer, setMobileShowViewer] = useState(false);
+  const nodesRef = useRef<TreeNode[]>([]);
 
   nodesRef.current = rootNodes;
 
-  var handleListResult = useCallback(function (msg: ServerMessage) {
-    var listMsg = msg as FsListResultMessage;
-    var newNodes = buildNodes(listMsg.entries);
+  const handleListResult = useCallback(function (msg: ServerMessage) {
+    const listMsg = msg as FsListResultMessage;
+    const newNodes = buildNodes(listMsg.entries);
 
     if (listMsg.path === "" || listMsg.path === ".") {
       setRootNodes(newNodes);
@@ -52,17 +52,17 @@ export function FileBrowser() {
     });
   }, []);
 
-  var handleReadResult = useCallback(function (msg: ServerMessage) {
-    var readMsg = msg as FsReadResultMessage;
+  const handleReadResult = useCallback(function (msg: ServerMessage) {
+    const readMsg = msg as FsReadResultMessage;
     setFileContent(readMsg.content);
     setLoadingContent(false);
   }, []);
 
-  var selectedPathRef = useRef<string | null>(null);
+  const selectedPathRef = useRef<string | null>(null);
   selectedPathRef.current = selectedPath;
 
-  var handleFsChanged = useCallback(function (msg: ServerMessage) {
-    var changedPath = (msg as { path: string }).path;
+  const handleFsChanged = useCallback(function (msg: ServerMessage) {
+    const changedPath = (msg as { path: string }).path;
     if (changedPath === selectedPathRef.current) {
       send({ type: "fs:read", path: changedPath, projectSlug: projectSlugRef.current || undefined });
     }
@@ -111,7 +111,7 @@ export function FileBrowser() {
     send({ type: "fs:read", path: path, projectSlug: activeProjectSlug || undefined });
   }
 
-  var editorUrlForSelected = selectedPath && activeProject
+  const editorUrlForSelected = selectedPath && activeProject
     ? getEditorUrl(editorType, activeProject.path, selectedPath, undefined, wslDistro, activeProject.ideProjectName)
     : null;
 

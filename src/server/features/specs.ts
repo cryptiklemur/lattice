@@ -4,10 +4,10 @@ import { randomBytes } from "node:crypto";
 import { getLatticeHome } from "../config";
 import type { Spec, SpecStatus, SpecPriority, SpecEffort, SpecSection, SpecActivityType } from "#shared";
 
-var specsFile = "";
-var specs: Spec[] = [];
-var lastSaveTime = 0;
-var onReloadCallback: (() => void) | null = null;
+let specsFile = "";
+let specs: Spec[] = [];
+let lastSaveTime = 0;
+let onReloadCallback: (() => void) | null = null;
 
 function getSpecsPath(): string {
   if (!specsFile) {
@@ -17,10 +17,10 @@ function getSpecsPath(): string {
 }
 
 export function loadSpecs(): void {
-  var path = getSpecsPath();
+  const path = getSpecsPath();
   if (existsSync(path)) {
     try {
-      var raw = readFileSync(path, "utf-8");
+      const raw = readFileSync(path, "utf-8");
       specs = JSON.parse(raw) as Spec[];
     } catch (err) {
       console.error("[specs] Failed to load specs:", err);
@@ -36,13 +36,13 @@ export function onSpecsReloaded(callback: () => void): void {
   onReloadCallback = callback;
 }
 
-var watcher: ReturnType<typeof watch> | null = null;
-var reloadTimer: ReturnType<typeof setTimeout> | null = null;
+let watcher: ReturnType<typeof watch> | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
 function reloadFromDisk(): void {
-  var path = getSpecsPath();
+  const path = getSpecsPath();
   try {
-    var raw = readFileSync(path, "utf-8");
+    const raw = readFileSync(path, "utf-8");
     specs = JSON.parse(raw) as Spec[];
     if (onReloadCallback) onReloadCallback();
   } catch (err) {
@@ -52,9 +52,9 @@ function reloadFromDisk(): void {
 
 function watchSpecsFile(): void {
   if (watcher) return;
-  var path = getSpecsPath();
-  var dir = dirname(path);
-  var filename = path.slice(dir.length + 1);
+  const path = getSpecsPath();
+  const dir = dirname(path);
+  const filename = path.slice(dir.length + 1);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -74,12 +74,12 @@ function watchSpecsFile(): void {
 }
 
 function saveSpecs(): void {
-  var path = getSpecsPath();
-  var dir = join(path, "..");
+  const path = getSpecsPath();
+  const dir = join(path, "..");
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  var tmp = path + ".tmp";
+  const tmp = path + ".tmp";
   try {
     lastSaveTime = Date.now();
     writeFileSync(tmp, JSON.stringify(specs, null, 2));
@@ -95,7 +95,7 @@ export function listSpecs(projectSlug?: string): Spec[] {
 }
 
 export function getSpec(id: string): Spec | null {
-  for (var i = 0; i < specs.length; i++) {
+  for (let i = 0; i < specs.length; i++) {
     if (specs[i].id === id) return specs[i];
   }
   return null;
@@ -110,8 +110,8 @@ export function createSpec(opts: {
   estimatedEffort?: SpecEffort;
   tags?: string[];
 }): Spec {
-  var now = Date.now();
-  var spec: Spec = {
+  const now = Date.now();
+  const spec: Spec = {
     id: "spec_" + now + "_" + randomBytes(3).toString("hex"),
     projectSlug: opts.projectSlug,
     title: opts.title,
@@ -158,10 +158,10 @@ export function updateSpec(id: string, updates: {
   blockedBy?: string[];
   sections?: Partial<SpecSection>;
 }): Spec | null {
-  for (var i = 0; i < specs.length; i++) {
+  for (let i = 0; i < specs.length; i++) {
     if (specs[i].id !== id) continue;
-    var spec = specs[i];
-    var now = Date.now();
+    const spec = specs[i];
+    const now = Date.now();
 
     if (updates.status && updates.status !== spec.status) {
       spec.activity.push({
@@ -184,9 +184,9 @@ export function updateSpec(id: string, updates: {
     if (updates.requires !== undefined) spec.requires = updates.requires;
     if (updates.blockedBy !== undefined) spec.blockedBy = updates.blockedBy;
     if (updates.sections) {
-      var keys = Object.keys(updates.sections) as (keyof SpecSection)[];
-      for (var k = 0; k < keys.length; k++) {
-        var key = keys[k];
+      const keys = Object.keys(updates.sections) as (keyof SpecSection)[];
+      for (let k = 0; k < keys.length; k++) {
+        const key = keys[k];
         if (updates.sections[key] !== undefined) {
           spec.sections[key] = updates.sections[key]!;
         }
@@ -201,7 +201,7 @@ export function updateSpec(id: string, updates: {
 }
 
 export function deleteSpec(id: string): boolean {
-  for (var i = 0; i < specs.length; i++) {
+  for (let i = 0; i < specs.length; i++) {
     if (specs[i].id === id) {
       specs.splice(i, 1);
       saveSpecs();
@@ -212,9 +212,9 @@ export function deleteSpec(id: string): boolean {
 }
 
 export function populateSpec(id: string, fields: Record<string, unknown>, sessionId?: string): Spec | null {
-  for (var i = 0; i < specs.length; i++) {
+  for (let i = 0; i < specs.length; i++) {
     if (specs[i].id !== id) continue;
-    var spec = specs[i];
+    const spec = specs[i];
     if (fields.title && typeof fields.title === "string") spec.title = fields.title;
     if (fields.tagline && typeof fields.tagline === "string") spec.tagline = fields.tagline;
     if (fields.priority && typeof fields.priority === "string") spec.priority = fields.priority as SpecPriority;
@@ -239,12 +239,12 @@ export function populateSpec(id: string, fields: Record<string, unknown>, sessio
 }
 
 export function parseSpecPopulate(text: string): Record<string, unknown> | null {
-  var startTag = "<spec-populate>";
-  var endTag = "</spec-populate>";
-  var startIdx = text.indexOf(startTag);
-  var endIdx = text.indexOf(endTag);
+  const startTag = "<spec-populate>";
+  const endTag = "</spec-populate>";
+  const startIdx = text.indexOf(startTag);
+  const endIdx = text.indexOf(endTag);
   if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
-  var jsonStr = text.slice(startIdx + startTag.length, endIdx).trim();
+  const jsonStr = text.slice(startIdx + startTag.length, endIdx).trim();
   try {
     return JSON.parse(jsonStr);
   } catch {
@@ -253,21 +253,21 @@ export function parseSpecPopulate(text: string): Record<string, unknown> | null 
 }
 
 export function parsePlanContent(text: string): string | null {
-  var startTag = "<plan-content>";
-  var endTag = "</plan-content>";
-  var startIdx = text.indexOf(startTag);
-  var endIdx = text.indexOf(endTag);
+  const startTag = "<plan-content>";
+  const endTag = "</plan-content>";
+  const startIdx = text.indexOf(startTag);
+  const endIdx = text.indexOf(endTag);
   if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
   return text.slice(startIdx + startTag.length, endIdx).trim();
 }
 
 export function parseSpecActivity(text: string): { type: string; detail: string } | null {
-  var startTag = "<spec-activity>";
-  var endTag = "</spec-activity>";
-  var startIdx = text.indexOf(startTag);
-  var endIdx = text.indexOf(endTag);
+  const startTag = "<spec-activity>";
+  const endTag = "</spec-activity>";
+  const startIdx = text.indexOf(startTag);
+  const endIdx = text.indexOf(endTag);
   if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
-  var jsonStr = text.slice(startIdx + startTag.length, endIdx).trim();
+  const jsonStr = text.slice(startIdx + startTag.length, endIdx).trim();
   try {
     return JSON.parse(jsonStr);
   } catch {
@@ -276,8 +276,8 @@ export function parseSpecActivity(text: string): { type: string; detail: string 
 }
 
 export function findSpecBySession(sessionId: string): Spec | null {
-  for (var i = 0; i < specs.length; i++) {
-    for (var j = 0; j < specs[i].linkedSessions.length; j++) {
+  for (let i = 0; i < specs.length; i++) {
+    for (let j = 0; j < specs[i].linkedSessions.length; j++) {
       if (specs[i].linkedSessions[j].sessionId === sessionId) return specs[i];
     }
   }
@@ -285,10 +285,10 @@ export function findSpecBySession(sessionId: string): Spec | null {
 }
 
 export function linkSession(specId: string, sessionId: string, note?: string, sessionType?: string): Spec | null {
-  for (var i = 0; i < specs.length; i++) {
+  for (let i = 0; i < specs.length; i++) {
     if (specs[i].id !== specId) continue;
-    var spec = specs[i];
-    var now = Date.now();
+    const spec = specs[i];
+    const now = Date.now();
     spec.linkedSessions.push({
       sessionId,
       linkedAt: now,
@@ -309,11 +309,11 @@ export function linkSession(specId: string, sessionId: string, note?: string, se
 }
 
 export function unlinkSession(specId: string, sessionId: string): Spec | null {
-  for (var i = 0; i < specs.length; i++) {
+  for (let i = 0; i < specs.length; i++) {
     if (specs[i].id !== specId) continue;
-    var spec = specs[i];
-    var idx = -1;
-    for (var j = 0; j < spec.linkedSessions.length; j++) {
+    const spec = specs[i];
+    let idx = -1;
+    for (let j = 0; j < spec.linkedSessions.length; j++) {
       if (spec.linkedSessions[j].sessionId === sessionId) {
         idx = j;
         break;
@@ -329,10 +329,10 @@ export function unlinkSession(specId: string, sessionId: string): Spec | null {
 }
 
 export function addActivity(specId: string, activityType: SpecActivityType, detail: string, sessionId?: string): Spec | null {
-  for (var i = 0; i < specs.length; i++) {
+  for (let i = 0; i < specs.length; i++) {
     if (specs[i].id !== specId) continue;
-    var spec = specs[i];
-    var now = Date.now();
+    const spec = specs[i];
+    const now = Date.now();
     spec.activity.push({
       timestamp: now,
       type: activityType,

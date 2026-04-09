@@ -14,12 +14,12 @@ import { findSpecBySession } from "../features/specs";
 function formatSdkRule(rule: { toolName: string; ruleContent?: string }): string {
   if (!rule.ruleContent) return rule.toolName;
   if (rule.toolName === "Bash") {
-    var firstWord = rule.ruleContent.split(/\s+/)[0].replace(/:.*$/, "");
+    const firstWord = rule.ruleContent.split(/\s+/)[0].replace(/:.*$/, "");
     if (firstWord === "curl" || firstWord === "wget") {
-      var urlMatch = rule.ruleContent.match(/https?:\/\/[^\s"']+/);
+      const urlMatch = rule.ruleContent.match(/https?:\/\/[^\s"']+/);
       if (urlMatch) {
         try {
-          var parsed = new URL(urlMatch[0]);
+          const parsed = new URL(urlMatch[0]);
           return rule.toolName + "(" + firstWord + ":" + parsed.hostname + ")";
         } catch {}
       }
@@ -30,10 +30,10 @@ function formatSdkRule(rule: { toolName: string; ruleContent?: string }): string
 }
 
 function addProjectAllowRules(projectPath: string, suggestions: Array<{ type: string; rules?: Array<{ toolName: string; ruleContent?: string }>; directories?: string[]; behavior?: string }> | undefined, fallbackToolName: string, fallbackInput: Record<string, unknown>): void {
-  var claudeDir = join(projectPath, ".claude");
-  var settingsPath = join(claudeDir, "settings.json");
+  const claudeDir = join(projectPath, ".claude");
+  const settingsPath = join(claudeDir, "settings.json");
 
-  var settings: Record<string, unknown> = {};
+  let settings: Record<string, unknown> = {};
   if (existsSync(settingsPath)) {
     try {
       settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
@@ -45,27 +45,27 @@ function addProjectAllowRules(projectPath: string, suggestions: Array<{ type: st
   if (!settings.permissions) {
     settings.permissions = {};
   }
-  var permissions = settings.permissions as Record<string, unknown>;
+  const permissions = settings.permissions as Record<string, unknown>;
   if (!Array.isArray(permissions.allow)) {
     permissions.allow = [];
   }
   if (!Array.isArray(permissions.additionalDirectories)) {
     permissions.additionalDirectories = [];
   }
-  var allowList = permissions.allow as string[];
-  var additionalDirs = permissions.additionalDirectories as string[];
+  const allowList = permissions.allow as string[];
+  const additionalDirs = permissions.additionalDirectories as string[];
 
   if (suggestions && suggestions.length > 0) {
-    for (var si = 0; si < suggestions.length; si++) {
-      var suggestion = suggestions[si];
+    for (let si = 0; si < suggestions.length; si++) {
+      const suggestion = suggestions[si];
       if (suggestion.type === "addRules" && suggestion.behavior === "allow" && suggestion.rules) {
-        for (var ri = 0; ri < suggestion.rules.length; ri++) {
-          var rule = formatSdkRule(suggestion.rules[ri]);
+        for (let ri = 0; ri < suggestion.rules.length; ri++) {
+          const rule = formatSdkRule(suggestion.rules[ri]);
           if (!allowList.includes(rule)) {
             allowList.push(rule);
           }
           if (suggestion.rules[ri].ruleContent) {
-            var ruleDir = suggestion.rules[ri].ruleContent!.replace(/\/\*\*$/, "").replace(/^\//, "");
+            const ruleDir = suggestion.rules[ri].ruleContent!.replace(/\/\*\*$/, "").replace(/^\//, "");
             if (ruleDir.startsWith("/") && !additionalDirs.includes(ruleDir)) {
               additionalDirs.push(ruleDir);
             }
@@ -73,7 +73,7 @@ function addProjectAllowRules(projectPath: string, suggestions: Array<{ type: st
         }
       }
       if (suggestion.type === "addDirectories" && suggestion.directories) {
-        for (var di = 0; di < suggestion.directories.length; di++) {
+        for (let di = 0; di < suggestion.directories.length; di++) {
           if (!additionalDirs.includes(suggestion.directories[di])) {
             additionalDirs.push(suggestion.directories[di]);
           }
@@ -81,7 +81,7 @@ function addProjectAllowRules(projectPath: string, suggestions: Array<{ type: st
       }
     }
   } else {
-    var fallbackRule = buildPermissionRule(fallbackToolName, fallbackInput);
+    const fallbackRule = buildPermissionRule(fallbackToolName, fallbackInput);
     if (!allowList.includes(fallbackRule)) {
       allowList.push(fallbackRule);
     }
@@ -93,13 +93,13 @@ function addProjectAllowRules(projectPath: string, suggestions: Array<{ type: st
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
 }
 
-var activeSessionByClient = new Map<string, { projectSlug: string; sessionId: string }>();
-var pendingBudgetOverride = new Map<string, { projectSlug: string; sessionId: string; sendMsg: ChatSendMessage; env: Record<string, string> | undefined; cwd: string; }>();
+const activeSessionByClient = new Map<string, { projectSlug: string; sessionId: string }>();
+const pendingBudgetOverride = new Map<string, { projectSlug: string; sessionId: string; sendMsg: ChatSendMessage; env: Record<string, string> | undefined; cwd: string; }>();
 
 export function sendBudgetStatus(clientId: string): void {
-  var config = loadConfig();
+  const config = loadConfig();
   if (!config.costBudget) return;
-  var dailySpend = getDailySpend();
+  const dailySpend = getDailySpend();
   sendTo(clientId, {
     type: "budget:status",
     dailySpend: dailySpend,
@@ -122,11 +122,11 @@ export function getActiveSession(clientId: string): { projectSlug: string; sessi
 
 registerHandler("budget", function (clientId: string, message: ClientMessage) {
   if (message.type === "budget:override") {
-    var pending = pendingBudgetOverride.get(clientId);
+    const pending = pendingBudgetOverride.get(clientId);
     if (!pending) return;
     pendingBudgetOverride.delete(clientId);
 
-    var overrideAttachments = pending.sendMsg.attachmentIds
+    const overrideAttachments = pending.sendMsg.attachmentIds
       ? getAttachments(clientId, pending.sendMsg.attachmentIds)
       : [];
 
@@ -147,25 +147,25 @@ registerHandler("budget", function (clientId: string, message: ClientMessage) {
 
 registerHandler("chat", function (clientId: string, message: ClientMessage) {
   if (message.type === "chat:send") {
-    var sendMsg = message as ChatSendMessage;
-    var active = activeSessionByClient.get(clientId);
+    const sendMsg = message as ChatSendMessage;
+    const active = activeSessionByClient.get(clientId);
 
     if (!active) {
       sendTo(clientId, { type: "chat:error", message: "No active session. Activate a session first." });
       return;
     }
 
-    var project = getProjectBySlug(active.projectSlug);
+    const project = getProjectBySlug(active.projectSlug);
     if (!project) {
       sendTo(clientId, { type: "chat:error", message: `Project not found: ${active.projectSlug}` });
       return;
     }
 
-    var config = loadConfig();
-    var env = Object.assign({}, config.globalEnv, project.env);
+    const config = loadConfig();
+    const env = Object.assign({}, config.globalEnv, project.env);
 
     if (config.costBudget && config.costBudget.dailyLimit > 0) {
-      var dailySpend = getDailySpend();
+      const dailySpend = getDailySpend();
       if (dailySpend >= config.costBudget.dailyLimit) {
         if (config.costBudget.enforcement === "hard-block") {
           sendTo(clientId, { type: "chat:error", message: "Daily cost budget exceeded ($" + dailySpend.toFixed(2) + " / $" + config.costBudget.dailyLimit.toFixed(2) + "). Sending is blocked until tomorrow." });
@@ -189,11 +189,11 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
       }
     }
 
-    var attachments = sendMsg.attachmentIds
+    const attachments = sendMsg.attachmentIds
       ? getAttachments(clientId, sendMsg.attachmentIds)
       : [];
 
-    var linkedSpec = findSpecBySession(active.sessionId);
+    const linkedSpec = findSpecBySession(active.sessionId);
 
     startChatStream({
       projectSlug: active.projectSlug,
@@ -213,12 +213,12 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "chat:cancel") {
-    var active = activeSessionByClient.get(clientId);
+    const active = activeSessionByClient.get(clientId);
     if (!active) {
       sendTo(clientId, { type: "chat:error", message: "No active session." });
       return;
     }
-    var stream = getActiveStream(active.sessionId);
+    const stream = getActiveStream(active.sessionId);
     if (!stream) {
       sendTo(clientId, { type: "chat:error", message: "No active stream to cancel." });
       return;
@@ -228,13 +228,13 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "chat:permission_response") {
-    var permMsg = message as ChatPermissionResponseMessage;
-    var pending = getPendingPermission(permMsg.requestId);
+    const permMsg = message as ChatPermissionResponseMessage;
+    const pending = getPendingPermission(permMsg.requestId);
     if (!pending) {
       return;
     }
 
-    var active = activeSessionByClient.get(clientId);
+    const active = activeSessionByClient.get(clientId);
 
     if (permMsg.allow) {
       if (permMsg.alwaysAllow && permMsg.alwaysAllowScope === "session" && active) {
@@ -242,7 +242,7 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
       }
 
       if (permMsg.alwaysAllow && permMsg.alwaysAllowScope === "project" && active) {
-        var project = getProjectBySlug(active.projectSlug);
+        const project = getProjectBySlug(active.projectSlug);
         if (project) {
           addProjectAllowRules(project.path, pending.suggestions as any, pending.toolName, pending.input);
         }
@@ -251,7 +251,7 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
         pending.resolve({ behavior: "allow", updatedInput: pending.input, toolUseID: pending.toolUseID });
       }
 
-      var resolvedStatus = permMsg.alwaysAllow ? "always_allowed" : "allowed";
+      const resolvedStatus = permMsg.alwaysAllow ? "always_allowed" : "allowed";
       sendTo(clientId, { type: "chat:permission_resolved", requestId: permMsg.requestId, status: resolvedStatus });
     } else {
       pending.resolve({ behavior: "deny", message: "User denied this operation.", toolUseID: pending.toolUseID });
@@ -263,13 +263,13 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "chat:prompt_response") {
-    var promptRespMsg = message as ChatPromptResponseMessage;
-    var pendingPrompt = getPendingPermission(promptRespMsg.requestId);
+    const promptRespMsg = message as ChatPromptResponseMessage;
+    const pendingPrompt = getPendingPermission(promptRespMsg.requestId);
     if (!pendingPrompt || pendingPrompt.promptType !== "question") {
       return;
     }
 
-    var updatedInput = Object.assign({}, pendingPrompt.input, {
+    const updatedInput = Object.assign({}, pendingPrompt.input, {
       answers: promptRespMsg.answers,
     });
     if (promptRespMsg.annotations) {
@@ -288,8 +288,8 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "chat:elicitation_response") {
-    var elicitMsg = message as { type: string; requestId: string; action: "accept" | "decline"; content?: Record<string, unknown> };
-    var pendingElicit = getPendingElicitation(elicitMsg.requestId);
+    const elicitMsg = message as { type: string; requestId: string; action: "accept" | "decline"; content?: Record<string, unknown> };
+    const pendingElicit = getPendingElicitation(elicitMsg.requestId);
     if (!pendingElicit) return;
     resolveElicitation(elicitMsg.requestId, {
       action: elicitMsg.action,
@@ -299,11 +299,11 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "chat:rewind_preview") {
-    var rewindMsg = message as { type: string; messageUuid: string };
-    var activeForRewind = activeSessionByClient.get(clientId);
+    const rewindMsg = message as { type: string; messageUuid: string };
+    const activeForRewind = activeSessionByClient.get(clientId);
     if (!activeForRewind) return;
 
-    var sessionStreamForRewind = getSessionStream(activeForRewind.sessionId);
+    const sessionStreamForRewind = getSessionStream(activeForRewind.sessionId);
     if (!sessionStreamForRewind) {
       sendTo(clientId, { type: "chat:rewind_preview_result", messageUuid: rewindMsg.messageUuid, canRewind: false, error: "No active stream for rewind" } as any);
       return;
@@ -326,11 +326,11 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "chat:rewind_execute") {
-    var execRewindMsg = message as { type: string; messageUuid: string; mode: string };
-    var activeForExec = activeSessionByClient.get(clientId);
+    const execRewindMsg = message as { type: string; messageUuid: string; mode: string };
+    const activeForExec = activeSessionByClient.get(clientId);
     if (!activeForExec) return;
 
-    var sessionStreamForExec = getSessionStream(activeForExec.sessionId);
+    const sessionStreamForExec = getSessionStream(activeForExec.sessionId);
     if (!sessionStreamForExec) {
       sendTo(clientId, { type: "chat:rewind_execute_result", messageUuid: execRewindMsg.messageUuid, success: false, error: "No active stream" } as any);
       return;
@@ -354,11 +354,11 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "chat:set_model") {
-    var modelMsg = message as { type: string; model: string };
-    var activeSession = activeSessionByClient.get(clientId);
+    const modelMsg = message as { type: string; model: string };
+    const activeSession = activeSessionByClient.get(clientId);
     if (!activeSession) return;
 
-    var sessionStream = getSessionStream(activeSession.sessionId);
+    const sessionStream = getSessionStream(activeSession.sessionId);
     if (sessionStream) {
       void sessionStream.queryInstance.setModel(modelMsg.model === "default" ? undefined : modelMsg.model).catch(function (err) {
         log.chat("Failed to switch model: %O", err);
@@ -369,13 +369,13 @@ registerHandler("chat", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "chat:set_permission_mode") {
-    var modeMsg = message as ChatSetPermissionModeMessage;
-    var activeSession = activeSessionByClient.get(clientId);
+    const modeMsg = message as ChatSetPermissionModeMessage;
+    const activeSession = activeSessionByClient.get(clientId);
     if (!activeSession) {
       return;
     }
 
-    var stream = getActiveStream(activeSession.sessionId);
+    const stream = getActiveStream(activeSession.sessionId);
     if (stream) {
       void stream.setPermissionMode(modeMsg.mode);
     } else {

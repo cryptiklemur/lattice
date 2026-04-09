@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-var FOCUSABLE_SELECTOR = [
+const FOCUSABLE_SELECTOR = [
   "a[href]",
   "button:not([disabled])",
   "input:not([disabled])",
@@ -14,19 +14,19 @@ export function useFocusTrap(
   onClose: () => void,
   active: boolean = true,
 ): void {
-  var previouslyFocusedRef = useRef<HTMLElement | null>(null);
-  var onCloseRef = useRef(onClose);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
   useEffect(function () {
     if (!active) return;
 
-    var container = containerRef.current;
+    const container = containerRef.current;
     if (!container) return;
 
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
 
-    var focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
     if (focusable.length > 0) {
       focusable[0].focus();
     }
@@ -39,14 +39,14 @@ export function useFocusTrap(
 
       if (e.key !== "Tab") return;
 
-      var currentContainer = containerRef.current;
+      const currentContainer = containerRef.current;
       if (!currentContainer) return;
 
-      var elements = currentContainer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      const elements = currentContainer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
       if (elements.length === 0) return;
 
-      var first = elements[0];
-      var last = elements[elements.length - 1];
+      const first = elements[0];
+      const last = elements[elements.length - 1];
 
       if (e.shiftKey) {
         if (document.activeElement === first) {
@@ -61,7 +61,7 @@ export function useFocusTrap(
       }
     }
 
-    var el = container;
+    const el = container;
     el.addEventListener("keydown", handleKeyDown);
 
     return function () {

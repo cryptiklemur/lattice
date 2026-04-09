@@ -7,7 +7,7 @@ interface PermissionBreakdownProps {
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) {
   if (!active || !payload || payload.length === 0) return null;
-  var entry = payload[0];
+  const entry = payload[0];
   return (
     <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg">
       <p className="text-[11px] font-mono text-base-content">{entry.name}</p>
@@ -17,9 +17,9 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function PermissionBreakdown({ data }: PermissionBreakdownProps) {
-  var chartColors = getChartColors();
-  var COLORS = chartColors.permission;
-  var total = data.allowed + data.denied + data.alwaysAllowed;
+  const chartColors = getChartColors();
+  const COLORS = chartColors.permission;
+  const total = data.allowed + data.denied + data.alwaysAllowed;
 
   if (total === 0) {
     return (
@@ -38,13 +38,13 @@ export function PermissionBreakdown({ data }: PermissionBreakdownProps) {
     );
   }
 
-  var pieData = [
+  const pieData = [
     { name: "Allowed", value: data.allowed },
     { name: "Denied", value: data.denied },
     { name: "Always Allowed", value: data.alwaysAllowed },
   ].filter(function (d) { return d.value > 0; });
 
-  var colorMap: Record<string, string> = {
+  const colorMap: Record<string, string> = {
     Allowed: COLORS.allowed,
     Denied: COLORS.denied,
     "Always Allowed": COLORS.alwaysAllowed,

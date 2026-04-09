@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNotificationPreference } from "../../hooks/useNotifications";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
 
-var NOTIFICATION_TYPES = [
+const NOTIFICATION_TYPES = [
   { key: "responses", label: "Claude responses", description: "When Claude finishes a response" },
   { key: "mesh", label: "Mesh node changes", description: "When nodes come online or go offline" },
   { key: "connection", label: "Connection events", description: "WebSocket connect and disconnect" },
@@ -10,7 +10,7 @@ var NOTIFICATION_TYPES = [
 
 function loadTypePrefs(): Record<string, boolean> {
   try {
-    var stored = localStorage.getItem("lattice-notification-types");
+    const stored = localStorage.getItem("lattice-notification-types");
     if (stored) return JSON.parse(stored);
   } catch {}
   return { responses: true, mesh: true, connection: true };
@@ -21,13 +21,13 @@ function saveTypePrefs(prefs: Record<string, boolean>): void {
 }
 
 export function Notifications() {
-  var notifPref = useNotificationPreference();
-  var push = usePushNotifications();
-  var [typePrefs, setTypePrefs] = useState<Record<string, boolean>>(loadTypePrefs);
+  const notifPref = useNotificationPreference();
+  const push = usePushNotifications();
+  const [typePrefs, setTypePrefs] = useState<Record<string, boolean>>(loadTypePrefs);
 
   function toggleType(key: string) {
     setTypePrefs(function (prev) {
-      var next = { ...prev, [key]: !prev[key] };
+      const next = { ...prev, [key]: !prev[key] };
       saveTypePrefs(next);
       return next;
     });

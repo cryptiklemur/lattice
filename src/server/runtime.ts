@@ -1,1 +1,1 @@
-export var IS_NPM = true;
+export const IS_NPM = true;

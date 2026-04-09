@@ -14,7 +14,7 @@ import { ProjectMemory } from "./ProjectMemory";
 import { ProjectNotifications } from "./ProjectNotifications";
 import { ProjectPlugins } from "./ProjectPlugins";
 
-var SECTION_CONFIG: Record<string, { title: string }> = {
+const SECTION_CONFIG: Record<string, { title: string }> = {
   general: { title: "General" },
   notifications: { title: "Notifications" },
   claude: { title: "Claude" },
@@ -81,15 +81,15 @@ function renderSection(
 }
 
 export function ProjectSettingsView() {
-  var { activeView, activeProjectSlug, toggleDrawer } = useSidebar();
+  const { activeView, activeProjectSlug, toggleDrawer } = useSidebar();
 
   if (activeView.type !== "project-settings") {
     return null;
   }
 
-  var section = activeView.section;
-  var config = SECTION_CONFIG[section];
-  var { settings, loading, error, updateSection } = useProjectSettings(activeProjectSlug);
+  const section = activeView.section;
+  const config = SECTION_CONFIG[section];
+  const { settings, loading, error, updateSection } = useProjectSettings(activeProjectSlug);
 
   return (
     <section aria-label="Project Settings" className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">

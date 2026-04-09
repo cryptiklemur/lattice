@@ -10,11 +10,11 @@ interface NoteCardProps {
 }
 
 export function NoteCard(props: NoteCardProps) {
-  var { note, onUpdate, onDelete, disabled } = props;
-  var [editing, setEditing] = useState(!note.content);
-  var [draft, setDraft] = useState(note.content);
-  var [confirming, setConfirming] = useState(false);
-  var originalRef = useRef(note.content);
+  const { note, onUpdate, onDelete, disabled } = props;
+  const [editing, setEditing] = useState(!note.content);
+  const [draft, setDraft] = useState(note.content);
+  const [confirming, setConfirming] = useState(false);
+  const originalRef = useRef(note.content);
 
   function handleClick() {
     if (disabled) return;
@@ -45,7 +45,7 @@ export function NoteCard(props: NoteCardProps) {
     }
   }
 
-  var updatedDate = new Date(note.updatedAt).toLocaleDateString(undefined, {
+  const updatedDate = new Date(note.updatedAt).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",

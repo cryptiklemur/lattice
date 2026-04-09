@@ -3,7 +3,7 @@ interface LatticeLogomarkProps {
 }
 
 export function LatticeLogomark(props: LatticeLogomarkProps) {
-  var s = props.size;
+  const s = props.size;
   return (
     <svg width={s} height={s} viewBox="0 0 48 48" fill="none" aria-hidden="true">
       <rect x="4" y="4" width="18" height="18" rx="3" fill="currentColor" />

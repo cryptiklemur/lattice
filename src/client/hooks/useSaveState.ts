@@ -14,11 +14,11 @@ export interface UseSaveStateReturn {
 }
 
 export function useSaveState(): UseSaveStateReturn {
-  var [dirty, setDirty] = useState(false);
-  var [saving, setSaving] = useState(false);
-  var [saveState, setSaveState] = useState<SaveState>("idle");
-  var saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var savingRef = useRef(false);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
 
   useEffect(function () {
     return function () {

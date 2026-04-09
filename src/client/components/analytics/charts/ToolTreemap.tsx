@@ -6,10 +6,10 @@ interface ToolTreemapProps {
   data: Array<{ name: string; count: number; avgCost: number }>;
 }
 
-var MAX_COST_INTENSITY = 0.5;
+const MAX_COST_INTENSITY = 0.5;
 
 function getColor(avgCost: number, maxCost: number): string {
-  var intensity = maxCost > 0 ? Math.min(avgCost / maxCost, 1) : 0.3;
+  const intensity = maxCost > 0 ? Math.min(avgCost / maxCost, 1) : 0.3;
   return getIntensityColor(intensity);
 }
 
@@ -18,11 +18,11 @@ function CustomContent(props: {
   name?: string; count?: number; avgCost?: number;
   maxCost?: number;
 }) {
-  var { x = 0, y = 0, width = 0, height = 0, name = "", count = 0, avgCost = 0, maxCost = MAX_COST_INTENSITY } = props;
+  const { x = 0, y = 0, width = 0, height = 0, name = "", count = 0, avgCost = 0, maxCost = MAX_COST_INTENSITY } = props;
   if (width < 4 || height < 4) return null;
-  var colors = getChartColors();
-  var showLabel = width > 40 && height > 20;
-  var showCount = width > 50 && height > 34;
+  const colors = getChartColors();
+  const showLabel = width > 40 && height > 20;
+  const showCount = width > 50 && height > 34;
   return (
     <g>
       <rect
@@ -64,7 +64,7 @@ function CustomContent(props: {
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; count: number; avgCost: number } }> }) {
   if (!active || !payload || payload.length === 0) return null;
-  var d = payload[0].payload;
+  const d = payload[0].payload;
   return (
     <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg">
       <p className="text-[11px] font-mono text-base-content font-bold mb-1">{d.name}</p>
@@ -77,7 +77,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function ToolTreemap({ data }: ToolTreemapProps) {
-  var fullscreenHeight = useChartFullscreen();
+  const fullscreenHeight = useChartFullscreen();
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[250px] text-base-content/25 font-mono text-[11px]">
@@ -86,12 +86,12 @@ export function ToolTreemap({ data }: ToolTreemapProps) {
     );
   }
 
-  var maxCost = 0;
-  for (var i = 0; i < data.length; i++) {
+  let maxCost = 0;
+  for (let i = 0; i < data.length; i++) {
     if (data[i].avgCost > maxCost) maxCost = data[i].avgCost;
   }
 
-  var treemapData = data.map(function (d) {
+  const treemapData = data.map(function (d) {
     return { name: d.name, size: d.count, count: d.count, avgCost: d.avgCost, maxCost: maxCost };
   });
 

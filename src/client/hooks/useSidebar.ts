@@ -50,8 +50,8 @@ export function useSidebar(): SidebarState & {
   closeConfirmRemove: () => void;
   confirmRemoveSlug: string | null;
 } {
-  var store = getSidebarStore();
-  var state = useStore(store, function (s) { return s; });
+  const store = getSidebarStore();
+  const state = useStore(store, function (s) { return s; });
 
   return {
     activeProjectSlug: state.activeProjectSlug,

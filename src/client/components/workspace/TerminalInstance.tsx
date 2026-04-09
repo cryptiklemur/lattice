@@ -9,11 +9,11 @@ import { useSidebar } from "../../hooks/useSidebar";
 import type { ServerMessage, TerminalCreatedMessage, TerminalOutputMessage, TerminalExitedMessage } from "#shared";
 
 function getXtermTheme(): Record<string, string> {
-  var root = document.documentElement;
-  var cs = getComputedStyle(root);
+  const root = document.documentElement;
+  const cs = getComputedStyle(root);
 
   function resolveVar(prop: string, fallback: string): string {
-    var val = cs.getPropertyValue(prop).trim();
+    const val = cs.getPropertyValue(prop).trim();
     return val || fallback;
   }
 
@@ -47,29 +47,29 @@ interface TerminalInstanceProps {
 }
 
 export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps) {
-  var containerRef = useRef<HTMLDivElement | null>(null);
-  var xtermRef = useRef<XTerm | null>(null);
-  var fitAddonRef = useRef<FitAddon | null>(null);
-  var searchAddonRef = useRef<SearchAddon | null>(null);
-  var termIdRef = useRef<string | null>(null);
-  var { activeProjectSlug } = useSidebar();
-  var { send, subscribe, unsubscribe } = useWebSocket();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const xtermRef = useRef<XTerm | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+  const searchAddonRef = useRef<SearchAddon | null>(null);
+  const termIdRef = useRef<string | null>(null);
+  const { activeProjectSlug } = useSidebar();
+  const { send, subscribe, unsubscribe } = useWebSocket();
 
   useEffect(function() {
     if (!containerRef.current) {
       return;
     }
 
-    var term = new XTerm({
+    const term = new XTerm({
       cursorBlink: true,
       fontFamily: getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || "JetBrains Mono, monospace",
       fontSize: 13,
       theme: getXtermTheme(),
     });
 
-    var fitAddon = new FitAddon();
-    var webLinksAddon = new WebLinksAddon();
-    var searchAddon = new SearchAddon();
+    const fitAddon = new FitAddon();
+    const webLinksAddon = new WebLinksAddon();
+    const searchAddon = new SearchAddon();
 
     term.loadAddon(fitAddon);
     term.loadAddon(webLinksAddon);
@@ -81,24 +81,24 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
     fitAddonRef.current = fitAddon;
     searchAddonRef.current = searchAddon;
 
-    var waitingForCreate = true;
+    let waitingForCreate = true;
 
     function onCreated(msg: ServerMessage) {
       if (!waitingForCreate) return;
       waitingForCreate = false;
-      var created = msg as TerminalCreatedMessage;
+      const created = msg as TerminalCreatedMessage;
       termIdRef.current = created.termId;
     }
 
     function onOutput(msg: ServerMessage) {
-      var output = msg as TerminalOutputMessage;
+      const output = msg as TerminalOutputMessage;
       if (xtermRef.current && output.termId === termIdRef.current) {
         xtermRef.current.write(output.data);
       }
     }
 
     function onExited(msg: ServerMessage) {
-      var exited = msg as TerminalExitedMessage;
+      const exited = msg as TerminalExitedMessage;
       if (xtermRef.current && exited.termId === termIdRef.current) {
         xtermRef.current.write("\r\n\x1b[31m[process exited]\x1b[0m\r\n");
       }
@@ -111,17 +111,17 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
     send({ type: "terminal:create", projectSlug: activeProjectSlug || undefined });
 
     term.onData(function(data: string) {
-      var termId = termIdRef.current;
+      const termId = termIdRef.current;
       if (termId) {
         send({ type: "terminal:input", termId: termId, data: data });
       }
     });
 
-    var resizeObserver = new ResizeObserver(function() {
+    const resizeObserver = new ResizeObserver(function() {
       if (fitAddonRef.current) {
         fitAddonRef.current.fit();
-        var termId = termIdRef.current;
-        var dim = fitAddonRef.current.proposeDimensions();
+        const termId = termIdRef.current;
+        const dim = fitAddonRef.current.proposeDimensions();
         if (termId && dim) {
           send({ type: "terminal:resize", termId: termId, cols: dim.cols, rows: dim.rows });
         }
@@ -146,11 +146,11 @@ export function TerminalInstance({ instanceId, visible }: TerminalInstanceProps)
 
   useEffect(function() {
     if (visible && fitAddonRef.current) {
-      var timer = setTimeout(function() {
+      const timer = setTimeout(function() {
         if (fitAddonRef.current) {
           fitAddonRef.current.fit();
-          var termId = termIdRef.current;
-          var dim = fitAddonRef.current.proposeDimensions();
+          const termId = termIdRef.current;
+          const dim = fitAddonRef.current.proposeDimensions();
           if (termId && dim) {
             send({ type: "terminal:resize", termId: termId, cols: dim.cols, rows: dim.rows });
           }

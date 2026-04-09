@@ -11,6 +11,7 @@ export interface Tab {
   pinned: boolean;
   sessionId?: string;
   projectSlug?: string;
+  sessionType?: string;
 }
 
 export interface Pane {
@@ -27,11 +28,11 @@ export interface WorkspaceState {
   splitRatio: number;
 }
 
-var CHAT_TAB: Tab = { id: "chat", type: "chat", label: "Chat", closeable: true, pinned: true };
+const CHAT_TAB: Tab = { id: "chat", type: "chat", label: "Chat", closeable: true, pinned: true };
 
-var DEFAULT_PANE: Pane = { id: "pane-1", tabIds: ["chat"], activeTabId: "chat" };
+const DEFAULT_PANE: Pane = { id: "pane-1", tabIds: ["chat"], activeTabId: "chat" };
 
-var workspaceStore = new Store<WorkspaceState>({
+const workspaceStore = new Store<WorkspaceState>({
   tabs: [CHAT_TAB],
   panes: [DEFAULT_PANE],
   activePaneId: "pane-1",
@@ -45,9 +46,9 @@ export function getWorkspaceStore(): Store<WorkspaceState> {
 
 export function openTab(type: TabType): void {
   workspaceStore.setState(function (state) {
-    var existing = state.tabs.find(function (t) { return t.type === type && !t.sessionId; });
+    const existing = state.tabs.find(function (t) { return t.type === type && !t.sessionId; });
     if (existing) {
-      var paneWithTab = state.panes.find(function (p) {
+      const paneWithTab = state.panes.find(function (p) {
         return p.tabIds.indexOf(existing!.id) !== -1;
       });
       if (paneWithTab) {
@@ -64,7 +65,7 @@ export function openTab(type: TabType): void {
       }
       return state;
     }
-    var labels: Record<TabType, string> = {
+    const labels: Record<TabType, string> = {
       chat: "Chat",
       files: "Files",
       terminal: "Terminal",
@@ -76,7 +77,7 @@ export function openTab(type: TabType): void {
       specs: "Specs",
       context: "Context",
     };
-    var tab: Tab = {
+    const tab: Tab = {
       id: type,
       type: type,
       label: labels[type],
@@ -84,16 +85,16 @@ export function openTab(type: TabType): void {
       pinned: true,
     };
 
-    var defaultChat = state.tabs.find(function (t) { return t.id === "chat" && !t.sessionId; });
-    var shouldReplace = defaultChat && state.tabs.length === 1 && type !== "brainstorm";
+    const defaultChat = state.tabs.find(function (t) { return t.id === "chat" && !t.sessionId; });
+    const shouldReplace = defaultChat && state.tabs.length === 1 && type !== "brainstorm";
 
-    var newTabs = shouldReplace
+    const newTabs = shouldReplace
       ? [tab]
       : [...state.tabs, tab];
 
-    var newPanes = state.panes.map(function (p) {
+    const newPanes = state.panes.map(function (p) {
       if (p.id === state.activePaneId) {
-        var updatedTabIds = shouldReplace
+        const updatedTabIds = shouldReplace
           ? p.tabIds.map(function (id) { return id === "chat" ? tab.id : id; })
           : [...p.tabIds, tab.id];
         return {
@@ -112,12 +113,27 @@ export function openTab(type: TabType): void {
   });
 }
 
-export function openSessionTab(sessionId: string, projectSlug: string, title: string): void {
+let pendingSpecId: string | null = null;
+
+export function getPendingSpecId(): string | null {
+  return pendingSpecId;
+}
+
+export function clearPendingSpecId(): void {
+  pendingSpecId = null;
+}
+
+export function openSpecById(specId: string): void {
+  pendingSpecId = specId;
+  openTab("specs");
+}
+
+export function openSessionTab(sessionId: string, projectSlug: string, title: string, sessionType?: string): void {
   workspaceStore.setState(function (state) {
-    var tabId = "chat-" + sessionId;
-    var existing = state.tabs.find(function (t) { return t.id === tabId; });
+    const tabId = "chat-" + sessionId;
+    const existing = state.tabs.find(function (t) { return t.id === tabId; });
     if (existing) {
-      var paneWithTab = state.panes.find(function (p) {
+      const paneWithTab = state.panes.find(function (p) {
         return p.tabIds.indexOf(tabId) !== -1;
       });
       if (paneWithTab) {
@@ -135,7 +151,7 @@ export function openSessionTab(sessionId: string, projectSlug: string, title: st
       return state;
     }
 
-    var tab: Tab = {
+    const tab: Tab = {
       id: tabId,
       type: "chat",
       label: title || "Session",
@@ -143,20 +159,21 @@ export function openSessionTab(sessionId: string, projectSlug: string, title: st
       pinned: false,
       sessionId: sessionId,
       projectSlug: projectSlug,
+      sessionType: sessionType,
     };
 
-    var previewTab = state.tabs.find(function (t) { return t.type === "chat" && t.sessionId && !t.pinned; });
-    var hadDefaultChat = state.tabs.some(function (t) { return t.id === "chat"; });
+    const previewTab = state.tabs.find(function (t) { return t.type === "chat" && t.sessionId && !t.pinned; });
+    const hadDefaultChat = state.tabs.some(function (t) { return t.id === "chat"; });
 
-    var newTabs: Tab[];
-    var newPanes: Pane[];
+    let newTabs: Tab[];
+    let newPanes: Pane[];
 
     if (previewTab) {
-      var oldId = previewTab.id;
+      const oldId = previewTab.id;
       newTabs = state.tabs.map(function (t) { return t.id === oldId ? tab : t; });
       newPanes = state.panes.map(function (p) {
-        var updatedTabIds = p.tabIds.map(function (id) { return id === oldId ? tabId : id; });
-        var shouldActivate = p.activeTabId === oldId || p.id === state.activePaneId;
+        const updatedTabIds = p.tabIds.map(function (id) { return id === oldId ? tabId : id; });
+        const shouldActivate = p.activeTabId === oldId || p.id === state.activePaneId;
         return {
           ...p,
           tabIds: updatedTabIds,
@@ -166,8 +183,8 @@ export function openSessionTab(sessionId: string, projectSlug: string, title: st
     } else if (hadDefaultChat) {
       newTabs = state.tabs.filter(function (t) { return t.id !== "chat"; }).concat([tab]);
       newPanes = state.panes.map(function (p) {
-        var updatedTabIds = p.tabIds.map(function (id) { return id === "chat" ? tabId : id; });
-        var needsActiveUpdate = p.activeTabId === "chat" || p.id === state.activePaneId;
+        const updatedTabIds = p.tabIds.map(function (id) { return id === "chat" ? tabId : id; });
+        const needsActiveUpdate = p.activeTabId === "chat" || p.id === state.activePaneId;
         return { ...p, tabIds: updatedTabIds, activeTabId: needsActiveUpdate ? tabId : p.activeTabId };
       });
     } else {
@@ -196,9 +213,9 @@ export function pinTab(tabId: string): void {
 
 export function updateSessionTabTitle(sessionId: string, title: string): void {
   workspaceStore.setState(function (state) {
-    var tabId = "chat-" + sessionId;
-    var found = false;
-    var newTabs = state.tabs.map(function (t) {
+    const tabId = "chat-" + sessionId;
+    let found = false;
+    const newTabs = state.tabs.map(function (t) {
       if (t.id === tabId) {
         found = true;
         return { ...t, label: title };
@@ -211,7 +228,7 @@ export function updateSessionTabTitle(sessionId: string, title: string): void {
 }
 
 type TabCloseListener = (tab: Tab) => void;
-var tabCloseListeners: TabCloseListener[] = [];
+let tabCloseListeners: TabCloseListener[] = [];
 
 export function onTabClose(listener: TabCloseListener): () => void {
   tabCloseListeners.push(listener);
@@ -221,25 +238,25 @@ export function onTabClose(listener: TabCloseListener): () => void {
 }
 
 export function closeTab(tabId: string): void {
-  var closingTab = workspaceStore.state.tabs.find(function (t) { return t.id === tabId; });
+  const closingTab = workspaceStore.state.tabs.find(function (t) { return t.id === tabId; });
   workspaceStore.setState(function (state) {
-    var tab = state.tabs.find(function (t) { return t.id === tabId; });
+    const tab = state.tabs.find(function (t) { return t.id === tabId; });
     if (!tab || !tab.closeable) return state;
 
-    var filteredTabs = state.tabs.filter(function (t) { return t.id !== tabId; });
-    var newPanes = state.panes.map(function (p) {
-      var idx = p.tabIds.indexOf(tabId);
+    const filteredTabs = state.tabs.filter(function (t) { return t.id !== tabId; });
+    const newPanes = state.panes.map(function (p) {
+      const idx = p.tabIds.indexOf(tabId);
       if (idx === -1) return p;
-      var newTabIds = p.tabIds.filter(function (id) { return id !== tabId; });
-      var newActiveTabId = p.activeTabId === tabId
+      const newTabIds = p.tabIds.filter(function (id) { return id !== tabId; });
+      const newActiveTabId = p.activeTabId === tabId
         ? (newTabIds.length > 0 ? newTabIds[Math.max(0, idx - 1)] : "")
         : p.activeTabId;
       return { ...p, tabIds: newTabIds, activeTabId: newActiveTabId };
     });
 
-    var emptyPane = newPanes.find(function (p) { return p.tabIds.length === 0; });
+    const emptyPane = newPanes.find(function (p) { return p.tabIds.length === 0; });
     if (emptyPane && newPanes.length > 1) {
-      var remainingPanes = newPanes.filter(function (p) { return p.tabIds.length > 0; });
+      const remainingPanes = newPanes.filter(function (p) { return p.tabIds.length > 0; });
       return {
         tabs: filteredTabs,
         panes: remainingPanes,
@@ -258,7 +275,7 @@ export function closeTab(tabId: string): void {
     };
   });
   if (closingTab && closingTab.closeable) {
-    for (var i = 0; i < tabCloseListeners.length; i++) {
+    for (let i = 0; i < tabCloseListeners.length; i++) {
       tabCloseListeners[i](closingTab);
     }
   }
@@ -266,7 +283,7 @@ export function closeTab(tabId: string): void {
 
 export function setActiveTab(tabId: string): void {
   workspaceStore.setState(function (state) {
-    var paneWithTab = state.panes.find(function (p) {
+    const paneWithTab = state.panes.find(function (p) {
       return p.tabIds.indexOf(tabId) !== -1;
     });
     if (!paneWithTab) return state;
@@ -299,36 +316,36 @@ export function splitPane(tabId: string, direction: "horizontal" | "vertical", p
   workspaceStore.setState(function (state) {
     if (state.panes.length >= 2) return state;
 
-    var sourcePane = state.panes.find(function (p) {
+    const sourcePane = state.panes.find(function (p) {
       return p.tabIds.indexOf(tabId) !== -1;
     });
     if (!sourcePane) return state;
     if (sourcePane.tabIds.length < 2) return state;
 
-    var newPaneId = "pane-" + Date.now();
-    var newSourceTabIds = sourcePane.tabIds.filter(function (id) { return id !== tabId; });
-    var newSourceActiveTabId = sourcePane.activeTabId === tabId
+    const newPaneId = "pane-" + Date.now();
+    const newSourceTabIds = sourcePane.tabIds.filter(function (id) { return id !== tabId; });
+    const newSourceActiveTabId = sourcePane.activeTabId === tabId
       ? newSourceTabIds[newSourceTabIds.length - 1]
       : sourcePane.activeTabId;
 
-    var updatedSourcePane: Pane = {
+    const updatedSourcePane: Pane = {
       ...sourcePane,
       tabIds: newSourceTabIds,
       activeTabId: newSourceActiveTabId,
     };
 
-    var newPane: Pane = {
+    const newPane: Pane = {
       id: newPaneId,
       tabIds: [tabId],
       activeTabId: tabId,
     };
 
-    var newPanes = state.panes.map(function (p) {
+    const newPanes = state.panes.map(function (p) {
       if (p.id === sourcePane!.id) return updatedSourcePane;
       return p;
     });
     if (position === "before") {
-      var sourceIndex = newPanes.findIndex(function (p) { return p.id === sourcePane!.id; });
+      const sourceIndex = newPanes.findIndex(function (p) { return p.id === sourcePane!.id; });
       newPanes.splice(sourceIndex, 0, newPane);
     } else {
       newPanes.push(newPane);
@@ -348,13 +365,13 @@ export function closePane(paneId: string): void {
   workspaceStore.setState(function (state) {
     if (state.panes.length <= 1) return state;
 
-    var closingPane = state.panes.find(function (p) { return p.id === paneId; });
-    var remainingPane = state.panes.find(function (p) { return p.id !== paneId; });
+    const closingPane = state.panes.find(function (p) { return p.id === paneId; });
+    const remainingPane = state.panes.find(function (p) { return p.id !== paneId; });
     if (!closingPane || !remainingPane) return state;
 
-    var mergedTabIds: string[] = [];
-    var mergedSeen = new Set<string>();
-    var allIds = [...remainingPane.tabIds, ...closingPane.tabIds];
+    const mergedTabIds: string[] = [];
+    const mergedSeen = new Set<string>();
+    const allIds = [...remainingPane.tabIds, ...closingPane.tabIds];
     for (let i = 0; i < allIds.length; i++) {
       if (!mergedSeen.has(allIds[i])) {
         mergedSeen.add(allIds[i]);
@@ -391,7 +408,7 @@ export function setPaneActiveTab(paneId: string, tabId: string): void {
 }
 
 export function setSplitRatio(ratio: number): void {
-  var clamped = Math.min(0.8, Math.max(0.2, ratio));
+  const clamped = Math.min(0.8, Math.max(0.2, ratio));
   workspaceStore.setState(function (state) {
     return { ...state, splitRatio: clamped };
   });
@@ -406,12 +423,12 @@ export function setActivePaneId(paneId: string): void {
 export function reorderTab(paneId: string, fromIndex: number, toIndex: number): void {
   if (fromIndex === toIndex) return;
   workspaceStore.setState(function (state) {
-    var pane = state.panes.find(function (p) { return p.id === paneId; });
+    const pane = state.panes.find(function (p) { return p.id === paneId; });
     if (!pane) return state;
     if (fromIndex < 0 || fromIndex >= pane.tabIds.length) return state;
     if (toIndex < 0 || toIndex >= pane.tabIds.length) return state;
-    var newTabIds = [...pane.tabIds];
-    var [moved] = newTabIds.splice(fromIndex, 1);
+    const newTabIds = [...pane.tabIds];
+    const [moved] = newTabIds.splice(fromIndex, 1);
     newTabIds.splice(toIndex, 0, moved);
     return {
       ...state,
@@ -426,20 +443,20 @@ export function reorderTab(paneId: string, fromIndex: number, toIndex: number): 
 export function moveTabToPane(tabId: string, sourcePaneId: string, targetPaneId: string): void {
   if (sourcePaneId === targetPaneId) return;
   workspaceStore.setState(function (state) {
-    var sourcePane = state.panes.find(function (p) { return p.id === sourcePaneId; });
-    var targetPane = state.panes.find(function (p) { return p.id === targetPaneId; });
+    const sourcePane = state.panes.find(function (p) { return p.id === sourcePaneId; });
+    const targetPane = state.panes.find(function (p) { return p.id === targetPaneId; });
     if (!sourcePane || !targetPane) return state;
     if (sourcePane.tabIds.indexOf(tabId) === -1) return state;
     if (targetPane.tabIds.indexOf(tabId) !== -1) return state;
 
-    var newSourceTabIds = sourcePane.tabIds.filter(function (id) { return id !== tabId; });
-    var newTargetTabIds = [...targetPane.tabIds, tabId];
+    const newSourceTabIds = sourcePane.tabIds.filter(function (id) { return id !== tabId; });
+    const newTargetTabIds = [...targetPane.tabIds, tabId];
 
-    var newSourceActiveTabId = sourcePane.activeTabId === tabId
+    const newSourceActiveTabId = sourcePane.activeTabId === tabId
       ? (newSourceTabIds.length > 0 ? newSourceTabIds[Math.max(0, sourcePane.tabIds.indexOf(tabId) - 1)] : "")
       : sourcePane.activeTabId;
 
-    var newPanes = state.panes.map(function (p) {
+    const newPanes = state.panes.map(function (p) {
       if (p.id === sourcePaneId) {
         return { ...p, tabIds: newSourceTabIds, activeTabId: newSourceActiveTabId };
       }
@@ -449,9 +466,9 @@ export function moveTabToPane(tabId: string, sourcePaneId: string, targetPaneId:
       return p;
     });
 
-    var emptyPane = newPanes.find(function (p) { return p.tabIds.length === 0; });
+    const emptyPane = newPanes.find(function (p) { return p.tabIds.length === 0; });
     if (emptyPane && newPanes.length > 1) {
-      var remainingPanes = newPanes.filter(function (p) { return p.tabIds.length > 0; });
+      const remainingPanes = newPanes.filter(function (p) { return p.tabIds.length > 0; });
       return {
         tabs: state.tabs,
         panes: remainingPanes,
@@ -470,10 +487,10 @@ export function moveTabToPane(tabId: string, sourcePaneId: string, targetPaneId:
 }
 
 export function getActiveSessionTab(): Tab | null {
-  var state = workspaceStore.state;
-  var activePane = state.panes.find(function (p) { return p.id === state.activePaneId; });
+  const state = workspaceStore.state;
+  const activePane = state.panes.find(function (p) { return p.id === state.activePaneId; });
   if (!activePane) return null;
-  var activeTab = state.tabs.find(function (t) { return t.id === activePane!.activeTabId; });
+  const activeTab = state.tabs.find(function (t) { return t.id === activePane!.activeTabId; });
   if (!activeTab || activeTab.type !== "chat") return null;
   return activeTab;
 }
@@ -505,7 +522,7 @@ export function restoreWorkspace(data: DecodedWorkspace): void {
   urlSyncSuppressed = false;
 }
 
-var currentProjectKey: string = "__global__";
+let currentProjectKey: string = "__global__";
 
 export function setCurrentProjectKey(slug: string | null): void {
   currentProjectKey = slug || "__global__";
@@ -589,7 +606,7 @@ export function loadWorkspaceForProject(projectSlug: string | null): void {
   urlSyncSuppressed = false;
 }
 
-var saveSuppressed = false;
+let saveSuppressed = false;
 
 export function switchProjectWorkspace(fromSlug: string | null, toSlug: string | null): void {
   saveSuppressed = true;

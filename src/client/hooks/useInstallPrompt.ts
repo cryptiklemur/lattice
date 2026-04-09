@@ -6,9 +6,9 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function useInstallPrompt() {
-  var [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  var [isInstalled, setIsInstalled] = useState(false);
-  var [dismissed, setDismissed] = useState(function () {
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [dismissed, setDismissed] = useState(function () {
     return localStorage.getItem("lattice-install-dismissed") === "1";
   });
 
@@ -47,7 +47,7 @@ export function useInstallPrompt() {
     setPromptEvent(null);
   }
 
-  var canInstall = !!promptEvent && !isInstalled && !dismissed;
+  const canInstall = !!promptEvent && !isInstalled && !dismissed;
 
   return { canInstall: canInstall, install: install, dismiss: dismiss };
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 
-var MODE_OPTIONS = [
+const MODE_OPTIONS = [
   { value: "default", label: "Mode: Default" },
   { value: "acceptEdits", label: "Mode: Accept Edits" },
   { value: "plan", label: "Mode: Plan" },
@@ -9,11 +9,11 @@ var MODE_OPTIONS = [
 ];
 
 export function PermissionModeSelector() {
-  var [mode, setMode] = useState<string>("default");
-  var { send } = useWebSocket();
+  const [mode, setMode] = useState<string>("default");
+  const { send } = useWebSocket();
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    var val = e.currentTarget.value;
+    const val = e.currentTarget.value;
     setMode(val);
     send({ type: "chat:set_permission_mode", mode: val as "default" | "acceptEdits" | "plan" | "dontAsk" });
   }

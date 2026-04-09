@@ -3,7 +3,7 @@ import { join, basename } from "node:path";
 import { homedir } from "node:os";
 
 export function readProjectClaudeMd(projectPath: string): string {
-  var filePath = join(projectPath, "CLAUDE.md");
+  const filePath = join(projectPath, "CLAUDE.md");
   if (!existsSync(filePath)) return "";
   try {
     return readFileSync(filePath, "utf-8");
@@ -17,7 +17,7 @@ export function writeProjectClaudeMd(projectPath: string, content: string): void
 }
 
 export function readProjectClaudeSettings(projectPath: string): Record<string, unknown> {
-  var filePath = join(projectPath, ".claude", "settings.json");
+  const filePath = join(projectPath, ".claude", "settings.json");
   if (!existsSync(filePath)) return {};
   try {
     return JSON.parse(readFileSync(filePath, "utf-8"));
@@ -27,23 +27,23 @@ export function readProjectClaudeSettings(projectPath: string): Record<string, u
 }
 
 export function mergeProjectClaudeSettings(projectPath: string, updates: Record<string, unknown>): void {
-  var existing = readProjectClaudeSettings(projectPath);
+  const existing = readProjectClaudeSettings(projectPath);
   Object.assign(existing, updates);
-  var dir = join(projectPath, ".claude");
+  const dir = join(projectPath, ".claude");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "settings.json"), JSON.stringify(existing, null, 2) + "\n", "utf-8");
 }
 
 export function readProjectRules(projectPath: string): Array<{ filename: string; content: string }> {
-  var dir = join(projectPath, ".claude", "rules");
+  const dir = join(projectPath, ".claude", "rules");
   if (!existsSync(dir)) return [];
-  var results: Array<{ filename: string; content: string }> = [];
+  const results: Array<{ filename: string; content: string }> = [];
   try {
-    var files = readdirSync(dir);
-    for (var file of files) {
+    const files = readdirSync(dir);
+    for (const file of files) {
       if (!file.endsWith(".md")) continue;
       try {
-        var content = readFileSync(join(dir, file), "utf-8");
+        const content = readFileSync(join(dir, file), "utf-8");
         results.push({ filename: file, content });
       } catch {
         // skip unreadable files
@@ -56,17 +56,17 @@ export function readProjectRules(projectPath: string): Array<{ filename: string;
 }
 
 export function writeProjectRules(projectPath: string, rules: Array<{ filename: string; content: string }>): void {
-  var dir = join(projectPath, ".claude", "rules");
+  const dir = join(projectPath, ".claude", "rules");
   mkdirSync(dir, { recursive: true });
 
-  var incoming = new Set<string>();
-  for (var rule of rules) {
+  const incoming = new Set<string>();
+  for (const rule of rules) {
     incoming.add(rule.filename);
   }
 
   try {
-    var existing = readdirSync(dir);
-    for (var file of existing) {
+    const existing = readdirSync(dir);
+    for (const file of existing) {
       if (file.endsWith(".md") && !incoming.has(file)) {
         unlinkSync(join(dir, file));
       }
@@ -75,16 +75,16 @@ export function writeProjectRules(projectPath: string, rules: Array<{ filename: 
     // dir just created, nothing to delete
   }
 
-  for (var rule of rules) {
+  for (const rule of rules) {
     writeFileSync(join(dir, rule.filename), rule.content, "utf-8");
   }
 }
 
 export function readProjectMcpServers(projectPath: string): Record<string, unknown> {
-  var filePath = join(projectPath, ".mcp.json");
+  const filePath = join(projectPath, ".mcp.json");
   if (!existsSync(filePath)) return {};
   try {
-    var parsed = JSON.parse(readFileSync(filePath, "utf-8"));
+    const parsed = JSON.parse(readFileSync(filePath, "utf-8"));
     return parsed?.mcpServers ?? {};
   } catch {
     return {};
@@ -92,7 +92,7 @@ export function readProjectMcpServers(projectPath: string): Record<string, unkno
 }
 
 export function writeProjectMcpServers(projectPath: string, servers: Record<string, unknown>): void {
-  var filePath = join(projectPath, ".mcp.json");
+  const filePath = join(projectPath, ".mcp.json");
   writeFileSync(filePath, JSON.stringify({ mcpServers: servers }, null, 2) + "\n", "utf-8");
 }
 
@@ -101,15 +101,15 @@ export function readProjectSkills(projectPath: string): Array<{ name: string; de
 }
 
 export function readGlobalRules(): Array<{ filename: string; content: string }> {
-  var dir = join(homedir(), ".claude", "rules");
+  const dir = join(homedir(), ".claude", "rules");
   if (!existsSync(dir)) return [];
-  var results: Array<{ filename: string; content: string }> = [];
+  const results: Array<{ filename: string; content: string }> = [];
   try {
-    var files = readdirSync(dir);
-    for (var file of files) {
+    const files = readdirSync(dir);
+    for (const file of files) {
       if (!file.endsWith(".md")) continue;
       try {
-        var content = readFileSync(join(dir, file), "utf-8");
+        const content = readFileSync(join(dir, file), "utf-8");
         results.push({ filename: file, content });
       } catch {
         // skip unreadable files
@@ -122,11 +122,11 @@ export function readGlobalRules(): Array<{ filename: string; content: string }> 
 }
 
 export function readGlobalPermissions(): { allow: string[]; deny: string[] } {
-  var settings = readJsonFile(join(homedir(), ".claude", "settings.json"));
-  var local = readJsonFile(join(homedir(), ".claude", "settings.local.json"));
+  const settings = readJsonFile(join(homedir(), ".claude", "settings.json"));
+  const local = readJsonFile(join(homedir(), ".claude", "settings.local.json"));
 
-  var allow = new Set<string>();
-  var deny = new Set<string>();
+  const allow = new Set<string>();
+  const deny = new Set<string>();
 
   collectPermissions(settings, allow, deny);
   collectPermissions(local, allow, deny);
@@ -135,10 +135,10 @@ export function readGlobalPermissions(): { allow: string[]; deny: string[] } {
 }
 
 export function readGlobalMcpServers(): Record<string, unknown> {
-  var filePath = join(homedir(), ".claude.json");
+  const filePath = join(homedir(), ".claude.json");
   if (!existsSync(filePath)) return {};
   try {
-    var parsed = JSON.parse(readFileSync(filePath, "utf-8"));
+    const parsed = JSON.parse(readFileSync(filePath, "utf-8"));
     return parsed?.mcpServers ?? {};
   } catch {
     return {};
@@ -146,8 +146,8 @@ export function readGlobalMcpServers(): Record<string, unknown> {
 }
 
 export function writeGlobalMcpServers(servers: Record<string, unknown>): void {
-  var filePath = join(homedir(), ".claude.json");
-  var existing: Record<string, unknown> = {};
+  const filePath = join(homedir(), ".claude.json");
+  let existing: Record<string, unknown> = {};
   if (existsSync(filePath)) {
     try {
       existing = JSON.parse(readFileSync(filePath, "utf-8"));
@@ -158,14 +158,14 @@ export function writeGlobalMcpServers(servers: Record<string, unknown>): void {
 }
 
 export function readGlobalSkills(): Array<{ name: string; description: string; path: string }> {
-  var results: Array<{ name: string; description: string; path: string }> = [];
-  var dirs = [
+  const results: Array<{ name: string; description: string; path: string }> = [];
+  const dirs = [
     join(homedir(), ".claude", "skills"),
     join(homedir(), ".agents", "skills"),
   ];
-  for (var dir of dirs) {
-    var skills = scanSkillsDir(dir);
-    for (var skill of skills) {
+  for (const dir of dirs) {
+    const skills = scanSkillsDir(dir);
+    for (const skill of skills) {
       results.push(skill);
     }
   }
@@ -182,34 +182,34 @@ function readJsonFile(filePath: string): Record<string, unknown> {
 }
 
 function collectPermissions(obj: Record<string, unknown>, allow: Set<string>, deny: Set<string>): void {
-  var perms = obj.permissions as Record<string, unknown> | undefined;
+  const perms = obj.permissions as Record<string, unknown> | undefined;
   if (!perms) return;
-  var allowArr = perms.allow;
-  var denyArr = perms.deny;
+  const allowArr = perms.allow;
+  const denyArr = perms.deny;
   if (Array.isArray(allowArr)) {
-    for (var item of allowArr) {
+    for (const item of allowArr) {
       if (typeof item === "string") allow.add(item);
     }
   }
   if (Array.isArray(denyArr)) {
-    for (var item of denyArr) {
+    for (const item of denyArr) {
       if (typeof item === "string") deny.add(item);
     }
   }
 }
 
 function parseFrontmatter(content: string): { name: string; description: string } {
-  var match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return { name: "", description: "" };
-  var yaml = match[1];
-  var name = "";
-  var desc = "";
-  var lines = yaml.split(/\r?\n/);
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    var nameMatch = line.match(/^name:\s*(.+)/);
+  const yaml = match[1];
+  let name = "";
+  let desc = "";
+  const lines = yaml.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const nameMatch = line.match(/^name:\s*(.+)/);
     if (nameMatch) name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
-    var descMatch = line.match(/^description:\s*(.+)/);
+    const descMatch = line.match(/^description:\s*(.+)/);
     if (descMatch) desc = descMatch[1].trim().replace(/^["']|["']$/g, "");
   }
   return { name, description: desc };
@@ -217,21 +217,21 @@ function parseFrontmatter(content: string): { name: string; description: string 
 
 function scanSkillsDir(dir: string): Array<{ name: string; description: string; path: string }> {
   if (!existsSync(dir)) return [];
-  var results: Array<{ name: string; description: string; path: string }> = [];
+  const results: Array<{ name: string; description: string; path: string }> = [];
   try {
-    var entries = readdirSync(dir, { withFileTypes: true });
-    for (var entry of entries) {
-      var entryPath = join(dir, entry.name);
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const entryPath = join(dir, entry.name);
       if (entry.isDirectory()) {
         try {
-          var subFiles = readdirSync(entryPath);
-          for (var subFile of subFiles) {
+          const subFiles = readdirSync(entryPath);
+          for (const subFile of subFiles) {
             if (subFile.toUpperCase().startsWith("SKILL")) {
-              var skillPath = join(entryPath, subFile);
-              var content = readFileSync(skillPath, "utf-8");
-              var meta = parseFrontmatter(content);
-              var skillName = meta.name || entry.name;
-              var description = meta.description || firstNonEmptyLine(content.replace(/^---[\s\S]*?---\s*/, ""));
+              const skillPath = join(entryPath, subFile);
+              const content = readFileSync(skillPath, "utf-8");
+              const meta = parseFrontmatter(content);
+              const skillName = meta.name || entry.name;
+              const description = meta.description || firstNonEmptyLine(content.replace(/^---[\s\S]*?---\s*/, ""));
               results.push({ name: skillName, description, path: skillPath });
               break;
             }
@@ -241,10 +241,10 @@ function scanSkillsDir(dir: string): Array<{ name: string; description: string; 
         }
       } else if (entry.name.toUpperCase().startsWith("SKILL")) {
         try {
-          var content = readFileSync(entryPath, "utf-8");
-          var meta = parseFrontmatter(content);
-          var name = meta.name || entry.name.replace(/\.[^.]+$/, "");
-          var description = meta.description || firstNonEmptyLine(content.replace(/^---[\s\S]*?---\s*/, ""));
+          const content = readFileSync(entryPath, "utf-8");
+          const meta = parseFrontmatter(content);
+          const name = meta.name || entry.name.replace(/\.[^.]+$/, "");
+          const description = meta.description || firstNonEmptyLine(content.replace(/^---[\s\S]*?---\s*/, ""));
           results.push({ name, description, path: entryPath });
         } catch {
           // skip unreadable files
@@ -258,9 +258,9 @@ function scanSkillsDir(dir: string): Array<{ name: string; description: string; 
 }
 
 function firstNonEmptyLine(text: string): string {
-  var lines = text.split("\n");
-  for (var line of lines) {
-    var trimmed = line.trim();
+  const lines = text.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
     if (trimmed.length > 0) return trimmed;
   }
   return "";

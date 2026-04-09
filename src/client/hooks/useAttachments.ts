@@ -2,10 +2,10 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useWebSocket } from "./useWebSocket";
 import type { ServerMessage } from "#shared";
 
-var CHUNK_SIZE = 64 * 1024;
-var MAX_FILE_SIZE = 50 * 1024 * 1024;
-var MAX_ATTACHMENTS = 20;
-var CHUNK_TIMEOUT_MS = 10000;
+const CHUNK_SIZE = 64 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_ATTACHMENTS = 20;
+const CHUNK_TIMEOUT_MS = 10000;
 
 export type AttachmentStatus = "uploading" | "ready" | "failed";
 
@@ -37,8 +37,8 @@ export interface UseAttachmentsReturn {
 
 function guessMimeType(file: File): string {
   if (file.type) return file.type;
-  var ext = file.name.split(".").pop()?.toLowerCase() || "";
-  var map: Record<string, string> = {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  const map: Record<string, string> = {
     ts: "application/typescript",
     tsx: "application/typescript",
     js: "application/javascript",
@@ -72,14 +72,14 @@ function isImageType(mime: string): boolean {
 }
 
 export function useAttachments(): UseAttachmentsReturn {
-  var [attachments, setAttachments] = useState<ClientAttachment[]>([]);
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var pendingResolvers = useRef(new Map<string, { resolve: () => void; reject: (err: string) => void; timer: ReturnType<typeof setTimeout> }>());
-  var fileCache = useRef(new Map<string, File>());
-  var attachmentsRef = useRef(attachments);
+  const [attachments, setAttachments] = useState<ClientAttachment[]>([]);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const pendingResolvers = useRef(new Map<string, { resolve: () => void; reject: (err: string) => void; timer: ReturnType<typeof setTimeout> }>());
+  const fileCache = useRef(new Map<string, File>());
+  const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
-  var updateAttachment = useCallback(function (id: string, updates: Partial<ClientAttachment>) {
+  const updateAttachment = useCallback(function (id: string, updates: Partial<ClientAttachment>) {
     setAttachments(function (prev) {
       return prev.map(function (a) {
         return a.id === id ? { ...a, ...updates } : a;
@@ -87,14 +87,14 @@ export function useAttachments(): UseAttachmentsReturn {
     });
   }, []);
 
-  var uploadFile = useCallback(function (attachment: ClientAttachment, file: File) {
-    var reader = new FileReader();
+  const uploadFile = useCallback(function (attachment: ClientAttachment, file: File) {
+    const reader = new FileReader();
     reader.onload = function () {
-      var buffer = reader.result as ArrayBuffer;
-      var bytes = new Uint8Array(buffer);
-      var totalChunks = Math.ceil(bytes.length / CHUNK_SIZE);
+      const buffer = reader.result as ArrayBuffer;
+      const bytes = new Uint8Array(buffer);
+      const totalChunks = Math.ceil(bytes.length / CHUNK_SIZE);
 
-      var chunkIndex = 0;
+      let chunkIndex = 0;
 
       function sendNextChunk() {
         if (chunkIndex >= totalChunks) {
@@ -110,14 +110,14 @@ export function useAttachments(): UseAttachmentsReturn {
           return;
         }
 
-        var start = chunkIndex * CHUNK_SIZE;
-        var end = Math.min(start + CHUNK_SIZE, bytes.length);
-        var chunk = bytes.slice(start, end);
-        var binary = "";
-        for (var bi = 0; bi < chunk.length; bi++) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, bytes.length);
+        const chunk = bytes.slice(start, end);
+        let binary = "";
+        for (let bi = 0; bi < chunk.length; bi++) {
           binary += String.fromCharCode(chunk[bi]);
         }
-        var base64 = btoa(binary);
+        const base64 = btoa(binary);
 
         send({
           type: "attachment:chunk",
@@ -127,8 +127,8 @@ export function useAttachments(): UseAttachmentsReturn {
           data: base64,
         });
 
-        var currentChunk = chunkIndex;
-        var timer = setTimeout(function () {
+        const currentChunk = chunkIndex;
+        const timer = setTimeout(function () {
           pendingResolvers.current.delete(attachment.id + ":" + currentChunk);
           updateAttachment(attachment.id, { status: "failed", error: "Upload timed out" });
         }, CHUNK_TIMEOUT_MS);
@@ -137,7 +137,7 @@ export function useAttachments(): UseAttachmentsReturn {
           resolve: function () {
             clearTimeout(timer);
             chunkIndex++;
-            var progress = Math.round((chunkIndex / totalChunks) * 100);
+            const progress = Math.round((chunkIndex / totalChunks) * 100);
             updateAttachment(attachment.id, { progress });
             sendNextChunk();
           },
@@ -150,10 +150,10 @@ export function useAttachments(): UseAttachmentsReturn {
       }
 
       function handleProgress(msg: ServerMessage) {
-        var m = msg as { type: string; attachmentId: string; received: number; total: number };
+        const m = msg as { type: string; attachmentId: string; received: number; total: number };
         if (m.attachmentId !== attachment.id) return;
-        var key = attachment.id + ":" + (m.received - 1);
-        var resolver = pendingResolvers.current.get(key);
+        const key = attachment.id + ":" + (m.received - 1);
+        const resolver = pendingResolvers.current.get(key);
         if (resolver) {
           pendingResolvers.current.delete(key);
           resolver.resolve();
@@ -166,7 +166,7 @@ export function useAttachments(): UseAttachmentsReturn {
       }
 
       function handleError(msg: ServerMessage) {
-        var m = msg as { type: string; attachmentId: string; error: string };
+        const m = msg as { type: string; attachmentId: string; error: string };
         if (m.attachmentId !== attachment.id) return;
         updateAttachment(attachment.id, { status: "failed", error: m.error });
         unsubscribe("attachment:progress", handleProgress);
@@ -180,21 +180,21 @@ export function useAttachments(): UseAttachmentsReturn {
     reader.readAsArrayBuffer(file);
   }, [send, subscribe, unsubscribe, updateAttachment]);
 
-  var addFile = useCallback(function (file: File) {
+  const addFile = useCallback(function (file: File) {
     if (file.size > MAX_FILE_SIZE) {
       return;
     }
 
-    var id = crypto.randomUUID();
-    var mime = guessMimeType(file);
-    var type: "file" | "image" = isImageType(mime) ? "image" : "file";
+    const id = crypto.randomUUID();
+    const mime = guessMimeType(file);
+    const type: "file" | "image" = isImageType(mime) ? "image" : "file";
 
-    var previewUrl: string | undefined;
+    let previewUrl: string | undefined;
     if (type === "image") {
       previewUrl = URL.createObjectURL(file);
     }
 
-    var att: ClientAttachment = {
+    const att: ClientAttachment = {
       id,
       name: file.name,
       type,
@@ -205,7 +205,7 @@ export function useAttachments(): UseAttachmentsReturn {
       previewUrl,
     };
 
-    var added = false;
+    let added = false;
     setAttachments(function (prev) {
       if (prev.length >= MAX_ATTACHMENTS) {
         return prev;
@@ -222,13 +222,13 @@ export function useAttachments(): UseAttachmentsReturn {
     }
   }, [uploadFile]);
 
-  var addPaste = useCallback(function (text: string) {
-    var id = crypto.randomUUID();
-    var blob = new Blob([text], { type: "text/plain" });
-    var file = new File([blob], "pasted-text.txt", { type: "text/plain" });
-    var lineCount = text.split("\n").length;
+  const addPaste = useCallback(function (text: string) {
+    const id = crypto.randomUUID();
+    const blob = new Blob([text], { type: "text/plain" });
+    const file = new File([blob], "pasted-text.txt", { type: "text/plain" });
+    const lineCount = text.split("\n").length;
 
-    var att: ClientAttachment = {
+    const att: ClientAttachment = {
       id,
       name: "Pasted text",
       type: "paste",
@@ -240,7 +240,7 @@ export function useAttachments(): UseAttachmentsReturn {
       content: text,
     };
 
-    var added = false;
+    let added = false;
     setAttachments(function (prev) {
       if (prev.length >= MAX_ATTACHMENTS) {
         return prev;
@@ -255,9 +255,9 @@ export function useAttachments(): UseAttachmentsReturn {
     }
   }, [uploadFile]);
 
-  var removeAttachment = useCallback(function (id: string) {
+  const removeAttachment = useCallback(function (id: string) {
     setAttachments(function (prev) {
-      var removed = prev.find(function (a) { return a.id === id; });
+      const removed = prev.find(function (a) { return a.id === id; });
       if (removed && removed.previewUrl) {
         URL.revokeObjectURL(removed.previewUrl);
       }
@@ -266,15 +266,15 @@ export function useAttachments(): UseAttachmentsReturn {
     fileCache.current.delete(id);
   }, []);
 
-  var retryAttachment = useCallback(function (id: string) {
-    var file = fileCache.current.get(id);
-    var att = attachments.find(function (a) { return a.id === id; });
+  const retryAttachment = useCallback(function (id: string) {
+    const file = fileCache.current.get(id);
+    const att = attachments.find(function (a) { return a.id === id; });
     if (!file || !att) return;
     updateAttachment(id, { status: "uploading", progress: 0, error: undefined });
     uploadFile(att, file);
   }, [attachments, uploadFile, updateAttachment]);
 
-  var clearAll = useCallback(function () {
+  const clearAll = useCallback(function () {
     attachments.forEach(function (a) {
       if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
     });
@@ -292,12 +292,12 @@ export function useAttachments(): UseAttachmentsReturn {
     };
   }, []);
 
-  var readyIds = attachments
+  const readyIds = attachments
     .filter(function (a) { return a.status === "ready"; })
     .map(function (a) { return a.id; });
 
-  var hasUploading = attachments.some(function (a) { return a.status === "uploading"; });
-  var canAttach = attachments.length < MAX_ATTACHMENTS;
+  const hasUploading = attachments.some(function (a) { return a.status === "uploading"; });
+  const canAttach = attachments.length < MAX_ATTACHMENTS;
 
   return {
     attachments,

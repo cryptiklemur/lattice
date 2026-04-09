@@ -63,8 +63,8 @@ export interface ChartColors {
   };
 }
 
-var _cache: ChartColors | null = null;
-var _cacheKey: string = "";
+let _cache: ChartColors | null = null;
+let _cacheKey: string = "";
 
 /**
  * Returns chart colors derived from the current CSS theme.
@@ -72,32 +72,32 @@ var _cacheKey: string = "";
  * the same render cycle are cheap.
  */
 export function getChartColors(): ChartColors {
-  var key = css("--color-primary") + css("--color-base-content") + css("--base0D");
+  const key = css("--color-primary") + css("--color-base-content") + css("--base0D");
   if (_cache && _cacheKey === key) return _cache;
 
-  var b08 = css("--base08");
-  var b09 = css("--base09");
-  var b0A = css("--base0A");
-  var b0B = css("--base0B");
-  var b0C = css("--base0C");
-  var b0D = css("--base0D");
-  var b0E = css("--base0E");
-  var b0F = css("--base0F");
+  const b08 = css("--base08");
+  const b09 = css("--base09");
+  const b0A = css("--base0A");
+  const b0B = css("--base0B");
+  const b0C = css("--base0C");
+  const b0D = css("--base0D");
+  const b0E = css("--base0E");
+  const b0F = css("--base0F");
 
-  var primary = b0D || oklch(css("--color-primary"));
-  var secondary = b0E || oklch(css("--color-secondary"));
-  var accent = b0C || oklch(css("--color-accent"));
-  var success = b0B || oklch(css("--color-success"));
-  var warning = b0A || oklch(css("--color-warning"));
-  var error = b08 || oklch(css("--color-error"));
-  var orange = b09 || warning;
-  var magenta = b0F || secondary;
-  var b03 = css("--base03");
-  var b04 = css("--base04");
-  var b02 = css("--base02");
+  const primary = b0D || oklch(css("--color-primary"));
+  const secondary = b0E || oklch(css("--color-secondary"));
+  const accent = b0C || oklch(css("--color-accent"));
+  const success = b0B || oklch(css("--color-success"));
+  const warning = b0A || oklch(css("--color-warning"));
+  const error = b08 || oklch(css("--color-error"));
+  const orange = b09 || warning;
+  const magenta = b0F || secondary;
+  const b03 = css("--base03");
+  const b04 = css("--base04");
+  const b02 = css("--base02");
 
-  var tickFill = b04 || b03 || "oklch(0.7 0.03 260)";
-  var gridStroke = b02 || "oklch(0.35 0.02 260)";
+  const tickFill = b04 || b03 || "oklch(0.7 0.03 260)";
+  const gridStroke = b02 || "oklch(0.35 0.02 260)";
 
   _cache = {
     primary,
@@ -141,7 +141,7 @@ export function getChartColors(): ChartColors {
 
 /** Tick style object ready to spread onto Recharts axis components. */
 export function getTickStyle() {
-  var c = getChartColors();
+  const c = getChartColors();
   return {
     fontSize: 10,
     fontFamily: "var(--font-mono)",
@@ -153,8 +153,8 @@ export function getTickStyle() {
  * Returns a color for a model name by matching against known families.
  */
 export function getModelColor(model: string): string {
-  var c = getChartColors();
-  var key = model.toLowerCase();
+  const c = getChartColors();
+  const key = model.toLowerCase();
   if (key.includes("opus")) return c.model.opus;
   if (key.includes("sonnet")) return c.model.sonnet;
   if (key.includes("haiku")) return c.model.haiku;
@@ -166,16 +166,16 @@ export function getModelColor(model: string): string {
  * Useful for heatmaps and treemaps that derive intensity from data.
  */
 export function getIntensityColor(intensity: number, hueOverride?: number): string {
-  var raw = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim();
-  var hue = hueOverride ?? 280;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim();
+  let hue = hueOverride ?? 280;
   if (raw) {
-    var parts = raw.split(/\s+/);
+    const parts = raw.split(/\s+/);
     if (parts.length >= 3) {
       hue = parseFloat(parts[2]) || hue;
     }
   }
-  var lightness = 0.45 - intensity * 0.15;
-  var chroma = 0.15 + intensity * 0.12;
+  const lightness = 0.45 - intensity * 0.15;
+  const chroma = 0.15 + intensity * 0.12;
   return "oklch(" + lightness + " " + chroma + " " + hue + ")";
 }
 
@@ -183,6 +183,6 @@ export function getIntensityColor(intensity: number, hueOverride?: number): stri
  * Generate a score-based color using theme hue.
  */
 export function getScoreColor(score: number, maxScore: number): string {
-  var intensity = maxScore > 0 ? Math.min(score / maxScore, 1) : 0;
+  const intensity = maxScore > 0 ? Math.min(score / maxScore, 1) : 0;
   return getIntensityColor(intensity);
 }

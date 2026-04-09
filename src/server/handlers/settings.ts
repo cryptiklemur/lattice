@@ -13,11 +13,11 @@ import { buildNodesMessage } from "./mesh";
 
 export function detectIdeProjectName(projectPath: string): string | undefined {
   try {
-    var ideDir = join(projectPath, ".idea");
+    const ideDir = join(projectPath, ".idea");
     if (!existsSync(ideDir)) return undefined;
-    var ideNameFile = join(ideDir, ".name");
+    const ideNameFile = join(ideDir, ".name");
     if (existsSync(ideNameFile)) {
-      var name = readFileSync(ideNameFile, "utf-8").trim();
+      const name = readFileSync(ideNameFile, "utf-8").trim();
       if (name) return name;
     }
     return projectPath.split("/").pop() || undefined;
@@ -27,7 +27,7 @@ export function detectIdeProjectName(projectPath: string): string | undefined {
 import { loadOrCreateIdentity } from "../identity";
 
 function loadGlobalClaudeMd(): string {
-  var mdPath = join(homedir(), ".claude", "CLAUDE.md");
+  const mdPath = join(homedir(), ".claude", "CLAUDE.md");
   if (existsSync(mdPath)) {
     try {
       return readFileSync(mdPath, "utf-8");
@@ -37,7 +37,7 @@ function loadGlobalClaudeMd(): string {
 }
 
 function saveGlobalClaudeMd(content: string): void {
-  var claudeDir = join(homedir(), ".claude");
+  const claudeDir = join(homedir(), ".claude");
   if (!existsSync(claudeDir)) {
     mkdirSync(claudeDir, { recursive: true });
   }
@@ -45,10 +45,10 @@ function saveGlobalClaudeMd(content: string): void {
 }
 
 function loadSpinnerVerbs(): string[] {
-  var claudeSettingsPath = join(homedir(), ".claude", "settings.json");
-  var defaultVerbs = ["Thinking", "Analyzing", "Processing", "Computing", "Evaluating", "Considering", "Examining", "Reviewing"];
+  const claudeSettingsPath = join(homedir(), ".claude", "settings.json");
+  const defaultVerbs = ["Thinking", "Analyzing", "Processing", "Computing", "Evaluating", "Considering", "Examining", "Reviewing"];
   try {
-    var claudeSettings = JSON.parse(readFileSync(claudeSettingsPath, "utf-8"));
+    const claudeSettings = JSON.parse(readFileSync(claudeSettingsPath, "utf-8"));
     if (claudeSettings.spinnerVerbs) {
       if (claudeSettings.spinnerVerbs.mode === "replace") {
         return claudeSettings.spinnerVerbs.verbs || [];
@@ -61,9 +61,9 @@ function loadSpinnerVerbs(): string[] {
 
 registerHandler("settings", function (clientId: string, message: ClientMessage) {
   if (message.type === "settings:get") {
-    var config = loadConfig();
-    var identity = loadOrCreateIdentity();
-    var configWithClaudeMd = { ...config, claudeMd: loadGlobalClaudeMd() };
+    const config = loadConfig();
+    const identity = loadOrCreateIdentity();
+    const configWithClaudeMd = { ...config, claudeMd: loadGlobalClaudeMd() };
     sendTo(clientId, {
       type: "settings:data",
       config: configWithClaudeMd,
@@ -85,10 +85,10 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
   }
 
   if (message.type === "settings:update") {
-    var updateMsg = message as SettingsUpdateMessage;
-    var current = loadConfig();
+    const updateMsg = message as SettingsUpdateMessage;
+    const current = loadConfig();
 
-    var incoming = updateMsg.settings as Record<string, unknown>;
+    const incoming = updateMsg.settings as Record<string, unknown>;
     if (typeof incoming.claudeMd === "string") {
       saveGlobalClaudeMd(incoming.claudeMd);
       delete incoming.claudeMd;
@@ -104,16 +104,16 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       delete incoming.removeProject;
     }
 
-    var incomingProjects = incoming.projects as Array<{ path: string; slug?: string; title: string; env?: Record<string, string> }> | undefined;
+    const incomingProjects = incoming.projects as Array<{ path: string; slug?: string; title: string; env?: Record<string, string> }> | undefined;
     if (incomingProjects && incomingProjects.length > 0) {
-      for (var i = 0; i < incomingProjects.length; i++) {
-        var proj = incomingProjects[i];
+      for (let i = 0; i < incomingProjects.length; i++) {
+        const proj = incomingProjects[i];
         addProject(proj.path, proj.title);
       }
     }
 
-    var refreshed = loadConfig();
-    var updated: LatticeConfig = {
+    const refreshed = loadConfig();
+    const updated: LatticeConfig = {
       ...refreshed,
       ...(incoming as Partial<LatticeConfig>),
       globalEnv: {
@@ -126,7 +126,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       delete (updated as unknown as Record<string, unknown>).costBudget;
     }
     saveConfig(updated);
-    var updatedWithClaudeMd = { ...updated, claudeMd: loadGlobalClaudeMd() };
+    const updatedWithClaudeMd = { ...updated, claudeMd: loadGlobalClaudeMd() };
     sendTo(clientId, {
       type: "settings:data",
       config: updatedWithClaudeMd,
@@ -136,7 +136,7 @@ registerHandler("settings", function (clientId: string, message: ClientMessage) 
       spinnerVerbs: loadSpinnerVerbs(),
       wslDistro: process.env.WSL_DISTRO_NAME || undefined,
     });
-    var updatedIdentity = loadOrCreateIdentity();
+    const updatedIdentity = loadOrCreateIdentity();
     broadcast({
       type: "projects:list",
       projects: updated.projects.map(function (p: typeof updated.projects[number]) {

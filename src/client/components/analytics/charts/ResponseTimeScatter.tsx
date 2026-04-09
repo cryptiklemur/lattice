@@ -24,7 +24,7 @@ interface ResponseTimeScatterProps {
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { tokens: number; durationSec: number; model: string } }> }) {
   if (!active || !payload || payload.length === 0) return null;
-  var d = payload[0].payload;
+  const d = payload[0].payload;
   return (
     <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg">
       <div className="text-[11px] font-mono text-base-content/70 space-y-0.5">
@@ -37,13 +37,13 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function ResponseTimeScatter({ data }: ResponseTimeScatterProps) {
-  var fullscreenHeight = useChartFullscreen();
-  var colors = getChartColors();
+  const fullscreenHeight = useChartFullscreen();
+  const colors = getChartColors();
 
-  var byModel = useMemo(function () {
-    var modelSet = new Set<string>();
-    for (var i = 0; i < data.length; i++) modelSet.add(data[i].model);
-    var models = Array.from(modelSet);
+  const byModel = useMemo(function () {
+    const modelSet = new Set<string>();
+    for (let i = 0; i < data.length; i++) modelSet.add(data[i].model);
+    const models = Array.from(modelSet);
     return models.map(function (model) {
       return {
         model,

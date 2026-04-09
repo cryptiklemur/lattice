@@ -10,10 +10,10 @@ interface UserMenuProps {
 }
 
 export function UserMenu(props: UserMenuProps) {
-  var menuRef = useRef<HTMLDivElement>(null);
-  var ws = useWebSocket();
-  var [confirmingRestart, setConfirmingRestart] = useState(false);
-  var [confirmingShutdown, setConfirmingShutdown] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const ws = useWebSocket();
+  const [confirmingRestart, setConfirmingRestart] = useState(false);
+  const [confirmingShutdown, setConfirmingShutdown] = useState(false);
 
   useEffect(function () {
     function handleClickOutside(e: MouseEvent) {
@@ -44,12 +44,12 @@ export function UserMenu(props: UserMenuProps) {
     };
   }, [props.onClose, props.anchorRef]);
 
-  var style: React.CSSProperties = {};
+  const style: React.CSSProperties = {};
   if (props.anchorRef.current) {
-    var rect = props.anchorRef.current.getBoundingClientRect();
+    const rect = props.anchorRef.current.getBoundingClientRect();
     style.bottom = window.innerHeight - rect.top + 4 + "px";
-    var leftPos = rect.left;
-    var menuW = 180;
+    let leftPos = rect.left;
+    const menuW = 180;
     if (leftPos + menuW > window.innerWidth - 8) leftPos = window.innerWidth - menuW - 8;
     if (leftPos < 8) leftPos = 8;
     style.left = leftPos + "px";
@@ -75,8 +75,8 @@ export function UserMenu(props: UserMenuProps) {
     props.onClose();
   }
 
-  var itemClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-base-content/70 hover:bg-base-content/5 hover:text-base-content outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
-  var dangerClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-error hover:bg-error/10 outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
+  const itemClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-base-content/70 hover:bg-base-content/5 hover:text-base-content outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
+  const dangerClass = "w-full flex items-center gap-2 px-2.5 py-[6px] rounded text-[11px] text-left cursor-pointer transition-colors duration-[120ms] text-error hover:bg-error/10 outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset";
 
   return createPortal(
     <div

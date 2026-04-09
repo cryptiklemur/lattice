@@ -9,27 +9,27 @@ function scryptAsync(password: string, salt: string, keylen: number): Promise<Bu
   });
 }
 
-var TOKEN_TTL = 86400000;
-var CLEANUP_INTERVAL = 600000;
+const TOKEN_TTL = 86400000;
+const CLEANUP_INTERVAL = 600000;
 
-var activeSessions = new Map<string, number>();
+const activeSessions = new Map<string, number>();
 
 export async function hashPassphrase(passphrase: string): Promise<string> {
-  var salt = randomBytes(16).toString("hex");
-  var hash = (await scryptAsync(passphrase, salt, 64)).toString("hex");
+  const salt = randomBytes(16).toString("hex");
+  const hash = (await scryptAsync(passphrase, salt, 64)).toString("hex");
   return salt + ":" + hash;
 }
 
 export async function verifyPassphrase(passphrase: string, storedHash: string): Promise<boolean> {
-  var parts = storedHash.split(":");
+  const parts = storedHash.split(":");
   if (parts.length !== 2) {
     return false;
   }
-  var salt = parts[0];
-  var hash = parts[1];
+  const salt = parts[0];
+  const hash = parts[1];
   try {
-    var derived = await scryptAsync(passphrase, salt, 64);
-    var expected = Buffer.from(hash, "hex");
+    const derived = await scryptAsync(passphrase, salt, 64);
+    const expected = Buffer.from(hash, "hex");
     if (derived.length !== expected.length) {
       return false;
     }
@@ -52,7 +52,7 @@ export function removeSession(token: string): void {
 }
 
 export function isValidSession(token: string): boolean {
-  var createdAt = activeSessions.get(token);
+  const createdAt = activeSessions.get(token);
   if (createdAt === undefined) {
     return false;
   }
@@ -67,8 +67,8 @@ export function clearSessions(): void {
   activeSessions.clear();
 }
 
-var cleanupInterval = setInterval(function () {
-  var now = Date.now();
+const cleanupInterval = setInterval(function () {
+  const now = Date.now();
   activeSessions.forEach(function (createdAt, token) {
     if (now - createdAt > TOKEN_TTL) {
       activeSessions.delete(token);

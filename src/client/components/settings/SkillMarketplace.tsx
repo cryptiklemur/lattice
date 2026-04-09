@@ -10,23 +10,23 @@ interface SkillMarketplaceProps {
 }
 
 export function SkillMarketplace({ defaultScope, defaultProjectSlug }: SkillMarketplaceProps) {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { projects } = useProjects();
-  var [query, setQuery] = useState("");
-  var [results, setResults] = useState<MarketplaceSkill[]>([]);
-  var [count, setCount] = useState(0);
-  var [error, setError] = useState<string | null>(null);
-  var [searching, setSearching] = useState(false);
-  var [installing, setInstalling] = useState<string | null>(null);
-  var [scopeOpen, setScopeOpen] = useState<string | null>(null);
-  var [lastInstallScope, setLastInstallScope] = useState<"global" | "project">("global");
-  var [lastInstallProjectSlug, setLastInstallProjectSlug] = useState<string | undefined>(undefined);
-  var debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { projects } = useProjects();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<MarketplaceSkill[]>([]);
+  const [count, setCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [scopeOpen, setScopeOpen] = useState<string | null>(null);
+  const [lastInstallScope, setLastInstallScope] = useState<"global" | "project">("global");
+  const [lastInstallProjectSlug, setLastInstallProjectSlug] = useState<string | undefined>(undefined);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
     function handleResults(msg: ServerMessage) {
       if (msg.type !== "skills:search_results") return;
-      var data = msg as ServerMessage & { query: string; skills: MarketplaceSkill[]; count: number; error?: string };
+      const data = msg as ServerMessage & { query: string; skills: MarketplaceSkill[]; count: number; error?: string };
       setResults(data.skills);
       setCount(data.count);
       setError(data.error ?? null);
@@ -35,7 +35,7 @@ export function SkillMarketplace({ defaultScope, defaultProjectSlug }: SkillMark
 
     function handleInstallResult(msg: ServerMessage) {
       if (msg.type !== "skills:install_result") return;
-      var result = msg as { type: "skills:install_result"; success: boolean };
+      const result = msg as { type: "skills:install_result"; success: boolean };
       if (result.success && lastInstallScope === "project" && lastInstallProjectSlug) {
         send({ type: "project-settings:get", projectSlug: lastInstallProjectSlug });
       }
@@ -53,7 +53,7 @@ export function SkillMarketplace({ defaultScope, defaultProjectSlug }: SkillMark
 
   useEffect(function () {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    var trimmed = query.trim();
+    const trimmed = query.trim();
     if (!trimmed) {
       setResults([]);
       setCount(0);
@@ -102,16 +102,14 @@ export function SkillMarketplace({ defaultScope, defaultProjectSlug }: SkillMark
           <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 animate-spin" />
         )}
       </div>
-
       {error && (
         <div className="text-[12px] text-warning mb-2">{error}</div>
       )}
-
       {results.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {results.slice(0, 15).map(function (skill) {
-            var isInstalling = installing === skill.id;
-            var isScopeOpen = scopeOpen === skill.id;
+            const isInstalling = installing === skill.id;
+            const isScopeOpen = scopeOpen === skill.id;
             return (
               <div
                 key={skill.id}
@@ -164,7 +162,6 @@ export function SkillMarketplace({ defaultScope, defaultProjectSlug }: SkillMark
           })}
         </div>
       )}
-
       {query.trim() && !searching && results.length === 0 && !error && (
         <div className="py-4 text-center text-[13px] text-base-content/30">
           No skills found.

@@ -8,17 +8,17 @@ import { sendTo, broadcast } from "../ws/broadcast";
 import { checkForUpdate, getPackageName, getGitHubRepo, getInstallMode } from "../update-checker";
 
 function getAssetName(): string {
-  var platform = process.platform === "darwin" ? "darwin" : "linux";
-  var arch = process.arch === "arm64" ? "arm64" : "x64";
+  const platform = process.platform === "darwin" ? "darwin" : "linux";
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
   return "lattice-" + platform + "-" + arch;
 }
 
 async function downloadBinaryUpdate(): Promise<{ success: boolean; message: string }> {
-  var repo = getGitHubRepo();
-  var assetName = getAssetName();
+  const repo = getGitHubRepo();
+  const assetName = getAssetName();
 
   try {
-    var releaseRes = await fetch("https://api.github.com/repos/" + repo + "/releases/latest", {
+    const releaseRes = await fetch("https://api.github.com/repos/" + repo + "/releases/latest", {
       headers: { "Accept": "application/vnd.github.v3+json" },
       signal: AbortSignal.timeout(30000),
     });
@@ -27,15 +27,15 @@ async function downloadBinaryUpdate(): Promise<{ success: boolean; message: stri
       return { success: false, message: "Failed to fetch release info (HTTP " + releaseRes.status + ")" };
     }
 
-    var release = await releaseRes.json() as { assets?: Array<{ name: string; browser_download_url: string }> };
-    var assets = release.assets ?? [];
-    var asset = assets.find(function (a) { return a.name === assetName; });
+    const release = await releaseRes.json() as { assets?: Array<{ name: string; browser_download_url: string }> };
+    const assets = release.assets ?? [];
+    const asset = assets.find(function (a) { return a.name === assetName; });
 
     if (!asset) {
       return { success: false, message: "No binary found for " + assetName + " in latest release" };
     }
 
-    var downloadRes = await fetch(asset.browser_download_url, {
+    const downloadRes = await fetch(asset.browser_download_url, {
       signal: AbortSignal.timeout(120000),
     });
 
@@ -43,14 +43,14 @@ async function downloadBinaryUpdate(): Promise<{ success: boolean; message: stri
       return { success: false, message: "Failed to download binary (HTTP " + downloadRes.status + ")" };
     }
 
-    var binary = new Uint8Array(await downloadRes.arrayBuffer());
-    var execPath = process.execPath;
-    var tmpPath = join(tmpdir(), "lattice-update-" + Date.now());
+    const binary = new Uint8Array(await downloadRes.arrayBuffer());
+    const execPath = process.execPath;
+    const tmpPath = join(tmpdir(), "lattice-update-" + Date.now());
 
     writeFileSync(tmpPath, binary);
     chmodSync(tmpPath, 0o755);
 
-    var needsSudo = false;
+    let needsSudo = false;
     try {
       accessSync(execPath, fsConstants.W_OK);
     } catch {
@@ -80,7 +80,7 @@ async function downloadBinaryUpdate(): Promise<{ success: boolean; message: stri
 
 registerHandler("update", function (clientId: string, message: ClientMessage) {
   if (message.type === "update:check") {
-    var checkMsg = message as { type: "update:check"; force?: boolean };
+    const checkMsg = message as { type: "update:check"; force?: boolean };
     void checkForUpdate(checkMsg.force ?? false).then(function (info) {
       sendTo(clientId, {
         type: "update:status",
@@ -96,13 +96,13 @@ registerHandler("update", function (clientId: string, message: ClientMessage) {
 
   if (message.type === "update:apply") {
     {
-      var pkgName = getPackageName();
+      const pkgName = getPackageName();
       try {
-        var proc = spawn("npm", ["install", "-g", pkgName + "@latest"], {
+        const proc = spawn("npm", ["install", "-g", pkgName + "@latest"], {
           stdio: ["ignore", "pipe", "pipe"],
         });
 
-        var timeout = setTimeout(function () {
+        const timeout = setTimeout(function () {
           proc.kill();
         }, 120000);
 

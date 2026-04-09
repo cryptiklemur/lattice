@@ -6,29 +6,29 @@ import { themes } from "../../themes/index";
 import type { ThemeEntry } from "../../themes/index";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 
-var POPULAR_DARK_THEMES = ["dracula", "catppuccin-mocha", "tokyo-night", "one-dark", "amoled"];
-var POPULAR_LIGHT_THEMES = ["ayu-light", "catppuccin-latte", "github-light", "one-light", "rose-pine-dawn"];
+const POPULAR_DARK_THEMES = ["dracula", "catppuccin-mocha", "tokyo-night", "one-dark", "amoled"];
+const POPULAR_LIGHT_THEMES = ["ayu-light", "catppuccin-latte", "github-light", "one-light", "rose-pine-dawn"];
 
-var TOTAL_STEPS = 6;
+const TOTAL_STEPS = 6;
 
 interface SetupWizardProps {
   onComplete: () => void;
 }
 
 export function SetupWizard(props: SetupWizardProps) {
-  var [step, setStep] = useState(1);
-  var [prevStep, setPrevStep] = useState(1);
-  var [animating, setAnimating] = useState(false);
-  var [nodeName, setNodeName] = useState("");
-  var [passphrase, setPassphrase] = useState("");
-  var [passphraseConfirm, setPassphraseConfirm] = useState("");
-  var [passphraseError, setPassphraseError] = useState("");
-  var [projectPath, setProjectPath] = useState("");
-  var [projectTitle, setProjectTitle] = useState("");
-  var [configured, setConfigured] = useState<string[]>([]);
+  const [step, setStep] = useState(1);
+  const [prevStep, setPrevStep] = useState(1);
+  const [animating, setAnimating] = useState(false);
+  const [nodeName, setNodeName] = useState("");
+  const [passphrase, setPassphrase] = useState("");
+  const [passphraseConfirm, setPassphraseConfirm] = useState("");
+  const [passphraseError, setPassphraseError] = useState("");
+  const [projectPath, setProjectPath] = useState("");
+  const [projectTitle, setProjectTitle] = useState("");
+  const [configured, setConfigured] = useState<string[]>([]);
 
-  var theme = useTheme();
-  var ws = useWebSocket();
+  const theme = useTheme();
+  const ws = useWebSocket();
 
   function navigateTo(next: number) {
     if (animating) return;
@@ -53,7 +53,7 @@ export function SetupWizard(props: SetupWizardProps) {
   }
 
   function handleNameNext() {
-    var name = nodeName.trim();
+    const name = nodeName.trim();
     if (name.length > 0) {
       ws.send({ type: "settings:update", settings: { name } });
       setConfigured(function (c) { return [...c.filter(function (x) { return x !== "name"; }), "name: " + name]; });
@@ -63,7 +63,7 @@ export function SetupWizard(props: SetupWizardProps) {
 
   function handleAppearanceNext() {
     setConfigured(function (c) {
-      var label = "theme: " + theme.currentThemeId + " (" + theme.mode + ")";
+      const label = "theme: " + theme.currentThemeId + " (" + theme.mode + ")";
       return [...c.filter(function (x) { return !x.startsWith("theme:"); }), label];
     });
     goNext();
@@ -84,10 +84,10 @@ export function SetupWizard(props: SetupWizardProps) {
   }
 
   function handleProjectNext() {
-    var path = projectPath.trim();
+    const path = projectPath.trim();
     if (path.length > 0) {
-      var derivedName = path.replace(/\/+$/, "").split("/").pop() || path;
-      var title = projectTitle.trim() || derivedName;
+      const derivedName = path.replace(/\/+$/, "").split("/").pop() || path;
+      const title = projectTitle.trim() || derivedName;
       ws.send({ type: "settings:update", settings: { projects: [{ path: path, slug: "", title: title, env: {} }] } });
       setConfigured(function (c) { return [...c.filter(function (x) { return !x.startsWith("project:"); }), "project: " + title]; });
     }
@@ -99,14 +99,13 @@ export function SetupWizard(props: SetupWizardProps) {
     props.onComplete();
   }
 
-  var darkQuickPicks = themes.filter(function (e: ThemeEntry) { return POPULAR_DARK_THEMES.includes(e.id); });
-  var lightQuickPicks = themes.filter(function (e: ThemeEntry) { return POPULAR_LIGHT_THEMES.includes(e.id); });
-  var isForward = step > prevStep;
+  const darkQuickPicks = themes.filter(function (e: ThemeEntry) { return POPULAR_DARK_THEMES.includes(e.id); });
+  const lightQuickPicks = themes.filter(function (e: ThemeEntry) { return POPULAR_LIGHT_THEMES.includes(e.id); });
+  const isForward = step > prevStep;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-100 transition-colors duration-300">
       <style>{wizardCSS}</style>
-
       {step === 1 ? (
         <div className="relative w-full max-w-[520px] px-6 py-12 flex flex-col items-center text-center">
           <div
@@ -153,9 +152,9 @@ export function SetupWizard(props: SetupWizardProps) {
           <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 bg-base-100">
             <div className="flex items-center gap-1.5">
               {Array.from({ length: TOTAL_STEPS - 1 }, function (_, i) {
-                var dotStep = i + 2;
-                var isComplete = step > dotStep;
-                var isActive = step === dotStep;
+                const dotStep = i + 2;
+                const isComplete = step > dotStep;
+                const isActive = step === dotStep;
                 return (
                   <div
                     key={i}
@@ -270,8 +269,8 @@ export function SetupWizard(props: SetupWizardProps) {
 }
 
 function TerminalPreview() {
-  var [visible, setVisible] = useState(0);
-  var lines = [
+  const [visible, setVisible] = useState(0);
+  const lines = [
     { prefix: "$ ", text: "lattice", color: "var(--color-base-content)" },
     { prefix: "", text: "  [lattice] Daemon started (PID 4821)", color: "oklch(from var(--color-base-content) l c h / 0.5)" },
     { prefix: "", text: "  [lattice] Listening on https://0.0.0.0:7654", color: "var(--color-success)" },
@@ -279,7 +278,7 @@ function TerminalPreview() {
   ];
 
   useEffect(function () {
-    var timers: ReturnType<typeof setTimeout>[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
     lines.forEach(function (_, i) {
       timers.push(setTimeout(function () { setVisible(i + 1); }, 600 + i * 600));
     });
@@ -329,7 +328,7 @@ interface NameStepProps {
 }
 
 function NameStep(props: NameStepProps) {
-  var displayName = props.value.trim() || "this-machine";
+  const displayName = props.value.trim() || "this-machine";
   return (
     <div className="flex flex-col">
       <div className="flex items-center mb-3.5">
@@ -375,8 +374,8 @@ interface AppearanceStepProps {
 }
 
 function AppearanceStep(props: AppearanceStepProps) {
-  var { theme, darkQuickPicks, lightQuickPicks } = props;
-  var quickPicks = theme.mode === "dark" ? darkQuickPicks : lightQuickPicks;
+  const { theme, darkQuickPicks, lightQuickPicks } = props;
+  const quickPicks = theme.mode === "dark" ? darkQuickPicks : lightQuickPicks;
 
   return (
     <div className="flex flex-col">
@@ -389,7 +388,6 @@ function AppearanceStep(props: AppearanceStepProps) {
       <p className="text-[13px] text-base-content/60 leading-relaxed mb-4">
         Pick a color theme. You can always change this in settings.
       </p>
-
       <div className="flex gap-1.5 mb-4 p-1 bg-base-300 rounded-lg w-fit">
         <button
           onClick={function () { if (theme.mode !== "dark") { theme.toggleMode(); } }}
@@ -412,15 +410,14 @@ function AppearanceStep(props: AppearanceStepProps) {
           Light
         </button>
       </div>
-
       <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))" }}>
         {quickPicks.map(function (entry: ThemeEntry) {
-          var isActive = entry.id === theme.currentThemeId;
-          var bg = "#" + entry.theme.base00;
-          var accent = "#" + entry.theme.base0D;
-          var text = "#" + entry.theme.base05;
-          var red = "#" + entry.theme.base08;
-          var green = "#" + entry.theme.base0B;
+          const isActive = entry.id === theme.currentThemeId;
+          const bg = "#" + entry.theme.base00;
+          const accent = "#" + entry.theme.base0D;
+          const text = "#" + entry.theme.base05;
+          const red = "#" + entry.theme.base08;
+          const green = "#" + entry.theme.base0B;
           return (
             <button
               key={entry.id}
@@ -452,7 +449,6 @@ function AppearanceStep(props: AppearanceStepProps) {
           );
         })}
       </div>
-
       <div className="rounded-lg border border-base-300 overflow-hidden transition-all duration-300">
         <div className="text-[9px] font-mono tracking-[0.05em] uppercase text-base-content/40 px-2.5 py-1.5 bg-base-300 border-b border-base-300 transition-all duration-300">
           Preview
@@ -492,7 +488,7 @@ interface SecurityStepProps {
 }
 
 function SecurityStep(props: SecurityStepProps) {
-  var strength = getPassphraseStrength(props.passphrase);
+  const strength = getPassphraseStrength(props.passphrase);
 
   return (
     <div className="flex flex-col">
@@ -663,7 +659,7 @@ function DoneStep(props: DoneStepProps) {
   );
 }
 
-var wizardCSS = `
+const wizardCSS = `
   @keyframes wizard-fade-in {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }

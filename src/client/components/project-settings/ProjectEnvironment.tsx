@@ -16,7 +16,7 @@ function genId(): string {
 }
 
 function entriesToEnv(entries: EnvEntry[]): Record<string, string> {
-  var env: Record<string, string> = {};
+  const env: Record<string, string> = {};
   entries.forEach(function (e) {
     if (e.key.trim()) {
       env[e.key.trim()] = e.value;
@@ -38,13 +38,13 @@ export function ProjectEnvironment({
   settings: ProjectSettings;
   updateSection: (section: string, data: Record<string, unknown>) => void;
 }) {
-  var globalEnv = settings.global.env ?? {};
-  var globalEntries = Object.entries(globalEnv);
+  const globalEnv = settings.global.env ?? {};
+  const globalEntries = Object.entries(globalEnv);
 
-  var [entries, setEntries] = useState<EnvEntry[]>(function () {
+  const [entries, setEntries] = useState<EnvEntry[]>(function () {
     return envToEntries(settings.env ?? {});
   });
-  var save = useSaveState();
+  const save = useSaveState();
 
   useEffect(function () {
     if (save.savingRef.current) {
@@ -55,14 +55,14 @@ export function ProjectEnvironment({
     }
   }, [settings]);
 
-  var globalKeySet = useMemo(function () {
+  const globalKeySet = useMemo(function () {
     return new Set(Object.keys(globalEnv));
   }, [globalEnv]);
 
-  var duplicateKeys = useMemo(function () {
+  const duplicateKeys = useMemo(function () {
     return findDuplicateKeys(entries);
   }, [entries]);
-  var hasDuplicates = duplicateKeys.size > 0;
+  const hasDuplicates = duplicateKeys.size > 0;
 
   function handleAddRow() {
     setEntries(function (prev) {
@@ -101,7 +101,7 @@ export function ProjectEnvironment({
     updateSection("environment", { env: entriesToEnv(entries) });
   }
 
-  var inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
+  const inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
 
   return (
     <div className="py-2">
@@ -139,7 +139,6 @@ export function ProjectEnvironment({
           </div>
         )}
       </div>
-
       <div>
         <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Project Variables
@@ -151,8 +150,8 @@ export function ProjectEnvironment({
             </div>
           )}
           {entries.map(function (entry, idx) {
-            var isDupe = entry.key.trim() !== "" && duplicateKeys.has(entry.key.trim());
-            var overridesGlobal = entry.key.trim() !== "" && globalKeySet.has(entry.key.trim());
+            const isDupe = entry.key.trim() !== "" && duplicateKeys.has(entry.key.trim());
+            const overridesGlobal = entry.key.trim() !== "" && globalKeySet.has(entry.key.trim());
             return (
               <div
                 key={entry.id}

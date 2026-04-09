@@ -10,7 +10,7 @@ export interface ThemeState {
 
 function loadInjectedCustomThemes(): ThemeEntry[] {
   try {
-    var raw = (window as any).__LATTICE_CUSTOM_THEMES__;
+    const raw = (window as any).__LATTICE_CUSTOM_THEMES__;
     if (!Array.isArray(raw) || raw.length === 0) return [];
     return raw.map(function (ct: any): ThemeEntry {
       return {
@@ -29,9 +29,9 @@ function loadInjectedCustomThemes(): ThemeEntry[] {
 }
 
 function loadInitialState(): ThemeState {
-  var mode = localStorage.getItem("lattice-theme-mode");
-  var darkThemeId = localStorage.getItem("lattice-theme-dark");
-  var lightThemeId = localStorage.getItem("lattice-theme-light");
+  const mode = localStorage.getItem("lattice-theme-mode");
+  const darkThemeId = localStorage.getItem("lattice-theme-dark");
+  const lightThemeId = localStorage.getItem("lattice-theme-light");
 
   return {
     mode: mode === "light" ? "light" : "dark",
@@ -41,7 +41,7 @@ function loadInitialState(): ThemeState {
   };
 }
 
-var themeStore = new Store<ThemeState>(loadInitialState());
+const themeStore = new Store<ThemeState>(loadInitialState());
 
 export function getThemeStore(): Store<ThemeState> {
   return themeStore;
@@ -49,7 +49,7 @@ export function getThemeStore(): Store<ThemeState> {
 
 export function toggleMode(): void {
   themeStore.setState(function (state) {
-    var next: ThemeState["mode"] = state.mode === "dark" ? "light" : "dark";
+    const next: ThemeState["mode"] = state.mode === "dark" ? "light" : "dark";
     localStorage.setItem("lattice-theme-mode", next);
     return { ...state, mode: next };
   });

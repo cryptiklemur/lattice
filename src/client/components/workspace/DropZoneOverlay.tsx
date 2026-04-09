@@ -9,20 +9,20 @@ interface DropZoneOverlayProps {
 type Zone = "top" | "left" | "center" | "right" | "bottom";
 
 export function DropZoneOverlay({ paneId }: DropZoneOverlayProps) {
-  var drag = useTabDrag();
-  var workspace = useWorkspace();
-  var [activeZone, setActiveZone] = useState<Zone | null>(null);
+  const drag = useTabDrag();
+  const workspace = useWorkspace();
+  const [activeZone, setActiveZone] = useState<Zone | null>(null);
 
   if (!drag.isDragging) return null;
   if (drag.sourcePaneId === paneId && workspace.panes.length < 2) {
-    var sourcePane = workspace.panes.find(function (p) { return p.id === paneId; });
+    const sourcePane = workspace.panes.find(function (p) { return p.id === paneId; });
     if (sourcePane && sourcePane.tabIds.length < 2) return null;
   }
 
-  var isSplitMode = workspace.panes.length >= 2;
-  var isSourcePane = drag.sourcePaneId === paneId;
-  var showEdgeZones: boolean;
-  var showCenterZone: boolean;
+  const isSplitMode = workspace.panes.length >= 2;
+  const isSourcePane = drag.sourcePaneId === paneId;
+  let showEdgeZones: boolean;
+  let showCenterZone: boolean;
 
   if (isSplitMode) {
     showEdgeZones = false;
@@ -33,7 +33,7 @@ export function DropZoneOverlay({ paneId }: DropZoneOverlayProps) {
   }
 
   if (isSourcePane && !isSplitMode) {
-    var srcPane = workspace.panes.find(function (p) { return p.id === drag.sourcePaneId; });
+    const srcPane = workspace.panes.find(function (p) { return p.id === drag.sourcePaneId; });
     if (srcPane && srcPane.tabIds.length < 2) {
       showEdgeZones = false;
     }
@@ -49,7 +49,7 @@ export function DropZoneOverlay({ paneId }: DropZoneOverlayProps) {
   }
 
   function handleDragLeave(e: React.DragEvent) {
-    var relatedTarget = e.relatedTarget as HTMLElement | null;
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
     if (relatedTarget && e.currentTarget.contains(relatedTarget)) return;
     setActiveZone(null);
   }
@@ -75,11 +75,11 @@ export function DropZoneOverlay({ paneId }: DropZoneOverlayProps) {
     drag.endDrag();
   }
 
-  var zoneBase = "flex items-center justify-center rounded-lg border-2 border-dashed transition-colors duration-150 text-xs font-semibold font-mono pointer-events-auto";
-  var edgeIdle = "border-primary/30 bg-primary/5 text-primary/40";
-  var edgeActive = "border-primary/60 bg-primary/20 text-primary/80";
-  var centerIdle = "border-info/30 bg-info/5 text-info/40";
-  var centerActive = "border-info/60 bg-info/20 text-info/80";
+  const zoneBase = "flex items-center justify-center rounded-lg border-2 border-dashed transition-colors duration-150 text-xs font-semibold font-mono pointer-events-auto";
+  const edgeIdle = "border-primary/30 bg-primary/5 text-primary/40";
+  const edgeActive = "border-primary/60 bg-primary/20 text-primary/80";
+  const centerIdle = "border-info/30 bg-info/5 text-info/40";
+  const centerActive = "border-info/60 bg-info/20 text-info/80";
 
   return (
     <div

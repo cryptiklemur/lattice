@@ -14,7 +14,7 @@ import { Notifications } from "./Notifications";
 import { BudgetSettings } from "./BudgetSettings";
 import type { SettingsSection } from "../../stores/sidebar";
 
-var SECTION_CONFIG: Record<string, { title: string }> = {
+const SECTION_CONFIG: Record<string, { title: string }> = {
   appearance: { title: "Appearance" },
   notifications: { title: "Notifications" },
   claude: { title: "Claude" },
@@ -46,14 +46,14 @@ function renderSection(section: SettingsSection) {
 }
 
 export function SettingsView() {
-  var { activeView, toggleDrawer } = useSidebar();
+  const { activeView, toggleDrawer } = useSidebar();
 
   if (activeView.type !== "settings") {
     return null;
   }
 
-  var section = activeView.section;
-  var config = SECTION_CONFIG[section];
+  const section = activeView.section;
+  const config = SECTION_CONFIG[section];
 
   return (
     <section aria-label="Settings" className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">

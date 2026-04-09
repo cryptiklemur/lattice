@@ -9,24 +9,24 @@ import { sendTo } from "../ws/broadcast";
 import { loadConfig } from "../config";
 import { readGlobalMcpServers, readGlobalSkills } from "../project/project-files";
 
-var searchCache = new Map<string, { skills: Array<{ id: string; skillId: string; name: string; source: string; installs: number }>; count: number; time: number }>();
+const searchCache = new Map<string, { skills: Array<{ id: string; skillId: string; name: string; source: string; installs: number }>; count: number; time: number }>();
 
-var skillsCache: SkillInfo[] | null = null;
-var lastScanTime: number = 0;
-var CACHE_TTL_MS = 60000;
+let skillsCache: SkillInfo[] | null = null;
+let lastScanTime: number = 0;
+const CACHE_TTL_MS = 60000;
 
 function parseFrontmatter(content: string): { name: string; description: string } {
-  var match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return { name: "", description: "" };
-  var yaml = match[1];
-  var name = "";
-  var desc = "";
-  var lines = yaml.split(/\r?\n/);
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    var nameMatch = line.match(/^name:\s*(.+)/);
+  const yaml = match[1];
+  let name = "";
+  let desc = "";
+  const lines = yaml.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const nameMatch = line.match(/^name:\s*(.+)/);
     if (nameMatch) name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
-    var descMatch = line.match(/^description:\s*(.+)/);
+    const descMatch = line.match(/^description:\s*(.+)/);
     if (descMatch) desc = descMatch[1].trim().replace(/^["']|["']$/g, "");
   }
   return { name, description: desc };
@@ -35,7 +35,7 @@ function parseFrontmatter(content: string): { name: string; description: string 
 function findSkillFiles(rootDir: string): string[] {
   if (!existsSync(rootDir)) return [];
   try {
-    var output = execSync(
+    const output = execSync(
       "find " + JSON.stringify(rootDir) + " -name SKILL.md -type f 2>/dev/null",
       { encoding: "utf-8", timeout: 5000 }
     );
@@ -47,12 +47,12 @@ function findSkillFiles(rootDir: string): string[] {
 
 function parseCommandFile(filePath: string, fileName: string): SkillInfo | null {
   try {
-    var content = readFileSync(filePath, "utf-8");
-    var name = fileName.replace(/\.md$/, "");
-    var desc = "";
-    var lines = content.split(/\r?\n/);
-    for (var i = 0; i < Math.min(lines.length, 10); i++) {
-      var line = lines[i].trim();
+    const content = readFileSync(filePath, "utf-8");
+    const name = fileName.replace(/\.md$/, "");
+    let desc = "";
+    const lines = content.split(/\r?\n/);
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+      const line = lines[i].trim();
       if (line.length > 0 && !line.startsWith("#") && !line.startsWith("---")) {
         desc = line.slice(0, 120);
         break;
@@ -65,14 +65,14 @@ function parseCommandFile(filePath: string, fileName: string): SkillInfo | null 
 }
 
 function scanCommandsDir(dirPath: string): SkillInfo[] {
-  var results: SkillInfo[] = [];
+  const results: SkillInfo[] = [];
   if (!existsSync(dirPath)) return results;
   try {
-    var entries = readdirSync(dirPath);
-    for (var i = 0; i < entries.length; i++) {
+    const entries = readdirSync(dirPath);
+    for (let i = 0; i < entries.length; i++) {
       if (!entries[i].endsWith(".md")) continue;
-      var filePath = join(dirPath, entries[i]);
-      var info = parseCommandFile(filePath, entries[i]);
+      const filePath = join(dirPath, entries[i]);
+      const info = parseCommandFile(filePath, entries[i]);
       if (info) results.push(info);
     }
   } catch {}
@@ -80,52 +80,52 @@ function scanCommandsDir(dirPath: string): SkillInfo[] {
 }
 
 function getSkills(): SkillInfo[] {
-  var now = Date.now();
+  const now = Date.now();
   if (skillsCache && now - lastScanTime < CACHE_TTL_MS) {
     return skillsCache;
   }
 
-  var home = homedir();
-  var skills: SkillInfo[] = [];
+  const home = homedir();
+  const skills: SkillInfo[] = [];
 
-  var skillDirs = [
+  const skillDirs = [
     join(home, ".claude"),
     join(home, ".agents"),
     join(home, ".superpowers"),
   ];
 
-  for (var d = 0; d < skillDirs.length; d++) {
-    var files = findSkillFiles(skillDirs[d]);
-    for (var f = 0; f < files.length; f++) {
+  for (let d = 0; d < skillDirs.length; d++) {
+    const files = findSkillFiles(skillDirs[d]);
+    for (let f = 0; f < files.length; f++) {
       try {
-        var content = readFileSync(files[f], "utf-8");
-        var meta = parseFrontmatter(content);
+        const content = readFileSync(files[f], "utf-8");
+        const meta = parseFrontmatter(content);
         if (meta.name) {
-          var skillName = meta.name;
-          var filePath = files[f];
+          let skillName = meta.name;
+          const filePath = files[f];
 
-          var pluginMatch = filePath.match(/plugins\/([^/]+)\/skills\/([^/]+)\/SKILL\.md$/);
+          const pluginMatch = filePath.match(/plugins\/([^/]+)\/skills\/([^/]+)\/SKILL\.md$/);
           if (pluginMatch) {
-            var pluginName = pluginMatch[1];
-            var rawSkillName = pluginMatch[2];
+            const pluginName = pluginMatch[1];
+            const rawSkillName = pluginMatch[2];
             if (skillName.indexOf(":") === -1 && skillName === rawSkillName) {
               skillName = pluginName + ":" + skillName;
             }
           }
 
-          var extPluginMatch = filePath.match(/external_plugins\/([^/]+)\/skills\/([^/]+)\/SKILL\.md$/);
+          const extPluginMatch = filePath.match(/external_plugins\/([^/]+)\/skills\/([^/]+)\/SKILL\.md$/);
           if (extPluginMatch) {
-            var extPluginName = extPluginMatch[1];
-            var extSkillName = extPluginMatch[2];
+            const extPluginName = extPluginMatch[1];
+            const extSkillName = extPluginMatch[2];
             if (skillName.indexOf(":") === -1 && skillName === extSkillName) {
               skillName = extPluginName + ":" + skillName;
             }
           }
 
-          var marketplaceSkillMatch = filePath.match(/marketplaces\/([^/]+)\/.claude\/skills\/([^/]+)\/SKILL\.md$/);
+          const marketplaceSkillMatch = filePath.match(/marketplaces\/([^/]+)\/.claude\/skills\/([^/]+)\/SKILL\.md$/);
           if (marketplaceSkillMatch) {
-            var mktName = marketplaceSkillMatch[1];
-            var mktSkill = marketplaceSkillMatch[2];
+            const mktName = marketplaceSkillMatch[1];
+            const mktSkill = marketplaceSkillMatch[2];
             if (skillName.indexOf(":") === -1 && skillName === mktSkill) {
               skillName = mktName + ":" + skillName;
             }
@@ -141,24 +141,24 @@ function getSkills(): SkillInfo[] {
     }
   }
 
-  var config = loadConfig();
-  for (var p = 0; p < config.projects.length; p++) {
-    var projectPath = config.projects[p].path;
-    var projectSkillDirs = [
+  const config = loadConfig();
+  for (let p = 0; p < config.projects.length; p++) {
+    const projectPath = config.projects[p].path;
+    const projectSkillDirs = [
       join(projectPath, ".claude", "skills"),
       join(projectPath, ".claude", "commands"),
       join(projectPath, ".superpowers", "skills"),
     ];
-    for (var pd = 0; pd < projectSkillDirs.length; pd++) {
+    for (let pd = 0; pd < projectSkillDirs.length; pd++) {
       if (projectSkillDirs[pd].endsWith("commands")) {
-        var cmds = scanCommandsDir(projectSkillDirs[pd]);
-        for (var c = 0; c < cmds.length; c++) skills.push(cmds[c]);
+        const cmds = scanCommandsDir(projectSkillDirs[pd]);
+        for (let c = 0; c < cmds.length; c++) skills.push(cmds[c]);
       } else {
-        var projFiles = findSkillFiles(projectSkillDirs[pd]);
-        for (var pf = 0; pf < projFiles.length; pf++) {
+        const projFiles = findSkillFiles(projectSkillDirs[pd]);
+        for (let pf = 0; pf < projFiles.length; pf++) {
           try {
-            var projContent = readFileSync(projFiles[pf], "utf-8");
-            var projMeta = parseFrontmatter(projContent);
+            const projContent = readFileSync(projFiles[pf], "utf-8");
+            const projMeta = parseFrontmatter(projContent);
             if (projMeta.name) {
               skills.push({
                 name: projMeta.name,
@@ -172,21 +172,21 @@ function getSkills(): SkillInfo[] {
     }
   }
 
-  var globalCommands = scanCommandsDir(join(home, ".claude", "commands"));
-  for (var gc = 0; gc < globalCommands.length; gc++) {
+  const globalCommands = scanCommandsDir(join(home, ".claude", "commands"));
+  for (let gc = 0; gc < globalCommands.length; gc++) {
     skills.push(globalCommands[gc]);
   }
 
-  var namespacedBareNames = new Set<string>();
-  for (var n = 0; n < skills.length; n++) {
-    var colonIdx = skills[n].name.indexOf(":");
+  const namespacedBareNames = new Set<string>();
+  for (let n = 0; n < skills.length; n++) {
+    const colonIdx = skills[n].name.indexOf(":");
     if (colonIdx !== -1) {
       namespacedBareNames.add(skills[n].name.slice(colonIdx + 1));
     }
   }
 
-  var filtered: SkillInfo[] = [];
-  for (var fi = 0; fi < skills.length; fi++) {
+  const filtered: SkillInfo[] = [];
+  for (let fi = 0; fi < skills.length; fi++) {
     if (skills[fi].name.indexOf(":") === -1 && namespacedBareNames.has(skills[fi].name)) {
       continue;
     }
@@ -195,9 +195,9 @@ function getSkills(): SkillInfo[] {
 
   filtered.sort(function (a, b) { return a.name.localeCompare(b.name); });
 
-  var seen = new Set<string>();
-  var unique: SkillInfo[] = [];
-  for (var i = 0; i < filtered.length; i++) {
+  const seen = new Set<string>();
+  const unique: SkillInfo[] = [];
+  for (let i = 0; i < filtered.length; i++) {
     if (!seen.has(filtered[i].name)) {
       seen.add(filtered[i].name);
       unique.push(filtered[i]);
@@ -210,8 +210,8 @@ function getSkills(): SkillInfo[] {
 }
 
 export function resolveSkillContent(skillName: string): string | null {
-  var skills = getSkills();
-  var match = skills.find(function (s) { return s.name === skillName; });
+  const skills = getSkills();
+  const match = skills.find(function (s) { return s.name === skillName; });
   if (!match) return null;
   try {
     return readFileSync(match.path, "utf-8");
@@ -222,21 +222,21 @@ export function resolveSkillContent(skillName: string): string | null {
 
 registerHandler("skills", function (clientId: string, message: ClientMessage) {
   if (message.type === "skills:list_request") {
-    var skills = getSkills();
+    const skills = getSkills();
     sendTo(clientId, { type: "skills:list", skills: skills });
     return;
   }
 
   if (message.type === "skills:search") {
-    var searchMsg = message as { type: "skills:search"; query: string };
-    var query = searchMsg.query.trim();
+    const searchMsg = message as { type: "skills:search"; query: string };
+    const query = searchMsg.query.trim();
     if (!query) {
       sendTo(clientId, { type: "skills:search_results", query: query, skills: [], count: 0 });
       return;
     }
 
-    var cacheKey = "search:" + query;
-    var cached = searchCache.get(cacheKey);
+    const cacheKey = "search:" + query;
+    const cached = searchCache.get(cacheKey);
     if (cached && Date.now() - cached.time < 60000) {
       sendTo(clientId, { type: "skills:search_results", query: query, skills: cached.skills, count: cached.count });
       return;
@@ -245,10 +245,10 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
     void fetch("https://skills.sh/api/search?q=" + encodeURIComponent(query))
       .then(function (res) { return res.json(); })
       .then(function (data: { skills?: Array<{ id: string; skillId: string; name: string; source: string; installs: number }>; count?: number }) {
-        var skills = (data.skills ?? []).map(function (s) {
+        const skills = (data.skills ?? []).map(function (s) {
           return { id: s.id, skillId: s.skillId, name: s.name, source: s.source, installs: s.installs };
         });
-        var count = data.count ?? skills.length;
+        const count = data.count ?? skills.length;
         searchCache.set(cacheKey, { skills: skills, count: count, time: Date.now() });
         sendTo(clientId, { type: "skills:search_results", query: query, skills: skills, count: count });
       })
@@ -259,23 +259,23 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "skills:install") {
-    var installMsg = message as { type: "skills:install"; source: string; scope: "global" | "project"; projectSlug?: string };
-    var cwd = homedir();
+    const installMsg = message as { type: "skills:install"; source: string; scope: "global" | "project"; projectSlug?: string };
+    let cwd = homedir();
     if (installMsg.scope === "project" && installMsg.projectSlug) {
-      var installConfig = loadConfig();
-      var installProject = installConfig.projects.find(function (p: typeof installConfig.projects[number]) { return p.slug === installMsg.projectSlug; });
+      const installConfig = loadConfig();
+      const installProject = installConfig.projects.find(function (p: typeof installConfig.projects[number]) { return p.slug === installMsg.projectSlug; });
       if (installProject) {
         cwd = installProject.path;
       }
     }
 
     try {
-      var proc = spawn("npx", ["skillsadd", installMsg.source], {
+      const proc = spawn("npx", ["skillsadd", installMsg.source], {
         cwd: cwd,
         stdio: ["ignore", "pipe", "pipe"],
       });
 
-      var timeout = setTimeout(function () {
+      const timeout = setTimeout(function () {
         proc.kill();
       }, 60000);
 
@@ -288,7 +288,7 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
           sendTo(clientId, { type: "skills:install_result", success: false, message: "Install failed (exit code " + code + ")" });
         }
         if (installMsg.scope === "global") {
-          var globalConfig = loadConfig();
+          const globalConfig = loadConfig();
           sendTo(clientId, {
             type: "settings:data",
             config: globalConfig,
@@ -304,13 +304,13 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "skills:view") {
-    var viewMsg = message as { type: "skills:view"; path: string };
+    const viewMsg = message as { type: "skills:view"; path: string };
     try {
       if (!existsSync(viewMsg.path)) {
         sendTo(clientId, { type: "skills:view_result", path: viewMsg.path, content: "File not found." });
         return;
       }
-      var viewContent = readFileSync(viewMsg.path, "utf-8");
+      const viewContent = readFileSync(viewMsg.path, "utf-8");
       sendTo(clientId, { type: "skills:view_result", path: viewMsg.path, content: viewContent });
     } catch {
       sendTo(clientId, { type: "skills:view_result", path: viewMsg.path, content: "Failed to read file." });
@@ -319,9 +319,9 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "skills:delete") {
-    var deleteMsg = message as { type: "skills:delete"; path: string };
+    const deleteMsg = message as { type: "skills:delete"; path: string };
     try {
-      var skillDir = dirname(deleteMsg.path);
+      const skillDir = dirname(deleteMsg.path);
       if (!existsSync(deleteMsg.path)) {
         sendTo(clientId, { type: "skills:delete_result", success: false, message: "Skill not found." });
         return;
@@ -329,7 +329,7 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
       rmSync(skillDir, { recursive: true, force: true });
       skillsCache = null;
       sendTo(clientId, { type: "skills:delete_result", success: true, message: "Skill deleted." });
-      var delConfig = loadConfig();
+      const delConfig = loadConfig();
       sendTo(clientId, {
         type: "settings:data",
         config: delConfig,
@@ -343,14 +343,14 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "skills:update") {
-    var updateMsg = message as { type: "skills:update"; source: string };
+    const updateMsg = message as { type: "skills:update"; source: string };
     try {
-      var updateProc = spawn("npx", ["skillsadd", updateMsg.source], {
+      const updateProc = spawn("npx", ["skillsadd", updateMsg.source], {
         cwd: homedir(),
         stdio: ["ignore", "pipe", "pipe"],
       });
 
-      var updateTimeout = setTimeout(function () {
+      const updateTimeout = setTimeout(function () {
         updateProc.kill();
       }, 60000);
 
@@ -362,7 +362,7 @@ registerHandler("skills", function (clientId: string, message: ClientMessage) {
         } else {
           sendTo(clientId, { type: "skills:install_result", success: false, message: "Update failed (exit code " + code + ")" });
         }
-        var updConfig = loadConfig();
+        const updConfig = loadConfig();
         sendTo(clientId, {
           type: "settings:data",
           config: updConfig,

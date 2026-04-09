@@ -12,7 +12,7 @@ import type { SessionSummary, ServerMessage } from "#shared";
 import { openSessionTab } from "../../stores/workspace";
 
 function StatCard({ label, value, icon, loading, onClick, subtitle }: { label: string; value: string | number; icon: React.ReactNode; loading?: boolean; onClick?: () => void; subtitle?: string }) {
-  var inner = (
+  const inner = (
     <>
       <div className="flex items-center gap-2 mb-1.5">
         {icon}
@@ -61,29 +61,29 @@ function QuickLink({ label, icon, onClick }: { label: string; icon: React.ReactN
 }
 
 export function ProjectDashboardView() {
-  var sidebar = useSidebar();
+  const sidebar = useSidebar();
 
   if (sidebar.activeView.type !== "project-dashboard") {
     return null;
   }
 
-  var { settings, loading: settingsLoading } = useProjectSettings(sidebar.activeProjectSlug);
-  var { projects } = useProjects();
-  var { send, subscribe, unsubscribe, status: wsStatus } = useWebSocket();
-  var [sessions, setSessions] = useState<SessionSummary[]>([]);
-  var [sessionsLoading, setSessionsLoading] = useState(true);
+  const { settings, loading: settingsLoading } = useProjectSettings(sidebar.activeProjectSlug);
+  const { projects } = useProjects();
+  const { send, subscribe, unsubscribe, status: wsStatus } = useWebSocket();
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
 
-  var activeProject = projects.find(function (p) { return p.slug === sidebar.activeProjectSlug; });
-  var projectTitle = activeProject?.title ?? sidebar.activeProjectSlug ?? "Project";
+  const activeProject = projects.find(function (p) { return p.slug === sidebar.activeProjectSlug; });
+  const projectTitle = activeProject?.title ?? sidebar.activeProjectSlug ?? "Project";
 
   useEffect(function () {
     if (!sidebar.activeProjectSlug) return;
 
     function handleSessionList(msg: ServerMessage) {
       if (msg.type !== "session:list") return;
-      var data = msg as { type: "session:list"; projectSlug: string; sessions: SessionSummary[] };
+      const data = msg as { type: "session:list"; projectSlug: string; sessions: SessionSummary[] };
       if (data.projectSlug === sidebar.activeProjectSlug) {
-        var sorted = data.sessions.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+        const sorted = data.sessions.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
         setSessions(sorted);
         setSessionsLoading(false);
       }
@@ -111,12 +111,12 @@ export function ProjectDashboardView() {
     }
   }
 
-  var sessionCount = sessions.length;
-  var mcpCount = settings ? Object.keys(settings.mcpServers).length : 0;
-  var globalMcpCount = settings ? Object.keys(settings.global.mcpServers).length : 0;
-  var rulesCount = settings ? settings.rules.length : 0;
-  var globalRulesCount = settings ? settings.global.rules.length : 0;
-  var envCount = settings ? Object.keys(settings.env).length : 0;
+  const sessionCount = sessions.length;
+  const mcpCount = settings ? Object.keys(settings.mcpServers).length : 0;
+  const globalMcpCount = settings ? Object.keys(settings.global.mcpServers).length : 0;
+  const rulesCount = settings ? settings.rules.length : 0;
+  const globalRulesCount = settings ? settings.global.rules.length : 0;
+  const envCount = settings ? Object.keys(settings.env).length : 0;
 
   return (
     <div className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6 max-w-3xl">

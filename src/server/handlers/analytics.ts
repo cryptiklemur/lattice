@@ -5,7 +5,7 @@ import { streamAnalyticsSections } from "../analytics/engine";
 
 registerHandler("analytics", function (clientId: string, message: ClientMessage) {
   if (message.type === "analytics:request") {
-    var msg = message as { type: string; requestId: string; scope: string; projectSlug?: string; sessionId?: string; period: string; forceRefresh?: boolean };
+    const msg = message as { type: string; requestId: string; scope: string; projectSlug?: string; sessionId?: string; period: string; forceRefresh?: boolean };
 
     streamAnalyticsSections(
       msg.scope as "global" | "project" | "session",

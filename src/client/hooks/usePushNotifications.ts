@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  var rawData = window.atob(base64);
-  var outputArray = new Uint8Array(rawData.length);
-  for (var i = 0; i < rawData.length; ++i) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
@@ -14,7 +14,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export type PushStatus = "unsupported" | "denied" | "prompt" | "subscribed" | "unsubscribed";
 
 export function usePushNotifications() {
-  var [status, setStatus] = useState<PushStatus>("unsupported");
+  const [status, setStatus] = useState<PushStatus>("unsupported");
 
   useEffect(function () {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -42,19 +42,19 @@ export function usePushNotifications() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
 
     try {
-      var permission = await Notification.requestPermission();
+      const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setStatus("denied");
         return false;
       }
 
-      var reg = await navigator.serviceWorker.register("/sw-push.js", { scope: "/" });
+      const reg = await navigator.serviceWorker.register("/sw-push.js", { scope: "/" });
       await navigator.serviceWorker.ready;
 
-      var response = await fetch("/api/vapid-public-key");
-      var data = await response.json() as { publicKey: string };
+      const response = await fetch("/api/vapid-public-key");
+      const data = await response.json() as { publicKey: string };
 
-      var subscription = await reg.pushManager.subscribe({
+      const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(data.publicKey) as BufferSource,
       });
@@ -75,9 +75,9 @@ export function usePushNotifications() {
 
   async function unsubscribe(): Promise<void> {
     try {
-      var reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
+      const reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
       if (reg) {
-        var sub = await reg.pushManager.getSubscription();
+        const sub = await reg.pushManager.getSubscription();
         if (sub) {
           await sub.unsubscribe();
         }

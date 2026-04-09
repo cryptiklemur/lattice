@@ -20,14 +20,14 @@ export function useAnalytics(): AnalyticsState & {
   setScope: (scope: AnalyticsScope, projectSlug?: string) => void;
   refresh: () => void;
 } {
-  var store = getAnalyticsStore();
-  var state = useStore(store, function (s) { return s; });
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var sendRef = useRef(send);
+  const store = getAnalyticsStore();
+  const state = useStore(store, function (s) { return s; });
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const sendRef = useRef(send);
   sendRef.current = send;
 
-  var requestAnalytics = useCallback(function (forceRefresh?: boolean) {
-    var s = getAnalyticsStore().state;
+  const requestAnalytics = useCallback(function (forceRefresh?: boolean) {
+    const s = getAnalyticsStore().state;
     clearAnalyticsForRequest();
     sendRef.current({
       type: "analytics:request",
@@ -41,7 +41,7 @@ export function useAnalytics(): AnalyticsState & {
 
   useEffect(function () {
     function handleSection(msg: ServerMessage) {
-      var m = msg as { type: string; section: AnalyticsSectionName; data: Partial<AnalyticsPayload> };
+      const m = msg as { type: string; section: AnalyticsSectionName; data: Partial<AnalyticsPayload> };
       mergeAnalyticsSection(m.section, m.data);
     }
 
@@ -50,7 +50,7 @@ export function useAnalytics(): AnalyticsState & {
     }
 
     function handleError(msg: ServerMessage) {
-      var m = msg as { type: string; message: string };
+      const m = msg as { type: string; message: string };
       setAnalyticsError(m.message);
     }
 

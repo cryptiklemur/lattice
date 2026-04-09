@@ -20,19 +20,19 @@ interface Command {
 }
 
 export function CommandPalette() {
-  var [open, setOpen] = useState(false);
-  var [query, setQuery] = useState("");
-  var [selectedIndex, setSelectedIndex] = useState(0);
-  var inputRef = useRef<HTMLInputElement>(null);
-  var listRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  var { projects, setActiveProject } = useProjects();
-  var skills = useSkills();
-  var { mode, toggleMode, allThemes, setTheme, currentThemeId } = useTheme();
-  var ws = useWebSocket();
-  var sidebar = useSidebar();
+  const { projects, setActiveProject } = useProjects();
+  const skills = useSkills();
+  const { mode, toggleMode, allThemes, setTheme, currentThemeId } = useTheme();
+  const ws = useWebSocket();
+  const sidebar = useSidebar();
 
-  var close = useCallback(function () {
+  const close = useCallback(function () {
     setOpen(false);
     setQuery("");
     setSelectedIndex(0);
@@ -62,8 +62,8 @@ export function CommandPalette() {
   }, [open]);
 
   // Build command list
-  var commands = useMemo(function (): Command[] {
-    var cmds: Command[] = [];
+  const commands = useMemo(function (): Command[] {
+    const cmds: Command[] = [];
 
     // Navigation
     cmds.push({
@@ -89,7 +89,7 @@ export function CommandPalette() {
     });
 
     // Session actions
-    var sessionState = getSessionStore().state;
+    const sessionState = getSessionStore().state;
     if (sessionState.activeProjectSlug) {
       cmds.push({
         id: "session:new",
@@ -105,7 +105,7 @@ export function CommandPalette() {
     }
 
     // Settings sections
-    var settingsSections: Array<{ id: SettingsSection; label: string; keywords: string }> = [
+    const settingsSections: Array<{ id: SettingsSection; label: string; keywords: string }> = [
       { id: "appearance", label: "Appearance", keywords: "theme visual colors" },
       { id: "claude", label: "Claude Settings", keywords: "api model key" },
       { id: "environment", label: "Environment", keywords: "env variables config" },
@@ -134,7 +134,7 @@ export function CommandPalette() {
       keywords: "dark light mode toggle",
     });
 
-    var themeVariant = mode === "dark" ? "dark" : "light";
+    const themeVariant = mode === "dark" ? "dark" : "light";
     allThemes.filter(function (t) { return t.theme.variant === themeVariant; }).forEach(function (t) {
       if (t.id === currentThemeId) return;
       cmds.push({
@@ -157,7 +157,7 @@ export function CommandPalette() {
         icon: <Zap size={14} />,
         action: function () {
           // Focus chat input and prefill with skill command
-          var textarea = document.querySelector("textarea[aria-label='Message input']") as HTMLTextAreaElement | null;
+          const textarea = document.querySelector("textarea[aria-label='Message input']") as HTMLTextAreaElement | null;
           if (textarea) {
             textarea.value = "/" + skill.name + " ";
             textarea.focus();
@@ -183,14 +183,14 @@ export function CommandPalette() {
   }, [projects, skills, mode, allThemes, currentThemeId, sidebar, ws, close, setActiveProject, toggleMode, setTheme]);
 
   // Filter commands
-  var filtered = useMemo(function () {
+  const filtered = useMemo(function () {
     if (!query.trim()) return commands;
-    var q = query.toLowerCase();
+    const q = query.toLowerCase();
     return commands.filter(function (cmd) {
-      var searchText = (cmd.label + " " + (cmd.description || "") + " " + (cmd.keywords || "") + " " + cmd.group).toLowerCase();
+      const searchText = (cmd.label + " " + (cmd.description || "") + " " + (cmd.keywords || "") + " " + cmd.group).toLowerCase();
       // All words in query must match
-      var words = q.split(/\s+/);
-      for (var i = 0; i < words.length; i++) {
+      const words = q.split(/\s+/);
+      for (let i = 0; i < words.length; i++) {
         if (!searchText.includes(words[i])) return false;
       }
       return true;
@@ -205,7 +205,7 @@ export function CommandPalette() {
   // Scroll active item into view
   useEffect(function () {
     if (!listRef.current) return;
-    var active = listRef.current.querySelector("[data-active='true']") as HTMLElement | null;
+    const active = listRef.current.querySelector("[data-active='true']") as HTMLElement | null;
     if (active) {
       active.scrollIntoView({ block: "nearest" });
     }
@@ -227,12 +227,12 @@ export function CommandPalette() {
   }
 
   // Group filtered commands
-  var grouped = useMemo(function () {
-    var groups: Array<{ name: string; items: Array<Command & { globalIndex: number }> }> = [];
-    var groupMap = new Map<string, Array<Command & { globalIndex: number }>>();
-    var globalIdx = 0;
+  const grouped = useMemo(function () {
+    const groups: Array<{ name: string; items: Array<Command & { globalIndex: number }> }> = [];
+    const groupMap = new Map<string, Array<Command & { globalIndex: number }>>();
+    let globalIdx = 0;
     filtered.forEach(function (cmd) {
-      var list = groupMap.get(cmd.group);
+      let list = groupMap.get(cmd.group);
       if (!list) {
         list = [];
         groupMap.set(cmd.group, list);
@@ -279,7 +279,7 @@ export function CommandPalette() {
                   <span className="text-[9px] uppercase tracking-widest text-base-content/30 font-mono font-bold">{group.name}</span>
                 </div>
                 {group.items.map(function (cmd) {
-                  var isActive = cmd.globalIndex === selectedIndex;
+                  const isActive = cmd.globalIndex === selectedIndex;
                   return (
                     <button
                       key={cmd.id}

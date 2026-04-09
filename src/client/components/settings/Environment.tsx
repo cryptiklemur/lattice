@@ -17,23 +17,23 @@ function genId(): string {
 }
 
 export function Environment() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [entries, setEntries] = useState<EnvEntry[]>([]);
-  var save = useSaveState();
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [entries, setEntries] = useState<EnvEntry[]>([]);
+  const save = useSaveState();
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
       if (msg.type !== "settings:data") {
         return;
       }
-      var data = msg as SettingsDataMessage;
-      var env = data.config.globalEnv ?? {};
+      const data = msg as SettingsDataMessage;
+      const env = data.config.globalEnv ?? {};
 
       if (save.savingRef.current) {
         save.confirmSave();
       }
 
-      var rows = Object.entries(env).map(function ([k, v]) {
+      const rows = Object.entries(env).map(function ([k, v]) {
         return { id: genId(), key: k, value: String(v) };
       });
       setEntries(rows);
@@ -83,7 +83,7 @@ export function Environment() {
   }
 
   function handleSave() {
-    var env: Record<string, string> = {};
+    const env: Record<string, string> = {};
     entries.forEach(function (e) {
       if (e.key.trim()) {
         env[e.key.trim()] = e.value;
@@ -96,8 +96,8 @@ export function Environment() {
     });
   }
 
-  var duplicateKeys = useMemo(function () { return findDuplicateKeys(entries); }, [entries]);
-  var hasDuplicates = duplicateKeys.size > 0;
+  const duplicateKeys = useMemo(function () { return findDuplicateKeys(entries); }, [entries]);
+  const hasDuplicates = duplicateKeys.size > 0;
 
   return (
     <div className="py-2">
@@ -108,7 +108,7 @@ export function Environment() {
           </div>
         )}
         {entries.map(function (entry, idx) {
-          var isDupe = entry.key.trim() !== "" && duplicateKeys.has(entry.key.trim());
+          const isDupe = entry.key.trim() !== "" && duplicateKeys.has(entry.key.trim());
           return (
             <div
               key={entry.id}
@@ -164,7 +164,6 @@ export function Environment() {
           );
         })}
       </div>
-
       <button
         onClick={handleAddRow}
         className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-xl border border-dashed border-base-content/20 bg-transparent text-base-content/40 text-[12px] hover:text-base-content/60 hover:border-base-content/30 transition-colors duration-[120ms] mb-5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-100"
@@ -172,7 +171,6 @@ export function Environment() {
         <Plus size={12} />
         Add Variable
       </button>
-
       <SaveFooter
         dirty={save.dirty}
         saving={save.saving}

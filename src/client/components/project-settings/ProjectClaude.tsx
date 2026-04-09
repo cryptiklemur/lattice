@@ -4,7 +4,7 @@ import { SaveFooter } from "../ui/SaveFooter";
 import { useSaveState } from "../../hooks/useSaveState";
 import type { ProjectSettings, ThinkingConfig } from "#shared";
 
-var CLAUDE_MODELS = [
+const CLAUDE_MODELS = [
   { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
   { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
@@ -12,20 +12,20 @@ var CLAUDE_MODELS = [
   { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
 ];
 
-var EFFORT_LEVELS = [
+const EFFORT_LEVELS = [
   { id: "low", label: "Low" },
   { id: "normal", label: "Normal" },
   { id: "high", label: "High" },
   { id: "max", label: "Max" },
 ];
 
-var THINKING_MODES = [
+const THINKING_MODES = [
   { id: "adaptive", label: "Adaptive" },
   { id: "enabled", label: "Enabled" },
   { id: "disabled", label: "Disabled" },
 ];
 
-var PERMISSION_MODES = [
+const PERMISSION_MODES = [
   { id: "default", label: "Default" },
   { id: "acceptEdits", label: "Accept Edits" },
   { id: "plan", label: "Plan" },
@@ -40,7 +40,7 @@ function thinkingLabel(t?: ThinkingConfig): string {
 }
 
 function modelLabel(id: string): string {
-  var found = CLAUDE_MODELS.find(function (m) { return m.id === id; });
+  const found = CLAUDE_MODELS.find(function (m) { return m.id === id; });
   return found ? found.label : id;
 }
 
@@ -50,16 +50,16 @@ interface ProjectClaudeProps {
 }
 
 export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
-  var [claudeMd, setClaudeMd] = useState(settings.claudeMd ?? "");
-  var [defaultModel, setDefaultModel] = useState<string | undefined>(settings.defaultModel);
-  var [defaultEffort, setDefaultEffort] = useState<string | undefined>(settings.defaultEffort);
-  var [thinking, setThinking] = useState<ThinkingConfig | undefined>(settings.thinking);
-  var [permissionMode, setPermissionMode] = useState<string | undefined>(settings.permissionMode);
-  var [budgetTokens, setBudgetTokens] = useState<number>(
+  const [claudeMd, setClaudeMd] = useState(settings.claudeMd ?? "");
+  const [defaultModel, setDefaultModel] = useState<string | undefined>(settings.defaultModel);
+  const [defaultEffort, setDefaultEffort] = useState<string | undefined>(settings.defaultEffort);
+  const [thinking, setThinking] = useState<ThinkingConfig | undefined>(settings.thinking);
+  const [permissionMode, setPermissionMode] = useState<string | undefined>(settings.permissionMode);
+  const [budgetTokens, setBudgetTokens] = useState<number>(
     settings.thinking?.type === "enabled" ? (settings.thinking.budgetTokens ?? 10000) : 10000,
   );
-  var [showGlobalMd, setShowGlobalMd] = useState(false);
-  var save = useSaveState();
+  const [showGlobalMd, setShowGlobalMd] = useState(false);
+  const save = useSaveState();
 
   useEffect(function () {
     if (save.savingRef.current) {
@@ -79,7 +79,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
 
   function handleSave() {
     save.startSave();
-    var thinkingValue: ThinkingConfig | undefined = thinking;
+    let thinkingValue: ThinkingConfig | undefined = thinking;
     if (thinkingValue?.type === "enabled") {
       thinkingValue = { type: "enabled", budgetTokens };
     }
@@ -92,8 +92,8 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
     });
   }
 
-  var globalModel = settings.global.defaultModel || CLAUDE_MODELS[0].id;
-  var globalEffort = settings.global.defaultEffort || "normal";
+  const globalModel = settings.global.defaultModel || CLAUDE_MODELS[0].id;
+  const globalEffort = settings.global.defaultEffort || "normal";
 
   return (
     <div className="py-2 space-y-6">
@@ -110,8 +110,8 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           className="w-full px-3 py-2.5 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[12px] font-mono leading-relaxed resize-y focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]"
         />
         {(function () {
-          var lineCount = claudeMd ? claudeMd.split("\n").length : 0;
-          var overLimit = lineCount > 200;
+          const lineCount = claudeMd ? claudeMd.split("\n").length : 0;
+          const overLimit = lineCount > 200;
           return (
             <div className="flex items-center justify-between mt-1.5">
               <div className={"text-[11px] " + (overLimit ? "text-warning" : "text-base-content/25")}>
@@ -142,7 +142,6 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           />
         )}
       </div>
-
       <div>
         <label htmlFor="project-default-model" className="block text-[12px] font-semibold text-base-content/40 mb-2">
           Default Model
@@ -151,7 +150,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           id="project-default-model"
           value={defaultModel ?? ""}
           onChange={function (e) {
-            var val = e.target.value || undefined;
+            const val = e.target.value || undefined;
             setDefaultModel(val);
             save.markDirty();
           }}
@@ -178,7 +177,6 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           </button>
         )}
       </div>
-
       <div role="radiogroup" aria-label="Default Effort">
         <div className="text-[12px] font-semibold text-base-content/40 mb-2">Default Effort</div>
         <div className="flex gap-2">
@@ -196,7 +194,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
             Global ({globalEffort})
           </button>
           {EFFORT_LEVELS.map(function (e) {
-            var active = defaultEffort === e.id;
+            const active = defaultEffort === e.id;
             return (
               <button
                 key={e.id}
@@ -216,7 +214,6 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           })}
         </div>
       </div>
-
       <div role="radiogroup" aria-label="Thinking Mode">
         <div className="text-[12px] font-semibold text-base-content/40 mb-2">Thinking Mode</div>
         <div className="flex gap-2">
@@ -234,14 +231,14 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
             Global ({thinkingLabel(settings.global.thinking)})
           </button>
           {THINKING_MODES.map(function (t) {
-            var active = thinking?.type === t.id;
+            const active = thinking?.type === t.id;
             return (
               <button
                 key={t.id}
                 role="radio"
                 aria-checked={active}
                 onClick={function () {
-                  var cfg: ThinkingConfig = t.id === "enabled"
+                  const cfg: ThinkingConfig = t.id === "enabled"
                     ? { type: "enabled", budgetTokens }
                     : { type: t.id as "adaptive" | "disabled" };
                   setThinking(cfg);
@@ -271,7 +268,7 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
               step={1000}
               value={budgetTokens}
               onChange={function (e) {
-                var val = parseInt(e.target.value, 10);
+                const val = parseInt(e.target.value, 10);
                 if (!isNaN(val)) {
                   setBudgetTokens(val);
                   setThinking({ type: "enabled", budgetTokens: val });
@@ -283,12 +280,11 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           </div>
         )}
       </div>
-
       <div role="radiogroup" aria-label="Permission Mode">
         <div className="text-[12px] font-semibold text-base-content/40 mb-2">Permission Mode</div>
         <div className="flex gap-2">
           {PERMISSION_MODES.map(function (p) {
-            var active = (permissionMode ?? "default") === p.id;
+            const active = (permissionMode ?? "default") === p.id;
             return (
               <button
                 key={p.id}
@@ -311,7 +307,6 @@ export function ProjectClaude({ settings, updateSection }: ProjectClaudeProps) {
           })}
         </div>
       </div>
-
       <SaveFooter dirty={save.dirty} saving={save.saving} saveState={save.saveState} onSave={handleSave} />
     </div>
   );

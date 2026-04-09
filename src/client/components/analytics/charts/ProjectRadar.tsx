@@ -15,8 +15,8 @@ interface ProjectRadarProps {
   data: Array<{ project: string; cost: number; sessions: number; avgDuration: number; toolDiversity: number; tokensPerSession: number }>;
 }
 
-var AXIS_KEYS = ["cost", "sessions", "avgDuration", "toolDiversity", "tokensPerSession"] as const;
-var AXIS_LABELS: Record<string, string> = {
+const AXIS_KEYS = ["cost", "sessions", "avgDuration", "toolDiversity", "tokensPerSession"] as const;
+const AXIS_LABELS: Record<string, string> = {
   cost: "Cost",
   sessions: "Sessions",
   avgDuration: "Duration",
@@ -25,8 +25,8 @@ var AXIS_LABELS: Record<string, string> = {
 };
 
 function normalize(values: number[]): number[] {
-  var max = 0;
-  for (var i = 0; i < values.length; i++) {
+  let max = 0;
+  for (let i = 0; i < values.length; i++) {
     if (values[i] > max) max = values[i];
   }
   if (max === 0) return values.map(function () { return 0; });
@@ -50,17 +50,17 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function ProjectRadar({ data }: ProjectRadarProps) {
-  var colors = getChartColors();
+  const colors = getChartColors();
 
-  var { projects, radarData } = useMemo(function () {
-    var projects = data.slice(0, 5);
-    var normalized = new Map<string, Map<string, number>>();
-    for (var ai = 0; ai < AXIS_KEYS.length; ai++) {
-      var key = AXIS_KEYS[ai];
-      var rawValues = projects.map(function (p) { return p[key] as number; });
-      var normValues = normalize(rawValues);
-      for (var pi = 0; pi < projects.length; pi++) {
-        var projMap = normalized.get(projects[pi].project);
+  const { projects, radarData } = useMemo(function () {
+    const projects = data.slice(0, 5);
+    const normalized = new Map<string, Map<string, number>>();
+    for (let ai = 0; ai < AXIS_KEYS.length; ai++) {
+      const key = AXIS_KEYS[ai];
+      const rawValues = projects.map(function (p) { return p[key] as number; });
+      const normValues = normalize(rawValues);
+      for (let pi = 0; pi < projects.length; pi++) {
+        let projMap = normalized.get(projects[pi].project);
         if (!projMap) {
           projMap = new Map();
           normalized.set(projects[pi].project, projMap);
@@ -68,10 +68,10 @@ export function ProjectRadar({ data }: ProjectRadarProps) {
         projMap.set(key, normValues[pi]);
       }
     }
-    var radarData = AXIS_KEYS.map(function (key) {
-      var entry: Record<string, string | number> = { axis: AXIS_LABELS[key] };
-      for (var pi = 0; pi < projects.length; pi++) {
-        var projMap = normalized.get(projects[pi].project);
+    const radarData = AXIS_KEYS.map(function (key) {
+      const entry: Record<string, string | number> = { axis: AXIS_LABELS[key] };
+      for (let pi = 0; pi < projects.length; pi++) {
+        const projMap = normalized.get(projects[pi].project);
         entry[projects[pi].project] = projMap ? projMap.get(key) || 0 : 0;
       }
       return entry;

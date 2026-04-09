@@ -21,14 +21,14 @@ import { sendPush } from "../push";
 import { parseSpecPopulate, parsePlanContent, parseSpecActivity, populateSpec, updateSpec as updateSpecData, getSpec, addActivity } from "../features/specs";
 import { ContextAnalyzer } from "../features/context-analyzer";
 
-var HIDDEN_TOOLS = new Set([
+const HIDDEN_TOOLS = new Set([
   "TaskUpdate", "TaskCreate", "TaskGet", "TaskList", "TaskOutput", "TaskStop",
   "TodoWrite", "TodoRead",
   "EnterPlanMode", "ExitPlanMode",
   "ToolSearch",
 ]);
 
-var claudeExePath: string | null = null;
+let claudeExePath: string | null = null;
 
 function getClaudeExecutablePath(): string {
   if (claudeExePath) return claudeExePath;
@@ -52,7 +52,7 @@ interface PendingPermission {
   promptType?: string;
 }
 
-var pendingPermissions = new Map<string, PendingPermission>();
+const pendingPermissions = new Map<string, PendingPermission>();
 
 interface PendingElicitation {
   resolve: (result: { action: "accept" | "decline"; content?: Record<string, unknown> }) => void;
@@ -60,10 +60,10 @@ interface PendingElicitation {
   sessionId: string;
 }
 
-var pendingElicitations = new Map<string, PendingElicitation>();
+const pendingElicitations = new Map<string, PendingElicitation>();
 
-var autoApprovedTools = new Map<string, Set<string>>();
-var sessionPermissionOverrides = new Map<string, PermissionMode>();
+const autoApprovedTools = new Map<string, Set<string>>();
+const sessionPermissionOverrides = new Map<string, PermissionMode>();
 
 export interface ChatStreamOptions {
   projectSlug: string;
@@ -96,14 +96,14 @@ interface MessageQueue {
 }
 
 function createMessageQueue(): MessageQueue {
-  var queue: SDKUserMessage[] = [];
-  var waiting: ((result: IteratorResult<SDKUserMessage>) => void) | null = null;
-  var ended = false;
+  const queue: SDKUserMessage[] = [];
+  let waiting: ((result: IteratorResult<SDKUserMessage>) => void) | null = null;
+  let ended = false;
 
   return {
     push: function (msg: SDKUserMessage) {
       if (waiting) {
-        var resolve = waiting;
+        const resolve = waiting;
         waiting = null;
         resolve({ value: msg, done: false });
       } else {
@@ -113,7 +113,7 @@ function createMessageQueue(): MessageQueue {
     end: function () {
       ended = true;
       if (waiting) {
-        var resolve = waiting;
+        const resolve = waiting;
         waiting = null;
         resolve({ value: undefined as any, done: true });
       }
@@ -157,9 +157,9 @@ interface SessionStream {
   analyzer: ContextAnalyzer;
 }
 
-var sessionStreams = new Map<string, SessionStream>();
-var pendingStreams = new Set<string>();
-var interruptedSessions = new Set<string>();
+const sessionStreams = new Map<string, SessionStream>();
+const pendingStreams = new Set<string>();
+const interruptedSessions = new Set<string>();
 
 
 function getStreamStatePath(): string {
@@ -167,13 +167,13 @@ function getStreamStatePath(): string {
 }
 
 function persistStreamState(): void {
-  var entries: Record<string, { projectSlug: string; clientId: string; startedAt: number }> = {};
+  const entries: Record<string, { projectSlug: string; clientId: string; startedAt: number }> = {};
   sessionStreams.forEach(function (session, sessionId) {
     if (!session.ended) {
       entries[sessionId] = { projectSlug: session.projectSlug, clientId: session.clientId, startedAt: session.turnStartTime };
     }
   });
-  var dir = getLatticeHome();
+  const dir = getLatticeHome();
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -181,11 +181,11 @@ function persistStreamState(): void {
 }
 
 export function loadInterruptedSessions(): void {
-  var path = getStreamStatePath();
+  const path = getStreamStatePath();
   if (!existsSync(path)) return;
   try {
-    var data = JSON.parse(readFileSync(path, "utf-8"));
-    for (var sessionId of Object.keys(data)) {
+    const data = JSON.parse(readFileSync(path, "utf-8"));
+    for (const sessionId of Object.keys(data)) {
       interruptedSessions.add(sessionId);
     }
   } catch {}
@@ -209,14 +209,14 @@ export function deletePendingPermission(requestId: string): void {
 }
 
 export function cleanupClientPermissions(clientId: string): void {
-  var toRemove: string[] = [];
+  const toRemove: string[] = [];
   pendingPermissions.forEach(function (entry, requestId) {
     if (entry.clientId === clientId) {
       toRemove.push(requestId);
       entry.resolve({ behavior: "deny", message: "Client disconnected.", toolUseID: entry.toolUseID });
     }
   });
-  for (var i = 0; i < toRemove.length; i++) {
+  for (let i = 0; i < toRemove.length; i++) {
     pendingPermissions.delete(toRemove[i]);
   }
   if (toRemove.length > 0) {
@@ -229,27 +229,27 @@ export function getPendingElicitation(requestId: string): PendingElicitation | u
 }
 
 export function resolveElicitation(requestId: string, result: { action: "accept" | "decline"; content?: Record<string, unknown> }): void {
-  var pending = pendingElicitations.get(requestId);
+  const pending = pendingElicitations.get(requestId);
   if (!pending) return;
   pendingElicitations.delete(requestId);
   pending.resolve(result);
 }
 
 export function cleanupClientElicitations(clientId: string): void {
-  var toRemove: string[] = [];
+  const toRemove: string[] = [];
   pendingElicitations.forEach(function (entry, requestId) {
     if (entry.clientId === clientId) {
       toRemove.push(requestId);
       entry.resolve({ action: "decline" });
     }
   });
-  for (var i = 0; i < toRemove.length; i++) {
+  for (let i = 0; i < toRemove.length; i++) {
     pendingElicitations.delete(toRemove[i]);
   }
 }
 
 export function addAutoApprovedTool(sessionId: string, toolName: string): void {
-  var tools = autoApprovedTools.get(sessionId);
+  let tools = autoApprovedTools.get(sessionId);
   if (!tools) {
     tools = new Set<string>();
     autoApprovedTools.set(sessionId, tools);
@@ -262,17 +262,17 @@ export function setSessionPermissionOverride(sessionId: string, mode: Permission
 }
 
 export function getActiveStream(sessionId: string): Query | undefined {
-  var session = sessionStreams.get(sessionId);
+  const session = sessionStreams.get(sessionId);
   return session && !session.ended ? session.queryInstance : undefined;
 }
 
 export function getSessionStream(sessionId: string): SessionStream | undefined {
-  var session = sessionStreams.get(sessionId);
+  const session = sessionStreams.get(sessionId);
   return session && !session.ended ? session : undefined;
 }
 
 export function getActiveStreamCount(): number {
-  var count = 0;
+  let count = 0;
   sessionStreams.forEach(function (session) {
     if (!session.ended) count++;
   });
@@ -280,7 +280,7 @@ export function getActiveStreamCount(): number {
 }
 
 export function getActiveStreamCountForProject(projectSlug: string): number {
-  var count = 0;
+  let count = 0;
   sessionStreams.forEach(function (session) {
     if (!session.ended && session.projectSlug === projectSlug) count++;
   });
@@ -288,12 +288,12 @@ export function getActiveStreamCountForProject(projectSlug: string): number {
 }
 
 export function getSessionStreamClientId(sessionId: string): string | undefined {
-  var session = sessionStreams.get(sessionId);
+  const session = sessionStreams.get(sessionId);
   return session && !session.ended ? session.clientId : undefined;
 }
 
 export function endSessionStream(sessionId: string): void {
-  var session = sessionStreams.get(sessionId);
+  const session = sessionStreams.get(sessionId);
   if (session && !session.ended) {
     session.ended = true;
     session.messageQueue.end();
@@ -302,24 +302,24 @@ export function endSessionStream(sessionId: string): void {
 }
 
 export function matchesAllowRules(rules: string[], toolName: string, currentRule: string): boolean {
-  for (var i = 0; i < rules.length; i++) {
-    var rule = rules[i];
+  for (let i = 0; i < rules.length; i++) {
+    const rule = rules[i];
     if (rule === toolName || rule === currentRule) return true;
-    var ruleMatch = rule.match(/^(\w+)\((.+)\)$/);
+    const ruleMatch = rule.match(/^(\w+)\((.+)\)$/);
     if (!ruleMatch) continue;
-    var ruleToolName = ruleMatch[1];
-    var rulePattern = ruleMatch[2];
+    const ruleToolName = ruleMatch[1];
+    const rulePattern = ruleMatch[2];
     if (ruleToolName !== toolName) continue;
-    var currentMatch = currentRule.match(/^\w+\((.+)\)$/);
+    const currentMatch = currentRule.match(/^\w+\((.+)\)$/);
     if (!currentMatch) continue;
-    var currentContent = currentMatch[1];
+    const currentContent = currentMatch[1];
     if (rulePattern === "*") return true;
     if (rulePattern.endsWith(":*")) {
-      var rulePrefix = rulePattern.slice(0, -1);
+      const rulePrefix = rulePattern.slice(0, -1);
       if (currentContent.startsWith(rulePrefix) || currentContent === rulePattern.slice(0, -2)) return true;
     }
     if (rulePattern.endsWith("**")) {
-      var dirPrefix = rulePattern.slice(0, -2);
+      const dirPrefix = rulePattern.slice(0, -2);
       if (currentContent.startsWith(dirPrefix)) return true;
     }
   }
@@ -328,14 +328,14 @@ export function matchesAllowRules(rules: string[], toolName: string, currentRule
 
 export function buildPermissionRule(toolName: string, input: Record<string, unknown>): string {
   if (toolName === "Bash") {
-    var command = input.command || input.cmd || "";
+    const command = input.command || input.cmd || "";
     if (typeof command === "string" && command) {
-      var firstWord = command.split(/\s+/)[0];
+      const firstWord = command.split(/\s+/)[0];
       if (firstWord === "curl" || firstWord === "wget") {
-        var urlMatch = command.match(/https?:\/\/[^\s"']+/);
+        const urlMatch = command.match(/https?:\/\/[^\s"']+/);
         if (urlMatch) {
           try {
-            var parsed = new URL(urlMatch[0]);
+            const parsed = new URL(urlMatch[0]);
             return toolName + "(" + firstWord + ":" + parsed.hostname + ")";
           } catch {}
         }
@@ -345,23 +345,23 @@ export function buildPermissionRule(toolName: string, input: Record<string, unkn
   }
 
   if (toolName === "Read" || toolName === "Edit" || toolName === "Write") {
-    var filePath = input.file_path || input.path || "";
+    const filePath = input.file_path || input.path || "";
     if (typeof filePath === "string" && filePath) {
-      var dirParts = filePath.split("/");
+      const dirParts = filePath.split("/");
       dirParts.pop();
-      var dir = dirParts.join("/");
+      const dir = dirParts.join("/");
       if (dir) {
-        var prefix = dir.startsWith("/") ? "" : "/";
+        const prefix = dir.startsWith("/") ? "" : "/";
         return toolName + "(" + prefix + dir + "/**)";
       }
     }
   }
 
   if (toolName === "WebFetch") {
-    var url = input.url || "";
+    const url = input.url || "";
     if (typeof url === "string" && url) {
       try {
-        var parsed = new URL(url);
+        const parsed = new URL(url);
         return toolName + "(domain:" + parsed.hostname + ")";
       } catch {}
     }
@@ -370,7 +370,7 @@ export function buildPermissionRule(toolName: string, input: Record<string, unkn
   return toolName;
 }
 
-var STRIP_PREFIXES = [
+const STRIP_PREFIXES = [
   /^please\s+/i,
   /^can\s+you\s+/i,
   /^could\s+you\s+/i,
@@ -381,12 +381,12 @@ var STRIP_PREFIXES = [
 ];
 
 function generateSessionTitle(userMessage: string): string {
-  var title = userMessage
+  let title = userMessage
     .replace(/[#*_`~>\[\]()!]/g, "")
     .replace(/\n+/g, " ")
     .trim();
 
-  for (var i = 0; i < STRIP_PREFIXES.length; i++) {
+  for (let i = 0; i < STRIP_PREFIXES.length; i++) {
     title = title.replace(STRIP_PREFIXES[i], "");
   }
 
@@ -394,7 +394,7 @@ function generateSessionTitle(userMessage: string): string {
 
   if (title.length > 50) {
     title = title.slice(0, 50);
-    var lastSpace = title.lastIndexOf(" ");
+    const lastSpace = title.lastIndexOf(" ");
     if (lastSpace > 30) {
       title = title.slice(0, lastSpace);
     }
@@ -415,10 +415,10 @@ function isDefaultTitle(title: string): boolean {
 
 function resolvePromptText(text: string): string {
   if (text.startsWith("/")) {
-    var parts = text.split(/\s+/);
-    var skillName = parts[0].slice(1);
-    var skillArgs = parts.slice(1).join(" ");
-    var skillContent = resolveSkillContent(skillName);
+    const parts = text.split(/\s+/);
+    const skillName = parts[0].slice(1);
+    const skillArgs = parts.slice(1).join(" ");
+    const skillContent = resolveSkillContent(skillName);
     if (skillContent) {
       return "<skill-name>" + skillName + "</skill-name>\n" +
         "<skill-content>\n" + skillContent + "\n</skill-content>\n" +
@@ -431,11 +431,11 @@ function resolvePromptText(text: string): string {
 
 function buildSDKUserMessage(prompt: string, attachments: Attachment[] | undefined, sessionId: string): SDKUserMessage {
   if (attachments && attachments.length > 0) {
-    var contentBlocks: Array<{ type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
+    const contentBlocks: Array<{ type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
     contentBlocks.push({ type: "text", text: prompt });
 
-    for (var ai = 0; ai < attachments.length; ai++) {
-      var att = attachments[ai];
+    for (let ai = 0; ai < attachments.length; ai++) {
+      const att = attachments[ai];
       if (att.type === "image" && att.mimeType && !att.mimeType.includes("svg")) {
         contentBlocks.push({
           type: "image",
@@ -446,7 +446,7 @@ function buildSDKUserMessage(prompt: string, attachments: Attachment[] | undefin
           },
         });
       } else {
-        var prefix = att.name ? "[Attached: " + att.name + "]\n" : "";
+        const prefix = att.name ? "[Attached: " + att.name + "]\n" : "";
         contentBlocks.push({
           type: "text",
           text: prefix + att.content,
@@ -471,15 +471,15 @@ function buildSDKUserMessage(prompt: string, attachments: Attachment[] | undefin
 }
 
 function pushToExistingStream(session: SessionStream, options: ChatStreamOptions): void {
-  var { text, attachments, clientId, sessionId, model } = options;
+  const { text, attachments, clientId, sessionId, model } = options;
 
   session.clientId = clientId;
   session.turnStartTime = Date.now();
   session.turnDoneSent = false;
   session.activeToolBlocks = {};
 
-  var prompt = resolvePromptText(text);
-  var userMsg = buildSDKUserMessage(prompt, attachments, sessionId);
+  const prompt = resolvePromptText(text);
+  const userMsg = buildSDKUserMessage(prompt, attachments, sessionId);
 
   sendTo(clientId, {
     type: "chat:user_message",
@@ -499,16 +499,16 @@ function pushToExistingStream(session: SessionStream, options: ChatStreamOptions
 }
 
 export function startChatStream(options: ChatStreamOptions): void {
-  var { projectSlug, sessionId, text, attachments, clientId, cwd, env, model, effort, isNewSession } = options;
+  const { projectSlug, sessionId, text, attachments, clientId, cwd, env, model, effort, isNewSession } = options;
 
-  var existing = sessionStreams.get(sessionId);
+  const existing = sessionStreams.get(sessionId);
   if (existing && !existing.ended) {
     pushToExistingStream(existing, options);
     return;
   }
 
-  var startTime = Date.now();
-  var firstUserMessage = text;
+  const startTime = Date.now();
+  const firstUserMessage = text;
 
   if (pendingStreams.has(sessionId)) {
     sendTo(clientId, { type: "chat:error", message: "Session already has an active stream." });
@@ -517,12 +517,12 @@ export function startChatStream(options: ChatStreamOptions): void {
 
   pendingStreams.add(sessionId);
 
-  var projectSettingsPath = join(cwd, ".claude", "settings.json");
-  var savedAdditionalDirs: string[] = [];
-  var latticeDefaults: Record<string, unknown> = {};
+  const projectSettingsPath = join(cwd, ".claude", "settings.json");
+  let savedAdditionalDirs: string[] = [];
+  let latticeDefaults: Record<string, unknown> = {};
   if (existsSync(projectSettingsPath)) {
     try {
-      var projSettings = JSON.parse(readFileSync(projectSettingsPath, "utf-8"));
+      const projSettings = JSON.parse(readFileSync(projectSettingsPath, "utf-8"));
       if (projSettings.permissions && Array.isArray(projSettings.permissions.additionalDirectories)) {
         savedAdditionalDirs = projSettings.permissions.additionalDirectories;
       }
@@ -532,41 +532,41 @@ export function startChatStream(options: ChatStreamOptions): void {
     } catch {}
   }
 
-  var effectiveMode: PermissionMode = sessionPermissionOverrides.get(sessionId)
+  const effectiveMode: PermissionMode = sessionPermissionOverrides.get(sessionId)
     || (latticeDefaults.defaultPermissionMode as PermissionMode | undefined)
     || "acceptEdits";
   sessionPermissionOverrides.delete(sessionId);
 
-  var mcpServers: Record<string, unknown> = {};
-  var claudeJsonPath = join(homedir(), ".claude.json");
+  let mcpServers: Record<string, unknown> = {};
+  const claudeJsonPath = join(homedir(), ".claude.json");
   if (existsSync(claudeJsonPath)) {
     try {
-      var claudeJson = JSON.parse(readFileSync(claudeJsonPath, "utf-8"));
+      const claudeJson = JSON.parse(readFileSync(claudeJsonPath, "utf-8"));
       if (claudeJson.mcpServers && typeof claudeJson.mcpServers === "object") {
         mcpServers = claudeJson.mcpServers;
       }
     } catch {}
   }
 
-  var pluginMcpServers = getPluginMcpServers();
+  const pluginMcpServers = getPluginMcpServers();
   if (Object.keys(pluginMcpServers).length > 0) {
     mcpServers = { ...mcpServers, ...pluginMcpServers };
   }
 
-  var projectMcpPath = join(cwd, ".mcp.json");
+  const projectMcpPath = join(cwd, ".mcp.json");
   if (existsSync(projectMcpPath)) {
     try {
-      var projectMcpJson = JSON.parse(readFileSync(projectMcpPath, "utf-8"));
+      const projectMcpJson = JSON.parse(readFileSync(projectMcpPath, "utf-8"));
       if (projectMcpJson.mcpServers && typeof projectMcpJson.mcpServers === "object") {
         mcpServers = { ...mcpServers, ...projectMcpJson.mcpServers };
       }
     } catch {}
   }
 
-  var abortController = new AbortController();
-  var currentClientId = clientId;
+  const abortController = new AbortController();
+  const currentClientId = clientId;
 
-  var queryOptions: Parameters<typeof query>[0]["options"] = {
+  const queryOptions: Parameters<typeof query>[0]["options"] = {
     cwd,
     permissionMode: effectiveMode,
     promptSuggestions: true,
@@ -592,8 +592,8 @@ export function startChatStream(options: ChatStreamOptions): void {
 
   queryOptions.onElicitation = function (request: any, opts: any) {
     return new Promise(function (resolve) {
-      var requestId = crypto.randomUUID();
-      var activeClientId = (sessionStreams.get(sessionId) || { clientId: currentClientId }).clientId;
+      const requestId = crypto.randomUUID();
+      const activeClientId = (sessionStreams.get(sessionId) || { clientId: currentClientId }).clientId;
       pendingElicitations.set(requestId, { resolve, clientId: activeClientId, sessionId });
       sendTo(activeClientId, {
         type: "chat:elicitation_request",
@@ -617,17 +617,17 @@ export function startChatStream(options: ChatStreamOptions): void {
   } as any;
 
   queryOptions.canUseTool = function (toolName, input, options) {
-    var ss = sessionStreams.get(sessionId);
-    var activeClientId = ss ? ss.clientId : currentClientId;
+    const ss = sessionStreams.get(sessionId);
+    const activeClientId = ss ? ss.clientId : currentClientId;
 
-    var approved = autoApprovedTools.get(sessionId);
+    const approved = autoApprovedTools.get(sessionId);
     if (approved && approved.has(toolName)) {
       return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
     }
 
     if (toolName === "AskUserQuestion") {
-      var promptRequestId = options.toolUseID;
-      var questions = (input as { questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }> }).questions;
+      const promptRequestId = options.toolUseID;
+      const questions = (input as { questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }> }).questions;
       sendTo(activeClientId, {
         type: "chat:prompt_request",
         requestId: promptRequestId,
@@ -655,31 +655,31 @@ export function startChatStream(options: ChatStreamOptions): void {
     }
 
     if (toolName === "Read") {
-      var readPath = (input.file_path || input.path || "") as string;
+      const readPath = (input.file_path || input.path || "") as string;
       if (readPath.startsWith("/tmp/") || readPath === "/tmp") {
         return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
       }
     }
 
     if (toolName === "Bash") {
-      var cmd = ((input.command || "") as string).trim();
+      const cmd = ((input.command || "") as string).trim();
       if (cmd.startsWith("cd ")) {
-        var cdTarget = cmd.slice(3).trim().replace(/^["']|["']$/g, "");
+        let cdTarget = cmd.slice(3).trim().replace(/^["']|["']$/g, "");
         if (cdTarget.startsWith("~")) {
           cdTarget = join(homedir(), cdTarget.slice(1));
         }
-        var cdResolved = resolve(cwd, cdTarget);
-        var home = homedir();
+        const cdResolved = resolve(cwd, cdTarget);
+        const home = homedir();
         if (cdResolved.startsWith(cwd) || cdResolved === cwd || cdResolved.startsWith(home) || cdResolved === home) {
           return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
         }
       }
     }
 
-    var allowRules: string[] = [];
+    let allowRules: string[] = [];
     if (existsSync(projectSettingsPath)) {
       try {
-        var projSettingsForRules = JSON.parse(readFileSync(projectSettingsPath, "utf-8"));
+        const projSettingsForRules = JSON.parse(readFileSync(projectSettingsPath, "utf-8"));
         if (projSettingsForRules.permissions && Array.isArray(projSettingsForRules.permissions.allow)) {
           allowRules = projSettingsForRules.permissions.allow;
         }
@@ -687,15 +687,15 @@ export function startChatStream(options: ChatStreamOptions): void {
     }
 
     if (allowRules.length > 0) {
-      var currentRule = buildPermissionRule(toolName, input);
+      const currentRule = buildPermissionRule(toolName, input);
       if (matchesAllowRules(allowRules, toolName, currentRule)) {
         return Promise.resolve({ behavior: "allow", updatedInput: input, toolUseID: options.toolUseID } as PermissionResult);
       }
     }
 
-    var requestId = options.toolUseID;
-    var rule = buildPermissionRule(toolName, input);
-    var title = options.title || rule;
+    const requestId = options.toolUseID;
+    const rule = buildPermissionRule(toolName, input);
+    const title = options.title || rule;
 
     sendTo(activeClientId, {
       type: "chat:permission_request",
@@ -731,12 +731,12 @@ export function startChatStream(options: ChatStreamOptions): void {
     });
   } as CanUseTool;
 
-  var shouldResume = false;
+  let shouldResume = false;
   if (isNewSession) {
     shouldResume = false;
   } else {
-    var hash = cwd.replace(/\//g, "-");
-    var sessionFile = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+    const hash = cwd.replace(/\//g, "-");
+    const sessionFile = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
     shouldResume = existsSync(sessionFile);
   }
 
@@ -778,7 +778,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     (queryOptions as any).systemPrompt = options.systemPrompt;
   }
 
-  var prompt = resolvePromptText(text);
+  const prompt = resolvePromptText(text);
 
   sendTo(clientId, {
     type: "chat:user_message",
@@ -786,13 +786,13 @@ export function startChatStream(options: ChatStreamOptions): void {
     uuid: crypto.randomUUID(),
   });
 
-  var mq = createMessageQueue();
-  var firstMsg = buildSDKUserMessage(prompt, attachments, sessionId);
+  const mq = createMessageQueue();
+  const firstMsg = buildSDKUserMessage(prompt, attachments, sessionId);
 
-  var stream = query({ prompt: mq as any, options: queryOptions });
+  const stream = query({ prompt: mq as any, options: queryOptions });
   pendingStreams.delete(sessionId);
 
-  var sessionStream: SessionStream = {
+  const sessionStream: SessionStream = {
     sessionId,
     messageQueue: mq,
     queryInstance: stream,
@@ -811,7 +811,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     accumulatedText: "",
     specId: options.specId,
     analyzer: new ContextAnalyzer(function (msg) {
-      var ss = sessionStreams.get(sessionId);
+      const ss = sessionStreams.get(sessionId);
       if (ss) sendTo(ss.clientId, msg as any);
     }),
   };
@@ -827,11 +827,11 @@ export function startChatStream(options: ChatStreamOptions): void {
     }
     mq.push(firstMsg);
     try {
-      for await (var msg of stream) {
+      for await (const msg of stream) {
         processMessage(sessionStream, msg);
       }
     } catch (err: unknown) {
-      var errMsg = err instanceof Error ? err.message : String(err);
+      const errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
         log.chat("Session %s stream aborted", sessionId);
       } else if (errMsg.includes("Sent before connected")) {
@@ -847,7 +847,7 @@ export function startChatStream(options: ChatStreamOptions): void {
       persistStreamState();
       broadcast({ type: "session:busy", sessionId, busy: false }, sessionStream.clientId);
 
-      var toCleanup: string[] = [];
+      const toCleanup: string[] = [];
       pendingPermissions.forEach(function (entry, reqId) {
         if (entry.sessionId === sessionId) {
           toCleanup.push(reqId);
@@ -857,7 +857,7 @@ export function startChatStream(options: ChatStreamOptions): void {
       });
       toCleanup.forEach(function (reqId) { pendingPermissions.delete(reqId); });
 
-      var elicitToCleanup: string[] = [];
+      const elicitToCleanup: string[] = [];
       pendingElicitations.forEach(function (entry, reqId) {
         if (entry.sessionId === sessionId) {
           elicitToCleanup.push(reqId);
@@ -878,20 +878,20 @@ export function startChatStream(options: ChatStreamOptions): void {
 }
 
 function processStructuredOutput(ss: SessionStream): void {
-  var text = ss.accumulatedText;
-  var specId = ss.specId!;
+  const text = ss.accumulatedText;
+  const specId = ss.specId!;
 
-  var specFields = parseSpecPopulate(text);
+  const specFields = parseSpecPopulate(text);
   if (specFields) {
-    var updated = populateSpec(specId, specFields, ss.sessionId);
+    const updated = populateSpec(specId, specFields, ss.sessionId);
     if (updated) {
       broadcastToProject(ss.projectSlug, { type: "specs:updated", spec: updated });
     }
   }
 
-  var planContent = parsePlanContent(text);
+  const planContent = parsePlanContent(text);
   if (planContent) {
-    var updatedPlan = updateSpecData(specId, {
+    const updatedPlan = updateSpecData(specId, {
       sections: { implementationPlan: planContent },
     });
     if (updatedPlan) {
@@ -899,14 +899,14 @@ function processStructuredOutput(ss: SessionStream): void {
     }
   }
 
-  var searchText = text;
-  var activityData = parseSpecActivity(searchText);
+  let searchText = text;
+  let activityData = parseSpecActivity(searchText);
   while (activityData) {
-    var updatedActivity = addActivity(specId, activityData.type as any, activityData.detail, ss.sessionId);
+    const updatedActivity = addActivity(specId, activityData.type as any, activityData.detail, ss.sessionId);
     if (updatedActivity) {
       broadcastToProject(ss.projectSlug, { type: "specs:activity_added", spec: updatedActivity });
     }
-    var endIdx = searchText.indexOf("</spec-activity>");
+    const endIdx = searchText.indexOf("</spec-activity>");
     searchText = searchText.slice(endIdx + "</spec-activity>".length);
     activityData = parseSpecActivity(searchText);
   }
@@ -915,23 +915,23 @@ function processStructuredOutput(ss: SessionStream): void {
 }
 
 function processMessage(ss: SessionStream, msg: SDKMessage): void {
-  var sessionId = ss.sessionId;
+  const sessionId = ss.sessionId;
 
   if (msg.type === "system") {
-    var sysMsg = msg as { type: "system"; subtype?: string; mcp_servers?: { name: string; status: string }[]; tools?: string[] };
+    const sysMsg = msg as { type: "system"; subtype?: string; mcp_servers?: { name: string; status: string }[]; tools?: string[] };
     if (sysMsg.subtype === "init") {
-      var toolCount = (sysMsg.tools || []).length;
-      var mcpCount = (sysMsg.mcp_servers || []).filter(function (s) { return s.status === "connected"; }).length;
+      const toolCount = (sysMsg.tools || []).length;
+      const mcpCount = (sysMsg.mcp_servers || []).filter(function (s) { return s.status === "connected"; }).length;
       log.chat("Session ready: %d tools, %d MCP servers connected", toolCount, mcpCount);
     }
     return;
   }
 
   if (msg.type === "assistant") {
-    var assistantMsg = msg as { type: "assistant"; message: { content: unknown; model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } } };
-    var msgUsage = assistantMsg.message.usage;
+    const assistantMsg = msg as { type: "assistant"; message: { content: unknown; model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } } };
+    const msgUsage = assistantMsg.message.usage;
     if (msgUsage && msgUsage.input_tokens != null) {
-      var ctxWindow = guessContextWindow(assistantMsg.message.model || "");
+      const ctxWindow = guessContextWindow(assistantMsg.message.model || "");
       sendTo(ss.clientId, {
         type: "chat:context_usage",
         inputTokens: msgUsage.input_tokens || 0,
@@ -951,12 +951,12 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
   }
 
   if (msg.type === "stream_event") {
-    var partial = msg as SDKPartialAssistantMessage;
-    var evt = partial.event;
+    const partial = msg as SDKPartialAssistantMessage;
+    const evt = partial.event;
 
     if (evt.type === "content_block_start") {
-      var block = (evt as { content_block: { type: string; id?: string; name?: string }; index: number }).content_block;
-      var idx = (evt as { index: number }).index;
+      const block = (evt as { content_block: { type: string; id?: string; name?: string }; index: number }).content_block;
+      const idx = (evt as { index: number }).index;
       if (block.type === "tool_use" && block.id && block.name) {
         ss.activeToolBlocks[idx] = { id: block.id, name: block.name, inputJson: "" };
         ss.analyzer.onToolStart(block.id, block.name);
@@ -975,8 +975,8 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
     }
 
     if (evt.type === "content_block_delta") {
-      var deltaEvt = evt as { index: number; delta: { type: string; text?: string; partial_json?: string } };
-      var blockIdx = deltaEvt.index;
+      const deltaEvt = evt as { index: number; delta: { type: string; text?: string; partial_json?: string } };
+      const blockIdx = deltaEvt.index;
 
       if (deltaEvt.delta.type === "text_delta" && typeof deltaEvt.delta.text === "string") {
         sendTo(ss.clientId, { type: "chat:delta", text: deltaEvt.delta.text });
@@ -990,8 +990,8 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
     }
 
     if (evt.type === "content_block_stop") {
-      var stopIdx = (evt as { index: number }).index;
-      var stoppedBlock = ss.activeToolBlocks[stopIdx];
+      const stopIdx = (evt as { index: number }).index;
+      const stoppedBlock = ss.activeToolBlocks[stopIdx];
       if (stoppedBlock) {
         if (!HIDDEN_TOOLS.has(stoppedBlock.name)) {
           sendTo(ss.clientId, {
@@ -1003,7 +1003,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
         }
         if (stoppedBlock.name === "TodoWrite" && stoppedBlock.inputJson) {
           try {
-            var todoInput = JSON.parse(stoppedBlock.inputJson) as { todos?: Array<{ id?: string; content: string; status: string; activeForm?: string }> };
+            const todoInput = JSON.parse(stoppedBlock.inputJson) as { todos?: Array<{ id?: string; content: string; status: string; activeForm?: string }> };
             if (todoInput.todos) {
               sendTo(ss.clientId, {
                 type: "chat:todo_update",
@@ -1029,19 +1029,19 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
   }
 
   if (msg.type === "user") {
-    var userMsg = msg as { type: "user"; message: { content: unknown }; uuid?: string; tool_use_result?: unknown };
+    const userMsg = msg as { type: "user"; message: { content: unknown }; uuid?: string; tool_use_result?: unknown };
     if (userMsg.uuid) {
       ss.messageUUIDs.push({ uuid: userMsg.uuid, type: "user" });
       sendTo(ss.clientId, { type: "chat:message_uuid" as any, uuid: userMsg.uuid, messageType: "user" });
     }
-    var content = userMsg.message.content;
+    const content = userMsg.message.content;
     if (Array.isArray(content)) {
-      for (var i = 0; i < content.length; i++) {
-        var item = content[i] as { type?: string; tool_use_id?: string; content?: unknown };
+      for (let i = 0; i < content.length; i++) {
+        const item = content[i] as { type?: string; tool_use_id?: string; content?: unknown };
         if (item.type === "tool_result" && item.tool_use_id) {
           ss.analyzer.onToolResult(item.tool_use_id);
           if (ss.hiddenToolIds.has(item.tool_use_id)) continue;
-          var resultContent = typeof item.content === "string"
+          const resultContent = typeof item.content === "string"
             ? item.content
             : JSON.stringify(item.content ?? "");
           sendTo(ss.clientId, {
@@ -1056,8 +1056,8 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
   }
 
   if (msg.type === "rate_limit_event") {
-    var rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
-    var rli = rlMsg.rate_limit_info;
+    const rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
+    const rli = rlMsg.rate_limit_info;
     cacheRateLimitEntry({
       status: rli.status,
       utilization: rli.utilization,
@@ -1081,7 +1081,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
   }
 
   if (msg.type === "prompt_suggestion") {
-    var suggestion = (msg as { type: string; suggestion: string }).suggestion;
+    const suggestion = (msg as { type: string; suggestion: string }).suggestion;
     if (suggestion) {
       sendTo(ss.clientId, { type: "chat:prompt_suggestion", suggestion: suggestion });
     }
@@ -1089,16 +1089,16 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
   }
 
   if (msg.type === "result") {
-    var resultMsg = msg as SDKResultMessage;
-    var dur = Date.now() - ss.turnStartTime;
-    var cost = resultMsg.total_cost_usd || 0;
+    const resultMsg = msg as SDKResultMessage;
+    const dur = Date.now() - ss.turnStartTime;
+    const cost = resultMsg.total_cost_usd || 0;
 
     if (resultMsg.usage) {
-      var contextWindow = 0;
+      let contextWindow = 0;
       if (resultMsg.modelUsage) {
-        var modelKeys = Object.keys(resultMsg.modelUsage);
-        for (var mk = 0; mk < modelKeys.length; mk++) {
-          var mu = resultMsg.modelUsage[modelKeys[mk]];
+        const modelKeys = Object.keys(resultMsg.modelUsage);
+        for (let mk = 0; mk < modelKeys.length; mk++) {
+          const mu = resultMsg.modelUsage[modelKeys[mk]];
           if (mu.contextWindow > contextWindow) {
             contextWindow = mu.contextWindow;
           }
@@ -1131,7 +1131,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
     sendTo(ss.clientId, { type: "chat:done", cost: cost, duration: dur });
     sendPush({ type: "done", title: "Task Complete", body: "Claude finished responding", sessionId, projectSlug: ss.projectSlug });
     invalidateDailySpendCache();
-    var budgetConfig = loadConfig().costBudget;
+    const budgetConfig = loadConfig().costBudget;
     if (budgetConfig) {
       sendTo(ss.clientId, {
         type: "budget:status",
@@ -1145,7 +1145,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
 
     void getSessionTitle(ss.projectSlug, sessionId).then(function (currentTitle) {
       if (!isDefaultTitle(currentTitle)) return;
-      var newTitle = generateSessionTitle(ss.firstUserMessage);
+      const newTitle = generateSessionTitle(ss.firstUserMessage);
       if (!newTitle) return;
       void renameSession(ss.projectSlug, sessionId, newTitle).then(function (ok) {
         if (!ok) return;

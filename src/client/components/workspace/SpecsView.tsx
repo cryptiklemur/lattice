@@ -5,8 +5,8 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useOnline } from "../../hooks/useOnline";
 import { useSession } from "../../hooks/useSession";
-import { openSessionTab } from "../../stores/workspace";
-import { setPendingSystemPrompt } from "../../stores/session";
+import { openSessionTab, getPendingSpecId, clearPendingSpecId } from "../../stores/workspace";
+import { setPendingSystemPrompt, setPendingAutoSend, setSpecContext } from "../../stores/session";
 import { SpecEditor } from "./specs/SpecEditor";
 import { SpecListView } from "./specs/SpecListView";
 import { SpecBoardView } from "./specs/SpecBoardView";
@@ -39,6 +39,14 @@ export function SpecsView() {
     if (msg.type === "specs:list_result") {
       setSpecs(msg.specs);
       setLoading(false);
+      const pending = getPendingSpecId();
+      if (pending) {
+        const match = msg.specs.find(function (s: Spec) { return s.id === pending; });
+        if (match) {
+          setEditingSpecId(pending);
+        }
+        clearPendingSpecId();
+      }
       return;
     }
     if (msg.type === "specs:created") {
@@ -102,23 +110,29 @@ export function SpecsView() {
       if ((msg as any).type === "specs:brainstorm-started") {
         const data = msg as any;
         setPendingSystemPrompt(data.systemPrompt);
-        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Brainstorm");
+        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Brainstorm", "brainstorm");
         session.activateSession(activeProjectSlug ?? "", data.sessionId);
       }
     }
     function handlePlanStarted(msg: ServerMessage) {
       if ((msg as any).type === "specs:plan-started") {
         const data = msg as any;
+        const specTitle = data.spec?.title || "Spec";
         setPendingSystemPrompt(data.systemPrompt);
-        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Write Plan");
+        setPendingAutoSend("Write the implementation plan.");
+        setSpecContext({ specId: data.spec?.id, specTitle });
+        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Plan: " + specTitle, "write-plan");
         session.activateSession(activeProjectSlug ?? "", data.sessionId);
       }
     }
     function handleExecuteStarted(msg: ServerMessage) {
       if ((msg as any).type === "specs:execute-started") {
         const data = msg as any;
+        const specTitle = data.spec?.title || "Spec";
         setPendingSystemPrompt(data.systemPrompt);
-        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Execute");
+        setPendingAutoSend("Execute the implementation plan.");
+        setSpecContext({ specId: data.spec?.id, specTitle });
+        openSessionTab(data.sessionId, activeProjectSlug ?? "", "Execute: " + specTitle, "execute");
         session.activateSession(activeProjectSlug ?? "", data.sessionId);
       }
     }
@@ -131,6 +145,18 @@ export function SpecsView() {
       unsubscribe("specs:execute-started", handleExecuteStarted);
     };
   }, [subscribe, unsubscribe, activeProjectSlug, session]);
+
+  useEffect(function () {
+    if (loading) return;
+    const pending = getPendingSpecId();
+    if (pending) {
+      const match = specs.find(function (s) { return s.id === pending; });
+      if (match) {
+        setEditingSpecId(pending);
+      }
+      clearPendingSpecId();
+    }
+  });
 
   useEffect(function () {
     function handleClickOutside(e: MouseEvent) {

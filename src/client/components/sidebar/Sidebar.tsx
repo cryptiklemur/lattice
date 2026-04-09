@@ -23,7 +23,7 @@ import { SpecsSidebarWidget } from "./SpecsSidebarWidget";
 
 type DatePreset = "all" | "today" | "yesterday" | "week" | "month" | "custom";
 
-var DATE_PRESET_LABELS: Record<DatePreset, string> = {
+const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   all: "All time",
   today: "Today",
   yesterday: "Yesterday",
@@ -34,34 +34,34 @@ var DATE_PRESET_LABELS: Record<DatePreset, string> = {
 
 function computeDateRange(preset: DatePreset, customFrom?: string, customTo?: string): DateRange {
   if (preset === "all") return {};
-  var now = new Date();
-  var todayStart = new Date(now);
+  const now = new Date();
+  const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
 
   if (preset === "today") {
     return { from: todayStart.getTime() };
   }
   if (preset === "yesterday") {
-    var yesterdayStart = new Date(todayStart);
+    const yesterdayStart = new Date(todayStart);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
     return { from: yesterdayStart.getTime(), to: todayStart.getTime() };
   }
   if (preset === "week") {
-    var weekStart = new Date(todayStart);
+    const weekStart = new Date(todayStart);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     return { from: weekStart.getTime() };
   }
   if (preset === "month") {
-    var monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+    const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
     return { from: monthStart.getTime() };
   }
   if (preset === "custom") {
-    var range: DateRange = {};
+    const range: DateRange = {};
     if (customFrom) {
       range.from = new Date(customFrom + "T00:00:00").getTime();
     }
     if (customTo) {
-      var toDate = new Date(customTo + "T23:59:59");
+      const toDate = new Date(customTo + "T23:59:59");
       range.to = toDate.getTime() + 999;
     }
     return range;
@@ -70,11 +70,11 @@ function computeDateRange(preset: DatePreset, customFrom?: string, customTo?: st
 }
 
 function DateRangeDropdown({ dateRange, onChange }: { dateRange: DateRange; onChange: (r: DateRange, preset: DatePreset) => void }) {
-  var [open, setOpen] = useState(false);
-  var [preset, setPreset] = useState<DatePreset>("all");
-  var [customFrom, setCustomFrom] = useState("");
-  var [customTo, setCustomTo] = useState("");
-  var dropdownRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [preset, setPreset] = useState<DatePreset>("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(function () {
     if (!open) return;
@@ -100,7 +100,7 @@ function DateRangeDropdown({ dateRange, onChange }: { dateRange: DateRange; onCh
     setOpen(false);
   }
 
-  var hasFilter = preset !== "all";
+  const hasFilter = preset !== "all";
 
   return (
     <div ref={dropdownRef} className="relative">
@@ -177,25 +177,25 @@ function SectionLabel({ label, actions }: { label: string; actions?: React.React
 }
 
 export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
-  var { projects, activeProject } = useProjects();
-  var { nodes } = useMesh();
-  var ws = useWebSocket();
-  var online = useOnline();
-  var sidebar = useSidebar();
-  var session = useSession();
-  var [sessionSearch, setSessionSearch] = useState<string>("");
-  var [sessionSearchOpen, setSessionSearchOpen] = useState<boolean>(false);
-  var [sessionDateRange, setSessionDateRange] = useState<DateRange>({});
-  var userIslandRef = useRef<HTMLElement | null>(null);
-  var projectHeaderRef = useRef<HTMLElement | null>(null);
+  const { projects, activeProject } = useProjects();
+  const { nodes } = useMesh();
+  const ws = useWebSocket();
+  const online = useOnline();
+  const sidebar = useSidebar();
+  const session = useSession();
+  const [sessionSearch, setSessionSearch] = useState<string>("");
+  const [sessionSearchOpen, setSessionSearchOpen] = useState<boolean>(false);
+  const [sessionDateRange, setSessionDateRange] = useState<DateRange>({});
+  const userIslandRef = useRef<HTMLElement | null>(null);
+  const projectHeaderRef = useRef<HTMLElement | null>(null);
 
-  var localNode = nodes.find(function (n) { return n.isLocal; });
-  var [configNodeName, setConfigNodeName] = useState("");
+  const localNode = nodes.find(function (n) { return n.isLocal; });
+  const [configNodeName, setConfigNodeName] = useState("");
 
   useEffect(function () {
     function handleSettingsData(msg: ServerMessage) {
       if (msg.type !== "settings:data") return;
-      var data = msg as SettingsDataMessage;
+      const data = msg as SettingsDataMessage;
       if (data.config.name) {
         setConfigNodeName(data.config.name);
       }
@@ -207,8 +207,8 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
     };
   }, []);
 
-  var localNodeName = localNode ? localNode.name : configNodeName;
-  var initialActivatedRef = useRef<boolean>(false);
+  const localNodeName = localNode ? localNode.name : configNodeName;
+  const initialActivatedRef = useRef<boolean>(false);
 
   useEffect(function () {
     if (initialActivatedRef.current) return;
@@ -272,10 +272,10 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     <button
                       type="button"
                       onClick={function () {
-                        var store = getWorkspaceStore();
-                        var state = store.state;
-                        var activePane = state.panes.find(function (p) { return p.id === state.activePaneId; });
-                        var activeTab = activePane ? state.tabs.find(function (t) { return t.id === activePane!.activeTabId; }) : null;
+                        const store = getWorkspaceStore();
+                        const state = store.state;
+                        const activePane = state.panes.find(function (p) { return p.id === state.activePaneId; });
+                        const activeTab = activePane ? state.tabs.find(function (t) { return t.id === activePane!.activeTabId; }) : null;
                         if (activeTab && activeTab.id !== "chat") {
                           closeTab(activeTab.id);
                         }
@@ -378,7 +378,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                     { type: "specs" as const, icon: ClipboardList, label: "Specs", localOnly: false },
                     { type: "context" as const, icon: Activity, label: "Context Analyzer", localOnly: false },
                   ].map(function (item) {
-                    var isDisabled = item.localOnly && activeProject?.isRemote;
+                    const isDisabled = item.localOnly && activeProject?.isRemote;
                     return (
                       <button
                         key={item.type}
@@ -387,7 +387,7 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
                         onClick={function () {
                           if (isDisabled) return;
                           openTab(item.type);
-                          var state = getSidebarStore().state;
+                          const state = getSidebarStore().state;
                           if (state.activeView.type !== "chat") {
                             getSidebarStore().setState(function (s) {
                               return { ...s, activeView: { type: "chat" } };
@@ -463,14 +463,12 @@ export function Sidebar({ onSessionSelect }: { onSessionSelect?: () => void }) {
           />
         )}
       </div>
-
       <div
         ref={function (el) { userIslandRef.current = el; }}
         className="absolute bottom-2 left-2 right-2 z-10 bg-base-300 border border-base-content/15 rounded-xl shadow-lg"
       >
         <UserIsland nodeName={localNodeName} onClick={sidebar.toggleUserMenu} />
       </div>
-
       {sidebar.userMenuOpen && (
         <UserMenu
           anchorRef={userIslandRef}

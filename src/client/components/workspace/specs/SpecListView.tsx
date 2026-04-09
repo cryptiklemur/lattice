@@ -252,7 +252,7 @@ export function SpecListView({ specs, onSelectSpec, onUpdateSpec, onDeleteSpec, 
         })}
       </div>
 
-      <div className="overflow-x-auto">
+      <div>
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-base-content/10">
@@ -262,10 +262,10 @@ export function SpecListView({ specs, onSelectSpec, onUpdateSpec, onDeleteSpec, 
                 { field: "priority" as SortField, label: "Priority", hideClass: "" },
                 { field: "estimatedEffort" as SortField, label: "Effort", hideClass: "hidden sm:table-cell" },
                 { field: "updatedAt" as SortField, label: "Updated", hideClass: "hidden md:table-cell" },
-              ]).map(function (col) {
+              ]).map(function (col, ci) {
                 const isActive = sortField === col.field;
                 return (
-                  <th key={col.field} className={"pb-2 pr-3 " + col.hideClass}>
+                  <th key={col.field} className={"pb-2 pr-3 " + (ci === 0 ? "pl-3 " : "") + col.hideClass}>
                     <button
                       type="button"
                       onClick={function () { toggleSort(col.field); }}
@@ -280,7 +280,7 @@ export function SpecListView({ specs, onSelectSpec, onUpdateSpec, onDeleteSpec, 
                   </th>
                 );
               })}
-              <th className="pb-2 w-10" />
+              <th className="pb-2 w-10 pr-3" />
             </tr>
           </thead>
           <tbody>
@@ -290,7 +290,7 @@ export function SpecListView({ specs, onSelectSpec, onUpdateSpec, onDeleteSpec, 
                   key={spec.id}
                   className={"border-b border-base-content/5 hover:bg-base-content/5 transition-colors" + (spec.status === "completed" ? " opacity-60" : "")}
                 >
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pl-3 pr-3">
                     {renamingId === spec.id ? (
                       <input
                         ref={renameRef}
@@ -352,7 +352,7 @@ export function SpecListView({ specs, onSelectSpec, onUpdateSpec, onDeleteSpec, 
                       {relativeTime(spec.updatedAt)}
                     </span>
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="py-2 pr-3 text-right">
                     <ActionsMenu
                       onEdit={function () { onSelectSpec(spec); }}
                       onRename={function () {

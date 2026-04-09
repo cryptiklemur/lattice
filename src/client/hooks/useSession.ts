@@ -82,7 +82,20 @@ import type {
 
 export type { SessionState };
 
-var globalSubscriptionCount = 0;
+let globalSubscriptionCount = 0;
+const globalHandlersRef: { current: Record<string, (msg: ServerMessage) => void> | null } = { current: null };
+const globalDispatchFns: Map<string, (msg: ServerMessage) => void> = new Map();
+
+function getDispatch(type: string): (msg: ServerMessage) => void {
+  const existing = globalDispatchFns.get(type);
+  if (existing) return existing;
+  const fn = function (msg: ServerMessage) {
+    const handlers = globalHandlersRef.current;
+    if (handlers && handlers[type]) handlers[type](msg);
+  };
+  globalDispatchFns.set(type, fn);
+  return fn;
+}
 
 export interface UseSessionReturn extends SessionState {
   sendMessage: (text: string, attachmentIds?: string[], model?: string, effort?: string) => void;
@@ -101,31 +114,34 @@ export interface UseSessionReturn extends SessionState {
 }
 
 export function useSession(): UseSessionReturn {
-  var store = getSessionStore();
-  var state = useStore(store, function (s) { return s; });
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var sendRef = useRef(send);
+  const store = getSessionStore();
+  const state = useStore(store, function (s) { return s; });
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const sendRef = useRef(send);
   sendRef.current = send;
-  var sendMessageRef = useRef(function (_text: string, _attachmentIds?: string[], _model?: string, _effort?: string) {});
-  var activeStreamGenerationRef = useRef(0);
-  var streamSessionIdRef = useRef<string | null>(null);
-  var lastSentTextRef = useRef<string | null>(null);
-  var lastUsedModelRef = useRef<string | undefined>(undefined);
-  var lastUsedEffortRef = useRef<string | undefined>(undefined);
+  const sendMessageRef = useRef(function (_text: string, _attachmentIds?: string[], _model?: string, _effort?: string) {});
+  const activeStreamGenerationRef = useRef(0);
+  const streamSessionIdRef = useRef<string | null>(null);
+  const lastSentTextRef = useRef<string | null>(null);
+  const lastUsedModelRef = useRef<string | undefined>(undefined);
+  const lastUsedEffortRef = useRef<string | undefined>(undefined);
 
   function activateSession(projectSlug: string, sessionId: string) {
+    const isReactivation = getSessionStore().state.activeSessionId === sessionId;
     resetContextAnalyzer();
-    setActiveSession(projectSlug, sessionId);
+    if (!isReactivation) {
+      setActiveSession(projectSlug, sessionId);
+    }
     setSidebarSessionId(sessionId);
     sendRef.current({ type: "session:activate", projectSlug, sessionId });
   }
 
   function sendMessage(text: string, attachmentIds?: string[], model?: string, effort?: string) {
-    var currentSessionId = getSessionStore().state.activeSessionId;
+    const currentSessionId = getSessionStore().state.activeSessionId;
     if (!currentSessionId || (!text.trim() && (!attachmentIds || attachmentIds.length === 0))) {
       return;
     }
-    var msg = { type: "chat:send" as const, text: text } as ChatSendMessage & { model?: string; effort?: string };
+    const msg = { type: "chat:send" as const, text: text } as ChatSendMessage & { model?: string; effort?: string };
     if (attachmentIds && attachmentIds.length > 0) {
       msg.attachmentIds = attachmentIds;
     }
@@ -135,7 +151,7 @@ export function useSession(): UseSessionReturn {
     if (effort) {
       msg.effort = effort;
     }
-    var pendingPrompt = getSessionStore().state.pendingSystemPrompt;
+    const pendingPrompt = getSessionStore().state.pendingSystemPrompt;
     if (pendingPrompt) {
       (msg as any).systemPrompt = pendingPrompt;
       setPendingSystemPrompt(null);
@@ -149,9 +165,10 @@ export function useSession(): UseSessionReturn {
     setPromptSuggestion(null);
     setWasInterrupted(false);
     setIsProcessing(true);
+    const isAutoSend = getSessionStore().state.pendingAutoSend === text;
     addSessionMessage({
       type: "user",
-      uuid: "optimistic-" + Date.now(),
+      uuid: (isAutoSend ? "spec-auto-" : "optimistic-") + Date.now(),
       text: text,
       timestamp: Date.now(),
     } as HistoryMessage);
@@ -161,29 +178,26 @@ export function useSession(): UseSessionReturn {
 
   sendMessageRef.current = sendMessage;
 
-  useEffect(function () {
-    globalSubscriptionCount++;
-    if (globalSubscriptionCount > 1) {
-      return function () { globalSubscriptionCount--; };
-    }
+  function isStaleStream(): boolean {
+    if (activeStreamGenerationRef.current !== getStreamGeneration()) return true;
+    const currentActiveId = getSessionStore().state.activeSessionId;
+    if (streamSessionIdRef.current && currentActiveId && streamSessionIdRef.current !== currentActiveId) return true;
+    return false;
+  }
 
-    function isStaleStream(): boolean {
-      if (activeStreamGenerationRef.current !== getStreamGeneration()) return true;
-      var currentActiveId = getSessionStore().state.activeSessionId;
-      if (streamSessionIdRef.current && currentActiveId && streamSessionIdRef.current !== currentActiveId) return true;
-      return false;
-    }
-
-    function handleUserMessage(msg: ServerMessage) {
+  globalHandlersRef.current = {
+    "chat:user_message": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as ChatUserMessage;
+      const m = msg as ChatUserMessage;
       setCurrentAssistantUuid(null);
-      var messages = getSessionStore().state.messages;
-      var last = messages.length > 0 ? messages[messages.length - 1] : null;
-      if (last && last.type === "user" && last.uuid && last.uuid.startsWith("optimistic-") && last.text === m.text) {
+      const messages = getSessionStore().state.messages;
+      const last = messages.length > 0 ? messages[messages.length - 1] : null;
+      const isOptimistic = last && last.type === "user" && last.uuid && (last.uuid.startsWith("optimistic-") || last.uuid.startsWith("spec-auto-")) && last.text === m.text;
+      if (isOptimistic) {
+        const wasSpecAuto = last!.uuid!.startsWith("spec-auto-");
         getSessionStore().setState(function (s) {
-          var updated = s.messages.slice();
-          updated[updated.length - 1] = { ...updated[updated.length - 1], uuid: m.uuid };
+          const updated = s.messages.slice();
+          updated[updated.length - 1] = { ...updated[updated.length - 1], uuid: wasSpecAuto ? "spec-auto-" + m.uuid : m.uuid };
           return { ...s, messages: updated };
         });
         return;
@@ -194,15 +208,14 @@ export function useSession(): UseSessionReturn {
         text: m.text,
         timestamp: Date.now(),
       } as HistoryMessage);
-    }
-
-    function handleDelta(msg: ServerMessage) {
+    },
+    "chat:delta": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as ChatDeltaMessage;
-      var uuid = getCurrentAssistantUuid();
+      const m = msg as ChatDeltaMessage;
+      const uuid = getCurrentAssistantUuid();
 
       if (!uuid) {
-        var newUuid = "assistant-" + Date.now();
+        const newUuid = "assistant-" + Date.now();
         setCurrentAssistantUuid(newUuid);
         addSessionMessage({
           type: "assistant",
@@ -213,18 +226,17 @@ export function useSession(): UseSessionReturn {
       } else {
         updateLastAssistantMessage(uuid, m.text);
       }
-    }
-
-    function handleToolStart(msg: ServerMessage) {
+    },
+    "chat:tool_start": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as ChatToolStartMessage;
+      const m = msg as ChatToolStartMessage;
       setCurrentAssistantUuid(null);
-      var existing = getSessionStore().state.messages.findLastIndex(function (msg) {
+      const existing = getSessionStore().state.messages.findLastIndex(function (msg) {
         return msg.toolId === m.toolId && msg.type === "tool_start";
       });
       if (existing >= 0) {
         getSessionStore().setState(function (s) {
-          var updated = s.messages.slice();
+          const updated = s.messages.slice();
           updated[existing] = { ...updated[existing], args: m.args };
           return { ...s, messages: updated };
         });
@@ -237,39 +249,36 @@ export function useSession(): UseSessionReturn {
           timestamp: Date.now(),
         } as HistoryMessage);
       }
-    }
-
-    function handleToolResult(msg: ServerMessage) {
+    },
+    "chat:tool_result": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as ChatToolResultMessage;
+      const m = msg as ChatToolResultMessage;
       updateToolResult(m.toolId, m.content);
-    }
-
-    function handleDone(msg: ServerMessage) {
+    },
+    "chat:done": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as { type: string; cost: number; duration: number; sessionId?: string };
+      const m = msg as { type: string; cost: number; duration: number; sessionId?: string };
       lastSentTextRef.current = null;
       setIsProcessing(false);
       setCurrentStatus(null);
       setCurrentAssistantUuid(null);
       setLastResponseStats(m.cost || 0, m.duration || 0);
-      var activeId = getSessionStore().state.activeSessionId;
+      const activeId = getSessionStore().state.activeSessionId;
       if (activeId) {
         markSessionRead(activeId, getSessionStore().state.messages.length);
       }
-      var queue = getSessionStore().state.messageQueue;
+      const queue = getSessionStore().state.messageQueue;
       if (queue.length > 0) {
-        var combined = queue.join("\n\n");
+        const combined = queue.join("\n\n");
         clearMessageQueue();
         setTimeout(function () {
           sendMessageRef.current(combined, [], lastUsedModelRef.current, lastUsedEffortRef.current);
         }, 100);
       }
-    }
-
-    function handleError(msg: ServerMessage) {
+    },
+    "chat:error": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as { type: string; message?: string };
+      const m = msg as { type: string; message?: string };
       if (m.message && m.message.includes("Sent before connected")) return;
       setIsProcessing(false);
       setCurrentStatus(null);
@@ -286,16 +295,14 @@ export function useSession(): UseSessionReturn {
           timestamp: Date.now(),
         } as HistoryMessage);
       }
-    }
-
-    function handleStatus(msg: ServerMessage) {
+    },
+    "chat:status": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as ChatStatusMessage;
+      const m = msg as ChatStatusMessage;
       setCurrentStatus({ phase: m.phase, toolName: m.toolName, elapsed: m.elapsed, summary: m.summary });
-    }
-
-    function handleContextUsage(msg: ServerMessage) {
-      var m = msg as ChatContextUsageMessage;
+    },
+    "chat:context_usage": function (msg: ServerMessage) {
+      const m = msg as ChatContextUsageMessage;
       setContextUsage({
         inputTokens: m.inputTokens,
         outputTokens: m.outputTokens,
@@ -303,20 +310,18 @@ export function useSession(): UseSessionReturn {
         cacheCreationTokens: m.cacheCreationTokens,
         contextWindow: m.contextWindow,
       });
-    }
-
-    function handleContextBreakdown(msg: ServerMessage) {
-      var m = msg as ChatContextBreakdownMessage;
+    },
+    "chat:context_breakdown": function (msg: ServerMessage) {
+      const m = msg as ChatContextBreakdownMessage;
       setContextBreakdown({
         segments: m.segments,
         contextWindow: m.contextWindow,
         autocompactAt: m.autocompactAt,
       });
-    }
-
-    function handlePermissionRequest(msg: ServerMessage) {
-      var m = msg as ChatPermissionRequestMessage;
-      var existing = getSessionStore().state.messages.findLastIndex(function (msg) {
+    },
+    "chat:permission_request": function (msg: ServerMessage) {
+      const m = msg as ChatPermissionRequestMessage;
+      const existing = getSessionStore().state.messages.findLastIndex(function (msg) {
         return msg.toolId === m.requestId && msg.type === "permission_request";
       });
       if (existing >= 0) return;
@@ -333,15 +338,13 @@ export function useSession(): UseSessionReturn {
         timestamp: Date.now(),
       } as HistoryMessage);
       incrementPendingPermissions();
-    }
-
-    function handlePermissionResolved(msg: ServerMessage) {
-      var m = msg as ChatPermissionResolvedMessage;
+    },
+    "chat:permission_resolved": function (msg: ServerMessage) {
+      const m = msg as ChatPermissionResolvedMessage;
       updatePermissionStatus(m.requestId, m.status);
-    }
-
-    function handleElicitationRequest(msg: ServerMessage) {
-      var m = msg as ChatElicitationRequestMessage;
+    },
+    "chat:elicitation_request": function (msg: ServerMessage) {
+      const m = msg as ChatElicitationRequestMessage;
       setCurrentAssistantUuid(null);
       addSessionMessage({
         type: "elicitation",
@@ -354,11 +357,10 @@ export function useSession(): UseSessionReturn {
         elicitationStatus: "pending",
         timestamp: Date.now(),
       } as HistoryMessage);
-    }
-
-    function handleHistoryPage(msg: ServerMessage) {
-      var m = msg as { type: string; sessionId: string; messages: HistoryMessage[]; hasMore: boolean; totalMessages?: number };
-      var state = getSessionStore().state;
+    },
+    "session:history_page_result": function (msg: ServerMessage) {
+      const m = msg as { type: string; sessionId: string; messages: HistoryMessage[]; hasMore: boolean; totalMessages?: number };
+      const state = getSessionStore().state;
       if (m.sessionId !== state.activeSessionId) return;
       getSessionStore().setState(function (s) {
         return {
@@ -368,19 +370,19 @@ export function useSession(): UseSessionReturn {
           historyTotalMessages: m.totalMessages ?? s.historyTotalMessages,
         };
       });
-    }
-
-    function handleLoadingProgress(msg: ServerMessage) {
-      var m = msg as { type: string; sessionId: string; fileSize: number | null };
+    },
+    "session:loading_progress": function (msg: ServerMessage) {
+      const m = msg as { type: string; sessionId: string; fileSize: number | null };
       if (m.sessionId !== getSessionStore().state.activeSessionId) return;
       getSessionStore().setState(function (s) { return { ...s, historyLoadingFileSize: m.fileSize }; });
-    }
-
-    function handleHistory(msg: ServerMessage) {
-      var m = msg as SessionHistoryMessage;
-      if (m.sessionId && m.messages && m.messages.length === 0 && m.title) {
+    },
+    "session:history": function (msg: ServerMessage) {
+      const m = msg as SessionHistoryMessage;
+      const currentState = getSessionStore().state;
+      const isStillLoading = currentState.activeSessionId === m.sessionId && currentState.historyLoading;
+      if (m.sessionId && m.messages && m.messages.length === 0 && m.title && !isStillLoading) {
         updateSessionTabTitle(m.sessionId, m.title);
-        if (m.sessionId === getSessionStore().state.activeSessionId) {
+        if (m.sessionId === currentState.activeSessionId) {
           getSessionStore().setState(function (s) { return { ...s, activeSessionTitle: m.title ?? s.activeSessionTitle }; });
         }
         return;
@@ -391,22 +393,24 @@ export function useSession(): UseSessionReturn {
           if (m.title) updateSessionTabTitle(m.sessionId, m.title);
           return;
         }
-        var projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
+        const projectSlug = m.projectSlug || getSessionStore().state.activeProjectSlug;
         setSidebarSessionId(m.sessionId);
         streamSessionIdRef.current = m.sessionId;
         if (m.title) {
           updateSessionTabTitle(m.sessionId, m.title);
         }
-        var currentState = getSessionStore().state;
-        var alreadyCached = currentState.activeSessionId === m.sessionId
+        const currentState = getSessionStore().state;
+        const alreadyCached = currentState.activeSessionId === m.sessionId
           && !currentState.historyLoading
           && currentState.messages.length > 0;
 
         if (alreadyCached) {
           getSessionStore().setState(function (state) {
+            const refreshed = m.messages && m.messages.length > 0 ? mergeToolResults(m.messages) : state.messages;
             return {
               ...state,
               activeSessionTitle: m.title ?? state.activeSessionTitle,
+              messages: refreshed,
               historyHasMore: m.hasMore || state.historyHasMore,
               historyTotalMessages: m.totalMessages || state.historyTotalMessages,
               wasInterrupted: m.interrupted || false,
@@ -434,7 +438,7 @@ export function useSession(): UseSessionReturn {
             };
           });
         }
-        var storedIndex = getLastReadIndex(m.sessionId);
+        const storedIndex = getLastReadIndex(m.sessionId);
         if (storedIndex >= 0 && storedIndex < m.messages.length) {
           setLastReadIndex(storedIndex);
         }
@@ -452,41 +456,32 @@ export function useSession(): UseSessionReturn {
           setSessionTitle(m.title);
         }
       }
-    }
-
-    function handlePromptSuggestion(msg: ServerMessage) {
-      var m = msg as ChatPromptSuggestionMessage;
+    },
+    "chat:prompt_suggestion": function (msg: ServerMessage) {
+      const m = msg as ChatPromptSuggestionMessage;
       setPromptSuggestion(m.suggestion);
-    }
-
-    function handlePromptRequest(msg: ServerMessage) {
+    },
+    "chat:prompt_request": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as { type: string; requestId: string; questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }> };
+      const m = msg as { type: string; requestId: string; questions: Array<{ question: string; header: string; options: Array<{ label: string; description: string; preview?: string }>; multiSelect: boolean }> };
       addPromptQuestion(m.requestId, m.questions);
-    }
-
-    function handlePromptResolved(_msg: ServerMessage) {
-      // No-op — client already updated state when it sent the response
-    }
-
-    function handleTodoUpdate(msg: ServerMessage) {
+    },
+    "chat:prompt_resolved": function () {},
+    "chat:todo_update": function (msg: ServerMessage) {
       if (isStaleStream()) return;
-      var m = msg as { type: string; todos: Array<{ id: string; content: string; status: string; priority: string }> };
+      const m = msg as { type: string; todos: Array<{ id: string; content: string; status: string; priority: string }> };
       addTodoUpdate(m.todos);
-    }
-
-    function handlePlanMode(msg: ServerMessage) {
-      var m = msg as { type: string; active: boolean };
+    },
+    "chat:plan_mode": function (msg: ServerMessage) {
+      const m = msg as { type: string; active: boolean };
       setIsPlanMode(m.active);
-    }
-
-    function handleBudgetStatus(msg: ServerMessage) {
-      var m = msg as { type: string; dailySpend: number; dailyLimit: number; enforcement: "warning" | "soft-block" | "hard-block" };
+    },
+    "budget:status": function (msg: ServerMessage) {
+      const m = msg as { type: string; dailySpend: number; dailyLimit: number; enforcement: "warning" | "soft-block" | "hard-block" };
       setBudgetStatus({ dailySpend: m.dailySpend, dailyLimit: m.dailyLimit, enforcement: m.enforcement });
-    }
-
-    function handleRateLimit(msg: ServerMessage) {
-      var m = msg as { type: string; status: "allowed" | "allowed_warning" | "rejected"; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean };
+    },
+    "chat:rate_limit": function (msg: ServerMessage) {
+      const m = msg as { type: string; status: "allowed" | "allowed_warning" | "rejected"; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean };
       if (!m.rateLimitType) return;
       updateRateLimit({
         status: m.status,
@@ -498,41 +493,34 @@ export function useSession(): UseSessionReturn {
         isUsingOverage: m.isUsingOverage,
         updatedAt: Date.now(),
       });
-    }
-
-    function handleBudgetExceeded(msg: ServerMessage) {
+    },
+    "budget:exceeded": function () {
       setBudgetExceeded(true);
       setIsProcessing(false);
       setCurrentStatus(null);
-    }
-
-    function handleContextToolDelta(msg: ServerMessage) {
-      var m = msg as ContextToolDeltaMessage & { hookSessionId?: string };
+    },
+    "context:tool_delta": function (msg: ServerMessage) {
+      const m = msg as ContextToolDeltaMessage & { hookSessionId?: string };
       addToolDelta({ toolId: m.toolId, toolName: m.toolName, delta: m.delta, timestamp: m.timestamp }, m.hookSessionId);
-    }
-
-    function handleContextAnomaly(msg: ServerMessage) {
-      var m = msg as ContextAnomalyMessage & { hookSessionId?: string };
+    },
+    "context:anomaly": function (msg: ServerMessage) {
+      const m = msg as ContextAnomalyMessage & { hookSessionId?: string };
       addAnomaly({ toolId: m.toolId, toolName: m.toolName, observed: m.observed, expected: m.expected, stddev: m.stddev, zScore: m.zScore, timestamp: m.timestamp }, m.hookSessionId);
-    }
-
-    function handleContextBaselines(msg: ServerMessage) {
-      var m = msg as ContextBaselineStatsMessage & { hookSessionId?: string };
+    },
+    "context:baseline_stats": function (msg: ServerMessage) {
+      const m = msg as ContextBaselineStatsMessage & { hookSessionId?: string };
       updateBaselines(m.tools, m.hookSessionId);
-    }
-
-    function handleContextBurnRate(msg: ServerMessage) {
-      var m = msg as ContextBurnRateMessage & { hookSessionId?: string };
+    },
+    "context:burn_rate": function (msg: ServerMessage) {
+      const m = msg as ContextBurnRateMessage & { hookSessionId?: string };
       updateBurnRate({ tokensPerMinute: m.tokensPerMinute, estimatedSecondsToCompact: m.estimatedSecondsToCompact, currentUsage: m.currentUsage, compactThreshold: m.compactThreshold }, m.hookSessionId);
-    }
-
-    function handleHooksStatus(msg: ServerMessage) {
-      var m = msg as ContextHooksStatusMessage;
+    },
+    "context:hooks_status": function (msg: ServerMessage) {
+      const m = msg as ContextHooksStatusMessage;
       setHooksStatus(m.installed, m.message);
-    }
-
-    function handleStatusline(msg: ServerMessage) {
-      var m = msg as ContextStatuslineMessage;
+    },
+    "context:statusline": function (msg: ServerMessage) {
+      const m = msg as ContextStatuslineMessage;
       updateExternalSession({
         hookSessionId: m.hookSessionId,
         inputTokens: m.inputTokens,
@@ -550,10 +538,9 @@ export function useSession(): UseSessionReturn {
         projectName: m.projectName || null,
         projectSlug: m.projectSlug || null,
       });
-    }
-
-    function handleToolEvent(msg: ServerMessage) {
-      var m = msg as ContextToolEventMessage;
+    },
+    "context:tool_event": function (msg: ServerMessage) {
+      const m = msg as ContextToolEventMessage;
       addToolEvent({
         hookSessionId: m.hookSessionId,
         toolName: m.toolName,
@@ -563,84 +550,52 @@ export function useSession(): UseSessionReturn {
         estimatedTotalTokens: m.estimatedTotalTokens,
         timestamp: m.timestamp,
       }, m.hookSessionId, m.projectName, m.projectSlug);
-    }
-
-    function handleSessionEvent(msg: ServerMessage) {
-      var m = msg as ContextSessionEventMessage;
+    },
+    "context:session_started": function (msg: ServerMessage) {
+      const m = msg as ContextSessionEventMessage;
       if (m.type === "context:session_ended") {
         markExternalSessionEnded(m.hookSessionId);
       }
+    },
+    "context:session_ended": function (msg: ServerMessage) {
+      const m = msg as ContextSessionEventMessage;
+      if (m.type === "context:session_ended") {
+        markExternalSessionEnded(m.hookSessionId);
+      }
+    },
+    "context:compact": function () {},
+  };
+
+  const MESSAGE_TYPES = [
+    "session:loading_progress", "chat:user_message", "chat:delta", "chat:tool_start",
+    "chat:tool_result", "chat:done", "chat:error", "chat:permission_request",
+    "chat:permission_resolved", "chat:status", "chat:context_usage", "chat:context_breakdown",
+    "session:history", "session:history_page_result", "chat:prompt_suggestion",
+    "chat:prompt_request", "chat:prompt_resolved", "chat:todo_update", "chat:plan_mode",
+    "budget:status", "budget:exceeded", "chat:elicitation_request", "chat:rate_limit",
+    "context:tool_delta", "context:anomaly", "context:baseline_stats", "context:burn_rate",
+    "context:hooks_status", "context:statusline", "context:tool_event",
+    "context:session_started", "context:session_ended", "context:compact",
+  ];
+
+  useEffect(function () {
+    globalSubscriptionCount++;
+    if (globalSubscriptionCount > 1) {
+      return function () { globalSubscriptionCount--; };
     }
 
-    subscribe("session:loading_progress", handleLoadingProgress);
-    subscribe("chat:user_message", handleUserMessage);
-    subscribe("chat:delta", handleDelta);
-    subscribe("chat:tool_start", handleToolStart);
-    subscribe("chat:tool_result", handleToolResult);
-    subscribe("chat:done", handleDone);
-    subscribe("chat:error", handleError);
-    subscribe("chat:permission_request", handlePermissionRequest);
-    subscribe("chat:permission_resolved", handlePermissionResolved);
-    subscribe("chat:status", handleStatus);
-    subscribe("chat:context_usage", handleContextUsage);
-    subscribe("chat:context_breakdown", handleContextBreakdown);
-    subscribe("session:history", handleHistory);
-    subscribe("session:history_page_result", handleHistoryPage);
-    subscribe("chat:prompt_suggestion", handlePromptSuggestion);
-    subscribe("chat:prompt_request", handlePromptRequest);
-    subscribe("chat:prompt_resolved", handlePromptResolved);
-    subscribe("chat:todo_update", handleTodoUpdate);
-    subscribe("chat:plan_mode", handlePlanMode);
-    subscribe("budget:status", handleBudgetStatus);
-    subscribe("budget:exceeded", handleBudgetExceeded);
-    subscribe("chat:elicitation_request", handleElicitationRequest);
-    subscribe("chat:rate_limit", handleRateLimit);
-    subscribe("context:tool_delta", handleContextToolDelta);
-    subscribe("context:anomaly", handleContextAnomaly);
-    subscribe("context:baseline_stats", handleContextBaselines);
-    subscribe("context:burn_rate", handleContextBurnRate);
-    subscribe("context:hooks_status", handleHooksStatus);
-    subscribe("context:statusline", handleStatusline);
-    subscribe("context:tool_event", handleToolEvent);
-    subscribe("context:session_started", handleSessionEvent);
-    subscribe("context:session_ended", handleSessionEvent);
-    subscribe("context:compact", handleSessionEvent);
+    for (let i = 0; i < MESSAGE_TYPES.length; i++) {
+      subscribe(MESSAGE_TYPES[i], getDispatch(MESSAGE_TYPES[i]));
+    }
 
     return function () {
       globalSubscriptionCount--;
-      unsubscribe("session:loading_progress", handleLoadingProgress);
-      unsubscribe("chat:user_message", handleUserMessage);
-      unsubscribe("chat:delta", handleDelta);
-      unsubscribe("chat:tool_start", handleToolStart);
-      unsubscribe("chat:tool_result", handleToolResult);
-      unsubscribe("chat:done", handleDone);
-      unsubscribe("chat:error", handleError);
-      unsubscribe("chat:permission_request", handlePermissionRequest);
-      unsubscribe("chat:permission_resolved", handlePermissionResolved);
-      unsubscribe("chat:status", handleStatus);
-      unsubscribe("chat:context_usage", handleContextUsage);
-      unsubscribe("chat:context_breakdown", handleContextBreakdown);
-      unsubscribe("session:history", handleHistory);
-      unsubscribe("session:history_page_result", handleHistoryPage);
-      unsubscribe("chat:prompt_suggestion", handlePromptSuggestion);
-      unsubscribe("chat:prompt_request", handlePromptRequest);
-      unsubscribe("chat:prompt_resolved", handlePromptResolved);
-      unsubscribe("chat:todo_update", handleTodoUpdate);
-      unsubscribe("chat:plan_mode", handlePlanMode);
-      unsubscribe("budget:status", handleBudgetStatus);
-      unsubscribe("budget:exceeded", handleBudgetExceeded);
-      unsubscribe("chat:elicitation_request", handleElicitationRequest);
-      unsubscribe("chat:rate_limit", handleRateLimit);
-      unsubscribe("context:tool_delta", handleContextToolDelta);
-      unsubscribe("context:anomaly", handleContextAnomaly);
-      unsubscribe("context:baseline_stats", handleContextBaselines);
-      unsubscribe("context:burn_rate", handleContextBurnRate);
-      unsubscribe("context:hooks_status", handleHooksStatus);
-      unsubscribe("context:statusline", handleStatusline);
-      unsubscribe("context:tool_event", handleToolEvent);
-      unsubscribe("context:session_started", handleSessionEvent);
-      unsubscribe("context:session_ended", handleSessionEvent);
-      unsubscribe("context:compact", handleSessionEvent);
+      if (globalSubscriptionCount === 0) {
+        for (let i = 0; i < MESSAGE_TYPES.length; i++) {
+          unsubscribe(MESSAGE_TYPES[i], getDispatch(MESSAGE_TYPES[i]));
+        }
+        globalHandlersRef.current = null;
+      }
     };
   }, [subscribe, unsubscribe]);
 
@@ -694,5 +649,7 @@ export function useSession(): UseSessionReturn {
     },
     rateLimits: state.rateLimits,
     pendingSystemPrompt: state.pendingSystemPrompt,
+    pendingAutoSend: state.pendingAutoSend,
+    specContext: state.specContext,
   };
 }

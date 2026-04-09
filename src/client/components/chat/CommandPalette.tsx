@@ -22,7 +22,7 @@ function matchesQuery(q: string, cmd: SlashCommand): boolean {
   if (cmd.name.toLowerCase().includes(q)) return true;
   if (cmd.description.toLowerCase().includes(q)) return true;
   if (cmd.aliases) {
-    for (var i = 0; i < cmd.aliases.length; i++) {
+    for (let i = 0; i < cmd.aliases.length; i++) {
       if (cmd.aliases[i].toLowerCase().includes(q)) return true;
     }
   }
@@ -30,12 +30,12 @@ function matchesQuery(q: string, cmd: SlashCommand): boolean {
 }
 
 export function getFilteredItems(query: string, skills: SkillInfo[]): PaletteItem[] {
-  var q = query.toLowerCase();
-  var commands: PaletteItem[] = [];
-  var skillItems: PaletteItem[] = [];
+  const q = query.toLowerCase();
+  const commands: PaletteItem[] = [];
+  const skillItems: PaletteItem[] = [];
 
-  for (var i = 0; i < builtinCommands.length; i++) {
-    var cmd = builtinCommands[i];
+  for (let i = 0; i < builtinCommands.length; i++) {
+    const cmd = builtinCommands[i];
     if (matchesQuery(q, cmd)) {
       commands.push({
         name: cmd.name,
@@ -47,8 +47,8 @@ export function getFilteredItems(query: string, skills: SkillInfo[]): PaletteIte
     }
   }
 
-  for (var j = 0; j < skills.length; j++) {
-    var skill = skills[j];
+  for (let j = 0; j < skills.length; j++) {
+    const skill = skills[j];
     if (skill.name.toLowerCase().includes(q) || skill.description.toLowerCase().includes(q)) {
       skillItems.push({
         name: skill.name,
@@ -67,7 +67,7 @@ export function getItemCount(query: string, skills: SkillInfo[]): number {
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
-  var items = useMemo(function () {
+  const items = useMemo(function () {
     return getFilteredItems(props.query, props.skills);
   }, [props.query, props.skills]);
 
@@ -85,9 +85,9 @@ export function CommandPalette(props: CommandPaletteProps) {
     );
   }
 
-  var commandItems: PaletteItem[] = [];
-  var skillItems: PaletteItem[] = [];
-  for (var i = 0; i < items.length; i++) {
+  const commandItems: PaletteItem[] = [];
+  const skillItems: PaletteItem[] = [];
+  for (let i = 0; i < items.length; i++) {
     if (items[i].category === "command") {
       commandItems.push(items[i]);
     } else {
@@ -95,10 +95,10 @@ export function CommandPalette(props: CommandPaletteProps) {
     }
   }
 
-  var globalIndex = 0;
+  let globalIndex = 0;
 
   function renderItem(item: PaletteItem, idx: number) {
-    var currentIndex = idx;
+    const currentIndex = idx;
     return (
       <button
         key={item.name}
@@ -124,7 +124,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     );
   }
 
-  var elements: React.ReactNode[] = [];
+  const elements: React.ReactNode[] = [];
 
   if (commandItems.length > 0) {
     elements.push(
@@ -132,7 +132,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         Commands
       </div>
     );
-    for (var ci = 0; ci < commandItems.length; ci++) {
+    for (let ci = 0; ci < commandItems.length; ci++) {
       elements.push(renderItem(commandItems[ci], globalIndex));
       globalIndex++;
     }
@@ -144,7 +144,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         Skills
       </div>
     );
-    for (var si = 0; si < skillItems.length; si++) {
+    for (let si = 0; si < skillItems.length; si++) {
       elements.push(renderItem(skillItems[si], globalIndex));
       globalIndex++;
     }

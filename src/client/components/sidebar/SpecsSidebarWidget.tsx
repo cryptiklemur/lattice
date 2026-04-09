@@ -3,11 +3,11 @@ import { ChevronDown } from "lucide-react";
 import type { Spec, SpecStatus, ServerMessage } from "#shared";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useSidebar } from "../../hooks/useSidebar";
-import { openTab } from "../../stores/workspace";
+import { openSpecById } from "../../stores/workspace";
 import { getSidebarStore } from "../../stores/sidebar";
 import { STATUS_DOT, PRIORITY_COLOR, STATUS_LABELS, PRIORITY_LABELS } from "../workspace/specs/spec-constants";
 
-var STATUS_ABBREV: Record<SpecStatus, string> = {
+const STATUS_ABBREV: Record<SpecStatus, string> = {
   "draft": "DFT",
   "in-progress": "WIP",
   "on-hold": "HOLD",
@@ -15,12 +15,12 @@ var STATUS_ABBREV: Record<SpecStatus, string> = {
 };
 
 export function SpecsSidebarWidget() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { activeProjectSlug } = useSidebar();
-  var [specs, setSpecs] = useState<Spec[]>([]);
-  var [collapsed, setCollapsed] = useState(false);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { activeProjectSlug } = useSidebar();
+  const [specs, setSpecs] = useState<Spec[]>([]);
+  const [collapsed, setCollapsed] = useState(false);
 
-  var handleMessage = useCallback(function (msg: ServerMessage) {
+  const handleMessage = useCallback(function (msg: ServerMessage) {
     if (msg.type === "specs:list_result") {
       setSpecs(msg.specs);
       return;
@@ -61,13 +61,13 @@ export function SpecsSidebarWidget() {
     };
   }, [send, subscribe, unsubscribe, handleMessage, activeProjectSlug]);
 
-  var activeSpecs = specs.filter(function (s) { return s.status !== "completed"; });
+  const activeSpecs = specs.filter(function (s) { return s.status !== "completed"; });
 
   if (activeSpecs.length === 0) return null;
 
-  function handleSpecClick() {
-    openTab("specs");
-    var state = getSidebarStore().state;
+  function handleSpecClick(specId: string) {
+    openSpecById(specId);
+    const state = getSidebarStore().state;
     if (state.activeView.type !== "chat") {
       getSidebarStore().setState(function (s) {
         return { ...s, activeView: { type: "chat" } };
@@ -93,7 +93,7 @@ export function SpecsSidebarWidget() {
               <button
                 key={spec.id}
                 type="button"
-                onClick={handleSpecClick}
+                onClick={function () { handleSpecClick(spec.id); }}
                 className="flex items-center gap-2 px-2 py-1 rounded-lg text-left hover:bg-base-content/5 transition-colors w-full"
               >
                 <span className={"w-2 h-2 rounded-full flex-shrink-0 " + STATUS_DOT[spec.status]} title={STATUS_LABELS[spec.status]} />

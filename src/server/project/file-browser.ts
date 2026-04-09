@@ -2,11 +2,11 @@ import { readdir, readFile as fsReadFile, stat, writeFile as fsWriteFile } from 
 import { join, resolve, relative } from "node:path";
 import type { FileEntry } from "#shared";
 
-var MAX_FILE_SIZE = 512 * 1024;
+const MAX_FILE_SIZE = 512 * 1024;
 
 export function validatePath(projectPath: string, relativePath: string): string | null {
-  var resolved = resolve(projectPath, relativePath);
-  var normalizedRoot = resolve(projectPath);
+  const resolved = resolve(projectPath, relativePath);
+  const normalizedRoot = resolve(projectPath);
   if (!resolved.startsWith(normalizedRoot + "/") && resolved !== normalizedRoot) {
     return null;
   }
@@ -14,28 +14,28 @@ export function validatePath(projectPath: string, relativePath: string): string 
 }
 
 export async function listDirectory(projectPath: string, relativePath: string): Promise<FileEntry[]> {
-  var fullPath = validatePath(projectPath, relativePath);
+  const fullPath = validatePath(projectPath, relativePath);
   if (!fullPath) {
     return [];
   }
 
-  var entries: FileEntry[] = [];
-  var names: string[];
+  const entries: FileEntry[] = [];
+  let names: string[];
   try {
     names = await readdir(fullPath);
   } catch {
     return [];
   }
 
-  for (var i = 0; i < names.length; i++) {
-    var name = names[i];
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
     if (name.startsWith(".")) {
       continue;
     }
-    var entryFull = join(fullPath, name);
+    const entryFull = join(fullPath, name);
     try {
-      var entryStat = await stat(entryFull);
-      var entryRelative = relative(projectPath, entryFull);
+      const entryStat = await stat(entryFull);
+      const entryRelative = relative(projectPath, entryFull);
       entries.push({
         name: name,
         path: entryRelative,
@@ -58,12 +58,12 @@ export async function listDirectory(projectPath: string, relativePath: string): 
 }
 
 export async function readFile(projectPath: string, relativePath: string): Promise<string | null> {
-  var fullPath = validatePath(projectPath, relativePath);
+  const fullPath = validatePath(projectPath, relativePath);
   if (!fullPath) {
     return null;
   }
 
-  var fileStat: Awaited<ReturnType<typeof stat>>;
+  let fileStat: Awaited<ReturnType<typeof stat>>;
   try {
     fileStat = await stat(fullPath);
   } catch {
@@ -74,15 +74,15 @@ export async function readFile(projectPath: string, relativePath: string): Promi
     return null;
   }
 
-  var buf: Buffer;
+  let buf: Buffer;
   try {
     buf = await fsReadFile(fullPath);
   } catch {
     return null;
   }
 
-  for (var i = 0; i < Math.min(buf.length, 8192); i++) {
-    var byte = buf[i];
+  for (let i = 0; i < Math.min(buf.length, 8192); i++) {
+    const byte = buf[i];
     if (byte === 0) {
       return null;
     }
@@ -92,7 +92,7 @@ export async function readFile(projectPath: string, relativePath: string): Promi
 }
 
 export async function writeFile(projectPath: string, relativePath: string, content: string): Promise<boolean> {
-  var fullPath = validatePath(projectPath, relativePath);
+  const fullPath = validatePath(projectPath, relativePath);
   if (!fullPath) {
     return false;
   }

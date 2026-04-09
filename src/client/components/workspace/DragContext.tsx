@@ -9,7 +9,7 @@ interface DragState {
   endDrag: () => void;
 }
 
-var DragCtx = createContext<DragState>({
+const DragCtx = createContext<DragState>({
   draggedTabId: null,
   sourcePaneId: null,
   isDragging: false,
@@ -18,15 +18,15 @@ var DragCtx = createContext<DragState>({
 });
 
 export function DragProvider({ children }: { children: ReactNode }) {
-  var [draggedTabId, setDraggedTabId] = useState<string | null>(null);
-  var [sourcePaneId, setSourcePaneId] = useState<string | null>(null);
+  const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
+  const [sourcePaneId, setSourcePaneId] = useState<string | null>(null);
 
-  var startDrag = useCallback(function (tabId: string, paneId: string) {
+  const startDrag = useCallback(function (tabId: string, paneId: string) {
     setDraggedTabId(tabId);
     setSourcePaneId(paneId);
   }, []);
 
-  var endDrag = useCallback(function () {
+  const endDrag = useCallback(function () {
     setDraggedTabId(null);
     setSourcePaneId(null);
   }, []);

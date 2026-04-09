@@ -9,17 +9,17 @@ interface RuleEntry {
 }
 
 export function GlobalRules() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [rules, setRules] = useState<RuleEntry[]>([]);
-  var [claudeMd, setClaudeMd] = useState("");
-  var [expanded, setExpanded] = useState<Set<number>>(new Set());
-  var [claudeMdExpanded, setClaudeMdExpanded] = useState(false);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [rules, setRules] = useState<RuleEntry[]>([]);
+  const [claudeMd, setClaudeMd] = useState("");
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [claudeMdExpanded, setClaudeMdExpanded] = useState(false);
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
       if (msg.type !== "settings:data") return;
-      var data = msg as SettingsDataMessage;
-      var cfg = data.config as unknown as Record<string, unknown>;
+      const data = msg as SettingsDataMessage;
+      const cfg = data.config as unknown as Record<string, unknown>;
       setClaudeMd(cfg.claudeMd ? String(cfg.claudeMd) : "");
       setRules(data.globalRules ?? []);
     }
@@ -34,7 +34,7 @@ export function GlobalRules() {
 
   function toggle(idx: number) {
     setExpanded(function (prev) {
-      var next = new Set(prev);
+      const next = new Set(prev);
       if (next.has(idx)) {
         next.delete(idx);
       } else {
@@ -45,7 +45,7 @@ export function GlobalRules() {
   }
 
   function preview(content: string): string {
-    var trimmed = content.trim();
+    const trimmed = content.trim();
     if (trimmed.length <= 80) return trimmed;
     return trimmed.slice(0, 80) + "...";
   }
@@ -97,7 +97,6 @@ export function GlobalRules() {
           </div>
         )}
       </div>
-
       <div>
         <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Global Rules
@@ -113,7 +112,7 @@ export function GlobalRules() {
         {rules.length > 0 && (
           <div className="flex flex-col gap-1.5">
             {rules.map(function (rule, idx) {
-              var isExpanded = expanded.has(idx);
+              const isExpanded = expanded.has(idx);
               return (
                 <div key={rule.filename + "-" + idx} className="border border-base-content/10 rounded-xl overflow-hidden">
                   <button

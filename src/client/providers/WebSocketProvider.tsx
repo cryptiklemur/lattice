@@ -12,26 +12,26 @@ interface WebSocketProviderProps {
   children: ReactNode;
 }
 
-var MAX_BACKOFF = 30000;
-var MAX_QUEUE_SIZE = 100;
+const MAX_BACKOFF = 30000;
+const MAX_QUEUE_SIZE = 100;
 
 export function WebSocketProvider(props: WebSocketProviderProps) {
-  var [status, setStatus] = useState<WebSocketStatus>("connecting");
-  var wsRef = useRef<WebSocket | null>(null);
-  var backoffRef = useRef<number>(1000);
-  var retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var unmountedRef = useRef<boolean>(false);
-  var listenersRef = useRef<Map<string, Set<(msg: ServerMessage) => void>>>(new Map());
-  var hasConnectedRef = useRef<boolean>(false);
-  var outgoingQueueRef = useRef<ClientMessage[]>([]);
+  const [status, setStatus] = useState<WebSocketStatus>("connecting");
+  const wsRef = useRef<WebSocket | null>(null);
+  const backoffRef = useRef<number>(1000);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmountedRef = useRef<boolean>(false);
+  const listenersRef = useRef<Map<string, Set<(msg: ServerMessage) => void>>>(new Map());
+  const hasConnectedRef = useRef<boolean>(false);
+  const outgoingQueueRef = useRef<ClientMessage[]>([]);
 
   function connect() {
     if (unmountedRef.current) {
       return;
     }
 
-    var url = getWebSocketUrl();
-    var ws = new WebSocket(url);
+    const url = getWebSocketUrl();
+    const ws = new WebSocket(url);
     wsRef.current = ws;
     setStatus("connecting");
 
@@ -47,7 +47,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
         sendNotification("Lattice", "Reconnected to daemon", "connection");
         ws.send(JSON.stringify({ type: "settings:get" }));
 
-        var sessionState = getSessionStore().state;
+        const sessionState = getSessionStore().state;
         if (sessionState.activeProjectSlug && sessionState.activeSessionId) {
           ws.send(JSON.stringify({
             type: "session:activate",
@@ -58,7 +58,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
       }
       hasConnectedRef.current = true;
       ws.send(JSON.stringify({ type: "brainstorm:status_request" }));
-      var queued = outgoingQueueRef.current;
+      const queued = outgoingQueueRef.current;
       outgoingQueueRef.current = [];
       queued.forEach(function (msg) {
         ws.send(JSON.stringify(msg));
@@ -67,11 +67,11 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
 
     ws.onmessage = function (event: MessageEvent) {
       try {
-        var msg = JSON.parse(event.data as string) as ServerMessage;
+        const msg = JSON.parse(event.data as string) as ServerMessage;
 
         if (msg.type === "chat:done" && document.hidden) {
-          var sessionState = getSessionStore().state;
-          var sessionTitle = sessionState.activeSessionTitle || "Session";
+          const sessionState = getSessionStore().state;
+          const sessionTitle = sessionState.activeSessionTitle || "Session";
           sendNotification("Claude responded", sessionTitle, "chat-done");
         }
 
@@ -83,7 +83,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
           sendNotification("Lattice", (msg as any).nodeId + " went offline", "mesh");
         }
 
-        var listeners = listenersRef.current.get(msg.type);
+        const listeners = listenersRef.current.get(msg.type);
         if (listeners) {
           listeners.forEach(function (cb) {
             cb(msg);
@@ -116,7 +116,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
     if (unmountedRef.current) {
       return;
     }
-    var delay = backoffRef.current;
+    const delay = backoffRef.current;
     retryTimerRef.current = setTimeout(function () {
       backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF);
       connect();
@@ -137,7 +137,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
   }
 
   function send(msg: ClientMessage) {
-    var ws = wsRef.current;
+    const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
     } else {
@@ -148,24 +148,24 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
     }
   }
 
-  function subscribe(type: string, callback: (msg: ServerMessage) => void) {
-    var listeners = listenersRef.current.get(type);
+  const subscribe = useRef(function (type: string, callback: (msg: ServerMessage) => void) {
+    let listeners = listenersRef.current.get(type);
     if (!listeners) {
       listeners = new Set();
       listenersRef.current.set(type, listeners);
     }
     listeners.add(callback);
-  }
+  }).current;
 
-  function unsubscribe(type: string, callback: (msg: ServerMessage) => void) {
-    var listeners = listenersRef.current.get(type);
+  const unsubscribe = useRef(function (type: string, callback: (msg: ServerMessage) => void) {
+    const listeners = listenersRef.current.get(type);
     if (listeners) {
       listeners.delete(callback);
       if (listeners.size === 0) {
         listenersRef.current.delete(type);
       }
     }
-  }
+  }).current;
 
   useEffect(function () {
     function handleBrainstormContent() {
@@ -178,7 +178,7 @@ export function WebSocketProvider(props: WebSocketProviderProps) {
     }
     subscribe("brainstorm:content", handleBrainstormContent);
     subscribe("brainstorm:status", handleBrainstormStatus);
-    var unregisterTabClose = onTabClose(function (tab) {
+    const unregisterTabClose = onTabClose(function (tab) {
       if (tab.type === "brainstorm") {
         send({ type: "brainstorm:stop" } as ClientMessage);
       }

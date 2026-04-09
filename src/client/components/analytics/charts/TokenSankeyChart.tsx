@@ -13,7 +13,7 @@ interface TokenSankeyChartProps {
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { source?: { name: string }; target?: { name: string }; value?: number; name?: string } }> }) {
   if (!active || !payload || payload.length === 0) return null;
-  var d = payload[0].payload;
+  const d = payload[0].payload;
   if (d.source && d.target) {
     return (
       <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg">
@@ -34,8 +34,8 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 function SankeyNode({ x, y, width, height, index, payload }: { x: number; y: number; width: number; height: number; index: number; payload: { name: string } }) {
-  var colors = getChartColors();
-  var NODE_COLORS: Record<string, string> = {
+  const colors = getChartColors();
+  const NODE_COLORS: Record<string, string> = {
     "Input Tokens": colors.primary,
     "Cache Read": colors.warning,
     "Cache Creation": colors.accent,
@@ -45,7 +45,7 @@ function SankeyNode({ x, y, width, height, index, payload }: { x: number; y: num
     "Other": colors.warning,
     "Output Tokens": colors.success,
   };
-  var color = NODE_COLORS[payload.name] || colors.primary;
+  const color = NODE_COLORS[payload.name] || colors.primary;
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} fill={color} fillOpacity={0.85} rx={2} />
@@ -66,8 +66,8 @@ function SankeyNode({ x, y, width, height, index, payload }: { x: number; y: num
 }
 
 export function TokenSankeyChart({ data }: TokenSankeyChartProps) {
-  var fullscreenHeight = useChartFullscreen();
-  var colors = getChartColors();
+  const fullscreenHeight = useChartFullscreen();
+  const colors = getChartColors();
   if (!data.links || data.links.length === 0) {
     return (
       <div className="flex items-center justify-center h-[250px] text-base-content/30 font-mono text-[12px]">

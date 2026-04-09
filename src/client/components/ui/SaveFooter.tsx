@@ -12,8 +12,8 @@ interface SaveFooterProps {
 }
 
 export function SaveFooter({ dirty, saving, saveState, onSave, extraStatus }: SaveFooterProps) {
-  var disabled = saving || (!dirty && saveState !== "error");
-  var prevStateRef = useRef<SaveState>("idle");
+  const disabled = saving || (!dirty && saveState !== "error");
+  const prevStateRef = useRef<SaveState>("idle");
 
   useEffect(function () {
     if (prevStateRef.current !== saveState) {

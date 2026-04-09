@@ -5,25 +5,25 @@ import { homedir } from "node:os";
 import type { Spec } from "#shared";
 import { log } from "../logger";
 
-var TRACKED_SKILLS = [
+const TRACKED_SKILLS = [
   "brainstorming",
   "writing-plans",
   "subagent-driven-development",
   "executing-plans",
 ];
 
-var installed = false;
-var version: string | null = null;
-var installPath: string | null = null;
-var skillContent = new Map<string, string>();
-var watcher: FSWatcher | null = null;
+let installed = false;
+let version: string | null = null;
+let installPath: string | null = null;
+const skillContent = new Map<string, string>();
+let watcher: FSWatcher | null = null;
 
 function getPluginsFilePath(): string {
   return join(homedir(), ".claude", "plugins", "installed_plugins.json");
 }
 
 function detectSuperpowers(): void {
-  var pluginsFile = getPluginsFilePath();
+  const pluginsFile = getPluginsFilePath();
   if (!existsSync(pluginsFile)) {
     installed = false;
     version = null;
@@ -33,16 +33,16 @@ function detectSuperpowers(): void {
   }
 
   try {
-    var raw = readFileSync(pluginsFile, "utf-8");
-    var data = JSON.parse(raw);
-    var plugins = data.plugins || {};
+    const raw = readFileSync(pluginsFile, "utf-8");
+    const data = JSON.parse(raw);
+    const plugins = data.plugins || {};
 
-    var found = false;
-    for (var key of Object.keys(plugins)) {
+    let found = false;
+    for (const key of Object.keys(plugins)) {
       if (key.startsWith("superpowers@")) {
-        var entries = plugins[key];
+        const entries = plugins[key];
         if (Array.isArray(entries) && entries.length > 0) {
-          var entry = entries[0];
+          const entry = entries[0];
           installed = true;
           version = entry.version || null;
           installPath = entry.installPath || null;
@@ -74,11 +74,11 @@ function loadSkills(): void {
   skillContent.clear();
   if (!installPath) return;
 
-  for (var name of TRACKED_SKILLS) {
-    var skillPath = join(installPath, "skills", name, "SKILL.md");
+  for (const name of TRACKED_SKILLS) {
+    const skillPath = join(installPath, "skills", name, "SKILL.md");
     if (existsSync(skillPath)) {
       try {
-        var content = readFileSync(skillPath, "utf-8");
+        const content = readFileSync(skillPath, "utf-8");
         skillContent.set(name, content);
       } catch (err) {
         log.superpowers("Failed to read skill %s: %O", name, err);
@@ -92,7 +92,7 @@ function loadSkills(): void {
 export function initSuperpowers(): void {
   detectSuperpowers();
 
-  var pluginsDir = join(homedir(), ".claude", "plugins");
+  const pluginsDir = join(homedir(), ".claude", "plugins");
   if (existsSync(pluginsDir)) {
     try {
       watcher = watch(pluginsDir, function (_eventType, filename) {
@@ -123,10 +123,10 @@ export function getAvailableSkills(): string[] {
 }
 
 export function buildBrainstormPrompt(spec: Spec, projectSlug: string): string {
-  var content = getSkillContent("brainstorming");
+  const content = getSkillContent("brainstorming");
   if (!content) return "";
 
-  var append = content + "\n\n---\n\n";
+  let append = content + "\n\n---\n\n";
   append += "## Lattice Integration Instructions\n\n";
   append += "You are helping design a spec in the Lattice project management tool.\n\n";
   append += "**Project:** " + projectSlug + "\n";
@@ -151,10 +151,10 @@ export function buildBrainstormPrompt(spec: Spec, projectSlug: string): string {
 }
 
 export function buildWritePlanPrompt(spec: Spec, projectSlug: string): string {
-  var content = getSkillContent("writing-plans");
+  const content = getSkillContent("writing-plans");
   if (!content) return "";
 
-  var append = content + "\n\n---\n\n";
+  let append = content + "\n\n---\n\n";
   append += "## Lattice Integration Instructions\n\n";
   append += "You are writing an implementation plan for a spec in Lattice.\n\n";
   append += "**Project:** " + projectSlug + "\n";
@@ -171,10 +171,10 @@ export function buildWritePlanPrompt(spec: Spec, projectSlug: string): string {
 }
 
 export function buildExecutePrompt(spec: Spec, projectSlug: string): string {
-  var content = getSkillContent("subagent-driven-development") || getSkillContent("executing-plans");
+  const content = getSkillContent("subagent-driven-development") || getSkillContent("executing-plans");
   if (!content) return "";
 
-  var append = content + "\n\n---\n\n";
+  let append = content + "\n\n---\n\n";
   append += "## Lattice Integration Instructions\n\n";
   append += "You are executing an implementation plan from a Lattice spec.\n\n";
   append += "**Project:** " + projectSlug + "\n";

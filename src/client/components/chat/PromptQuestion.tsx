@@ -8,31 +8,31 @@ interface PromptQuestionProps {
   message: HistoryMessage;
 }
 
-var LETTERS = ["A", "B", "C", "D"];
+const LETTERS = ["A", "B", "C", "D"];
 
 export function PromptQuestion(props: PromptQuestionProps) {
-  var msg = props.message;
-  var { send } = useWebSocket();
-  var [otherText, setOtherText] = useState("");
-  var [selectedMulti, setSelectedMulti] = useState<Set<string>>(new Set());
-  var [focusIndex, setFocusIndex] = useState(-1);
-  var [expanded, setExpanded] = useState(false);
-  var optionsRef = useRef<HTMLDivElement>(null);
+  const msg = props.message;
+  const { send } = useWebSocket();
+  const [otherText, setOtherText] = useState("");
+  const [selectedMulti, setSelectedMulti] = useState<Set<string>>(new Set());
+  const [focusIndex, setFocusIndex] = useState(-1);
+  const [expanded, setExpanded] = useState(false);
+  const optionsRef = useRef<HTMLDivElement>(null);
 
-  var questions = msg.promptQuestions || [];
-  var answers = msg.promptAnswers;
-  var status = msg.promptStatus || "pending";
-  var requestId = msg.toolId || "";
+  const questions = msg.promptQuestions || [];
+  const answers = msg.promptAnswers;
+  const status = msg.promptStatus || "pending";
+  const requestId = msg.toolId || "";
 
   useEffect(function () {
     if (status === "pending" && optionsRef.current) {
-      var firstBtn = optionsRef.current.querySelector("button");
+      const firstBtn = optionsRef.current.querySelector("button");
       if (firstBtn) firstBtn.focus();
     }
   }, [status]);
 
   function submitAnswer(questionText: string, answer: string) {
-    var answerMap: Record<string, string> = {};
+    const answerMap: Record<string, string> = {};
     answerMap[questionText] = answer;
     resolvePromptQuestion(requestId, answerMap);
     send({
@@ -43,7 +43,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
   }
 
   function submitMultiSelect(questionText: string) {
-    var parts = Array.from(selectedMulti);
+    const parts = Array.from(selectedMulti);
     if (otherText.trim()) parts.push(otherText.trim());
     submitAnswer(questionText, parts.join(", "));
   }
@@ -56,16 +56,16 @@ export function PromptQuestion(props: PromptQuestionProps) {
   function handleKeyDown(e: React.KeyboardEvent, optionCount: number, q: { question: string; multiSelect: boolean }, options: Array<{ label: string }>) {
     if (e.key === "ArrowDown" || e.key === "ArrowRight") {
       e.preventDefault();
-      var next = focusIndex < optionCount - 1 ? focusIndex + 1 : 0;
+      const next = focusIndex < optionCount - 1 ? focusIndex + 1 : 0;
       setFocusIndex(next);
-      var btns = optionsRef.current?.querySelectorAll("[data-option]");
+      const btns = optionsRef.current?.querySelectorAll("[data-option]");
       if (btns && btns[next]) (btns[next] as HTMLElement).focus();
     }
     if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
       e.preventDefault();
-      var prev = focusIndex > 0 ? focusIndex - 1 : optionCount - 1;
+      const prev = focusIndex > 0 ? focusIndex - 1 : optionCount - 1;
       setFocusIndex(prev);
-      var btns = optionsRef.current?.querySelectorAll("[data-option]");
+      const btns = optionsRef.current?.querySelectorAll("[data-option]");
       if (btns && btns[prev]) (btns[prev] as HTMLElement).focus();
     }
     if (e.key === "Enter" && !q.multiSelect && focusIndex >= 0 && focusIndex < options.length) {
@@ -75,8 +75,8 @@ export function PromptQuestion(props: PromptQuestionProps) {
   }
 
   if (status === "answered" && answers) {
-    var firstAnswer = Object.entries(answers)[0];
-    var answeredQuestion = questions.length > 0 ? questions[0] : null;
+    const firstAnswer = Object.entries(answers)[0];
+    const answeredQuestion = questions.length > 0 ? questions[0] : null;
     return (
       <div className="px-5 py-1.5" aria-live="polite">
         <div
@@ -101,7 +101,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
             <div className="px-4 pb-3 border-t border-base-content/5">
               <div className="flex flex-col gap-1 pt-2">
                 {answeredQuestion!.options.map(function (opt: { label: string; description: string; preview?: string }, oi: number) {
-                  var isChosen = firstAnswer && firstAnswer[1] === opt.label;
+                  const isChosen = firstAnswer && firstAnswer[1] === opt.label;
                   return (
                     <div
                       key={oi}
@@ -154,7 +154,6 @@ export function PromptQuestion(props: PromptQuestionProps) {
               <span className="flex-1" />
               <span className="text-[9px] font-mono text-base-content/20">select one</span>
             </div>
-
             <div className="px-4 py-3.5">
               <div className="text-[13px] text-base-content/80 mb-3.5 leading-relaxed">{q.question}</div>
 
@@ -166,8 +165,8 @@ export function PromptQuestion(props: PromptQuestionProps) {
                 onKeyDown={function (e) { handleKeyDown(e, q.options.length, q, q.options); }}
               >
                 {q.options.map(function (opt: typeof q.options[number], oi: number) {
-                  var isSelected = selectedMulti.has(opt.label);
-                  var isFocused = focusIndex === oi;
+                  const isSelected = selectedMulti.has(opt.label);
+                  const isFocused = focusIndex === oi;
                   return (
                     <button
                       key={oi}
@@ -179,7 +178,7 @@ export function PromptQuestion(props: PromptQuestionProps) {
                       onClick={function () {
                         if (q.multiSelect) {
                           setSelectedMulti(function (prev) {
-                            var next = new Set(prev);
+                            const next = new Set(prev);
                             if (next.has(opt.label)) {
                               next.delete(opt.label);
                             } else {

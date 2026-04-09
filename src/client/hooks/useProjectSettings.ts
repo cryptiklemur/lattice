@@ -3,17 +3,17 @@ import { useWebSocket } from "./useWebSocket";
 import type { ServerMessage, ProjectSettings, ProjectSettingsDataMessage, ProjectSettingsErrorMessage } from "#shared";
 
 export function useProjectSettings(projectSlug: string | null) {
-  var { status, send, subscribe, unsubscribe } = useWebSocket();
-  var [settings, setSettings] = useState<ProjectSettings | null>(null);
-  var [loading, setLoading] = useState(true);
-  var [error, setError] = useState<string | null>(null);
+  const { status, send, subscribe, unsubscribe } = useWebSocket();
+  const [settings, setSettings] = useState<ProjectSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(function () {
     if (!projectSlug) return;
 
     function handleData(msg: ServerMessage) {
       if (msg.type !== "project-settings:data") return;
-      var data = msg as ProjectSettingsDataMessage;
+      const data = msg as ProjectSettingsDataMessage;
       if (data.projectSlug !== projectSlug) return;
       setSettings(data.settings);
       setLoading(false);
@@ -22,7 +22,7 @@ export function useProjectSettings(projectSlug: string | null) {
 
     function handleError(msg: ServerMessage) {
       if (msg.type !== "project-settings:error") return;
-      var data = msg as ProjectSettingsErrorMessage;
+      const data = msg as ProjectSettingsErrorMessage;
       if (data.projectSlug !== projectSlug) return;
       setError(data.message);
       setLoading(false);

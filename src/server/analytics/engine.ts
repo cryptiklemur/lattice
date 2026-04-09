@@ -40,11 +40,11 @@ interface CacheEntry {
   timestamp: number;
 }
 
-var cache = new Map<string, CacheEntry>();
-var CACHE_TTL = 5 * 60 * 1000;
-var inflight = new Map<string, Promise<AnalyticsPayload>>();
+const cache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000;
+const inflight = new Map<string, Promise<AnalyticsPayload>>();
 
-export var SECTION_KEYS: Record<AnalyticsSectionName, Array<keyof AnalyticsPayload>> = {
+export const SECTION_KEYS: Record<AnalyticsSectionName, Array<keyof AnalyticsPayload>> = {
   summary: ["totalCost", "totalSessions", "totalTokens", "cacheHitRate", "avgSessionCost", "avgSessionDuration", "costOverTime", "cumulativeCost", "sessionsOverTime", "tokensOverTime", "cacheHitRateOverTime"],
   spending: ["costDistribution", "sessionBubbles", "modelUsage", "projectBreakdown"],
   usage: ["toolUsage", "responseTimeData", "contextUtilization", "tokenFlowSankey"],
@@ -61,16 +61,16 @@ function bucketModel(model: string): "opus" | "sonnet" | "haiku" | "other" {
 
 function getPeriodCutoff(period: AnalyticsPeriod): number {
   if (period === "all") return 0;
-  var now = Date.now();
-  var hours: Record<string, number> = { "24h": 24, "7d": 168, "30d": 720, "90d": 2160 };
+  const now = Date.now();
+  const hours: Record<string, number> = { "24h": 24, "7d": 168, "30d": 720, "90d": 2160 };
   return now - (hours[period] || 0) * 60 * 60 * 1000;
 }
 
 function formatDate(ts: number): string {
-  var d = new Date(ts);
-  var year = d.getFullYear();
-  var month = String(d.getMonth() + 1).padStart(2, "0");
-  var day = String(d.getDate()).padStart(2, "0");
+  const d = new Date(ts);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return year + "-" + month + "-" + day;
 }
 
@@ -87,8 +87,8 @@ function getCostBucket(cost: number): string | null {
 
 function parseSessionText(text: string, sessionId: string, projectSlug: string): SessionData | null {
   try {
-    var lines = text.split("\n");
-    var data: SessionData = {
+    const lines = text.split("\n");
+    const data: SessionData = {
       id: sessionId,
       title: "",
       project: projectSlug,
@@ -105,23 +105,23 @@ function parseSessionText(text: string, sessionId: string, projectSlug: string):
       contextMessages: [],
     };
 
-    var lastUserTimestamp = 0;
-    var assistantIndex = 0;
+    let lastUserTimestamp = 0;
+    let assistantIndex = 0;
 
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i].trim();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
       if (!line) continue;
 
-      var parsed: Record<string, unknown>;
+      let parsed: Record<string, unknown>;
       try {
         parsed = JSON.parse(line);
       } catch {
         continue;
       }
 
-      var timestamp = 0;
+      let timestamp = 0;
       if (typeof parsed.timestamp === "string") {
-        var ts = new Date(parsed.timestamp as string).getTime();
+        const ts = new Date(parsed.timestamp as string).getTime();
         if (!isNaN(ts)) timestamp = ts;
       }
 
@@ -131,28 +131,28 @@ function parseSessionText(text: string, sessionId: string, projectSlug: string):
       }
 
       if (parsed.type === "assistant") {
-        var message = parsed.message as Record<string, unknown> | undefined;
+        const message = parsed.message as Record<string, unknown> | undefined;
         if (!message) continue;
 
-        var usage = message.usage as Record<string, number> | undefined;
-        var model = (message.model as string) || "";
+        const usage = message.usage as Record<string, number> | undefined;
+        const model = (message.model as string) || "";
 
         if (usage) {
-          var inTok = usage.input_tokens || 0;
-          var outTok = usage.output_tokens || 0;
-          var cacheRead = usage.cache_read_input_tokens || 0;
-          var cacheCreation = usage.cache_creation_input_tokens || 0;
+          const inTok = usage.input_tokens || 0;
+          const outTok = usage.output_tokens || 0;
+          const cacheRead = usage.cache_read_input_tokens || 0;
+          const cacheCreation = usage.cache_creation_input_tokens || 0;
 
           data.inputTokens += inTok;
           data.outputTokens += outTok;
           data.cacheReadTokens += cacheRead;
           data.cacheCreationTokens += cacheCreation;
 
-          var cost = estimateCost(model, inTok, outTok, cacheRead, cacheCreation);
+          const cost = estimateCost(model, inTok, outTok, cacheRead, cacheCreation);
           data.cost += cost;
 
-          var bucket = bucketModel(model);
-          var existing = data.models.get(bucket);
+          const bucket = bucketModel(model);
+          const existing = data.models.get(bucket);
           if (existing) {
             existing.cost += cost;
             existing.tokens += inTok + outTok;
@@ -161,7 +161,7 @@ function parseSessionText(text: string, sessionId: string, projectSlug: string):
           }
 
           if (outTok > 0 && timestamp > 0 && lastUserTimestamp > 0) {
-            var dur = timestamp - lastUserTimestamp;
+            const dur = timestamp - lastUserTimestamp;
             if (dur > 0 && dur < 600000) {
               data.responseTimePoints.push({ tokens: outTok, duration: dur, model: bucket });
             }
@@ -178,20 +178,20 @@ function parseSessionText(text: string, sessionId: string, projectSlug: string):
         }
       } else if (parsed.type === "user") {
         if (timestamp > 0) lastUserTimestamp = timestamp;
-        var userMsg = parsed.message as Record<string, unknown> | undefined;
+        const userMsg = parsed.message as Record<string, unknown> | undefined;
         if (!userMsg || !Array.isArray(userMsg.content)) continue;
 
-        var contentArr = userMsg.content as Array<Record<string, unknown>>;
-        for (var j = 0; j < contentArr.length; j++) {
-          var block = contentArr[j];
+        const contentArr = userMsg.content as Array<Record<string, unknown>>;
+        for (let j = 0; j < contentArr.length; j++) {
+          const block = contentArr[j];
           if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
-            var toolName = (block.name as string) || "unknown";
+            const toolName = (block.name as string) || "unknown";
             data.tools.set(toolName, (data.tools.get(toolName) || 0) + 1);
           }
         }
 
         if (!data.title && Array.isArray(userMsg.content)) {
-          for (var k = 0; k < contentArr.length; k++) {
+          for (let k = 0; k < contentArr.length; k++) {
             if (contentArr[k].type === "text" && typeof contentArr[k].text === "string") {
               data.title = (contentArr[k].text as string).slice(0, 80);
               break;
@@ -211,7 +211,7 @@ function parseSessionText(text: string, sessionId: string, projectSlug: string):
 
 function parseSessionFile(filePath: string, sessionId: string, projectSlug: string): SessionData | null {
   try {
-    var text = readFileSync(filePath, "utf-8");
+    const text = readFileSync(filePath, "utf-8");
     return parseSessionText(text, sessionId, projectSlug);
   } catch {
     return null;
@@ -220,7 +220,7 @@ function parseSessionFile(filePath: string, sessionId: string, projectSlug: stri
 
 async function parseSessionFileAsync(filePath: string, sessionId: string, projectSlug: string): Promise<SessionData | null> {
   try {
-    var text = await readFile(filePath, "utf-8");
+    const text = await readFile(filePath, "utf-8");
     return parseSessionText(text, sessionId, projectSlug);
   } catch {
     return null;
@@ -228,19 +228,19 @@ async function parseSessionFileAsync(filePath: string, sessionId: string, projec
 }
 
 function getSessionFilesForProject(projectPath: string, cutoff?: number): Array<{ path: string; id: string }> {
-  var hash = projectPathToHash(projectPath);
-  var dir = join(homedir(), ".claude", "projects", hash);
+  const hash = projectPathToHash(projectPath);
+  const dir = join(homedir(), ".claude", "projects", hash);
   if (!existsSync(dir)) return [];
 
-  var files: Array<{ path: string; id: string }> = [];
+  const files: Array<{ path: string; id: string }> = [];
   try {
-    var entries = readdirSync(dir);
-    for (var i = 0; i < entries.length; i++) {
+    const entries = readdirSync(dir);
+    for (let i = 0; i < entries.length; i++) {
       if (!entries[i].endsWith(".jsonl")) continue;
-      var filePath = join(dir, entries[i]);
+      const filePath = join(dir, entries[i]);
       if (cutoff && cutoff > 0) {
         try {
-          var mtime = statSync(filePath).mtimeMs;
+          const mtime = statSync(filePath).mtimeMs;
           if (mtime < cutoff) continue;
         } catch {
           // include if stat fails
@@ -255,39 +255,39 @@ function getSessionFilesForProject(projectPath: string, cutoff?: number): Array<
 }
 
 function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsPayload {
-  var cutoff = getPeriodCutoff(period);
-  var filtered: SessionData[] = [];
-  for (var i = 0; i < sessions.length; i++) {
-    var s = sessions[i];
-    var sessionTime = s.endTime > 0 ? s.endTime : s.startTime;
+  const cutoff = getPeriodCutoff(period);
+  const filtered: SessionData[] = [];
+  for (let i = 0; i < sessions.length; i++) {
+    const s = sessions[i];
+    const sessionTime = s.endTime > 0 ? s.endTime : s.startTime;
     if (sessionTime >= cutoff) filtered.push(s);
   }
 
-  var totalCost = 0;
-  var totalInput = 0;
-  var totalOutput = 0;
-  var totalCacheRead = 0;
-  var totalCacheCreation = 0;
-  var totalDuration = 0;
-  var durationCount = 0;
+  let totalCost = 0;
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheRead = 0;
+  let totalCacheCreation = 0;
+  let totalDuration = 0;
+  let durationCount = 0;
 
-  var dailyCost = new Map<string, { total: number; opus: number; sonnet: number; haiku: number; other: number }>();
-  var dailySessions = new Map<string, number>();
-  var dailyTokens = new Map<string, { input: number; output: number; cacheRead: number }>();
-  var dailyCacheHit = new Map<string, { cacheRead: number; totalInput: number }>();
+  const dailyCost = new Map<string, { total: number; opus: number; sonnet: number; haiku: number; other: number }>();
+  const dailySessions = new Map<string, number>();
+  const dailyTokens = new Map<string, { input: number; output: number; cacheRead: number }>();
+  const dailyCacheHit = new Map<string, { cacheRead: number; totalInput: number }>();
 
-  var modelStats = new Map<string, { sessions: number; cost: number; tokens: number }>();
-  var projectStats = new Map<string, { cost: number; sessions: number; tokens: number }>();
-  var toolStats = new Map<string, { count: number; totalCost: number; sessions: number }>();
+  const modelStats = new Map<string, { sessions: number; cost: number; tokens: number }>();
+  const projectStats = new Map<string, { cost: number; sessions: number; tokens: number }>();
+  const toolStats = new Map<string, { count: number; totalCost: number; sessions: number }>();
 
-  var costBuckets = new Map<string, number>();
-  var bucketOrder = ["<$0.01", "$0.01-0.05", "$0.05-0.10", "$0.10-0.50", "$0.50-1.00", "$1.00-5.00", "$5.00+"];
-  for (var b = 0; b < bucketOrder.length; b++) {
+  const costBuckets = new Map<string, number>();
+  const bucketOrder = ["<$0.01", "$0.01-0.05", "$0.05-0.10", "$0.10-0.50", "$0.50-1.00", "$1.00-5.00", "$5.00+"];
+  for (let b = 0; b < bucketOrder.length; b++) {
     costBuckets.set(bucketOrder[b], 0);
   }
 
-  for (var si = 0; si < filtered.length; si++) {
-    var sess = filtered[si];
+  for (let si = 0; si < filtered.length; si++) {
+    const sess = filtered[si];
     totalCost += sess.cost;
     totalInput += sess.inputTokens;
     totalOutput += sess.outputTokens;
@@ -299,9 +299,9 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       durationCount++;
     }
 
-    var date = formatDate(sess.endTime > 0 ? sess.endTime : sess.startTime);
+    const date = formatDate(sess.endTime > 0 ? sess.endTime : sess.startTime);
 
-    var dc = dailyCost.get(date);
+    let dc = dailyCost.get(date);
     if (!dc) {
       dc = { total: 0, opus: 0, sonnet: 0, haiku: 0, other: 0 };
       dailyCost.set(date, dc);
@@ -313,7 +313,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
 
     dailySessions.set(date, (dailySessions.get(date) || 0) + 1);
 
-    var dt = dailyTokens.get(date);
+    let dt = dailyTokens.get(date);
     if (!dt) {
       dt = { input: 0, output: 0, cacheRead: 0 };
       dailyTokens.set(date, dt);
@@ -322,7 +322,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     dt.output += sess.outputTokens;
     dt.cacheRead += sess.cacheReadTokens;
 
-    var dch = dailyCacheHit.get(date);
+    let dch = dailyCacheHit.get(date);
     if (!dch) {
       dch = { cacheRead: 0, totalInput: 0 };
       dailyCacheHit.set(date, dch);
@@ -331,7 +331,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     dch.totalInput += sess.inputTokens;
 
     sess.models.forEach(function (val, key) {
-      var ms = modelStats.get(key);
+      let ms = modelStats.get(key);
       if (!ms) {
         ms = { sessions: 0, cost: 0, tokens: 0 };
         modelStats.set(key, ms);
@@ -341,7 +341,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       ms.tokens += val.tokens;
     });
 
-    var ps = projectStats.get(sess.project);
+    let ps = projectStats.get(sess.project);
     if (!ps) {
       ps = { cost: 0, sessions: 0, tokens: 0 };
       projectStats.set(sess.project, ps);
@@ -351,7 +351,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     ps.tokens += sess.inputTokens + sess.outputTokens;
 
     sess.tools.forEach(function (count, tool) {
-      var ts = toolStats.get(tool);
+      let ts = toolStats.get(tool);
       if (!ts) {
         ts = { count: 0, totalCost: 0, sessions: 0 };
         toolStats.set(tool, ts);
@@ -361,27 +361,27 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       ts.sessions++;
     });
 
-    var bucket = getCostBucket(sess.cost);
+    const bucket = getCostBucket(sess.cost);
     if (bucket) {
       costBuckets.set(bucket, (costBuckets.get(bucket) || 0) + 1);
     }
   }
 
-  var totalTokensAll = totalInput + totalOutput + totalCacheRead + totalCacheCreation;
-  var cacheHitRate = (totalInput + totalCacheRead) > 0 ? totalCacheRead / (totalInput + totalCacheRead) : 0;
+  const totalTokensAll = totalInput + totalOutput + totalCacheRead + totalCacheCreation;
+  const cacheHitRate = (totalInput + totalCacheRead) > 0 ? totalCacheRead / (totalInput + totalCacheRead) : 0;
 
-  var dates = Array.from(dailyCost.keys()).sort();
+  const dates = Array.from(dailyCost.keys()).sort();
 
-  var costOverTime: AnalyticsPayload["costOverTime"] = [];
-  var cumulativeCost: AnalyticsPayload["cumulativeCost"] = [];
-  var sessionsOverTime: AnalyticsPayload["sessionsOverTime"] = [];
-  var tokensOverTime: AnalyticsPayload["tokensOverTime"] = [];
-  var cacheHitRateOverTime: AnalyticsPayload["cacheHitRateOverTime"] = [];
+  const costOverTime: AnalyticsPayload["costOverTime"] = [];
+  const cumulativeCost: AnalyticsPayload["cumulativeCost"] = [];
+  const sessionsOverTime: AnalyticsPayload["sessionsOverTime"] = [];
+  const tokensOverTime: AnalyticsPayload["tokensOverTime"] = [];
+  const cacheHitRateOverTime: AnalyticsPayload["cacheHitRateOverTime"] = [];
 
-  var cumTotal = 0;
-  for (var di = 0; di < dates.length; di++) {
-    var d = dates[di];
-    var dcEntry = dailyCost.get(d)!;
+  let cumTotal = 0;
+  for (let di = 0; di < dates.length; di++) {
+    const d = dates[di];
+    const dcEntry = dailyCost.get(d)!;
     cumTotal += dcEntry.total;
 
     costOverTime.push({
@@ -395,7 +395,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     cumulativeCost.push({ date: d, total: cumTotal });
     sessionsOverTime.push({ date: d, count: dailySessions.get(d) || 0 });
 
-    var dtEntry = dailyTokens.get(d);
+    const dtEntry = dailyTokens.get(d);
     tokensOverTime.push({
       date: d,
       input: dtEntry ? dtEntry.input : 0,
@@ -403,27 +403,27 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
       cacheRead: dtEntry ? dtEntry.cacheRead : 0,
     });
 
-    var dchEntry = dailyCacheHit.get(d);
-    var rate = dchEntry && (dchEntry.totalInput + dchEntry.cacheRead) > 0 ? dchEntry.cacheRead / (dchEntry.totalInput + dchEntry.cacheRead) : 0;
+    const dchEntry = dailyCacheHit.get(d);
+    const rate = dchEntry && (dchEntry.totalInput + dchEntry.cacheRead) > 0 ? dchEntry.cacheRead / (dchEntry.totalInput + dchEntry.cacheRead) : 0;
     cacheHitRateOverTime.push({ date: d, rate: rate });
   }
 
-  var costDistribution: AnalyticsPayload["costDistribution"] = [];
-  for (var bi = 0; bi < bucketOrder.length; bi++) {
+  const costDistribution: AnalyticsPayload["costDistribution"] = [];
+  for (let bi = 0; bi < bucketOrder.length; bi++) {
     costDistribution.push({
       bucket: bucketOrder[bi],
       count: costBuckets.get(bucketOrder[bi]) || 0,
     });
   }
 
-  var sessionBubbles: AnalyticsPayload["sessionBubbles"] = [];
-  var nonZeroCost = filtered.filter(function (s) { return s.cost > 0; });
-  var sorted = nonZeroCost.slice().sort(function (a, b) {
+  const sessionBubbles: AnalyticsPayload["sessionBubbles"] = [];
+  const nonZeroCost = filtered.filter(function (s) { return s.cost > 0; });
+  const sorted = nonZeroCost.slice().sort(function (a, b) {
     return (b.endTime || b.startTime) - (a.endTime || a.startTime);
   });
-  var bubbleCap = Math.min(sorted.length, 200);
-  for (var sbi = 0; sbi < bubbleCap; sbi++) {
-    var sb = sorted[sbi];
+  const bubbleCap = Math.min(sorted.length, 200);
+  for (let sbi = 0; sbi < bubbleCap; sbi++) {
+    const sb = sorted[sbi];
     sessionBubbles.push({
       id: sb.id,
       title: sb.title,
@@ -434,8 +434,8 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     });
   }
 
-  var modelUsage: AnalyticsPayload["modelUsage"] = [];
-  var totalModelCost = totalCost || 1;
+  const modelUsage: AnalyticsPayload["modelUsage"] = [];
+  const totalModelCost = totalCost || 1;
   modelStats.forEach(function (val, key) {
     modelUsage.push({
       model: key,
@@ -447,7 +447,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   });
   modelUsage.sort(function (a: typeof modelUsage[number], b: typeof modelUsage[number]) { return b.cost - a.cost; });
 
-  var projectBreakdown: AnalyticsPayload["projectBreakdown"] = [];
+  const projectBreakdown: AnalyticsPayload["projectBreakdown"] = [];
   projectStats.forEach(function (val, key) {
     projectBreakdown.push({
       project: key,
@@ -458,7 +458,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   });
   projectBreakdown.sort(function (a: typeof projectBreakdown[number], b: typeof projectBreakdown[number]) { return b.cost - a.cost; });
 
-  var toolUsage: AnalyticsPayload["toolUsage"] = [];
+  const toolUsage: AnalyticsPayload["toolUsage"] = [];
   toolStats.forEach(function (val, key) {
     toolUsage.push({
       tool: key,
@@ -468,34 +468,34 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   });
   toolUsage.sort(function (a: typeof toolUsage[number], b: typeof toolUsage[number]) { return b.count - a.count; });
 
-  var responseTimeData: AnalyticsPayload["responseTimeData"] = [];
-  for (var rti = 0; rti < filtered.length; rti++) {
-    var rtSess = filtered[rti];
-    for (var rtj = 0; rtj < rtSess.responseTimePoints.length; rtj++) {
-      var rtp = rtSess.responseTimePoints[rtj];
+  const responseTimeData: AnalyticsPayload["responseTimeData"] = [];
+  for (let rti = 0; rti < filtered.length; rti++) {
+    const rtSess = filtered[rti];
+    for (let rtj = 0; rtj < rtSess.responseTimePoints.length; rtj++) {
+      const rtp = rtSess.responseTimePoints[rtj];
       responseTimeData.push({ tokens: rtp.tokens, duration: rtp.duration, model: rtp.model, sessionId: rtSess.id });
     }
     if (responseTimeData.length >= 200) break;
   }
   if (responseTimeData.length > 200) responseTimeData.length = 200;
 
-  var contextWindowSizes: Record<string, number> = { opus: 200000, sonnet: 200000, haiku: 200000, other: 200000 };
-  var contextUtilization: AnalyticsPayload["contextUtilization"] = [];
-  var recentSessions = sorted.slice(0, 5);
-  for (var cui = 0; cui < recentSessions.length; cui++) {
-    var cuSess = recentSessions[cui];
-    var runningTokens = 0;
-    var primaryModel = "other";
-    var maxModelTokens = 0;
+  const contextWindowSizes: Record<string, number> = { opus: 200000, sonnet: 200000, haiku: 200000, other: 200000 };
+  const contextUtilization: AnalyticsPayload["contextUtilization"] = [];
+  const recentSessions = sorted.slice(0, 5);
+  for (let cui = 0; cui < recentSessions.length; cui++) {
+    const cuSess = recentSessions[cui];
+    let runningTokens = 0;
+    let primaryModel = "other";
+    let maxModelTokens = 0;
     cuSess.models.forEach(function (val, key) {
       if (val.tokens > maxModelTokens) {
         maxModelTokens = val.tokens;
         primaryModel = key;
       }
     });
-    var windowSize = contextWindowSizes[primaryModel] || 200000;
-    for (var cmj = 0; cmj < cuSess.contextMessages.length; cmj++) {
-      var cm = cuSess.contextMessages[cmj];
+    const windowSize = contextWindowSizes[primaryModel] || 200000;
+    for (let cmj = 0; cmj < cuSess.contextMessages.length; cmj++) {
+      const cm = cuSess.contextMessages[cmj];
       runningTokens += cm.inputTokens;
       contextUtilization.push({
         messageIndex: cm.messageIndex,
@@ -506,7 +506,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     }
   }
 
-  var sankeyNodes = [
+  const sankeyNodes = [
     { name: "Input Tokens" },
     { name: "Cache Read" },
     { name: "Cache Creation" },
@@ -516,19 +516,19 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     { name: "Other" },
     { name: "Output Tokens" },
   ];
-  var modelNodeMap: Record<string, number> = { opus: 3, sonnet: 4, haiku: 5, other: 6 };
-  var sankeyLinks: Array<{ source: number; target: number; value: number }> = [];
-  var modelInputTotals = new Map<string, number>();
-  var modelCacheTotals = new Map<string, number>();
-  var modelCacheCreationTotals = new Map<string, number>();
-  var modelOutputTotals = new Map<string, number>();
+  const modelNodeMap: Record<string, number> = { opus: 3, sonnet: 4, haiku: 5, other: 6 };
+  const sankeyLinks: Array<{ source: number; target: number; value: number }> = [];
+  const modelInputTotals = new Map<string, number>();
+  const modelCacheTotals = new Map<string, number>();
+  const modelCacheCreationTotals = new Map<string, number>();
+  const modelOutputTotals = new Map<string, number>();
 
-  for (var ski = 0; ski < filtered.length; ski++) {
-    var skSess = filtered[ski];
-    var skTotal = skSess.inputTokens + skSess.cacheReadTokens + skSess.cacheCreationTokens;
+  for (let ski = 0; ski < filtered.length; ski++) {
+    const skSess = filtered[ski];
+    const skTotal = skSess.inputTokens + skSess.cacheReadTokens + skSess.cacheCreationTokens;
     if (skTotal === 0) continue;
     skSess.models.forEach(function (val, key) {
-      var proportion = val.tokens / (skTotal + skSess.outputTokens || 1);
+      const proportion = val.tokens / (skTotal + skSess.outputTokens || 1);
       modelInputTotals.set(key, (modelInputTotals.get(key) || 0) + skSess.inputTokens * proportion);
       modelCacheTotals.set(key, (modelCacheTotals.get(key) || 0) + skSess.cacheReadTokens * proportion);
       modelCacheCreationTotals.set(key, (modelCacheCreationTotals.get(key) || 0) + skSess.cacheCreationTokens * proportion);
@@ -537,24 +537,24 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   }
 
   ["opus", "sonnet", "haiku", "other"].forEach(function (model) {
-    var nodeIdx = modelNodeMap[model];
-    var inputVal = Math.round(modelInputTotals.get(model) || 0);
-    var cacheVal = Math.round(modelCacheTotals.get(model) || 0);
-    var cacheCreationVal = Math.round(modelCacheCreationTotals.get(model) || 0);
-    var outputVal = Math.round(modelOutputTotals.get(model) || 0);
+    const nodeIdx = modelNodeMap[model];
+    const inputVal = Math.round(modelInputTotals.get(model) || 0);
+    const cacheVal = Math.round(modelCacheTotals.get(model) || 0);
+    const cacheCreationVal = Math.round(modelCacheCreationTotals.get(model) || 0);
+    const outputVal = Math.round(modelOutputTotals.get(model) || 0);
     if (inputVal > 0) sankeyLinks.push({ source: 0, target: nodeIdx, value: inputVal });
     if (cacheVal > 0) sankeyLinks.push({ source: 1, target: nodeIdx, value: cacheVal });
     if (cacheCreationVal > 0) sankeyLinks.push({ source: 2, target: nodeIdx, value: cacheCreationVal });
     if (outputVal > 0) sankeyLinks.push({ source: nodeIdx, target: 7, value: outputVal });
   });
 
-  var tokenFlowSankey: AnalyticsPayload["tokenFlowSankey"] = { nodes: sankeyNodes, links: sankeyLinks };
+  const tokenFlowSankey: AnalyticsPayload["tokenFlowSankey"] = { nodes: sankeyNodes, links: sankeyLinks };
 
-  var activityCalendarMap = new Map<string, { count: number; tokens: number; cost: number }>();
-  for (var aci = 0; aci < filtered.length; aci++) {
-    var acSess = filtered[aci];
-    var acDate = formatDate(acSess.endTime > 0 ? acSess.endTime : acSess.startTime);
-    var acEntry = activityCalendarMap.get(acDate);
+  const activityCalendarMap = new Map<string, { count: number; tokens: number; cost: number }>();
+  for (let aci = 0; aci < filtered.length; aci++) {
+    const acSess = filtered[aci];
+    const acDate = formatDate(acSess.endTime > 0 ? acSess.endTime : acSess.startTime);
+    let acEntry = activityCalendarMap.get(acDate);
     if (!acEntry) {
       acEntry = { count: 0, tokens: 0, cost: 0 };
       activityCalendarMap.set(acDate, acEntry);
@@ -564,14 +564,14 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     acEntry.cost += acSess.cost;
   }
 
-  var activityCalendar: AnalyticsPayload["activityCalendar"] = [];
+  const activityCalendar: AnalyticsPayload["activityCalendar"] = [];
   if (dates.length > 0) {
-    var calStart = new Date(dates[0]);
-    var calEnd = new Date(dates[dates.length - 1]);
-    var calCursor = new Date(calStart);
+    const calStart = new Date(dates[0]);
+    const calEnd = new Date(dates[dates.length - 1]);
+    const calCursor = new Date(calStart);
     while (calCursor <= calEnd) {
-      var calKey = formatDate(calCursor.getTime());
-      var calData = activityCalendarMap.get(calKey);
+      const calKey = formatDate(calCursor.getTime());
+      const calData = activityCalendarMap.get(calKey);
       activityCalendar.push({
         date: calKey,
         count: calData ? calData.count : 0,
@@ -582,31 +582,31 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     }
   }
 
-  var hourlyHeatmap: AnalyticsPayload["hourlyHeatmap"] = [];
-  var heatmapGrid = new Map<string, number>();
-  for (var hmi = 0; hmi < filtered.length; hmi++) {
-    var hmSess = filtered[hmi];
+  const hourlyHeatmap: AnalyticsPayload["hourlyHeatmap"] = [];
+  const heatmapGrid = new Map<string, number>();
+  for (let hmi = 0; hmi < filtered.length; hmi++) {
+    const hmSess = filtered[hmi];
     if (hmSess.startTime <= 0) continue;
-    var hmDate = new Date(hmSess.startTime);
-    var hmDay = hmDate.getDay();
-    var hmHour = hmDate.getHours();
-    var hmKey = hmDay + ":" + hmHour;
+    const hmDate = new Date(hmSess.startTime);
+    const hmDay = hmDate.getDay();
+    const hmHour = hmDate.getHours();
+    const hmKey = hmDay + ":" + hmHour;
     heatmapGrid.set(hmKey, (heatmapGrid.get(hmKey) || 0) + 1);
   }
-  for (var hd = 0; hd < 7; hd++) {
-    for (var hh = 0; hh < 24; hh++) {
-      var hhKey = hd + ":" + hh;
+  for (let hd = 0; hd < 7; hd++) {
+    for (let hh = 0; hh < 24; hh++) {
+      const hhKey = hd + ":" + hh;
       hourlyHeatmap.push({ day: hd, hour: hh, count: heatmapGrid.get(hhKey) || 0 });
     }
   }
 
-  var sessionTimeline: AnalyticsPayload["sessionTimeline"] = [];
-  var tlSorted = filtered
+  const sessionTimeline: AnalyticsPayload["sessionTimeline"] = [];
+  const tlSorted = filtered
     .filter(function (s) { return s.startTime > 0 && s.endTime > 0 && s.cost > 0; })
     .sort(function (a, b) { return b.startTime - a.startTime; });
-  var tlCap = Math.min(tlSorted.length, 50);
-  for (var tli = 0; tli < tlCap; tli++) {
-    var tlSess = tlSorted[tli];
+  const tlCap = Math.min(tlSorted.length, 50);
+  for (let tli = 0; tli < tlCap; tli++) {
+    const tlSess = tlSorted[tli];
     sessionTimeline.push({
       id: tlSess.id,
       title: tlSess.title,
@@ -617,11 +617,11 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     });
   }
 
-  var dailySummaryMap = new Map<string, { sessions: number; cost: number; tokens: number; tools: Map<string, number>; models: Map<string, number> }>();
-  for (var dsi = 0; dsi < filtered.length; dsi++) {
-    var dsSess = filtered[dsi];
-    var dsDate = formatDate(dsSess.endTime > 0 ? dsSess.endTime : dsSess.startTime);
-    var dsEntry = dailySummaryMap.get(dsDate);
+  const dailySummaryMap = new Map<string, { sessions: number; cost: number; tokens: number; tools: Map<string, number>; models: Map<string, number> }>();
+  for (let dsi = 0; dsi < filtered.length; dsi++) {
+    const dsSess = filtered[dsi];
+    const dsDate = formatDate(dsSess.endTime > 0 ? dsSess.endTime : dsSess.startTime);
+    let dsEntry = dailySummaryMap.get(dsDate);
     if (!dsEntry) {
       dsEntry = { sessions: 0, cost: 0, tokens: 0, tools: new Map(), models: new Map() };
       dailySummaryMap.set(dsDate, dsEntry);
@@ -637,21 +637,21 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     });
   }
 
-  var dailySummaries: AnalyticsPayload["dailySummaries"] = [];
-  var dsSortedDates = Array.from(dailySummaryMap.keys()).sort();
-  for (var dsdi = 0; dsdi < dsSortedDates.length; dsdi++) {
-    var dsd = dsSortedDates[dsdi];
-    var dsData = dailySummaryMap.get(dsd)!;
-    var topTool = "";
-    var topToolCount = 0;
+  const dailySummaries: AnalyticsPayload["dailySummaries"] = [];
+  const dsSortedDates = Array.from(dailySummaryMap.keys()).sort();
+  for (let dsdi = 0; dsdi < dsSortedDates.length; dsdi++) {
+    const dsd = dsSortedDates[dsdi];
+    const dsData = dailySummaryMap.get(dsd)!;
+    let topTool = "";
+    let topToolCount = 0;
     dsData.tools.forEach(function (count, tool) {
       if (count > topToolCount) {
         topToolCount = count;
         topTool = tool;
       }
     });
-    var modelMix: Record<string, number> = {};
-    var modelTotal = 0;
+    const modelMix: Record<string, number> = {};
+    let modelTotal = 0;
     dsData.models.forEach(function (cost) { modelTotal += cost; });
     if (modelTotal > 0) {
       dsData.models.forEach(function (cost, model) {
@@ -668,7 +668,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     });
   }
 
-  var toolTreemap: AnalyticsPayload["toolTreemap"] = [];
+  const toolTreemap: AnalyticsPayload["toolTreemap"] = [];
   toolStats.forEach(function (val, key) {
     toolTreemap.push({
       name: key,
@@ -678,31 +678,31 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   });
   toolTreemap.sort(function (a: typeof toolTreemap[number], b: typeof toolTreemap[number]) { return b.count - a.count; });
 
-  var toolCategoryMap: Record<string, string> = {
+  const toolCategoryMap: Record<string, string> = {
     Read: "Read", Glob: "Read", Grep: "Read", LS: "Read",
     Edit: "Write", Write: "Write", MultiEdit: "Write",
     Bash: "Execute",
     Agent: "AI", Skill: "AI",
   };
-  var toolSunburst: AnalyticsPayload["toolSunburst"] = [];
+  const toolSunburst: AnalyticsPayload["toolSunburst"] = [];
   toolStats.forEach(function (val, key) {
-    var category = toolCategoryMap[key] || "Other";
+    const category = toolCategoryMap[key] || "Other";
     toolSunburst.push({ name: key, category: category, count: val.count });
   });
   toolSunburst.sort(function (a: typeof toolSunburst[number], b: typeof toolSunburst[number]) { return b.count - a.count; });
 
-  var totalToolCalls = 0;
+  let totalToolCalls = 0;
   toolStats.forEach(function (val) { totalToolCalls += val.count; });
-  var permissionStats: AnalyticsPayload["permissionStats"] = {
+  const permissionStats: AnalyticsPayload["permissionStats"] = {
     allowed: totalToolCalls,
     denied: 0,
     alwaysAllowed: 0,
   };
 
-  var projectRadarMap = new Map<string, { cost: number; sessions: number; totalDuration: number; durationCount: number; tools: Set<string>; totalTokens: number }>();
-  for (var pri = 0; pri < filtered.length; pri++) {
-    var prSess = filtered[pri];
-    var prEntry = projectRadarMap.get(prSess.project);
+  const projectRadarMap = new Map<string, { cost: number; sessions: number; totalDuration: number; durationCount: number; tools: Set<string>; totalTokens: number }>();
+  for (let pri = 0; pri < filtered.length; pri++) {
+    const prSess = filtered[pri];
+    let prEntry = projectRadarMap.get(prSess.project);
     if (!prEntry) {
       prEntry = { cost: 0, sessions: 0, totalDuration: 0, durationCount: 0, tools: new Set(), totalTokens: 0 };
       projectRadarMap.set(prSess.project, prEntry);
@@ -716,7 +716,7 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
     }
     prSess.tools.forEach(function (_count, tool) { prEntry!.tools.add(tool); });
   }
-  var projectRadar: AnalyticsPayload["projectRadar"] = [];
+  const projectRadar: AnalyticsPayload["projectRadar"] = [];
   projectRadarMap.forEach(function (val, key) {
     projectRadar.push({
       project: key,
@@ -730,24 +730,24 @@ function aggregate(sessions: SessionData[], period: AnalyticsPeriod): AnalyticsP
   projectRadar.sort(function (a: typeof projectRadar[number], b: typeof projectRadar[number]) { return b.cost - a.cost; });
   if (projectRadar.length > 5) projectRadar.length = 5;
 
-  var contextWindowSizesForComplexity: Record<string, number> = { opus: 200000, sonnet: 200000, haiku: 200000, other: 200000 };
-  var sessionComplexity: AnalyticsPayload["sessionComplexity"] = [];
-  for (var sci = 0; sci < filtered.length; sci++) {
-    var scSess = filtered[sci];
-    var scUniqueTools = scSess.tools.size;
-    var scMessages = scSess.contextMessages.length;
-    var scRunning = 0;
-    var scPrimaryModel = "other";
-    var scMaxTokens = 0;
+  const contextWindowSizesForComplexity: Record<string, number> = { opus: 200000, sonnet: 200000, haiku: 200000, other: 200000 };
+  const sessionComplexity: AnalyticsPayload["sessionComplexity"] = [];
+  for (let sci = 0; sci < filtered.length; sci++) {
+    const scSess = filtered[sci];
+    const scUniqueTools = scSess.tools.size;
+    const scMessages = scSess.contextMessages.length;
+    let scRunning = 0;
+    let scPrimaryModel = "other";
+    let scMaxTokens = 0;
     scSess.models.forEach(function (val, key) {
       if (val.tokens > scMaxTokens) { scMaxTokens = val.tokens; scPrimaryModel = key; }
     });
-    var scWindowSize = contextWindowSizesForComplexity[scPrimaryModel] || 200000;
-    for (var scmi = 0; scmi < scSess.contextMessages.length; scmi++) {
+    const scWindowSize = contextWindowSizesForComplexity[scPrimaryModel] || 200000;
+    for (let scmi = 0; scmi < scSess.contextMessages.length; scmi++) {
       scRunning += scSess.contextMessages[scmi].inputTokens;
     }
-    var scContextPercent = Math.min((scRunning / scWindowSize) * 100, 100);
-    var scScore = (scMessages * 1) + (scUniqueTools * 5) + (scContextPercent * 0.5);
+    const scContextPercent = Math.min((scRunning / scWindowSize) * 100, 100);
+    const scScore = (scMessages * 1) + (scUniqueTools * 5) + (scContextPercent * 0.5);
     sessionComplexity.push({
       id: scSess.id,
       title: scSess.title,
@@ -804,54 +804,54 @@ export async function getAnalytics(
   sessionId?: string,
   forceRefresh?: boolean,
 ): Promise<AnalyticsPayload> {
-  var cacheKey = scope + ":" + period + ":" + (projectSlug || "all");
+  let cacheKey = scope + ":" + period + ":" + (projectSlug || "all");
   if (sessionId) cacheKey += ":" + sessionId;
 
   if (!forceRefresh) {
-    var cached = cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return Promise.resolve(cached.data);
     }
-    var existing = inflight.get(cacheKey);
+    const existing = inflight.get(cacheKey);
     if (existing) return existing;
   }
 
-  var config = loadConfig();
-  var cutoff = getPeriodCutoff(period);
-  var fileRefs: Array<{ path: string; id: string; slug: string }> = [];
+  const config = loadConfig();
+  const cutoff = getPeriodCutoff(period);
+  const fileRefs: Array<{ path: string; id: string; slug: string }> = [];
 
   if (scope === "global") {
-    for (var i = 0; i < config.projects.length; i++) {
-      var proj = config.projects[i];
-      var files = getSessionFilesForProject(proj.path, cutoff);
-      for (var j = 0; j < files.length; j++) {
+    for (let i = 0; i < config.projects.length; i++) {
+      const proj = config.projects[i];
+      const files = getSessionFilesForProject(proj.path, cutoff);
+      for (let j = 0; j < files.length; j++) {
         fileRefs.push({ path: files[j].path, id: files[j].id, slug: proj.slug });
       }
     }
   } else if (scope === "project" && projectSlug) {
-    var project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
+    const project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
     if (project) {
-      var projFiles = getSessionFilesForProject(project.path, cutoff);
-      for (var pf = 0; pf < projFiles.length; pf++) {
+      const projFiles = getSessionFilesForProject(project.path, cutoff);
+      for (let pf = 0; pf < projFiles.length; pf++) {
         fileRefs.push({ path: projFiles[pf].path, id: projFiles[pf].id, slug: projectSlug });
       }
     }
   } else if (scope === "session" && projectSlug && sessionId) {
-    var sessProject = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
+    const sessProject = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
     if (sessProject) {
-      var hash = projectPathToHash(sessProject.path);
-      var filePath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
+      const hash = projectPathToHash(sessProject.path);
+      const filePath = join(homedir(), ".claude", "projects", hash, sessionId + ".jsonl");
       if (existsSync(filePath)) {
         fileRefs.push({ path: filePath, id: sessionId, slug: projectSlug });
       }
     }
   }
 
-  var promise = Promise.all(fileRefs.map(function (ref) {
+  const promise = Promise.all(fileRefs.map(function (ref) {
     return parseSessionFileAsync(ref.path, ref.id, ref.slug);
   })).then(function (results) {
-    var sessions = results.filter(function (s): s is SessionData { return s !== null; });
-    var result = aggregate(sessions, period);
+    const sessions = results.filter(function (s): s is SessionData { return s !== null; });
+    const result = aggregate(sessions, period);
     cache.set(cacheKey, { data: result, timestamp: Date.now() });
     inflight.delete(cacheKey);
     return result;
@@ -861,26 +861,26 @@ export async function getAnalytics(
   return promise;
 }
 
-var dailySpendCache: { value: number; timestamp: number } | null = null;
-var DAILY_SPEND_CACHE_TTL = 30 * 1000;
+let dailySpendCache: { value: number; timestamp: number } | null = null;
+const DAILY_SPEND_CACHE_TTL = 30 * 1000;
 
 export function getDailySpend(): number {
   if (dailySpendCache && Date.now() - dailySpendCache.timestamp < DAILY_SPEND_CACHE_TTL) {
     return dailySpendCache.value;
   }
 
-  var config = loadConfig();
-  var now = new Date();
-  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  var totalCost = 0;
+  const config = loadConfig();
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  let totalCost = 0;
 
-  for (var i = 0; i < config.projects.length; i++) {
-    var proj = config.projects[i];
-    var files = getSessionFilesForProject(proj.path);
-    for (var j = 0; j < files.length; j++) {
-      var data = parseSessionFile(files[j].path, files[j].id, proj.slug);
+  for (let i = 0; i < config.projects.length; i++) {
+    const proj = config.projects[i];
+    const files = getSessionFilesForProject(proj.path);
+    for (let j = 0; j < files.length; j++) {
+      const data = parseSessionFile(files[j].path, files[j].id, proj.slug);
       if (!data) continue;
-      var sessionTime = data.endTime > 0 ? data.endTime : data.startTime;
+      const sessionTime = data.endTime > 0 ? data.endTime : data.startTime;
       if (sessionTime >= todayStart) {
         totalCost += data.cost;
       }
@@ -903,15 +903,15 @@ export async function streamAnalyticsSections(
   forceRefresh: boolean | undefined,
   onSection: (name: AnalyticsSectionName, data: Partial<AnalyticsPayload>) => void,
 ): Promise<void> {
-  var payload = await getAnalytics(scope, period, projectSlug, sessionId, forceRefresh);
-  var sectionNames: AnalyticsSectionName[] = ["summary", "spending", "usage", "activity", "projects"];
+  const payload = await getAnalytics(scope, period, projectSlug, sessionId, forceRefresh);
+  const sectionNames: AnalyticsSectionName[] = ["summary", "spending", "usage", "activity", "projects"];
 
-  for (var si = 0; si < sectionNames.length; si++) {
-    var name = sectionNames[si];
-    var keys = SECTION_KEYS[name];
-    var sectionData: Partial<AnalyticsPayload> = {};
-    for (var ki = 0; ki < keys.length; ki++) {
-      var key = keys[ki];
+  for (let si = 0; si < sectionNames.length; si++) {
+    const name = sectionNames[si];
+    const keys = SECTION_KEYS[name];
+    const sectionData: Partial<AnalyticsPayload> = {};
+    for (let ki = 0; ki < keys.length; ki++) {
+      const key = keys[ki];
       (sectionData as Record<string, unknown>)[key] = payload[key];
     }
     onSection(name, sectionData);

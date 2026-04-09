@@ -1,18 +1,18 @@
 import { createSign, createVerify, randomBytes, createCipheriv, createDecipheriv, createHash, diffieHellman, generateKeyPairSync, createPublicKey, createPrivateKey } from "node:crypto";
 
 export function sign(privateKeyBase64: string, data: Buffer): string {
-  var privateKeyDer = Buffer.from(privateKeyBase64, "base64");
-  var key = createPrivateKey({ key: privateKeyDer, format: "der", type: "pkcs8" });
-  var signer = createSign("ed25519");
+  const privateKeyDer = Buffer.from(privateKeyBase64, "base64");
+  const key = createPrivateKey({ key: privateKeyDer, format: "der", type: "pkcs8" });
+  const signer = createSign("ed25519");
   signer.update(data);
   return signer.sign(key).toString("base64");
 }
 
 export function verify(publicKeyBase64: string, data: Buffer, signatureBase64: string): boolean {
   try {
-    var publicKeyDer = Buffer.from(publicKeyBase64, "base64");
-    var key = createPublicKey({ key: publicKeyDer, format: "der", type: "spki" });
-    var verifier = createVerify("ed25519");
+    const publicKeyDer = Buffer.from(publicKeyBase64, "base64");
+    const key = createPublicKey({ key: publicKeyDer, format: "der", type: "spki" });
+    const verifier = createVerify("ed25519");
     verifier.update(data);
     return verifier.verify(key, Buffer.from(signatureBase64, "base64"));
   } catch {
@@ -30,7 +30,7 @@ export interface EphemeralKeys {
 }
 
 export function generateEphemeralKeys(): EphemeralKeys {
-  var pair = generateKeyPairSync("x25519", {
+  const pair = generateKeyPairSync("x25519", {
     publicKeyEncoding: { type: "spki", format: "der" },
     privateKeyEncoding: { type: "pkcs8", format: "der" },
   });
@@ -41,23 +41,23 @@ export function generateEphemeralKeys(): EphemeralKeys {
 }
 
 export function deriveSharedSecret(myPrivateKeyDer: Buffer, theirPublicKeyBase64: string, nodeIdA: string, nodeIdB: string): Buffer {
-  var myKey = createPrivateKey({ key: myPrivateKeyDer, format: "der", type: "pkcs8" });
-  var theirKey = createPublicKey({ key: Buffer.from(theirPublicKeyBase64, "base64"), format: "der", type: "spki" });
+  const myKey = createPrivateKey({ key: myPrivateKeyDer, format: "der", type: "pkcs8" });
+  const theirKey = createPublicKey({ key: Buffer.from(theirPublicKeyBase64, "base64"), format: "der", type: "spki" });
 
-  var shared = diffieHellman({ privateKey: myKey, publicKey: theirKey });
+  const shared = diffieHellman({ privateKey: myKey, publicKey: theirKey });
 
-  var sortedIds = [nodeIdA, nodeIdB].sort().join(":");
-  var hash = createHash("sha256");
+  const sortedIds = [nodeIdA, nodeIdB].sort().join(":");
+  const hash = createHash("sha256");
   hash.update(shared);
   hash.update(Buffer.from("lattice-mesh-v1:" + sortedIds));
   return hash.digest();
 }
 
 export function encrypt(key: Buffer, nonce: number, plaintext: string): { ciphertext: string; tag: string } {
-  var iv = Buffer.alloc(12);
+  const iv = Buffer.alloc(12);
   iv.writeBigUInt64BE(BigInt(nonce), 4);
-  var cipher = createCipheriv("aes-256-gcm", key, iv);
-  var encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
   return {
     ciphertext: encrypted.toString("base64"),
     tag: cipher.getAuthTag().toString("base64"),
@@ -66,11 +66,11 @@ export function encrypt(key: Buffer, nonce: number, plaintext: string): { cipher
 
 export function decrypt(key: Buffer, nonce: number, ciphertext: string, tag: string): string | null {
   try {
-    var iv = Buffer.alloc(12);
+    const iv = Buffer.alloc(12);
     iv.writeBigUInt64BE(BigInt(nonce), 4);
-    var decipher = createDecipheriv("aes-256-gcm", key, iv);
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
     decipher.setAuthTag(Buffer.from(tag, "base64"));
-    var decrypted = Buffer.concat([decipher.update(Buffer.from(ciphertext, "base64")), decipher.final()]);
+    const decrypted = Buffer.concat([decipher.update(Buffer.from(ciphertext, "base64")), decipher.final()]);
     return decrypted.toString("utf-8");
   } catch {
     return null;
@@ -89,13 +89,13 @@ export function createSecureSession(sharedKey: Buffer): SecureSession {
 
 export function encryptMessage(session: SecureSession, message: object): { type: "mesh:encrypted"; nonce: number; ciphertext: string; tag: string } {
   session.sendNonce++;
-  var result = encrypt(session.sharedKey, session.sendNonce, JSON.stringify(message));
+  const result = encrypt(session.sharedKey, session.sendNonce, JSON.stringify(message));
   return { type: "mesh:encrypted", nonce: session.sendNonce, ...result };
 }
 
 export function decryptMessage(session: SecureSession, nonce: number, ciphertext: string, tag: string): object | null {
   if (nonce <= session.recvNonce) return null;
-  var plaintext = decrypt(session.sharedKey, nonce, ciphertext, tag);
+  const plaintext = decrypt(session.sharedKey, nonce, ciphertext, tag);
   if (!plaintext) return null;
   session.recvNonce = nonce;
   try {

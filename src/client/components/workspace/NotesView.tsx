@@ -7,12 +7,12 @@ import { useOnline } from "../../hooks/useOnline";
 import { NoteCard } from "./NoteCard";
 
 export function NotesView() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { activeProjectSlug } = useSession();
-  var online = useOnline();
-  var [notes, setNotes] = useState<StickyNote[]>([]);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { activeProjectSlug } = useSession();
+  const online = useOnline();
+  const [notes, setNotes] = useState<StickyNote[]>([]);
 
-  var handleMessage = useCallback(function (msg: ServerMessage) {
+  const handleMessage = useCallback(function (msg: ServerMessage) {
     if (msg.type === "notes:list_result") {
       setNotes(msg.notes);
       return;

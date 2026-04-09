@@ -63,22 +63,22 @@ import { cleanupClientTerminals } from "./handlers/terminal";
 import { cleanupClient as cleanupClientAttachments } from "./handlers/attachment";
 import { initPush, getVapidPublicKey, addPushSubscription } from "./push";
 
-var RATE_LIMIT_WINDOW = 10000;
-var RATE_LIMIT_MAX = 100;
-var clientRateLimits = new Map<string, { count: number; windowStart: number }>();
-var wsClientIds = new WeakMap<WebSocket, string>();
+const RATE_LIMIT_WINDOW = 10000;
+const RATE_LIMIT_MAX = 100;
+const clientRateLimits = new Map<string, { count: number; windowStart: number }>();
+const wsClientIds = new WeakMap<WebSocket, string>();
 
 function parseCookies(cookieHeader: string): Map<string, string> {
-  var map = new Map<string, string>();
-  var parts = cookieHeader.split(";");
-  for (var i = 0; i < parts.length; i++) {
-    var part = parts[i].trim();
-    var eqIdx = part.indexOf("=");
+  const map = new Map<string, string>();
+  const parts = cookieHeader.split(";");
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
+    const eqIdx = part.indexOf("=");
     if (eqIdx === -1) {
       continue;
     }
-    var key = part.slice(0, eqIdx).trim();
-    var value = part.slice(eqIdx + 1).trim();
+    const key = part.slice(0, eqIdx).trim();
+    const value = part.slice(eqIdx + 1).trim();
     map.set(key, value);
   }
   return map;
@@ -88,9 +88,9 @@ function isAuthenticatedReq(req: IncomingMessage, passphraseHash: string | undef
   if (!passphraseHash) {
     return true;
   }
-  var cookieHeader = req.headers.cookie || "";
-  var cookies = parseCookies(cookieHeader);
-  var token = cookies.get("lattice_auth");
+  const cookieHeader = req.headers.cookie || "";
+  const cookies = parseCookies(cookieHeader);
+  const token = cookies.get("lattice_auth");
   if (!token) {
     return false;
   }
@@ -190,9 +190,9 @@ function buildLoginPage(): string {
   <script>
     document.getElementById('form').addEventListener('submit', async function(e) {
       e.preventDefault();
-      var passphrase = document.getElementById('passphrase').value;
+      const passphrase = document.getElementById('passphrase').value;
       try {
-        var res = await fetch('/auth', {
+        const res = await fetch('/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ passphrase: passphrase })
@@ -212,8 +212,8 @@ function buildLoginPage(): string {
 }
 
 function getMimeType(filePath: string): string {
-  var ext = filePath.split(".").pop() || "";
-  var mimeTypes: Record<string, string> = {
+  const ext = filePath.split(".").pop() || "";
+  const mimeTypes: Record<string, string> = {
     html: "text/html; charset=utf-8",
     js: "application/javascript",
     css: "text/css",
@@ -236,19 +236,19 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
   addClient(clientId, ws);
   log.ws("Client connected: %s", clientId);
   sendTo(clientId, { type: "mesh:nodes", nodes: buildNodesMessage() });
-  var connectConfig = loadConfig();
-  var connectIdentity = loadOrCreateIdentity();
-  var localProjects = connectConfig.projects.map(function (p: typeof connectConfig.projects[number]) {
+  const connectConfig = loadConfig();
+  const connectIdentity = loadOrCreateIdentity();
+  const localProjects = connectConfig.projects.map(function (p: typeof connectConfig.projects[number]) {
     return { slug: p.slug, path: p.path, title: p.title, nodeId: connectIdentity.id, nodeName: connectConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveStreamCountForProject(p.slug) };
   });
-  var connectRemoteProjects = getAllRemoteProjects(connectIdentity.id);
+  const connectRemoteProjects = getAllRemoteProjects(connectIdentity.id);
   sendTo(clientId, {
     type: "projects:list",
     projects: localProjects.concat(connectRemoteProjects as unknown as typeof localProjects),
   });
   if (isWarmupComplete()) {
     sendTo(clientId, { type: "warmup:models", models: getWarmupModels() } as any);
-    var accountInfo = getWarmupAccountInfo();
+    const accountInfo = getWarmupAccountInfo();
     if (accountInfo) {
       sendTo(clientId, {
         type: "warmup:account",
@@ -259,9 +259,9 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
         apiProvider: accountInfo.apiProvider,
       } as any);
     }
-    var cachedRateLimits = getWarmupRateLimits();
-    for (var rli = 0; rli < cachedRateLimits.length; rli++) {
-      var rl = cachedRateLimits[rli];
+    const cachedRateLimits = getWarmupRateLimits();
+    for (let rli = 0; rli < cachedRateLimits.length; rli++) {
+      const rl = cachedRateLimits[rli];
       sendTo(clientId, {
         type: "chat:rate_limit",
         status: rl.status,
@@ -274,8 +274,8 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
       } as any);
     }
   }
-  for (var pi = 0; pi < connectConfig.projects.length; pi++) {
-    var proj = connectConfig.projects[pi];
+  for (let pi = 0; pi < connectConfig.projects.length; pi++) {
+    const proj = connectConfig.projects[pi];
     subscribeClientToProject(clientId, proj.slug);
     void listSessions(proj.slug, { limit: 40 }).then(function (result) {
       sendTo(clientId, {
@@ -292,11 +292,11 @@ function handleWsOpen(ws: WebSocket, clientId: string): void {
 }
 
 function handleWsMessage(ws: WebSocket, data: Buffer | ArrayBuffer | Buffer[]): void {
-  var clientId = wsClientIds.get(ws);
+  const clientId = wsClientIds.get(ws);
   if (!clientId) return;
 
-  var now = Date.now();
-  var limit = clientRateLimits.get(clientId);
+  const now = Date.now();
+  let limit = clientRateLimits.get(clientId);
   if (!limit || now - limit.windowStart > RATE_LIMIT_WINDOW) {
     limit = { count: 0, windowStart: now };
     clientRateLimits.set(clientId, limit);
@@ -307,9 +307,9 @@ function handleWsMessage(ws: WebSocket, data: Buffer | ArrayBuffer | Buffer[]): 
     return;
   }
 
-  var text = typeof data === "string" ? data : Buffer.isBuffer(data) ? data.toString() : Buffer.from(data as ArrayBuffer).toString();
+  const text = typeof data === "string" ? data : Buffer.isBuffer(data) ? data.toString() : Buffer.from(data as ArrayBuffer).toString();
   try {
-    var msg = JSON.parse(text) as ClientMessage;
+    const msg = JSON.parse(text) as ClientMessage;
     routeMessage(clientId, msg);
   } catch (err) {
     log.ws("Invalid JSON message: %O", err);
@@ -317,7 +317,7 @@ function handleWsMessage(ws: WebSocket, data: Buffer | ArrayBuffer | Buffer[]): 
 }
 
 function handleWsClose(ws: WebSocket): void {
-  var clientId = wsClientIds.get(ws);
+  const clientId = wsClientIds.get(ws);
   if (!clientId) return;
   clearActiveSession(clientId);
   clearActiveProject(clientId);
@@ -333,29 +333,29 @@ function handleWsClose(ws: WebSocket): void {
 }
 
 export async function startDaemon(portOverride?: number | null, tlsOverride?: boolean | null): Promise<void> {
-  var config = loadConfig();
-  var effectivePort = (portOverride && !isNaN(portOverride)) ? portOverride : config.port;
+  const config = loadConfig();
+  const effectivePort = (portOverride && !isNaN(portOverride)) ? portOverride : config.port;
   if (tlsOverride !== null && tlsOverride !== undefined) {
     config.tls = tlsOverride;
   }
-  var identity = loadOrCreateIdentity();
+  const identity = loadOrCreateIdentity();
 
   log.server("Node: %s (%s)", config.name, identity.id);
   log.server("Home: %s", getLatticeHome());
 
-  var clientDir = getClientDir();
+  const clientDir = getClientDir();
 
-  var app = express();
+  const app = express();
   app.use(express.json());
 
-  var authAttempts = new Map<string, number[]>();
-  var AUTH_RATE_LIMIT = 5;
-  var AUTH_RATE_WINDOW = 60000;
+  const authAttempts = new Map<string, number[]>();
+  const AUTH_RATE_LIMIT = 5;
+  const AUTH_RATE_WINDOW = 60000;
 
   app.post("/auth", async function (req, res) {
-    var ip = req.ip || req.socket.remoteAddress || "unknown";
-    var now = Date.now();
-    var attempts = authAttempts.get(ip) || [];
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    let attempts = authAttempts.get(ip) || [];
     attempts = attempts.filter(function (t) { return now - t < AUTH_RATE_WINDOW; });
 
     if (attempts.length >= AUTH_RATE_LIMIT) {
@@ -366,9 +366,9 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     attempts.push(now);
     authAttempts.set(ip, attempts);
 
-    var passphrase = (req.body as { passphrase?: string }).passphrase || "";
-    if (!config.passphraseHash || await verifyPassphrase(passphrase, config.passphraseHash)) {
-      var token = generateSessionToken();
+    const passphrase = (req.body as { passphrase?: string }).passphrase || "";
+    if (!config.passphraseHash || (await verifyPassphrase(passphrase, config.passphraseHash))) {
+      const token = generateSessionToken();
       addSession(token);
       res.setHeader("Set-Cookie", "lattice_auth=" + token + "; HttpOnly; Path=/; SameSite=Strict");
       res.json({ ok: true });
@@ -396,7 +396,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
 
   app.post("/api/push-subscribe", function (req, res) {
     try {
-      var pushBody = req.body as { endpoint: string; keys: { p256dh: string; auth: string } };
+      const pushBody = req.body as { endpoint: string; keys: { p256dh: string; auth: string } };
       addPushSubscription(pushBody);
       res.json({ ok: true });
     } catch {
@@ -432,17 +432,17 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   });
 
   app.get("/api/file", async function (req, res) {
-    var reqFilePath = req.query.path as string | undefined;
+    const reqFilePath = req.query.path as string | undefined;
     if (!reqFilePath) {
       res.status(400).send("Missing path parameter");
       return;
     }
 
-    var resolved: string | null = null;
+    let resolved: string | null = null;
 
-    for (var pi = 0; pi < config.projects.length; pi++) {
-      var projectPath = resolve(config.projects[pi].path);
-      var candidate = resolve(projectPath, reqFilePath);
+    for (let pi = 0; pi < config.projects.length; pi++) {
+      const projectPath = resolve(config.projects[pi].path);
+      const candidate = resolve(projectPath, reqFilePath);
       if (candidate.startsWith(projectPath + "/") && existsSync(candidate)) {
         resolved = candidate;
         break;
@@ -454,17 +454,17 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
       return;
     }
 
-    var fileStat = await fsStat(resolved);
+    const fileStat = await fsStat(resolved);
     res.setHeader("Content-Type", getMimeType(resolved));
     res.setHeader("Content-Length", fileStat.size);
     createReadStream(resolved).pipe(res);
   });
 
-  var tlsOptions: { cert: Buffer; key: Buffer } | undefined;
+  let tlsOptions: { cert: Buffer; key: Buffer } | undefined;
   if (config.tls) {
-    var certsDir = join(getLatticeHome(), "certs");
-    var certPath = join(certsDir, "cert.pem");
-    var keyPath = join(certsDir, "key.pem");
+    const certsDir = join(getLatticeHome(), "certs");
+    const certPath = join(certsDir, "cert.pem");
+    const keyPath = join(certsDir, "key.pem");
 
     if (existsSync(certPath) && existsSync(keyPath)) {
       try {
@@ -485,17 +485,17 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     }
   }
 
-  var protocol = tlsOptions ? "https" : "http";
-  var httpServer = tlsOptions
+  const protocol = tlsOptions ? "https" : "http";
+  const httpServer = tlsOptions
     ? createHttpsServer(tlsOptions, app)
     : createHttpServer(app);
 
-  var isDev = process.env.NODE_ENV === "development";
-  var { loadAllThemes } = await import("./handlers/themes");
+  const isDev = process.env.NODE_ENV === "development";
+  const { loadAllThemes } = await import("./handlers/themes");
 
   async function getThemeInjectionScript(): Promise<string> {
     try {
-      var customThemes = await loadAllThemes();
+      const customThemes = await loadAllThemes();
       if (customThemes.length === 0) return "";
       return "<script>window.__LATTICE_CUSTOM_THEMES__=" + JSON.stringify(customThemes) + "</script>";
     } catch {
@@ -504,8 +504,8 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   }
 
   if (isDev) {
-    var { createServer: createViteServer } = await import("vite");
-    var vite = await createViteServer({
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
       server: {
         middlewareMode: true,
         hmr: { server: httpServer },
@@ -516,7 +516,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
         transformIndexHtml: {
           order: "post",
           handler: async function () {
-            var script = await getThemeInjectionScript();
+            const script = await getThemeInjectionScript();
             if (!script) return [];
             return [{ tag: "script", attrs: {}, children: "window.__LATTICE_CUSTOM_THEMES__=" + JSON.stringify(await loadAllThemes()), injectTo: "head" }];
           },
@@ -528,10 +528,10 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   } else if (clientDir && existsSync(clientDir)) {
     app.use(express.static(clientDir, { dotfiles: "allow" }));
     app.get("/{*path}", async function (_req, res) {
-      var indexPath = join(clientDir!, "index.html");
+      const indexPath = join(clientDir!, "index.html");
       if (existsSync(indexPath)) {
-        var html = readFileSync(indexPath, "utf-8");
-        var injection = await getThemeInjectionScript();
+        let html = readFileSync(indexPath, "utf-8");
+        const injection = await getThemeInjectionScript();
         if (injection) {
           html = html.replace("</head>", injection + "</head>");
         }
@@ -543,7 +543,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     });
   }
 
-  var wss = new WebSocketServer({
+  const wss = new WebSocketServer({
     noServer: true,
     perMessageDeflate: {
       zlibDeflateOptions: { level: 1 },
@@ -552,7 +552,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   });
 
   httpServer.on("upgrade", function (req: IncomingMessage, socket, head) {
-    var url = new URL(req.url || "/", "http://localhost");
+    const url = new URL(req.url || "/", "http://localhost");
     if (url.pathname !== "/ws") {
       return;
     }
@@ -561,7 +561,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
       return;
     }
     wss.handleUpgrade(req, socket, head, function (ws) {
-      var clientId = crypto.randomUUID();
+      const clientId = crypto.randomUUID();
       handleWsOpen(ws, clientId);
       ws.on("pong", function () { markClientAlive(clientId); });
       ws.on("message", function (data) { handleWsMessage(ws, data as Buffer); });
@@ -569,8 +569,8 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     });
   });
 
-  var maxRetries = 10;
-  for (var attempt = 0; attempt < maxRetries; attempt++) {
+  const maxRetries = 10;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       await new Promise<void>(function (resolveP, reject) {
         httpServer.once("error", function (err: NodeJS.ErrnoException) {
@@ -616,9 +616,9 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   loadSessionHistory();
   loadSpecs();
   onSpecsReloaded(function () {
-    var allSpecs = listSpecs();
-    var slugs = new Set(allSpecs.map(function (s) { return s.projectSlug; }));
-    for (var slug of slugs) {
+    const allSpecs = listSpecs();
+    const slugs = new Set(allSpecs.map(function (s) { return s.projectSlug; }));
+    for (const slug of slugs) {
       broadcastToProject(slug, { type: "specs:list_result", specs: listSpecs(slug) });
     }
   });
@@ -626,7 +626,7 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   startBrainstormWatchers();
   initSuperpowers();
   startPeriodicUpdateCheck();
-  var hookResult = installHooks();
+  const hookResult = installHooks();
   if (hookResult.success) {
     log.server("Claude Code hooks installed/updated");
   } else {
@@ -635,15 +635,15 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
   loadInterruptedSessions();
   initPush();
 
-  var firstProject = config.projects[0];
+  const firstProject = config.projects[0];
   if (firstProject) {
     void runWarmup(firstProject.path);
   }
 
-  var meshDirty = true;
-  var lastNodesJson = "";
-  var lastProjectsJson = "";
-  var broadcastTick = 0;
+  let meshDirty = true;
+  let lastNodesJson = "";
+  let lastProjectsJson = "";
+  let broadcastTick = 0;
 
   onPeerConnected(function (nodeId: string) {
     meshDirty = true;
@@ -670,8 +670,8 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
     broadcastTick++;
 
     if (meshDirty) {
-      var nodesPayload = buildNodesMessage();
-      var nodesJson = JSON.stringify(nodesPayload);
+      const nodesPayload = buildNodesMessage();
+      const nodesJson = JSON.stringify(nodesPayload);
       if (nodesJson !== lastNodesJson) {
         lastNodesJson = nodesJson;
         broadcast({ type: "mesh:nodes", nodes: nodesPayload });
@@ -679,21 +679,21 @@ export async function startDaemon(portOverride?: number | null, tlsOverride?: bo
       meshDirty = false;
     }
 
-    var currentConfig = loadConfig();
-    var currentIdentity = loadOrCreateIdentity();
-    var localProjects = currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
+    const currentConfig = loadConfig();
+    const currentIdentity = loadOrCreateIdentity();
+    const localProjects = currentConfig.projects.map(function (p: typeof currentConfig.projects[number]) {
       return { slug: p.slug, path: p.path, title: p.title, nodeId: currentIdentity.id, nodeName: currentConfig.name, isRemote: false, ideProjectName: detectIdeProjectName(p.path), activeSessions: getActiveStreamCountForProject(p.slug) };
     });
-    var remoteProjects = getAllRemoteProjects(currentIdentity.id);
-    var allProjects = localProjects.concat(remoteProjects as unknown as typeof localProjects);
-    var projectsJson = JSON.stringify(allProjects);
+    const remoteProjects = getAllRemoteProjects(currentIdentity.id);
+    const allProjects = localProjects.concat(remoteProjects as unknown as typeof localProjects);
+    const projectsJson = JSON.stringify(allProjects);
     if (projectsJson !== lastProjectsJson) {
       lastProjectsJson = projectsJson;
       broadcast({ type: "projects:list", projects: allProjects });
     }
 
     if (broadcastTick % 3 === 0) {
-      var updateInfo = getCachedUpdateInfo();
+      const updateInfo = getCachedUpdateInfo();
       if (updateInfo && updateInfo.updateAvailable) {
         broadcast({
           type: "update:status",

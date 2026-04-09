@@ -16,20 +16,20 @@ function formatSize(bytes: number): string {
 
 function getExtBadge(name: string, type: string): string {
   if (type === "paste") return "TXT";
-  var ext = name.split(".").pop()?.toUpperCase() || "";
+  const ext = name.split(".").pop()?.toUpperCase() || "";
   return ext.slice(0, 4) || "FILE";
 }
 
 export function AttachmentChips(props: AttachmentChipsProps) {
-  var [expandedPaste, setExpandedPaste] = useState<string | null>(null);
+  const [expandedPaste, setExpandedPaste] = useState<string | null>(null);
 
   if (props.attachments.length === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-1.5 px-3 py-2 border-b border-base-content/8" role="list" aria-label="Attachments">
       {props.attachments.map(function (att) {
-        var isFailed = att.status === "failed";
-        var isUploading = att.status === "uploading";
+        const isFailed = att.status === "failed";
+        const isUploading = att.status === "uploading";
 
         return (
           <div key={att.id} role="listitem" className="relative">

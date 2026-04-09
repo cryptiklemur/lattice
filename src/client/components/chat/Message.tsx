@@ -16,21 +16,21 @@ import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 import type { ContextMenuEntry } from "../ui/ContextMenu";
 
 function TableWrapper(props: React.HTMLAttributes<HTMLTableElement>) {
-  var wrapperRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(function () {
-    var el = wrapperRef.current;
+    const el = wrapperRef.current;
     if (!el) return;
     function check() {
       if (!el) return;
-      var hasOverflow = el.scrollWidth > el.clientWidth + 1;
-      var atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+      const hasOverflow = el.scrollWidth > el.clientWidth + 1;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
       el.classList.toggle("has-overflow", hasOverflow);
       el.classList.toggle("scrolled-end", atEnd || !hasOverflow);
     }
     check();
     el.addEventListener("scroll", check, { passive: true });
-    var ro = new ResizeObserver(check);
+    const ro = new ResizeObserver(check);
     ro.observe(el);
     return function () {
       el!.removeEventListener("scroll", check);
@@ -45,7 +45,7 @@ function TableWrapper(props: React.HTMLAttributes<HTMLTableElement>) {
   );
 }
 
-var mdComponents = {
+const mdComponents = {
   table: TableWrapper,
   a: function MdLink(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
     return <a {...props} target="_blank" rel="noopener noreferrer" />;
@@ -60,15 +60,15 @@ interface MessageProps {
 
 function formatTime(timestamp: number): string {
   if (!timestamp) return "";
-  var d = new Date(timestamp);
-  var now = new Date();
-  var h = d.getHours().toString().padStart(2, "0");
-  var m = d.getMinutes().toString().padStart(2, "0");
-  var time = h + ":" + m;
+  const d = new Date(timestamp);
+  const now = new Date();
+  const h = d.getHours().toString().padStart(2, "0");
+  const m = d.getMinutes().toString().padStart(2, "0");
+  const time = h + ":" + m;
 
-  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  var yesterday = new Date(today.getTime() - 86400000);
-  var msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 86400000);
+  const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
   if (msgDay.getTime() === today.getTime()) {
     return time;
@@ -76,14 +76,14 @@ function formatTime(timestamp: number): string {
   if (msgDay.getTime() === yesterday.getTime()) {
     return "Yesterday " + time;
   }
-  var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return months[d.getMonth()] + " " + d.getDate() + ", " + time;
 }
 
 function MessageAnchor(props: { id: string | undefined }) {
   if (!props.id) return null;
   function handleClick() {
-    var url = window.location.pathname + "#msg-" + props.id;
+    const url = window.location.pathname + "#msg-" + props.id;
     window.history.replaceState(null, "", url);
     navigator.clipboard.writeText(window.location.origin + url);
   }
@@ -114,36 +114,36 @@ function stripMarkdown(text: string): string {
 }
 
 function MessageActions(props: { text: string; showNewSession?: boolean; messageUuid?: string; messageType?: "user" | "assistant" }) {
-  var [copied, setCopied] = useState(false);
-  var ws = useWebSocket();
-  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
-  var isBookmarked = useMemo(function () {
+  const [copied, setCopied] = useState(false);
+  const ws = useWebSocket();
+  const bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
+  const isBookmarked = useMemo(function () {
     if (!props.messageUuid) return false;
-    for (var i = 0; i < bookmarkState.length; i++) {
+    for (let i = 0; i < bookmarkState.length; i++) {
       if (bookmarkState[i].messageUuid === props.messageUuid) return true;
     }
     return false;
   }, [props.messageUuid, bookmarkState]);
 
   function handleCopy(e: React.MouseEvent) {
-    var content = e.shiftKey ? stripMarkdown(props.text) : props.text;
+    const content = e.shiftKey ? stripMarkdown(props.text) : props.text;
     navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(function () { setCopied(false); }, 1500);
   }
 
   function handleNewSession() {
-    var state = getSessionStore().state;
+    const state = getSessionStore().state;
     if (!state.activeProjectSlug) return;
     setPendingPrefill(props.text);
     ws.send({ type: "session:create", projectSlug: state.activeProjectSlug });
   }
 
   function handleBookmarkToggle() {
-    var state = getSessionStore().state;
+    const state = getSessionStore().state;
     if (!state.activeSessionId || !state.activeProjectSlug || !props.messageUuid || !props.messageType) return;
     if (isBookmarked) {
-      var bm = findBookmarkByUuid(props.messageUuid);
+      const bm = findBookmarkByUuid(props.messageUuid);
       if (bm) {
         ws.send({ type: "bookmark:remove", id: bm.id });
       }
@@ -159,7 +159,7 @@ function MessageActions(props: { text: string; showNewSession?: boolean; message
     }
   }
 
-  var btnClass = "icon-action opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 text-base-content/20 hover:text-base-content/50 cursor-pointer p-0.5 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none rounded";
+  const btnClass = "icon-action opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 text-base-content/20 hover:text-base-content/50 cursor-pointer p-0.5 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none rounded";
 
   return (
     <>
@@ -181,16 +181,16 @@ function MessageActions(props: { text: string; showNewSession?: boolean; message
 }
 
 function parseSkillInvocation(text: string): { skillName: string; content: string } | null {
-  var firstNewline = text.search(/\r?\n/);
+  const firstNewline = text.search(/\r?\n/);
   if (firstNewline === -1) return null;
-  var firstLine = text.slice(0, firstNewline).trim();
+  const firstLine = text.slice(0, firstNewline).trim();
   if (firstLine.indexOf(":") === -1) return null;
   if (!/\n---[\r\n]/.test(text)) return null;
   return { skillName: firstLine, content: text.slice(firstNewline).replace(/^\r?\n+---[\r\n]+/, "").trim() };
 }
 
 function SkillMessage(props: { skillName: string; content: string; time: string | null; uuid?: string }) {
-  var [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   return (
     <div id={props.uuid ? "msg-" + props.uuid : undefined} className="chat chat-end px-5 py-1 group/msg">
       <div className="chat-bubble chat-bubble-primary text-[13px] leading-relaxed break-words max-w-[95%] sm:max-w-[85%] shadow-sm">
@@ -229,9 +229,9 @@ function SkillMessage(props: { skillName: string; content: string; time: string 
 }
 
 function RewindButton(props: { uuid: string }) {
-  var ws = useWebSocket();
-  var [pending, setPending] = useState(false);
-  var [preview, setPreview] = useState<{ canRewind: boolean; filesChanged?: number; error?: string } | null>(null);
+  const ws = useWebSocket();
+  const [pending, setPending] = useState(false);
+  const [preview, setPreview] = useState<{ canRewind: boolean; filesChanged?: number; error?: string } | null>(null);
 
   useEffect(function () {
     function handlePreview(msg: any) {
@@ -305,33 +305,33 @@ function RewindButton(props: { uuid: string }) {
 }
 
 function UserMessage(props: { message: HistoryMessage }) {
-  var msg = props.message;
-  var time = formatTime(msg.timestamp);
-  var text = msg.text || "";
-  var skill = parseSkillInvocation(text);
-  var ctxMenu = useContextMenu<HistoryMessage>();
-  var ws = useWebSocket();
-  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
-  var isBookmarked = useMemo(function () {
+  const msg = props.message;
+  const time = formatTime(msg.timestamp);
+  const text = msg.text || "";
+  const skill = parseSkillInvocation(text);
+  const ctxMenu = useContextMenu<HistoryMessage>();
+  const ws = useWebSocket();
+  const bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
+  const isBookmarked = useMemo(function () {
     if (!msg.uuid) return false;
-    for (var i = 0; i < bookmarkState.length; i++) {
+    for (let i = 0; i < bookmarkState.length; i++) {
       if (bookmarkState[i].messageUuid === msg.uuid) return true;
     }
     return false;
   }, [msg.uuid, bookmarkState]);
 
   function handleNewSession() {
-    var state = getSessionStore().state;
+    const state = getSessionStore().state;
     if (!state.activeProjectSlug) return;
     setPendingPrefill(text);
     ws.send({ type: "session:create", projectSlug: state.activeProjectSlug });
   }
 
   function handleBookmarkToggle() {
-    var state = getSessionStore().state;
+    const state = getSessionStore().state;
     if (!state.activeSessionId || !state.activeProjectSlug || !msg.uuid) return;
     if (isBookmarked) {
-      var bm = findBookmarkByUuid(msg.uuid);
+      const bm = findBookmarkByUuid(msg.uuid);
       if (bm) {
         ws.send({ type: "bookmark:remove", id: bm.id });
       }
@@ -383,10 +383,10 @@ function UserMessage(props: { message: HistoryMessage }) {
 }
 
 function formatDuration(ms: number): string {
-  var seconds = Math.round(ms / 1000);
+  const seconds = Math.round(ms / 1000);
   if (seconds < 60) return seconds + "s";
-  var minutes = Math.floor(seconds / 60);
-  var remainingSeconds = seconds % 60;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
   return minutes + "m " + remainingSeconds + "s";
 }
 
@@ -397,32 +397,32 @@ function formatTokenCount(n: number): string {
 }
 
 function AssistantMessage(props: { message: HistoryMessage; responseCost?: number | null; responseDuration?: number | null }) {
-  var msg = props.message;
-  var time = formatTime(msg.timestamp);
-  var text = msg.text || "";
-  var ctxMenu = useContextMenu<HistoryMessage>();
-  var ws = useWebSocket();
-  var bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
-  var isBookmarked = useMemo(function () {
+  const msg = props.message;
+  const time = formatTime(msg.timestamp);
+  const text = msg.text || "";
+  const ctxMenu = useContextMenu<HistoryMessage>();
+  const ws = useWebSocket();
+  const bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
+  const isBookmarked = useMemo(function () {
     if (!msg.uuid) return false;
-    for (var i = 0; i < bookmarkState.length; i++) {
+    for (let i = 0; i < bookmarkState.length; i++) {
       if (bookmarkState[i].messageUuid === msg.uuid) return true;
     }
     return false;
   }, [msg.uuid, bookmarkState]);
 
   function handleNewSession() {
-    var state = getSessionStore().state;
+    const state = getSessionStore().state;
     if (!state.activeProjectSlug) return;
     setPendingPrefill(text);
     ws.send({ type: "session:create", projectSlug: state.activeProjectSlug });
   }
 
   function handleBookmarkToggle() {
-    var state = getSessionStore().state;
+    const state = getSessionStore().state;
     if (!state.activeSessionId || !state.activeProjectSlug || !msg.uuid) return;
     if (isBookmarked) {
-      var bm = findBookmarkByUuid(msg.uuid);
+      const bm = findBookmarkByUuid(msg.uuid);
       if (bm) {
         ws.send({ type: "bookmark:remove", id: bm.id });
       }
@@ -486,12 +486,12 @@ function AssistantMessage(props: { message: HistoryMessage; responseCost?: numbe
 }
 
 function ToolMessage(props: { message: HistoryMessage }) {
-  var msg = props.message;
-  var [expanded, setExpanded] = useState<boolean>(false);
-  var hasResult = Boolean(msg.content);
-  var ctxMenu = useContextMenu<HistoryMessage>();
+  const msg = props.message;
+  const [expanded, setExpanded] = useState<boolean>(false);
+  const hasResult = Boolean(msg.content);
+  const ctxMenu = useContextMenu<HistoryMessage>();
 
-  var parsedArgs: string = msg.args || "";
+  let parsedArgs: string = msg.args || "";
   try {
     if (msg.args) {
       parsedArgs = JSON.stringify(JSON.parse(msg.args), null, 2);
@@ -565,24 +565,24 @@ function ToolMessage(props: { message: HistoryMessage }) {
 }
 
 function PermissionMessage(props: { message: HistoryMessage }) {
-  var msg = props.message;
-  var { send } = useWebSocket();
-  var [showScopeMenu, setShowScopeMenu] = useState<boolean>(false);
-  var [expanded, setExpanded] = useState<boolean>(false);
-  var [dropUp, setDropUp] = useState<boolean>(false);
-  var scopeBtnRef = useRef<HTMLButtonElement>(null);
+  const msg = props.message;
+  const { send } = useWebSocket();
+  const [showScopeMenu, setShowScopeMenu] = useState<boolean>(false);
+  const [expanded, setExpanded] = useState<boolean>(false);
+  const [dropUp, setDropUp] = useState<boolean>(false);
+  const scopeBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(function () {
     if (showScopeMenu && scopeBtnRef.current) {
-      var rect = scopeBtnRef.current.getBoundingClientRect();
-      var spaceBelow = window.innerHeight - rect.bottom;
+      const rect = scopeBtnRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
       setDropUp(spaceBelow < 120);
     }
   }, [showScopeMenu]);
 
-  var isResolved = msg.permissionStatus && msg.permissionStatus !== "pending";
+  const isResolved = msg.permissionStatus && msg.permissionStatus !== "pending";
 
-  var parsedArgs: string = msg.args || "";
+  let parsedArgs: string = msg.args || "";
   try {
     if (msg.args) {
       parsedArgs = JSON.stringify(JSON.parse(msg.args), null, 2);
@@ -590,6 +590,8 @@ function PermissionMessage(props: { message: HistoryMessage }) {
   } catch {
     parsedArgs = msg.args || "";
   }
+
+  const toolSummary = msg.name && msg.args ? formatToolSummary(msg.name, msg.args) : "";
 
   function respond(allow: boolean, alwaysAllow?: boolean, alwaysAllowScope?: "session" | "project") {
     if (isResolved || !msg.toolId) {
@@ -616,15 +618,15 @@ function PermissionMessage(props: { message: HistoryMessage }) {
   }
 
   if (isResolved) {
-    var statusIcon = msg.permissionStatus === "denied"
+    const statusIcon = msg.permissionStatus === "denied"
       ? <X size={12} className="text-error" />
       : <Check size={12} className="text-success" />;
-    var statusText = msg.permissionStatus === "denied"
+    const statusText = msg.permissionStatus === "denied"
       ? "Denied"
       : msg.permissionStatus === "always_allowed"
       ? "Always allowed"
       : "Allowed";
-    var borderClass = msg.permissionStatus === "denied"
+    const borderClass = msg.permissionStatus === "denied"
       ? "border-error/15 bg-error/3"
       : "border-success/15 bg-success/3";
 
@@ -636,6 +638,11 @@ function PermissionMessage(props: { message: HistoryMessage }) {
           <code className="font-mono text-[11px] bg-base-300/40 px-1.5 py-0.5 rounded text-base-content/30">
             {msg.name}
           </code>
+          {toolSummary && (
+            <span className="font-mono text-[11px] text-base-content/20 truncate">
+              {toolSummary}
+            </span>
+          )}
           <span className="text-[10px] text-base-content/15 ml-auto">{formatTime(msg.timestamp)}</span>
         </div>
       </div>
@@ -651,9 +658,11 @@ function PermissionMessage(props: { message: HistoryMessage }) {
             <code className="font-mono text-[11px] bg-base-300/60 px-1.5 py-0.5 rounded text-base-content/60">
               {msg.name}
             </code>
-          </div>
-          <div className="text-[13px] text-base-content/80">
-            {msg.title || "Permission required"}
+            {toolSummary && (
+              <span className="font-mono text-[11px] text-base-content/50 truncate">
+                {toolSummary}
+              </span>
+            )}
           </div>
         </div>
 
@@ -737,10 +746,10 @@ function PermissionMessage(props: { message: HistoryMessage }) {
 }
 
 function CompactSummaryMessage(props: { message: HistoryMessage }) {
-  var [expanded, setExpanded] = useState(false);
-  var msg = props.message;
-  var text = msg.text || "";
-  var time = formatTime(msg.timestamp);
+  const [expanded, setExpanded] = useState(false);
+  const msg = props.message;
+  const text = msg.text || "";
+  const time = formatTime(msg.timestamp);
 
   return (
     <div id={msg.uuid ? "msg-" + msg.uuid : undefined} className="px-5 py-3">
@@ -778,8 +787,20 @@ function CompactSummaryMessage(props: { message: HistoryMessage }) {
   );
 }
 
-export var Message = memo(function Message(props: MessageProps) {
-  var msg = props.message;
+export const Message = memo(function Message(props: MessageProps) {
+  const msg = props.message;
+
+  if (msg.type === "user" && msg.uuid && msg.uuid.startsWith("spec-auto-")) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-1.5 my-1">
+        <div className="flex-1 h-px bg-base-content/8" />
+        <span className="text-[10px] font-mono text-base-content/30 whitespace-nowrap">
+          {msg.text}
+        </span>
+        <div className="flex-1 h-px bg-base-content/8" />
+      </div>
+    );
+  }
 
   if (msg.type === "user") {
     return <UserMessage message={msg} />;

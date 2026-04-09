@@ -5,7 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
 import { useProjects } from "../../hooks/useProjects";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted, setPendingPrefill, getSessionStore, invalidateSessionMessageCache } from "../../stores/session";
+import { setSessionTitle, setIsProcessing, setCurrentStatus, setWasInterrupted, setPendingPrefill, setPendingAutoSend, getSessionStore, invalidateSessionMessageCache } from "../../stores/session";
 import { openSettings, openProjectSettings } from "../../stores/sidebar";
 import { openTab, updateSessionTabTitle } from "../../stores/workspace";
 import { builtinCommands } from "../../commands";
@@ -24,20 +24,20 @@ import { useStore } from "@tanstack/react-store";
 import { getContextAnalyzerStore, dismissAnomaly } from "../../stores/context-analyzer";
 
 function SessionLoadingState({ fileSize }: { fileSize: number | null }) {
-  var [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   useEffect(function () {
-    var start = Date.now();
-    var raf = 0;
+    const start = Date.now();
+    let raf = 0;
     // Scale the time constant based on file size:
     // ~50KB → 800ms, ~500KB → 2s, ~5MB → 8s, unknown → 3s
-    var timeConstant = fileSize != null
+    const timeConstant = fileSize != null
       ? Math.max(800, Math.min(fileSize / 60, 8000))
       : 3000;
 
     function tick() {
-      var elapsed = Date.now() - start;
-      var raw = 1 - Math.exp(-elapsed / timeConstant);
+      const elapsed = Date.now() - start;
+      const raw = 1 - Math.exp(-elapsed / timeConstant);
       setProgress(Math.min(raw * 90, 90));
       raf = requestAnimationFrame(tick);
     }
@@ -62,35 +62,34 @@ function SessionLoadingState({ fileSize }: { fileSize: number | null }) {
 }
 
 export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug }: { sessionId?: string; projectSlug?: string } = {}) {
-  var { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyLoadingFileSize, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
-  var { activeProject } = useProjects();
-  var { toggleDrawer } = useSidebar();
-  var activeAnomalies = useStore(getContextAnalyzerStore(), function (s) {
+  const { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyLoadingFileSize, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
+  const { activeProject } = useProjects();
+  const { toggleDrawer } = useSidebar();
+  const activeAnomalies = useStore(getContextAnalyzerStore(), function (s) {
     return s.activeSession.anomalies.filter(function (a) { return !a.dismissed; });
   });
 
   useEffect(function () {
     if (!tabSessionId || !tabProjectSlug) return;
-    if (activeSessionId === tabSessionId) return;
     activateSession(tabProjectSlug, tabSessionId);
   }, [tabSessionId, tabProjectSlug]);
-  var online = useOnline();
-  var ws = useWebSocket();
-  var spinnerVerb = useSpinnerVerb(isProcessing);
-  var { bookmarks, requestSessionBookmarks } = useBookmarks();
-  var [showBookmarkDropdown, setShowBookmarkDropdown] = useState<boolean>(false);
-  var bookmarkDropdownRef = useRef<HTMLDivElement>(null);
-  var bookmarkBtnRef = useRef<HTMLButtonElement>(null);
-  var scrollParentRef = useRef<HTMLDivElement>(null);
-  var prevLengthRef = useRef<number>(0);
-  var isLiveChatRef = useRef<boolean>(false);
-  var [isNearBottom, setIsNearBottom] = useState<boolean>(true);
-  var isNearBottomRef = useRef<boolean>(true);
-  var [isMobile, setIsMobile] = useState<boolean>(function () { return typeof window !== "undefined" && window.innerWidth < 640; });
-  var [selectedModel, setSelectedModel] = useState<string>("default");
-  var [selectedEffort, setSelectedEffort] = useState<string>("medium");
-  var [showInfo, setShowInfo] = useState<boolean>(false);
-  var [prefillText, setPrefillText] = useState<string | null>(null);
+  const online = useOnline();
+  const ws = useWebSocket();
+  const spinnerVerb = useSpinnerVerb(isProcessing);
+  const { bookmarks, requestSessionBookmarks } = useBookmarks();
+  const [showBookmarkDropdown, setShowBookmarkDropdown] = useState<boolean>(false);
+  const bookmarkDropdownRef = useRef<HTMLDivElement>(null);
+  const bookmarkBtnRef = useRef<HTMLButtonElement>(null);
+  const scrollParentRef = useRef<HTMLDivElement>(null);
+  const prevLengthRef = useRef<number>(0);
+  const isLiveChatRef = useRef<boolean>(false);
+  const [isNearBottom, setIsNearBottom] = useState<boolean>(true);
+  const isNearBottomRef = useRef<boolean>(true);
+  const [isMobile, setIsMobile] = useState<boolean>(function () { return typeof window !== "undefined" && window.innerWidth < 640; });
+  const [selectedModel, setSelectedModel] = useState<string>("default");
+  const [selectedEffort, setSelectedEffort] = useState<string>("medium");
+  const [showInfo, setShowInfo] = useState<boolean>(false);
+  const [prefillText, setPrefillText] = useState<string | null>(null);
 
   useEffect(function () {
     if (pendingPrefill && !historyLoading) {
@@ -98,6 +97,16 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
       setPendingPrefill(null);
     }
   }, [pendingPrefill, historyLoading]);
+
+  const { pendingAutoSend, specContext } = useSession();
+
+  useEffect(function () {
+    if (pendingAutoSend && activeSessionId && !historyLoading && !isProcessing) {
+      const text = pendingAutoSend;
+      sendMessage(text);
+      setPendingAutoSend(null);
+    }
+  }, [pendingAutoSend, activeSessionId, historyLoading, isProcessing]);
 
   useEffect(function () {
     if (activeSessionId && !historyLoading) {
@@ -108,7 +117,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
   useEffect(function () {
     if (!showBookmarkDropdown) return;
     function handleClick(e: MouseEvent) {
-      var target = e.target as Node;
+      const target = e.target as Node;
       if (bookmarkDropdownRef.current && bookmarkDropdownRef.current.contains(target)) return;
       if (bookmarkBtnRef.current && bookmarkBtnRef.current.contains(target)) return;
       setShowBookmarkDropdown(false);
@@ -117,23 +126,23 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     return function () { document.removeEventListener("mousedown", handleClick); };
   }, [showBookmarkDropdown]);
 
-  var [copiedField, setCopiedField] = useState<string | null>(null);
-  var [isRenaming, setIsRenaming] = useState<boolean>(false);
-  var [renameValue, setRenameValue] = useState<string>("");
-  var [showContext, setShowContext] = useState<boolean>(false);
-  var infoRef = useRef<HTMLButtonElement>(null);
-  var infoPanelRef = useRef<HTMLDivElement>(null);
-  var contextBarRef = useRef<HTMLButtonElement>(null);
-  var contextBarMobileRef = useRef<HTMLButtonElement>(null);
-  var contextPanelRef = useRef<HTMLDivElement>(null);
-  var renameInputRef = useRef<HTMLInputElement>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isRenaming, setIsRenaming] = useState<boolean>(false);
+  const [renameValue, setRenameValue] = useState<string>("");
+  const [showContext, setShowContext] = useState<boolean>(false);
+  const infoRef = useRef<HTMLButtonElement>(null);
+  const infoPanelRef = useRef<HTMLDivElement>(null);
+  const contextBarRef = useRef<HTMLButtonElement>(null);
+  const contextBarMobileRef = useRef<HTMLButtonElement>(null);
+  const contextPanelRef = useRef<HTMLDivElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(function () {
-    var el = scrollParentRef.current;
+    const el = scrollParentRef.current;
     if (!el) return;
-    var scrollEl = el;
+    const scrollEl = el;
     function handleScroll() {
-      var near = (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight) < 200;
+      const near = (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight) < 200;
       if (near !== isNearBottomRef.current) {
         isNearBottomRef.current = near;
         setIsNearBottom(near);
@@ -151,13 +160,13 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     return function () { window.removeEventListener("resize", handleResize); };
   }, []);
 
-  var virtualizer = useVirtualizer({
+  const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: function () {
       return scrollParentRef.current;
     },
     estimateSize: function (index) {
-      var msg = messages[index];
+      const msg = messages[index];
       if (!msg) return 120;
       if (msg.type === "tool_start") return 52;
       if (msg.type === "user") return 100;
@@ -166,10 +175,10 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     overscan: isMobile ? 10 : 20,
   });
 
-  var scrollToBottom = useCallback(function () {
+  const scrollToBottom = useCallback(function () {
     if (messages.length === 0) return;
     if (isMobile) {
-      var el = scrollParentRef.current;
+      const el = scrollParentRef.current;
       if (el) el.scrollTop = el.scrollHeight;
     } else {
       virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -183,20 +192,20 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         isLiveChatRef.current = false;
         return;
       }
-      var prevLen = prevLengthRef.current;
-      var delta = messages.length - prevLen;
+      const prevLen = prevLengthRef.current;
+      const delta = messages.length - prevLen;
       prevLengthRef.current = messages.length;
 
       if (prevLen === 0 && delta > 1) {
         isLiveChatRef.current = false;
         if (isMobile) {
           requestAnimationFrame(function () {
-            var el = scrollParentRef.current;
+            const el = scrollParentRef.current;
             if (el) el.scrollTop = el.scrollHeight;
           });
         } else {
-          var count = messages.length;
-          var virt = virtualizer;
+          const count = messages.length;
+          const virt = virtualizer;
           requestAnimationFrame(function () {
             virt.scrollToIndex(count - 1, { align: "end" });
           });
@@ -236,7 +245,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
   useEffect(function () {
     if (!showContext) return;
     function handleClick(e: MouseEvent) {
-      var target = e.target as Node;
+      const target = e.target as Node;
       if (contextPanelRef.current && contextPanelRef.current.contains(target)) return;
       if (contextBarRef.current && contextBarRef.current.contains(target)) return;
       if (contextBarMobileRef.current && contextBarMobileRef.current.contains(target)) return;
@@ -291,7 +300,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     return String(n);
   }
 
-  var SEGMENT_COLORS: Record<string, string> = {
+  const SEGMENT_COLORS: Record<string, string> = {
     system: "var(--color-neutral)",
     builtin_tools: "var(--color-info)",
     instructions: "var(--color-success)",
@@ -300,25 +309,25 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     assistant: "var(--color-secondary)",
     tool_results: "var(--color-accent)",
   };
-  var MCP_HUES = [180, 160, 140, 200, 220];
+  const MCP_HUES = [180, 160, 140, 200, 220];
   function getSegmentColor(id: string): string {
     if (SEGMENT_COLORS[id]) return SEGMENT_COLORS[id];
     if (id.startsWith("mcp_")) {
-      var idx = 0;
-      for (var c = 0; c < id.length; c++) idx += id.charCodeAt(c);
+      let idx = 0;
+      for (let c = 0; c < id.length; c++) idx += id.charCodeAt(c);
       return "oklch(0.65 0.15 " + MCP_HUES[idx % MCP_HUES.length] + ")";
     }
     return "oklch(0.5 0.1 250)";
   }
 
-  var contextInfo = useMemo(function () {
-    var percent = 0;
-    var filled = 0;
+  const contextInfo = useMemo(function () {
+    let percent = 0;
+    let filled = 0;
     if (contextUsage && contextUsage.contextWindow > 0) {
       filled = contextUsage.inputTokens + contextUsage.outputTokens + contextUsage.cacheReadTokens + contextUsage.cacheCreationTokens;
       percent = Math.min(100, Math.round((filled / contextUsage.contextWindow) * 100));
     }
-    var autocompact = contextBreakdown && contextBreakdown.contextWindow > 0 ? Math.round((contextBreakdown.autocompactAt / contextBreakdown.contextWindow) * 100) : 90;
+    const autocompact = contextBreakdown && contextBreakdown.contextWindow > 0 ? Math.round((contextBreakdown.autocompactAt / contextBreakdown.contextWindow) * 100) : 90;
     return {
       contextPercent: percent,
       contextFilled: filled,
@@ -328,13 +337,13 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     };
   }, [contextUsage, contextBreakdown]);
 
-  var contextPercent = contextInfo.contextPercent;
-  var contextFilled = contextInfo.contextFilled;
-  var autocompactPercent = contextInfo.autocompactPercent;
-  var isApproachingCompact = contextInfo.isApproachingCompact;
-  var isCritical = contextInfo.isCritical;
+  const contextPercent = contextInfo.contextPercent;
+  const contextFilled = contextInfo.contextFilled;
+  const autocompactPercent = contextInfo.autocompactPercent;
+  const isApproachingCompact = contextInfo.isApproachingCompact;
+  const isCritical = contextInfo.isCritical;
 
-  var resumeCommand = activeSessionId && activeProject
+  const resumeCommand = activeSessionId && activeProject
     ? "cd " + activeProject.path + " && claude --resume " + activeSessionId
     : activeSessionId
     ? "claude --resume " + activeSessionId
@@ -350,8 +359,8 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         }
         return true;
       case "copy": {
-        var lastAssistant: typeof messages[0] | undefined;
-        for (var ci = messages.length - 1; ci >= 0; ci--) {
+        let lastAssistant: typeof messages[0] | undefined;
+        for (let ci = messages.length - 1; ci >= 0; ci--) {
           if (messages[ci].type === "assistant") { lastAssistant = messages[ci]; break; }
         }
         if (lastAssistant?.text) {
@@ -360,13 +369,13 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
         return true;
       }
       case "export": {
-        var lines = messages.map(function (m) {
-          var role = m.type === "user" ? "User" : m.type === "assistant" ? "Assistant" : m.type;
+        const lines = messages.map(function (m) {
+          const role = m.type === "user" ? "User" : m.type === "assistant" ? "Assistant" : m.type;
           return role + ": " + (m.text || m.content || "");
         });
-        var blob = new Blob([lines.join("\n\n")], { type: "text/plain" });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
+        const blob = new Blob([lines.join("\n\n")], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
         a.href = url;
         a.download = (activeSessionTitle || "conversation") + ".txt";
         a.click();
@@ -421,13 +430,13 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
 
   function handleSend(text: string, attachmentIds: string[]) {
     if (text.startsWith("/")) {
-      var parts = text.split(/\s+/);
-      var cmdName = parts[0].slice(1).toLowerCase();
-      var cmdArgs = parts.slice(1).join(" ");
+      const parts = text.split(/\s+/);
+      const cmdName = parts[0].slice(1).toLowerCase();
+      const cmdArgs = parts.slice(1).join(" ");
 
-      var isBuiltin = false;
-      for (var i = 0; i < builtinCommands.length; i++) {
-        var cmd = builtinCommands[i];
+      let isBuiltin = false;
+      for (let i = 0; i < builtinCommands.length; i++) {
+        const cmd = builtinCommands[i];
         if (cmd.name === cmdName || (cmd.aliases && cmd.aliases.indexOf(cmdName) !== -1)) {
           isBuiltin = true;
           break;
@@ -444,17 +453,17 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
     sendMessage(text, attachmentIds, selectedModel, selectedEffort);
   }
 
-  var virtualItems = virtualizer.getVirtualItems();
+  const virtualItems = virtualizer.getVirtualItems();
 
-  var lastAssistantIndex = useMemo(function () {
+  const lastAssistantIndex = useMemo(function () {
     if (isProcessing || lastResponseCost == null) return -1;
-    for (var i = messages.length - 1; i >= 0; i--) {
+    for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].type === "assistant") return i;
     }
     return -1;
   }, [messages, isProcessing, lastResponseCost]);
 
-  var cumulativeCost = useMemo(function () {
+  const cumulativeCost = useMemo(function () {
     return messages.reduce(function (sum, m) {
       return sum + (m.costEstimate || 0);
     }, 0);
@@ -471,7 +480,8 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           >
             <Menu size={18} />
           </button>
-          <div className="flex-1 min-w-0 flex items-center gap-1.5">
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="flex items-center gap-1.5">
             {isRenaming ? (
               <input
                 ref={renameInputRef}
@@ -521,7 +531,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                               type="button"
                               onClick={function () {
                                 setShowBookmarkDropdown(false);
-                                var el = document.getElementById("msg-" + bm.messageUuid);
+                                const el = document.getElementById("msg-" + bm.messageUuid);
                                 if (el) {
                                   el.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
                                   el.classList.add("ring-2", "ring-warning/40");
@@ -543,6 +553,12 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                   </div>
                 )}
               </>
+            )}
+            </div>
+            {specContext && (
+              <span className="text-[10px] text-base-content/40 truncate pl-0.5">
+                {"Spec: " + specContext.specTitle}
+              </span>
             )}
           </div>
           <div className="flex gap-1.5 items-center relative">
@@ -572,7 +588,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
             {activeSessionId && (
               <button
                 onClick={function () {
-                  var state = getSessionStore().state;
+                  const state = getSessionStore().state;
                   if (state.activeProjectSlug && state.activeSessionId) {
                     invalidateSessionMessageCache(state.activeSessionId);
                     getSessionStore().setState(function (s) { return { ...s, historyLoading: true, messages: [] }; });
@@ -632,7 +648,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                         {contextBreakdown.segments.filter(function (seg) {
                           return seg.tokens > 0;
                         }).map(function (seg) {
-                          var pct = (seg.tokens / contextBreakdown!.contextWindow) * 100;
+                          const pct = (seg.tokens / contextBreakdown!.contextWindow) * 100;
                           if (pct < 0.2) return null;
                           return (
                             <div
@@ -659,7 +675,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                       {contextBreakdown.segments.filter(function (seg) {
                         return seg.tokens > 0;
                       }).map(function (seg) {
-                        var pct = contextBreakdown!.contextWindow > 0 ? ((seg.tokens / contextBreakdown!.contextWindow) * 100) : 0;
+                        const pct = contextBreakdown!.contextWindow > 0 ? ((seg.tokens / contextBreakdown!.contextWindow) * 100) : 0;
                         return (
                           <div key={seg.id} className="flex items-center justify-between py-0.5">
                             <div className="flex items-center gap-2 min-w-0">
@@ -678,8 +694,8 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                     </div>
 
                     {(function () {
-                      var totalUsed = contextBreakdown!.segments.reduce(function (sum, seg) { return sum + seg.tokens; }, 0);
-                      var available = contextBreakdown!.contextWindow - totalUsed;
+                      const totalUsed = contextBreakdown!.segments.reduce(function (sum, seg) { return sum + seg.tokens; }, 0);
+                      const available = contextBreakdown!.contextWindow - totalUsed;
                       if (available > 0) {
                         return (
                           <div className="border-t border-base-content/10 pt-2 flex items-center justify-between">
@@ -801,14 +817,12 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </button>
         )}
       </div>
-
       {isPlanMode && (
         <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/8 border-b border-primary/15">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <span className="text-[11px] font-mono font-medium text-primary/60 uppercase tracking-wider">Plan Mode</span>
         </div>
       )}
-
       <div
         ref={scrollParentRef}
         className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 bg-lattice-grid"
@@ -854,24 +868,24 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           <div className="pt-4">
             {messages.map(function (msg, idx) {
               if (msg.type === "tool_start") {
-                var groupStart = idx;
+                let groupStart = idx;
                 while (groupStart > 0 && messages[groupStart - 1].type === "tool_start") {
                   groupStart--;
                 }
-                var groupEnd = idx;
+                let groupEnd = idx;
                 while (groupEnd < messages.length - 1 && messages[groupEnd + 1].type === "tool_start") {
                   groupEnd++;
                 }
-                var groupSize = groupEnd - groupStart + 1;
+                const groupSize = groupEnd - groupStart + 1;
                 if (groupSize >= 2) {
                   if (idx === groupStart) {
-                    var groupTools = messages.slice(groupStart, groupEnd + 1);
+                    const groupTools = messages.slice(groupStart, groupEnd + 1);
                     return <ToolGroup key={"tg-" + (groupTools[0].uuid || idx)} tools={groupTools} />;
                   }
                   return null;
                 }
               }
-              var isLastAssistant = idx === lastAssistantIndex;
+              const isLastAssistant = idx === lastAssistantIndex;
               return (
                 <Message
                   key={msg.uuid || ("msg-" + idx)}
@@ -894,23 +908,23 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
               }}
             >
               {virtualItems.map(function (virtualItem) {
-                var msg = messages[virtualItem.index];
-                var idx = virtualItem.index;
+                const msg = messages[virtualItem.index];
+                const idx = virtualItem.index;
 
                 if (msg.type === "tool_start") {
-                  var groupStart = idx;
+                  let groupStart = idx;
                   while (groupStart > 0 && messages[groupStart - 1].type === "tool_start") {
                     groupStart--;
                   }
-                  var groupEnd = idx;
+                  let groupEnd = idx;
                   while (groupEnd < messages.length - 1 && messages[groupEnd + 1].type === "tool_start") {
                     groupEnd++;
                   }
-                  var groupSize = groupEnd - groupStart + 1;
+                  const groupSize = groupEnd - groupStart + 1;
 
                   if (groupSize >= 2) {
                     if (idx === groupStart) {
-                      var groupTools = messages.slice(groupStart, groupEnd + 1);
+                      const groupTools = messages.slice(groupStart, groupEnd + 1);
                       return (
                         <div
                           key={virtualItem.key}
@@ -932,7 +946,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
                   }
                 }
 
-                var isLastAssistant = virtualItem.index === lastAssistantIndex;
+                const isLastAssistant = virtualItem.index === lastAssistantIndex;
                 return (
                   <div
                     key={virtualItem.key}
@@ -974,7 +988,6 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </div>
         )}
       </div>
-
       {messages.length > 0 && !isNearBottom && (
         <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-10">
           <button
@@ -986,9 +999,7 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </button>
         </div>
       )}
-
       <StatusBar status={currentStatus} />
-
       {isProcessing && (
         <div className="flex-shrink-0 flex items-center justify-center gap-4 my-4 pointer-events-none relative z-10">
           <div className="flex items-center gap-4 pointer-events-auto bg-base-200/90 border border-base-content/10 rounded-full px-5 py-2 shadow-lg">
@@ -1003,7 +1014,6 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </div>
         </div>
       )}
-
       {messageQueue.length > 0 && (
         <div className="flex-shrink-0 px-2 sm:px-4 py-2 space-y-1.5">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-base-content/30">Queued</div>
@@ -1027,14 +1037,12 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           })}
         </div>
       )}
-
       {wasInterrupted && !isProcessing && (
         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-warning/10 border-t border-warning/20">
           <AlertTriangle size={13} className="text-warning flex-shrink-0" />
           <span className="text-[12px] text-warning">Session was interrupted — send a message to continue</span>
         </div>
       )}
-
       {promptSuggestion && !isProcessing && (
         <div className="flex-shrink-0 px-2 sm:px-4 py-2">
           <div className="flex items-center gap-1.5 max-w-full">
@@ -1055,7 +1063,6 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </div>
         </div>
       )}
-
       {budgetExceeded && budgetStatus && (
         <div className="flex-shrink-0 border-t border-base-300 bg-warning/10 px-4 py-3 flex items-center gap-3">
           <AlertTriangle size={16} className="text-warning flex-shrink-0" />
@@ -1079,7 +1086,6 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           </button>
         </div>
       )}
-
       {activeAnomalies.length > 0 && (
         <div className="flex-shrink-0 px-2 sm:px-4 pb-1">
           {activeAnomalies.slice(-2).map(function (a, i) {

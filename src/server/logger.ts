@@ -1,6 +1,6 @@
 import createDebug from "debug";
 
-export var log = {
+export const log = {
   server: createDebug("lattice:server"),
   ws: createDebug("lattice:ws"),
   chat: createDebug("lattice:chat"),

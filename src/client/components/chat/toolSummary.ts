@@ -1,6 +1,6 @@
 export function formatToolSummary(name: string, argsStr: string): string {
   try {
-    var args = JSON.parse(argsStr);
+    const args = JSON.parse(argsStr);
     if (name === "Read" && args.file_path) return args.file_path;
     if (name === "Write" && args.file_path) return args.file_path;
     if (name === "Edit" && args.file_path) return args.file_path;
@@ -8,7 +8,7 @@ export function formatToolSummary(name: string, argsStr: string): string {
     if (name === "Grep" && args.pattern) return args.pattern + (args.path ? " in " + args.path : "");
     if (name === "Glob" && args.pattern) return args.pattern + (args.path ? " in " + args.path : "");
     if (name === "Bash" && (args.command || args.description)) {
-      var cmd = args.description || args.command;
+      const cmd = args.description || args.command;
       return cmd.length > 60 ? cmd.slice(0, 57) + "..." : cmd;
     }
     if (name === "LS" && args.path) return args.path;
@@ -21,14 +21,14 @@ export function formatToolSummary(name: string, argsStr: string): string {
       if (args.description) return args.description.length > 50 ? args.description.slice(0, 47) + "..." : args.description;
     }
     if (name.startsWith("mcp__playwright__")) {
-      var short = name.replace("mcp__playwright__browser_", "");
+      const short = name.replace("mcp__playwright__browser_", "");
       if (args.url) return short + " " + args.url;
       if (args.element) return short + " " + args.element;
       if (args.filename) return short + " → " + args.filename;
       return short;
     }
     if (name.startsWith("mcp__")) {
-      var parts = name.split("__");
+      const parts = name.split("__");
       return parts.length >= 3 ? parts.slice(2).join(".") : name;
     }
     if (args.file_path) return args.file_path;

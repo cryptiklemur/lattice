@@ -5,7 +5,7 @@ import { getLatticeHome, loadConfig, saveConfig } from "./config";
 import type { LatticeConfig } from "#shared";
 import { DEFAULT_PORT } from "#shared";
 
-var BANNER = `
+const BANNER = `
   \x1b[36m██╗\x1b[0m      \x1b[36m█████╗\x1b[0m \x1b[36m████████╗████████╗██╗\x1b[0m \x1b[36m██████╗\x1b[0m \x1b[36m███████╗\x1b[0m
   \x1b[36m██║\x1b[0m     \x1b[36m██╔══██╗\x1b[0m\x1b[2m╚══\x1b[0m\x1b[36m██\x1b[0m\x1b[2m╔══╝╚══\x1b[0m\x1b[36m██\x1b[0m\x1b[2m╔══╝\x1b[0m\x1b[36m██║\x1b[0m\x1b[36m██╔════╝\x1b[0m\x1b[36m██╔════╝\x1b[0m
   \x1b[36m██║\x1b[0m     \x1b[36m███████║\x1b[0m   \x1b[36m██║\x1b[0m      \x1b[36m██║\x1b[0m   \x1b[36m██║██║\x1b[0m     \x1b[36m█████╗\x1b[0m
@@ -19,10 +19,10 @@ export function printBanner(): void {
 }
 
 export function printStatus(config: LatticeConfig, version: string, projectCount: number, sessionCount: number, tailscaleUrl?: string): void {
-  var protocol = config.tls ? "https" : "http";
-  var url = protocol + "://localhost:" + config.port;
+  const protocol = config.tls ? "https" : "http";
+  const url = protocol + "://localhost:" + config.port;
 
-  var lines = "lattice v" + version + " — " + url + "\n";
+  let lines = "lattice v" + version + " — " + url + "\n";
   if (tailscaleUrl) {
     lines += tailscaleUrl + "\n";
   }
@@ -37,8 +37,8 @@ export function printStatus(config: LatticeConfig, version: string, projectCount
 
 export async function printQrCode(url: string): Promise<void> {
   try {
-    var qrcode = await import("qrcode");
-    var qr = await (qrcode as any).toString(url, {
+    const qrcode = await import("qrcode");
+    const qr = await (qrcode as any).toString(url, {
       type: "terminal",
       small: true,
     });
@@ -52,11 +52,11 @@ export async function printQrCode(url: string): Promise<void> {
 }
 
 export async function runOnboarding(): Promise<{ port: number; passphrase: string | null }> {
-  var configPath = join(getLatticeHome(), "config.json");
-  var isFirstRun = !existsSync(configPath);
+  const configPath = join(getLatticeHome(), "config.json");
+  const isFirstRun = !existsSync(configPath);
 
   if (!isFirstRun) {
-    var config = loadConfig();
+    const config = loadConfig();
     return { port: config.port, passphrase: null };
   }
 
@@ -70,12 +70,12 @@ export async function runOnboarding(): Promise<{ port: number; passphrase: strin
     "Security"
   );
 
-  var portResult = await p.text({
+  const portResult = await p.text({
     message: "Port",
     placeholder: String(DEFAULT_PORT),
     defaultValue: String(DEFAULT_PORT),
     validate: function (val: string | undefined) {
-      var n = parseInt(val || "", 10);
+      const n = parseInt(val || "", 10);
       if (isNaN(n) || n < 1 || n > 65535) return "Enter a valid port (1-65535)";
       return undefined;
     },
@@ -84,20 +84,20 @@ export async function runOnboarding(): Promise<{ port: number; passphrase: strin
     p.cancel("Setup cancelled");
     process.exit(0);
   }
-  var port = parseInt(portResult as string, 10);
+  const port = parseInt(portResult as string, 10);
 
-  var passphraseResult = await p.password({
+  const passphraseResult = await p.password({
     message: "Passphrase (optional, press Enter to skip)",
   });
   if (p.isCancel(passphraseResult)) {
     p.cancel("Setup cancelled");
     process.exit(0);
   }
-  var passphrase = (passphraseResult as string) || null;
+  const passphrase = (passphraseResult as string) || null;
 
   p.outro("Setup complete");
 
-  var config = loadConfig();
+  const config = loadConfig();
   config.port = port;
   saveConfig(config);
 

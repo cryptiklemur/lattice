@@ -11,9 +11,9 @@ interface ActiveBrainstorm {
   sessionDir: string;
 }
 
-var activeBrainstorms: Record<string, ActiveBrainstorm> = {};
-var watchers: FSWatcher[] = [];
-var debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+let activeBrainstorms: Record<string, ActiveBrainstorm> = {};
+let watchers: FSWatcher[] = [];
+let debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
 function debounce(key: string, fn: () => void, ms: number): void {
   if (debounceTimers[key]) {
@@ -29,13 +29,13 @@ function getMostRecentSessionDir(brainstormDir: string): string | null {
   if (!existsSync(brainstormDir)) {
     return null;
   }
-  var entries: Array<{ name: string; mtime: number }> = [];
+  const entries: Array<{ name: string; mtime: number }> = [];
   try {
-    var names = readdirSync(brainstormDir);
-    for (var i = 0; i < names.length; i++) {
-      var fullPath = join(brainstormDir, names[i]);
+    const names = readdirSync(brainstormDir);
+    for (let i = 0; i < names.length; i++) {
+      const fullPath = join(brainstormDir, names[i]);
       try {
-        var stat = statSync(fullPath);
+        const stat = statSync(fullPath);
         if (stat.isDirectory()) {
           entries.push({ name: names[i], mtime: stat.mtimeMs });
         }
@@ -69,11 +69,11 @@ function handleContentFile(projectSlug: string, contentDir: string, sessionDir: 
     broadcast({ type: "brainstorm:cleared" });
     return;
   }
-  var filePath = join(contentDir, filename);
+  const filePath = join(contentDir, filename);
   if (!existsSync(filePath)) {
     return;
   }
-  var html: string;
+  let html: string;
   try {
     html = readFileSync(filePath, "utf-8");
   } catch (err) {
@@ -94,8 +94,8 @@ function handleStateFile(projectSlug: string, filename: string): void {
 }
 
 function watchSessionDir(projectSlug: string, sessionDir: string): void {
-  var contentDir = join(sessionDir, "content");
-  var stateDir = join(sessionDir, "state");
+  const contentDir = join(sessionDir, "content");
+  const stateDir = join(sessionDir, "state");
 
   if (!existsSync(contentDir)) {
     mkdirSync(contentDir, { recursive: true });
@@ -104,16 +104,16 @@ function watchSessionDir(projectSlug: string, sessionDir: string): void {
     mkdirSync(stateDir, { recursive: true });
   }
 
-  var alreadyStopped = existsSync(join(stateDir, "server-stopped"));
+  const alreadyStopped = existsSync(join(stateDir, "server-stopped"));
   if (!alreadyStopped) {
-    var existingFiles: string[] = [];
+    let existingFiles: string[] = [];
     try {
       existingFiles = readdirSync(contentDir);
     } catch {
       // ok
     }
-    for (var i = 0; i < existingFiles.length; i++) {
-      var fname = existingFiles[i];
+    for (let i = 0; i < existingFiles.length; i++) {
+      const fname = existingFiles[i];
       if (fname.endsWith(".html") && !isWaitingFile(fname)) {
         handleContentFile(projectSlug, contentDir, sessionDir, fname);
       }
@@ -121,7 +121,7 @@ function watchSessionDir(projectSlug: string, sessionDir: string): void {
   }
 
   try {
-    var contentWatcher = watch(contentDir, function (eventType, filename) {
+    const contentWatcher = watch(contentDir, function (eventType, filename) {
       if (!filename) {
         return;
       }
@@ -135,7 +135,7 @@ function watchSessionDir(projectSlug: string, sessionDir: string): void {
   }
 
   try {
-    var stateWatcher = watch(stateDir, function (eventType, filename) {
+    const stateWatcher = watch(stateDir, function (eventType, filename) {
       if (!filename) {
         return;
       }
@@ -150,20 +150,20 @@ function watchSessionDir(projectSlug: string, sessionDir: string): void {
 }
 
 function watchBrainstormDir(projectSlug: string, brainstormDir: string): void {
-  var recentSession = getMostRecentSessionDir(brainstormDir);
+  const recentSession = getMostRecentSessionDir(brainstormDir);
   if (recentSession) {
     watchSessionDir(projectSlug, recentSession);
   }
 
   try {
-    var dirWatcher = watch(brainstormDir, function (eventType, filename) {
+    const dirWatcher = watch(brainstormDir, function (eventType, filename) {
       if (!filename) {
         return;
       }
       debounce("brainstorm:" + brainstormDir + ":" + filename, function () {
-        var candidate = join(brainstormDir, filename as string);
+        const candidate = join(brainstormDir, filename as string);
         try {
-          var stat = statSync(candidate);
+          const stat = statSync(candidate);
           if (stat.isDirectory()) {
             log.server("[brainstorm] new session dir detected: %s", candidate);
             watchSessionDir(projectSlug, candidate);
@@ -180,8 +180,8 @@ function watchBrainstormDir(projectSlug: string, brainstormDir: string): void {
 }
 
 function watchProjectRoot(projectSlug: string, projectPath: string): void {
-  var superpowersDir = join(projectPath, ".superpowers");
-  var brainstormDir = join(superpowersDir, "brainstorm");
+  const superpowersDir = join(projectPath, ".superpowers");
+  const brainstormDir = join(superpowersDir, "brainstorm");
 
   if (existsSync(brainstormDir)) {
     watchBrainstormDir(projectSlug, brainstormDir);
@@ -194,7 +194,7 @@ function watchProjectRoot(projectSlug: string, projectPath: string): void {
   }
 
   try {
-    var rootWatcher = watch(projectPath, function (eventType, filename) {
+    const rootWatcher = watch(projectPath, function (eventType, filename) {
       if (filename !== ".superpowers") {
         return;
       }
@@ -216,7 +216,7 @@ function watchForBrainstormDir(projectSlug: string, superpowersDir: string, brai
   }
 
   try {
-    var spWatcher = watch(superpowersDir, function (eventType, filename) {
+    const spWatcher = watch(superpowersDir, function (eventType, filename) {
       if (filename !== "brainstorm") {
         return;
       }
@@ -232,10 +232,10 @@ function watchForBrainstormDir(projectSlug: string, superpowersDir: string, brai
 }
 
 export function startBrainstormWatchers(): void {
-  var config = loadConfig();
-  var projects = config.projects;
-  for (var i = 0; i < projects.length; i++) {
-    var project = projects[i];
+  const config = loadConfig();
+  const projects = config.projects;
+  for (let i = 0; i < projects.length; i++) {
+    const project = projects[i];
     if (!project.path || !project.slug) {
       continue;
     }
@@ -248,7 +248,7 @@ export function startBrainstormWatchers(): void {
 }
 
 export function stopBrainstormWatchers(): void {
-  for (var i = 0; i < watchers.length; i++) {
+  for (let i = 0; i < watchers.length; i++) {
     try {
       watchers[i].close();
     } catch {
@@ -257,8 +257,8 @@ export function stopBrainstormWatchers(): void {
   }
   watchers = [];
   activeBrainstorms = {};
-  var keys = Object.keys(debounceTimers);
-  for (var i = 0; i < keys.length; i++) {
+  const keys = Object.keys(debounceTimers);
+  for (let i = 0; i < keys.length; i++) {
     clearTimeout(debounceTimers[keys[i]]);
   }
   debounceTimers = {};
@@ -269,22 +269,22 @@ export function getActiveBrainstorm(projectSlug: string): ActiveBrainstorm | nul
 }
 
 export function getAnyActiveBrainstorm(): ActiveBrainstorm | null {
-  var keys = Object.keys(activeBrainstorms);
+  const keys = Object.keys(activeBrainstorms);
   if (keys.length === 0) return null;
   return activeBrainstorms[keys[0]];
 }
 
 export function stopBrainstorm(projectSlug?: string): void {
-  var slugs = projectSlug ? [projectSlug] : Object.keys(activeBrainstorms);
-  for (var i = 0; i < slugs.length; i++) {
-    var slug = slugs[i];
-    var active = activeBrainstorms[slug];
+  const slugs = projectSlug ? [projectSlug] : Object.keys(activeBrainstorms);
+  for (let i = 0; i < slugs.length; i++) {
+    const slug = slugs[i];
+    const active = activeBrainstorms[slug];
     if (!active) continue;
-    var stateDir = join(active.sessionDir, "state");
+    const stateDir = join(active.sessionDir, "state");
     if (!existsSync(stateDir)) {
       mkdirSync(stateDir, { recursive: true });
     }
-    var stoppedPath = join(stateDir, "server-stopped");
+    const stoppedPath = join(stateDir, "server-stopped");
     if (!existsSync(stoppedPath)) {
       try {
         writeFileSync(stoppedPath, String(Date.now()));
@@ -299,11 +299,11 @@ export function stopBrainstorm(projectSlug?: string): void {
 }
 
 export function writeBrainstormEvent(sessionDir: string, event: object): void {
-  var stateDir = join(sessionDir, "state");
+  const stateDir = join(sessionDir, "state");
   if (!existsSync(stateDir)) {
     mkdirSync(stateDir, { recursive: true });
   }
-  var eventsFile = join(stateDir, "events");
+  const eventsFile = join(stateDir, "events");
   try {
     appendFileSync(eventsFile, JSON.stringify(event) + "\n", "utf-8");
   } catch (err) {

@@ -6,24 +6,24 @@ import { SkillItem, SkillActions, SkillViewModal } from "./skill-shared";
 import type { ServerMessage, SkillInfo, SettingsDataMessage } from "#shared";
 
 export function GlobalSkills() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [skills, setSkills] = useState<SkillInfo[]>([]);
-  var [loaded, setLoaded] = useState(false);
-  var [viewContent, setViewContent] = useState<{ path: string; content: string } | null>(null);
-  var [deletingPath, setDeletingPath] = useState<string | null>(null);
-  var [updatingName, setUpdatingName] = useState<string | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [skills, setSkills] = useState<SkillInfo[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [viewContent, setViewContent] = useState<{ path: string; content: string } | null>(null);
+  const [deletingPath, setDeletingPath] = useState<string | null>(null);
+  const [updatingName, setUpdatingName] = useState<string | null>(null);
 
   useEffect(function () {
     function handleData(msg: ServerMessage) {
       if (msg.type !== "settings:data") return;
-      var data = msg as SettingsDataMessage;
+      const data = msg as SettingsDataMessage;
       setSkills(data.globalSkills ?? []);
       setLoaded(true);
     }
 
     function handleViewResult(msg: ServerMessage) {
       if (msg.type !== "skills:view_result") return;
-      var data = msg as { type: "skills:view_result"; path: string; content: string };
+      const data = msg as { type: "skills:view_result"; path: string; content: string };
       setViewContent({ path: data.path, content: data.content });
     }
 
@@ -61,15 +61,15 @@ export function GlobalSkills() {
   }
 
   function handleUpdate(skill: SkillInfo) {
-    var source = guessSource(skill);
+    const source = guessSource(skill);
     if (!source) return;
     setUpdatingName(skill.name);
     send({ type: "skills:update", source: source } as any);
   }
 
   function guessSource(skill: SkillInfo): string | null {
-    var pathParts = skill.path.split("/");
-    var skillsIdx = pathParts.lastIndexOf("skills");
+    const pathParts = skill.path.split("/");
+    const skillsIdx = pathParts.lastIndexOf("skills");
     if (skillsIdx >= 0 && skillsIdx + 1 < pathParts.length) {
       return pathParts[skillsIdx + 1];
     }

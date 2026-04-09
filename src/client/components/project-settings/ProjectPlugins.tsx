@@ -9,16 +9,16 @@ interface ProjectPluginsProps {
 }
 
 export function ProjectPlugins({ settings, updateSection }: ProjectPluginsProps) {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [plugins, setPlugins] = useState<PluginInfo[]>([]);
-  var [loaded, setLoaded] = useState(false);
-  var [disabledPlugins, setDisabledPlugins] = useState<string[]>(settings.disabledPlugins ?? []);
-  var [saving, setSaving] = useState(false);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [plugins, setPlugins] = useState<PluginInfo[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [disabledPlugins, setDisabledPlugins] = useState<string[]>(settings.disabledPlugins ?? []);
+  const [saving, setSaving] = useState(false);
 
   useEffect(function () {
     function handleListResult(msg: ServerMessage) {
       if (msg.type !== "plugin:list_result") return;
-      var data = msg as { type: "plugin:list_result"; plugins: PluginInfo[] };
+      const data = msg as { type: "plugin:list_result"; plugins: PluginInfo[] };
       setPlugins(data.plugins);
       setLoaded(true);
     }
@@ -36,7 +36,7 @@ export function ProjectPlugins({ settings, updateSection }: ProjectPluginsProps)
   }, [settings.disabledPlugins]);
 
   function handleToggle(pluginKey: string) {
-    var next: string[];
+    let next: string[];
     if (disabledPlugins.indexOf(pluginKey) !== -1) {
       next = disabledPlugins.filter(function (k) { return k !== pluginKey; });
     } else {
@@ -60,7 +60,7 @@ export function ProjectPlugins({ settings, updateSection }: ProjectPluginsProps)
     );
   }
 
-  var enabledCount = plugins.length - disabledPlugins.length;
+  const enabledCount = plugins.length - disabledPlugins.length;
 
   return (
     <div className="py-2 space-y-4">
@@ -70,14 +70,12 @@ export function ProjectPlugins({ settings, updateSection }: ProjectPluginsProps)
         </p>
         {saving && <Loader2 size={12} className="text-primary animate-spin" />}
       </div>
-
       <div className="text-[11px] text-base-content/30 mb-1">
         {enabledCount} of {plugins.length} enabled
       </div>
-
       <div className="space-y-1.5">
         {plugins.map(function (plugin) {
-          var isDisabled = disabledPlugins.indexOf(plugin.key) !== -1;
+          const isDisabled = disabledPlugins.indexOf(plugin.key) !== -1;
           return (
             <div
               key={plugin.key}

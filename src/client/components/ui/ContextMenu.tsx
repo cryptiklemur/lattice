@@ -27,9 +27,9 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu(props: ContextMenuProps) {
-  var menuRef = useRef<HTMLDivElement>(null);
-  var [focusIndex, setFocusIndex] = useState(-1);
-  var visibleItems = props.items.filter(function (item) { return !item.hidden; });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [focusIndex, setFocusIndex] = useState(-1);
+  const visibleItems = props.items.filter(function (item) { return !item.hidden; });
 
   useEffect(function () {
     function handleClick(e: MouseEvent) {
@@ -46,7 +46,7 @@ export function ContextMenu(props: ContextMenuProps) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setFocusIndex(function (prev) {
-          var next = prev + 1;
+          let next = prev + 1;
           while (next < visibleItems.length && (visibleItems[next] as ContextMenuDivider).type === "divider") next++;
           return next < visibleItems.length ? next : prev;
         });
@@ -55,7 +55,7 @@ export function ContextMenu(props: ContextMenuProps) {
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setFocusIndex(function (prev) {
-          var next = prev - 1;
+          let next = prev - 1;
           while (next >= 0 && (visibleItems[next] as ContextMenuDivider).type === "divider") next--;
           return next >= 0 ? next : prev;
         });
@@ -63,7 +63,7 @@ export function ContextMenu(props: ContextMenuProps) {
       }
       if (e.key === "Enter" && focusIndex >= 0) {
         e.preventDefault();
-        var item = visibleItems[focusIndex] as ContextMenuItem;
+        const item = visibleItems[focusIndex] as ContextMenuItem;
         if (item && !item.disabled && (item as unknown as ContextMenuDivider).type !== "divider") {
           item.onClick();
           props.onClose();
@@ -80,9 +80,9 @@ export function ContextMenu(props: ContextMenuProps) {
 
   useEffect(function () {
     if (!menuRef.current) return;
-    var rect = menuRef.current.getBoundingClientRect();
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
+    const rect = menuRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
     if (rect.right > vw) {
       menuRef.current.style.left = Math.max(4, props.x - rect.width) + "px";
     }
@@ -104,8 +104,8 @@ export function ContextMenu(props: ContextMenuProps) {
         if ((entry as ContextMenuDivider).type === "divider") {
           return <div key={"d-" + i} className="my-1 border-t border-base-content/10" />;
         }
-        var item = entry as ContextMenuItem;
-        var isFocused = i === focusIndex;
+        const item = entry as ContextMenuItem;
+        const isFocused = i === focusIndex;
         return (
           <button
             key={i}
@@ -137,7 +137,7 @@ export function ContextMenu(props: ContextMenuProps) {
 }
 
 export function useContextMenu<T>() {
-  var [state, setState] = useState<{ x: number; y: number; data: T } | null>(null);
+  const [state, setState] = useState<{ x: number; y: number; data: T } | null>(null);
 
   function open(e: React.MouseEvent, data: T) {
     e.preventDefault();

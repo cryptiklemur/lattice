@@ -15,21 +15,21 @@ export function getIdentityPath(): string {
 }
 
 export function loadOrCreateIdentity(): NodeIdentity {
-  var path = getIdentityPath();
+  const path = getIdentityPath();
   if (existsSync(path)) {
-    var stored = JSON.parse(readFileSync(path, "utf-8")) as NodeIdentity;
+    const stored = JSON.parse(readFileSync(path, "utf-8")) as NodeIdentity;
     if (stored.publicKey && stored.privateKey) {
       return stored;
     }
-    var keys = generateEd25519Keypair();
+    const keys = generateEd25519Keypair();
     stored.publicKey = keys.publicKey;
     stored.privateKey = keys.privateKey;
     writeFileSync(path, JSON.stringify(stored, null, 2), "utf-8");
     chmodSync(path, 0o600);
     return stored;
   }
-  var keys = generateEd25519Keypair();
-  var identity: NodeIdentity = {
+  const keys = generateEd25519Keypair();
+  const identity: NodeIdentity = {
     id: randomUUID(),
     publicKey: keys.publicKey,
     privateKey: keys.privateKey,
@@ -41,7 +41,7 @@ export function loadOrCreateIdentity(): NodeIdentity {
 }
 
 function generateEd25519Keypair(): { publicKey: string; privateKey: string } {
-  var pair = generateKeyPairSync("ed25519", {
+  const pair = generateKeyPairSync("ed25519", {
     publicKeyEncoding: { type: "spki", format: "der" },
     privateKeyEncoding: { type: "pkcs8", format: "der" },
   });

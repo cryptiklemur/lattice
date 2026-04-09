@@ -17,27 +17,27 @@ import { relativeTime } from "../../utils/relativeTime";
 
 export function DashboardView() {
   useTimeTick();
-  var { nodes } = useMesh();
-  var { projects } = useProjects();
-  var sidebar = useSidebar();
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [sessions, setSessions] = useState<SessionSummary[]>([]);
-  var [localConfig, setLocalConfig] = useState<LatticeConfig | null>(null);
+  const { nodes } = useMesh();
+  const { projects } = useProjects();
+  const sidebar = useSidebar();
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [localConfig, setLocalConfig] = useState<LatticeConfig | null>(null);
 
-  var onlineNodes = useMemo(function () {
+  const onlineNodes = useMemo(function () {
     return nodes.filter(function (n) { return n.online; });
   }, [nodes]);
 
   useEffect(function () {
     function handleSessions(msg: ServerMessage) {
       if (msg.type !== "session:list_all") return;
-      var data = msg as { type: "session:list_all"; sessions: SessionSummary[] };
+      const data = msg as { type: "session:list_all"; sessions: SessionSummary[] };
       setSessions(data.sessions);
     }
 
     function handleSettings(msg: ServerMessage) {
       if (msg.type !== "settings:data") return;
-      var data = msg as { type: "settings:data"; config: LatticeConfig };
+      const data = msg as { type: "settings:data"; config: LatticeConfig };
       setLocalConfig(data.config);
     }
 
@@ -52,9 +52,9 @@ export function DashboardView() {
     };
   }, []);
 
-  var projectTitleMap = useMemo(function () {
-    var map = new Map<string, string>();
-    for (var i = 0; i < projects.length; i++) {
+  const projectTitleMap = useMemo(function () {
+    const map = new Map<string, string>();
+    for (let i = 0; i < projects.length; i++) {
       map.set(projects[i].slug, projects[i].title);
     }
     return map;
@@ -64,11 +64,11 @@ export function DashboardView() {
     return projectTitleMap.get(slug) || slug;
   }
 
-  var sessionsByProject = useMemo(function () {
-    var map = new Map<string, SessionSummary[]>();
-    for (var i = 0; i < sessions.length; i++) {
-      var s = sessions[i];
-      var arr = map.get(s.projectSlug);
+  const sessionsByProject = useMemo(function () {
+    const map = new Map<string, SessionSummary[]>();
+    for (let i = 0; i < sessions.length; i++) {
+      const s = sessions[i];
+      let arr = map.get(s.projectSlug);
       if (!arr) {
         arr = [];
         map.set(s.projectSlug, arr);
@@ -78,7 +78,7 @@ export function DashboardView() {
     return map;
   }, [sessions]);
 
-  var remoteNodes = nodes.filter(function (n) { return !n.isLocal; });
+  const remoteNodes = nodes.filter(function (n) { return !n.isLocal; });
 
   return (
     <div className="flex-1 overflow-auto">
@@ -139,7 +139,7 @@ export function DashboardView() {
             <h2 className="text-[11px] font-semibold tracking-wider uppercase text-base-content/40 mb-3">Projects</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {projects.map(function (project) {
-                var projectSessions = sessionsByProject.get(project.slug) || [];
+                const projectSessions = sessionsByProject.get(project.slug) || [];
                 return (
                   <button
                     key={project.slug + "@" + project.nodeId}

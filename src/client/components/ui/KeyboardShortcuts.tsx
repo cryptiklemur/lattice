@@ -11,10 +11,10 @@ interface ShortcutCategory {
   shortcuts: ShortcutEntry[];
 }
 
-var isMac = typeof navigator !== "undefined" && navigator.platform.indexOf("Mac") !== -1;
-var modKey = isMac ? "\u2318" : "Ctrl";
+const isMac = typeof navigator !== "undefined" && navigator.platform.indexOf("Mac") !== -1;
+const modKey = isMac ? "\u2318" : "Ctrl";
 
-var categories: ShortcutCategory[] = [
+const categories: ShortcutCategory[] = [
   {
     name: "Chat",
     shortcuts: [
@@ -54,12 +54,12 @@ function Kbd(props: { children: string }) {
 }
 
 export function KeyboardShortcuts() {
-  var [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(function () {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        var tag = (e.target as HTMLElement).tagName;
+        const tag = (e.target as HTMLElement).tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable) return;
         e.preventDefault();
         setOpen(true);

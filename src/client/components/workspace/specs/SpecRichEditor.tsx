@@ -90,9 +90,9 @@ export function SpecRichEditor({ content, onChange, placeholder, disabled }: Spe
     const parsed = tryParseJson(content);
     const currentJson = JSON.stringify(editor.getJSON());
     if (parsed && JSON.stringify(parsed) !== currentJson) {
-      editor.commands.setContent(parsed);
+      editor.commands.setContent(parsed, { emitUpdate: false });
     } else if (!parsed && content !== currentJson) {
-      editor.commands.setContent(content || "");
+      editor.commands.setContent(content || "", { emitUpdate: false });
     }
   }, [content, editor]);
 
@@ -145,7 +145,47 @@ export function SpecRichEditor({ content, onChange, placeholder, disabled }: Spe
       </div>
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none px-3 py-2 min-h-[200px] text-base-content [&_.tiptap]:outline-none [&_.tiptap]:min-h-[180px] [&_.tiptap_p.is-editor-empty:first-child::before]:text-base-content/30 [&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap_p.is-editor-empty:first-child::before]:float-left [&_.tiptap_p.is-editor-empty:first-child::before]:h-0 [&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none [&_.tiptap_h1]:text-lg [&_.tiptap_h1]:font-mono [&_.tiptap_h1]:font-bold [&_.tiptap_h2]:text-base [&_.tiptap_h2]:font-mono [&_.tiptap_h2]:font-semibold [&_.tiptap_a]:text-primary [&_.tiptap_a]:underline [&_.tiptap_code]:bg-base-300 [&_.tiptap_code]:px-1 [&_.tiptap_code]:rounded [&_.tiptap_pre]:bg-base-300 [&_.tiptap_pre]:p-3 [&_.tiptap_pre]:rounded-lg [&_.tiptap_ul[data-type=taskList]]:list-none [&_.tiptap_ul[data-type=taskList]]:pl-0"
+        className={[
+          "prose prose-sm max-w-none px-4 py-3 min-h-[200px] text-base-content",
+          // Editor chrome
+          "[&_.tiptap]:outline-none [&_.tiptap]:min-h-[180px]",
+          // Placeholder
+          "[&_.tiptap_p.is-editor-empty:first-child::before]:text-base-content/30",
+          "[&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
+          "[&_.tiptap_p.is-editor-empty:first-child::before]:float-left",
+          "[&_.tiptap_p.is-editor-empty:first-child::before]:h-0",
+          "[&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none",
+          // Headings
+          "[&_.tiptap_h1]:text-xl [&_.tiptap_h1]:font-mono [&_.tiptap_h1]:font-bold [&_.tiptap_h1]:text-base-content [&_.tiptap_h1]:mt-6 [&_.tiptap_h1]:mb-3 [&_.tiptap_h1]:border-b [&_.tiptap_h1]:border-base-content/10 [&_.tiptap_h1]:pb-2",
+          "[&_.tiptap_h2]:text-base [&_.tiptap_h2]:font-mono [&_.tiptap_h2]:font-semibold [&_.tiptap_h2]:text-base-content/90 [&_.tiptap_h2]:mt-5 [&_.tiptap_h2]:mb-2",
+          // Paragraphs
+          "[&_.tiptap_p]:text-base-content/80 [&_.tiptap_p]:leading-relaxed [&_.tiptap_p]:mb-3",
+          // Links
+          "[&_.tiptap_a]:text-primary [&_.tiptap_a]:underline [&_.tiptap_a]:underline-offset-2 [&_.tiptap_a]:decoration-primary/40 hover:[&_.tiptap_a]:decoration-primary",
+          // Inline code
+          "[&_.tiptap_code]:bg-base-300 [&_.tiptap_code]:px-1.5 [&_.tiptap_code]:py-0.5 [&_.tiptap_code]:rounded [&_.tiptap_code]:text-[0.85em] [&_.tiptap_code]:font-mono [&_.tiptap_code]:text-accent",
+          // Code blocks
+          "[&_.tiptap_pre]:bg-base-300 [&_.tiptap_pre]:p-4 [&_.tiptap_pre]:rounded-lg [&_.tiptap_pre]:text-[0.85em] [&_.tiptap_pre]:font-mono [&_.tiptap_pre]:overflow-x-auto [&_.tiptap_pre]:my-3",
+          "[&_.tiptap_pre_code]:bg-transparent [&_.tiptap_pre_code]:p-0 [&_.tiptap_pre_code]:text-base-content/80",
+          // Lists
+          "[&_.tiptap_ul]:pl-5 [&_.tiptap_ul]:my-2 [&_.tiptap_ul]:list-disc",
+          "[&_.tiptap_ol]:pl-5 [&_.tiptap_ol]:my-2 [&_.tiptap_ol]:list-decimal",
+          "[&_.tiptap_li]:text-base-content/80 [&_.tiptap_li]:mb-1 [&_.tiptap_li]:leading-relaxed",
+          "[&_.tiptap_li_p]:mb-0",
+          // Task lists
+          "[&_.tiptap_ul[data-type=taskList]]:list-none [&_.tiptap_ul[data-type=taskList]]:pl-0",
+          "[&_.tiptap_ul[data-type=taskList]_li]:flex [&_.tiptap_ul[data-type=taskList]_li]:items-start [&_.tiptap_ul[data-type=taskList]_li]:gap-2",
+          "[&_.tiptap_ul[data-type=taskList]_input]:mt-1 [&_.tiptap_ul[data-type=taskList]_input]:accent-primary",
+          // Blockquotes
+          "[&_.tiptap_blockquote]:border-l-2 [&_.tiptap_blockquote]:border-primary/30 [&_.tiptap_blockquote]:pl-4 [&_.tiptap_blockquote]:ml-0 [&_.tiptap_blockquote]:my-3 [&_.tiptap_blockquote]:text-base-content/60 [&_.tiptap_blockquote]:italic",
+          // Horizontal rules
+          "[&_.tiptap_hr]:border-base-content/10 [&_.tiptap_hr]:my-6",
+          // Strong / emphasis
+          "[&_.tiptap_strong]:text-base-content [&_.tiptap_strong]:font-semibold",
+          "[&_.tiptap_em]:text-base-content/70",
+          // Strikethrough
+          "[&_.tiptap_s]:text-base-content/40 [&_.tiptap_s]:line-through",
+        ].join(" ")}
       />
     </div>
   );

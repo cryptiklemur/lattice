@@ -4,7 +4,7 @@ import { useSaveState } from "../../hooks/useSaveState";
 import { SaveFooter } from "../ui/SaveFooter";
 import type { ServerMessage, SettingsDataMessage, SettingsUpdateMessage } from "#shared";
 
-var IDE_OPTIONS = [
+const IDE_OPTIONS = [
   { id: "vscode", label: "VS Code" },
   { id: "vscode-insiders", label: "VS Code Insiders" },
   { id: "cursor", label: "Cursor" },
@@ -18,22 +18,22 @@ var IDE_OPTIONS = [
 ];
 
 export function Editor() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [ideType, setIdeType] = useState("vscode");
-  var [customCommand, setCustomCommand] = useState("");
-  var save = useSaveState();
-  var saveRef = useRef(save);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [ideType, setIdeType] = useState("vscode");
+  const [customCommand, setCustomCommand] = useState("");
+  const save = useSaveState();
+  const saveRef = useRef(save);
   saveRef.current = save;
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
       if (msg.type !== "settings:data") return;
-      var data = msg as SettingsDataMessage;
-      var cfg = data.config as unknown as Record<string, unknown>;
-      var editor = cfg.editor as { type?: string; customCommand?: string } | undefined;
+      const data = msg as SettingsDataMessage;
+      const cfg = data.config as unknown as Record<string, unknown>;
+      const editor = cfg.editor as { type?: string; customCommand?: string } | undefined;
 
-      var newType = editor?.type ?? "vscode";
-      var newCustomCommand = editor?.customCommand ?? "";
+      const newType = editor?.type ?? "vscode";
+      const newCustomCommand = editor?.customCommand ?? "";
 
       if (saveRef.current.savingRef.current) {
         saveRef.current.confirmSave();
@@ -64,11 +64,11 @@ export function Editor() {
 
   function handleSave() {
     save.startSave();
-    var editorSettings: { type: string; customCommand?: string } = { type: ideType };
+    const editorSettings: { type: string; customCommand?: string } = { type: ideType };
     if (ideType === "custom") {
       editorSettings.customCommand = customCommand;
     }
-    var updateMsg: SettingsUpdateMessage = {
+    const updateMsg: SettingsUpdateMessage = {
       type: "settings:update",
       settings: { editor: editorSettings } as SettingsUpdateMessage["settings"],
     };

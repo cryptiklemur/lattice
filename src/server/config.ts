@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { DEFAULT_PORT, LATTICE_HOME_DIR } from "#shared";
 import type { LatticeConfig } from "#shared";
 
-var home = process.env.LATTICE_HOME || join(homedir(), LATTICE_HOME_DIR);
-var cachedConfig: LatticeConfig | null = null;
+const home = process.env.LATTICE_HOME || join(homedir(), LATTICE_HOME_DIR);
+let cachedConfig: LatticeConfig | null = null;
 
 export function getLatticeHome(): string {
   if (!existsSync(home)) {
@@ -22,12 +22,12 @@ export function loadConfig(): LatticeConfig {
   if (cachedConfig) {
     return cachedConfig;
   }
-  var configPath = getConfigPath();
+  const configPath = getConfigPath();
   if (!existsSync(configPath)) {
     return createDefaultConfig();
   }
-  var raw = readFileSync(configPath, "utf-8");
-  var parsed = JSON.parse(raw) as Partial<LatticeConfig>;
+  const raw = readFileSync(configPath, "utf-8");
+  const parsed = JSON.parse(raw) as Partial<LatticeConfig>;
   cachedConfig = {
     port: parsed.port ?? DEFAULT_PORT,
     name: parsed.name ?? hostname(),
@@ -41,7 +41,7 @@ export function loadConfig(): LatticeConfig {
 }
 
 export function saveConfig(config: LatticeConfig): void {
-  var configPath = getConfigPath();
+  const configPath = getConfigPath();
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
   cachedConfig = config;
 }
@@ -51,7 +51,7 @@ export function invalidateConfigCache(): void {
 }
 
 function createDefaultConfig(): LatticeConfig {
-  var config: LatticeConfig = {
+  const config: LatticeConfig = {
     port: DEFAULT_PORT,
     name: hostname(),
     tls: false,

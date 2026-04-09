@@ -13,20 +13,20 @@ interface PairingDialogProps {
   onClose: () => void;
 }
 
-export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps) {
-  var ws = useWebSocket();
-  var mesh = useMesh();
-  var [tab, setTab] = useState<Tab>("generate");
-  var [pairCode, setPairCode] = useState("");
-  var [pairStatus, setPairStatus] = useState<PairStatus>("idle");
-  var [pairError, setPairError] = useState<string | null>(null);
-  var [copied, setCopied] = useState(false);
-  var [generating, setGenerating] = useState(false);
-  var [addresses, setAddresses] = useState<Array<{ name: string; address: string }>>([]);
-  var [selectedAddress, setSelectedAddress] = useState("");
-  var modalRef = useRef<HTMLDivElement>(null);
-  var inputRef = useRef<HTMLInputElement>(null);
-  var pairTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export const PairingDialog = memo(function PairingDialog(props: PairingDialogProps) {
+  const ws = useWebSocket();
+  const mesh = useMesh();
+  const [tab, setTab] = useState<Tab>("generate");
+  const [pairCode, setPairCode] = useState("");
+  const [pairStatus, setPairStatus] = useState<PairStatus>("idle");
+  const [pairError, setPairError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [addresses, setAddresses] = useState<Array<{ name: string; address: string }>>([]);
+  const [selectedAddress, setSelectedAddress] = useState("");
+  const modalRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const pairTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
     if (!props.isOpen) {
@@ -45,7 +45,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
 
     function handleAddresses(msg: ServerMessage) {
       if ((msg as any).type !== "mesh:addresses_result") return;
-      var data = msg as any as { addresses: Array<{ name: string; address: string }> };
+      const data = msg as any as { addresses: Array<{ name: string; address: string }> };
       setAddresses(data.addresses);
       if (data.addresses.length > 0) {
         setSelectedAddress(data.addresses[0].address);
@@ -82,7 +82,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
 
     function handlePairFailed(msg: ServerMessage) {
       if (msg.type !== "mesh:pair_failed") return;
-      var data = msg as { type: string; message: string };
+      const data = msg as { type: string; message: string };
       setPairStatus("failed");
       setPairError(data.message);
     }
@@ -104,7 +104,7 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
   }
 
   function handlePair() {
-    var trimmed = pairCode.trim();
+    const trimmed = pairCode.trim();
     if (!trimmed) {
       return;
     }
@@ -165,8 +165,8 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
 
         <div className="flex border-b border-base-300">
           {(["generate", "enter"] as Tab[]).map(function (t) {
-            var label = t === "generate" ? "Generate Invite" : "Enter Code";
-            var isActive = tab === t;
+            const label = t === "generate" ? "Generate Invite" : "Enter Code";
+            const isActive = tab === t;
             return (
               <button
                 key={t}
@@ -271,15 +271,15 @@ export var PairingDialog = memo(function PairingDialog(props: PairingDialogProps
                 type="text"
                 value={pairCode}
                 onChange={function (e) {
-                  var raw = e.target.value.replace(/[^A-Za-z0-9]/g, "");
-                  var upper = raw.toUpperCase();
+                  let raw = e.target.value.replace(/[^A-Za-z0-9]/g, "");
+                  const upper = raw.toUpperCase();
                   if (upper.startsWith("LTCE")) raw = raw.slice(4);
                   if (raw.length > 16) raw = raw.slice(0, 16);
-                  var chunks: string[] = [];
-                  for (var i = 0; i < raw.length; i += 4) {
+                  const chunks: string[] = [];
+                  for (let i = 0; i < raw.length; i += 4) {
                     chunks.push(raw.slice(i, i + 4));
                   }
-                  var formatted = chunks.length > 0 ? "LTCE-" + chunks.join("-") : "";
+                  const formatted = chunks.length > 0 ? "LTCE-" + chunks.join("-") : "";
                   setPairCode(formatted);
                   if (pairStatus !== "idle") {
                     setPairStatus("idle");

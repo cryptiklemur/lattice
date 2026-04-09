@@ -16,19 +16,19 @@ export function ProjectRules({
   settings: ProjectSettings;
   updateSection: (section: string, data: Record<string, unknown>) => void;
 }) {
-  var globalRules = settings.global.rules ?? [];
+  const globalRules = settings.global.rules ?? [];
 
-  var [rules, setRules] = useState<RuleEntry[]>(function () {
+  const [rules, setRules] = useState<RuleEntry[]>(function () {
     return (settings.rules ?? []).map(function (r: { filename: string; content: string }) {
       return { filename: r.filename, content: r.content };
     });
   });
-  var [expandedGlobal, setExpandedGlobal] = useState<Set<number>>(new Set());
-  var [expandedProject, setExpandedProject] = useState<Set<number>>(new Set());
-  var [adding, setAdding] = useState(false);
-  var [newFilename, setNewFilename] = useState("");
-  var [newContent, setNewContent] = useState("");
-  var save = useSaveState();
+  const [expandedGlobal, setExpandedGlobal] = useState<Set<number>>(new Set());
+  const [expandedProject, setExpandedProject] = useState<Set<number>>(new Set());
+  const [adding, setAdding] = useState(false);
+  const [newFilename, setNewFilename] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const save = useSaveState();
 
   useEffect(function () {
     if (save.savingRef.current) {
@@ -43,7 +43,7 @@ export function ProjectRules({
 
   function toggleGlobal(idx: number) {
     setExpandedGlobal(function (prev) {
-      var next = new Set(prev);
+      const next = new Set(prev);
       if (next.has(idx)) {
         next.delete(idx);
       } else {
@@ -55,7 +55,7 @@ export function ProjectRules({
 
   function toggleProject(idx: number) {
     setExpandedProject(function (prev) {
-      var next = new Set(prev);
+      const next = new Set(prev);
       if (next.has(idx)) {
         next.delete(idx);
       } else {
@@ -83,7 +83,7 @@ export function ProjectRules({
   }
 
   function handleAdd() {
-    var fn = newFilename.trim();
+    const fn = newFilename.trim();
     if (!fn || !fn.endsWith(".md")) return;
     setRules(function (prev) {
       return [...prev, { filename: fn, content: newContent }];
@@ -106,13 +106,13 @@ export function ProjectRules({
   }
 
   function preview(content: string): string {
-    var trimmed = content.trim();
+    const trimmed = content.trim();
     if (trimmed.length <= 80) return trimmed;
     return trimmed.slice(0, 80) + "...";
   }
 
-  var textareaClass = "w-full px-3 py-2 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms] resize-y min-h-[120px]";
-  var inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
+  const textareaClass = "w-full px-3 py-2 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms] resize-y min-h-[120px]";
+  const inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
 
   return (
     <div className="py-2">
@@ -137,7 +137,7 @@ export function ProjectRules({
         {globalRules.length > 0 && (
           <div className="flex flex-col gap-1.5">
             {globalRules.map(function (rule: typeof globalRules[number], idx: number) {
-              var isExpanded = expandedGlobal.has(idx);
+              const isExpanded = expandedGlobal.has(idx);
               return (
                 <div key={rule.filename + "-" + idx} className="border border-base-content/10 rounded-xl overflow-hidden">
                   <button
@@ -171,7 +171,6 @@ export function ProjectRules({
           </div>
         )}
       </div>
-
       <div>
         <h2 className="text-[12px] font-semibold text-base-content/40 mb-3">
           Project Rules
@@ -184,7 +183,7 @@ export function ProjectRules({
         {rules.length > 0 && (
           <div className="flex flex-col gap-1.5 mb-3">
             {rules.map(function (rule, idx) {
-              var isExpanded = expandedProject.has(idx);
+              const isExpanded = expandedProject.has(idx);
               return (
                 <div key={rule.filename + "-" + idx} className="border border-base-content/15 rounded-xl overflow-hidden">
                   <div className="w-full flex items-center gap-2 px-3 py-2 bg-base-300 text-left">

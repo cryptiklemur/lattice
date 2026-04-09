@@ -3,8 +3,8 @@ import { Copy, Check, ExternalLink, FileCode, Eye } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { HighlighterCore } from "shiki";
 
-var highlighterPromise: Promise<HighlighterCore> | null = null;
-var loadedLanguages = new Set<string>();
+let highlighterPromise: Promise<HighlighterCore> | null = null;
+const loadedLanguages = new Set<string>();
 
 function getHighlighter(): Promise<HighlighterCore> {
   if (!highlighterPromise) {
@@ -19,8 +19,8 @@ function getHighlighter(): Promise<HighlighterCore> {
 }
 
 async function highlightCode(code: string, lang: string): Promise<string> {
-  var highlighter = await getHighlighter();
-  var resolvedLang = lang === "text" ? "text" : lang;
+  const highlighter = await getHighlighter();
+  let resolvedLang = lang === "text" ? "text" : lang;
 
   if (resolvedLang !== "text" && !loadedLanguages.has(resolvedLang)) {
     try {
@@ -37,7 +37,7 @@ async function highlightCode(code: string, lang: string): Promise<string> {
   });
 }
 
-var EXT_TO_LANG: Record<string, string> = {
+const EXT_TO_LANG: Record<string, string> = {
   ts: "typescript",
   tsx: "tsx",
   js: "javascript",
@@ -76,11 +76,11 @@ var EXT_TO_LANG: Record<string, string> = {
 };
 
 function getLanguage(path: string): string {
-  var filename = path.split("/").pop() || "";
-  var lower = filename.toLowerCase();
+  const filename = path.split("/").pop() || "";
+  const lower = filename.toLowerCase();
   if (lower === "dockerfile") return "dockerfile";
   if (lower === "makefile") return "makefile";
-  var ext = filename.split(".").pop()?.toLowerCase() || "";
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
   return EXT_TO_LANG[ext] || "text";
 }
 
@@ -95,22 +95,22 @@ interface FileViewerProps {
 }
 
 export function FileViewer(props: FileViewerProps) {
-  var { path, content, editorUrl } = props;
-  var [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
-  var [copied, setCopied] = useState(false);
-  var [showRendered, setShowRendered] = useState(true);
-  var copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { path, content, editorUrl } = props;
+  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [showRendered, setShowRendered] = useState(true);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  var language = getLanguage(path);
-  var lineCount = content.split("\n").length;
-  var isMd = isMarkdown(path);
-  var filename = path.split("/").pop() || path;
+  const language = getLanguage(path);
+  const lineCount = content.split("\n").length;
+  const isMd = isMarkdown(path);
+  const filename = path.split("/").pop() || path;
 
   useEffect(function () {
     setHighlightedHtml(null);
     if (isMd && showRendered) return;
 
-    var cancelled = false;
+    let cancelled = false;
     highlightCode(content, language).then(function (html) {
       if (cancelled) return;
       setHighlightedHtml(html);

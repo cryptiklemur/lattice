@@ -15,7 +15,7 @@ interface CostDonutChartProps {
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: ModelUsage }> }) {
   if (!active || !payload || payload.length === 0) return null;
-  var entry = payload[0];
+  const entry = payload[0];
   return (
     <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg">
       <p className="text-[10px] font-mono text-base-content/50 mb-1">{entry.name}</p>
@@ -26,7 +26,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 function CenterLabel({ totalCost }: { totalCost: number }) {
-  var colors = getChartColors();
+  const colors = getChartColors();
   return (
     <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
       <tspan x="50%" dy="-0.4em" style={{ fontSize: 11, fontFamily: "var(--font-mono)", fill: colors.tickFill }}>
@@ -40,8 +40,8 @@ function CenterLabel({ totalCost }: { totalCost: number }) {
 }
 
 export function CostDonutChart({ modelUsage, totalCost }: CostDonutChartProps) {
-  var fullscreenHeight = useChartFullscreen();
-  var colors = getChartColors();
+  const fullscreenHeight = useChartFullscreen();
+  const colors = getChartColors();
   return (
     <div>
       <ResponsiveContainer width="100%" height={fullscreenHeight || 200}>

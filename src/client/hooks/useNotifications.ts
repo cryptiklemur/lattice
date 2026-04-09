@@ -1,11 +1,11 @@
 import { useState } from "react";
 
 export function useNotificationPreference() {
-  var [enabled, setEnabled] = useState(function () {
+  const [enabled, setEnabled] = useState(function () {
     return localStorage.getItem("lattice-notifications-enabled") === "1";
   });
 
-  var permission = typeof Notification !== "undefined" ? Notification.permission : "denied";
+  const permission = typeof Notification !== "undefined" ? Notification.permission : "denied";
 
   function toggle() {
     if (!enabled) {
@@ -30,18 +30,18 @@ export function useNotificationPreference() {
 }
 
 export function sendNotification(title: string, body: string, tag?: string, onClick?: () => void): void {
-  var allowed = localStorage.getItem("lattice-notifications-enabled") === "1";
+  const allowed = localStorage.getItem("lattice-notifications-enabled") === "1";
   if (!allowed) return;
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
-  var notification = new Notification(title, {
+  const notification = new Notification(title, {
     body: body,
     icon: "/icons/icon-192.svg",
     tag: tag || "lattice",
     silent: false,
   });
 
-  var timer = setTimeout(function () {
+  const timer = setTimeout(function () {
     notification.close();
   }, 10000);
 

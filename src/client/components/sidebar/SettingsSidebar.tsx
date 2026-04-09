@@ -7,7 +7,7 @@ interface SettingsSidebarProps {
   onBack: () => void;
 }
 
-var SETTINGS_NAV = [
+const SETTINGS_NAV = [
   {
     group: "",
     items: [
@@ -42,7 +42,7 @@ var SETTINGS_NAV = [
   },
 ];
 
-var PROJECT_SETTINGS_NAV = [
+const PROJECT_SETTINGS_NAV = [
   {
     group: "",
     items: [
@@ -66,16 +66,16 @@ var PROJECT_SETTINGS_NAV = [
 ];
 
 export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
-  var { activeView, setSettingsSection, setProjectSettingsSection } = useSidebar();
-  var isProjectSettings = activeView.type === "project-settings";
-  var activeSection = activeView.type === "settings"
+  const { activeView, setSettingsSection, setProjectSettingsSection } = useSidebar();
+  const isProjectSettings = activeView.type === "project-settings";
+  const activeSection = activeView.type === "settings"
     ? activeView.section
     : activeView.type === "project-settings"
     ? activeView.section
     : null;
 
-  var nav = isProjectSettings ? PROJECT_SETTINGS_NAV : SETTINGS_NAV;
-  var headerLabel = isProjectSettings ? "Project Settings" : "Settings";
+  const nav = isProjectSettings ? PROJECT_SETTINGS_NAV : SETTINGS_NAV;
+  const headerLabel = isProjectSettings ? "Project Settings" : "Settings";
 
   function handleItemClick(id: string) {
     if (isProjectSettings) {
@@ -90,7 +90,6 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
       <div className="px-4 h-12 border-b border-base-300 flex-shrink-0 flex items-center">
         <span className="text-[13px] font-mono font-bold text-base-content">{headerLabel}</span>
       </div>
-
       <div className="flex flex-col flex-1 overflow-y-auto min-h-0 py-2 pb-16">
         {nav.map(function (group) {
           return (
@@ -103,7 +102,7 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
                 </div>
               )}
               {group.items.map(function (item) {
-                var isActive = activeSection === item.id;
+                const isActive = activeSection === item.id;
                 return (
                   <button
                     key={item.id}
@@ -124,7 +123,6 @@ export function SettingsSidebar({ projectName, onBack }: SettingsSidebarProps) {
           );
         })}
       </div>
-
       <div className="border-t border-base-300 flex-shrink-0">
         <button
           onClick={onBack}

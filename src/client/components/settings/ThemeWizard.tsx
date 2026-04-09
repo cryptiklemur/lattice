@@ -12,9 +12,9 @@ interface ThemeWizardProps {
   editTheme?: { name: string; author: string; variant: "dark" | "light"; colors: Record<string, string> } | null;
 }
 
-var BASE16_KEYS = ["base00", "base01", "base02", "base03", "base04", "base05", "base06", "base07", "base08", "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F"];
+const BASE16_KEYS = ["base00", "base01", "base02", "base03", "base04", "base05", "base06", "base07", "base08", "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F"];
 
-var COLOR_LABELS: Record<string, string> = {
+const COLOR_LABELS: Record<string, string> = {
   base00: "Background",
   base01: "Lighter Background",
   base02: "Selection",
@@ -34,8 +34,8 @@ var COLOR_LABELS: Record<string, string> = {
 };
 
 function emptyColors(): Record<string, string> {
-  var c: Record<string, string> = {};
-  for (var i = 0; i < BASE16_KEYS.length; i++) {
+  const c: Record<string, string> = {};
+  for (let i = 0; i < BASE16_KEYS.length; i++) {
     c[BASE16_KEYS[i]] = "000000";
   }
   return c;
@@ -60,28 +60,28 @@ function defaultLightColors(): Record<string, string> {
 }
 
 export function ThemeWizard(props: ThemeWizardProps) {
-  var ws = useWebSocket();
-  var [step, setStep] = useState(1);
-  var [name, setName] = useState(props.editTheme?.name || "");
-  var [author, setAuthor] = useState(props.editTheme?.author || "");
-  var [variant, setVariant] = useState<"dark" | "light">(props.editTheme?.variant || "dark");
-  var [baseTheme, setBaseTheme] = useState<string | null>(null);
-  var [colors, setColors] = useState<Record<string, string>>(
+  const ws = useWebSocket();
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState(props.editTheme?.name || "");
+  const [author, setAuthor] = useState(props.editTheme?.author || "");
+  const [variant, setVariant] = useState<"dark" | "light">(props.editTheme?.variant || "dark");
+  const [baseTheme, setBaseTheme] = useState<string | null>(null);
+  const [colors, setColors] = useState<Record<string, string>>(
     props.editTheme?.colors || defaultDarkColors()
   );
-  var [coreBg, setCoreBg] = useState(colors.base00);
-  var [coreSurface, setCoreSurface] = useState(colors.base02);
-  var [coreFg, setCoreFg] = useState(colors.base05);
-  var [coreAccent, setCoreAccent] = useState(colors.base0D);
-  var [showAdvanced, setShowAdvanced] = useState(false);
+  const [coreBg, setCoreBg] = useState(colors.base00);
+  const [coreSurface, setCoreSurface] = useState(colors.base02);
+  const [coreFg, setCoreFg] = useState(colors.base05);
+  const [coreAccent, setCoreAccent] = useState(colors.base0D);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   function handleBaseSelect(themeName: string) {
     setBaseTheme(themeName);
-    var found = allThemes.find(function (t: ThemeEntry) { return t.theme.name === themeName; });
+    const found = allThemes.find(function (t: ThemeEntry) { return t.theme.name === themeName; });
     if (found) {
-      var theme = found.theme as unknown as Record<string, string>;
-      var newColors: Record<string, string> = {};
-      for (var i = 0; i < BASE16_KEYS.length; i++) {
+      const theme = found.theme as unknown as Record<string, string>;
+      const newColors: Record<string, string> = {};
+      for (let i = 0; i < BASE16_KEYS.length; i++) {
         newColors[BASE16_KEYS[i]] = normalizeHex(theme[BASE16_KEYS[i]] || "000000");
       }
       setColors(newColors);
@@ -96,7 +96,7 @@ export function ThemeWizard(props: ThemeWizardProps) {
   function handleVariantChange(v: "dark" | "light") {
     setVariant(v);
     if (!baseTheme && !props.editTheme) {
-      var defaults = v === "dark" ? defaultDarkColors() : defaultLightColors();
+      const defaults = v === "dark" ? defaultDarkColors() : defaultLightColors();
       setColors(defaults);
       setCoreBg(defaults.base00);
       setCoreSurface(defaults.base02);
@@ -106,7 +106,7 @@ export function ThemeWizard(props: ThemeWizardProps) {
   }
 
   function handleCoreChange(field: "bg" | "surface" | "fg" | "accent", value: string) {
-    var hex = normalizeHex(value);
+    const hex = normalizeHex(value);
     if (field === "bg") setCoreBg(hex);
     if (field === "surface") setCoreSurface(hex);
     if (field === "fg") setCoreFg(hex);
@@ -115,15 +115,15 @@ export function ThemeWizard(props: ThemeWizardProps) {
 
   useEffect(function () {
     if (step === 2 && isValidHex(coreBg) && isValidHex(coreSurface) && isValidHex(coreFg) && isValidHex(coreAccent)) {
-      var derived = deriveFullPalette(normalizeHex(coreBg), normalizeHex(coreSurface), normalizeHex(coreFg), normalizeHex(coreAccent), variant);
+      const derived = deriveFullPalette(normalizeHex(coreBg), normalizeHex(coreSurface), normalizeHex(coreFg), normalizeHex(coreAccent), variant);
       setColors(derived);
     }
   }, [coreBg, coreSurface, coreFg, coreAccent, variant, step]);
 
   function handleColorChange(key: string, value: string) {
-    var hex = normalizeHex(value);
+    const hex = normalizeHex(value);
     setColors(function (prev) {
-      var next = { ...prev };
+      const next = { ...prev };
       next[key] = hex;
       return next;
     });
@@ -141,24 +141,24 @@ export function ThemeWizard(props: ThemeWizardProps) {
   }
 
   function handleExport() {
-    var theme: Record<string, string> = {
+    const theme: Record<string, string> = {
       name: name || "Untitled Theme",
       author: author || "Custom",
       variant: variant,
     };
-    for (var i = 0; i < BASE16_KEYS.length; i++) {
+    for (let i = 0; i < BASE16_KEYS.length; i++) {
       theme[BASE16_KEYS[i]] = colors[BASE16_KEYS[i]];
     }
-    var blob = new Blob([JSON.stringify(theme, null, 2)], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([JSON.stringify(theme, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url;
     a.download = (name || "custom-theme").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".json";
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  var canProceed = step === 1 ? name.trim().length > 0 : true;
+  const canProceed = step === 1 ? name.trim().length > 0 : true;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-content/60" onClick={props.onClose}>
@@ -225,7 +225,7 @@ export function ThemeWizard(props: ThemeWizardProps) {
                 <label className="text-xs font-medium text-base-content/50 uppercase tracking-wider mb-2 block">Start from (optional)</label>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[300px] overflow-y-auto pr-1">
                   {allThemes.filter(function (t: ThemeEntry) { return t.theme.variant === variant; }).map(function (t: ThemeEntry) {
-                    var isSelected = baseTheme === t.theme.name;
+                    const isSelected = baseTheme === t.theme.name;
                     return (
                       <button
                         key={t.id}
@@ -372,8 +372,8 @@ export function ThemeWizard(props: ThemeWizardProps) {
 }
 
 function ColorPicker(props: { label: string; sublabel?: string; value: string; onChange: (hex: string) => void; compact?: boolean }) {
-  var hex = normalizeHex(props.value);
-  var displayHex = "#" + hex;
+  const hex = normalizeHex(props.value);
+  const displayHex = "#" + hex;
 
   return (
     <div className={"flex items-center gap-2 " + (props.compact ? "" : "py-1")}>

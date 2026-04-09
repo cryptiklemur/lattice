@@ -11,23 +11,23 @@ interface UpdateState {
 }
 
 export function UpdateBanner() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [update, setUpdate] = useState<UpdateState | null>(null);
-  var [dismissed, setDismissed] = useState(false);
-  var [applying, setApplying] = useState(false);
-  var [applyResult, setApplyResult] = useState<{ success: boolean; message: string } | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [update, setUpdate] = useState<UpdateState | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applyResult, setApplyResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(function () {
     function handleStatus(msg: ServerMessage) {
       if (msg.type !== "update:status") return;
-      var data = msg as UpdateState & { type: string };
+      const data = msg as UpdateState & { type: string };
       setUpdate({ currentVersion: data.currentVersion, latestVersion: data.latestVersion, updateAvailable: data.updateAvailable, releaseUrl: data.releaseUrl });
       if (data.updateAvailable) setDismissed(false);
     }
 
     function handleApplyResult(msg: ServerMessage) {
       if (msg.type !== "update:apply_result") return;
-      var data = msg as { type: string; success: boolean; message?: string };
+      const data = msg as { type: string; success: boolean; message?: string };
       setApplying(false);
       setApplyResult({ success: data.success, message: data.message ?? "" });
     }

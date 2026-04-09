@@ -16,7 +16,7 @@ export function emptyForm(): FormState {
 }
 
 export function formFromConfig(name: string, config: McpServerConfig): FormState {
-  var serverType: ServerType = config.type === "http" ? "http" : config.type === "sse" ? "sse" : "stdio";
+  const serverType: ServerType = config.type === "http" ? "http" : config.type === "sse" ? "sse" : "stdio";
   if (serverType === "stdio" && "command" in config) {
     return {
       name,
@@ -35,17 +35,17 @@ export function formFromConfig(name: string, config: McpServerConfig): FormState
 
 export function formToConfig(form: FormState): McpServerConfig {
   if (form.serverType === "stdio") {
-    var argsArr = form.args.trim()
+    const argsArr = form.args.trim()
       ? form.args.split(",").map(function (s) { return s.trim(); }).filter(Boolean)
       : [];
-    var envObj: Record<string, string> = {};
+    const envObj: Record<string, string> = {};
     form.env.split("\n").forEach(function (line) {
-      var idx = line.indexOf("=");
+      const idx = line.indexOf("=");
       if (idx > 0) {
         envObj[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
       }
     });
-    var result: McpServerConfig = { type: "stdio", command: form.command.trim(), args: argsArr };
+    const result: McpServerConfig = { type: "stdio", command: form.command.trim(), args: argsArr };
     if (Object.keys(envObj).length > 0) {
       (result as { env?: Record<string, string> }).env = envObj;
     }
@@ -55,7 +55,7 @@ export function formToConfig(form: FormState): McpServerConfig {
 }
 
 export function typeBadge(config: McpServerConfig) {
-  var t = config.type === "http" ? "http" : config.type === "sse" ? "sse" : "stdio";
+  const t = config.type === "http" ? "http" : config.type === "sse" ? "sse" : "stdio";
   return (
     <span className="px-1.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider font-mono bg-base-content/10 text-base-content/40 flex-shrink-0">
       {t}
@@ -67,7 +67,7 @@ export function configSummary(config: McpServerConfig) {
   if (config.type === "http" || config.type === "sse") {
     return <div className="font-mono text-[11px] text-base-content/40 truncate">{config.url}</div>;
   }
-  var cmd = config.command + ((config.args?.length ?? 0) > 0 ? " " + config.args!.join(" ") : "");
+  const cmd = config.command + ((config.args?.length ?? 0) > 0 ? " " + config.args!.join(" ") : "");
   return <div className="font-mono text-[11px] text-base-content/40 truncate">{cmd}</div>;
 }
 
@@ -86,9 +86,9 @@ export function ServerForm({
   existingNames: Set<string>;
   idPrefix: string;
 }) {
-  var inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
-  var nameConflict = form.name.trim() !== "" && existingNames.has(form.name.trim());
-  var canSave = form.name.trim() !== "" && !nameConflict &&
+  const inputClass = "w-full h-9 sm:h-7 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content font-mono text-[12px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
+  const nameConflict = form.name.trim() !== "" && existingNames.has(form.name.trim());
+  const canSave = form.name.trim() !== "" && !nameConflict &&
     (form.serverType === "stdio" ? form.command.trim() !== "" : form.url.trim() !== "");
 
   return (

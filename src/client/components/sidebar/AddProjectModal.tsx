@@ -18,26 +18,26 @@ interface AddProjectModalProps {
 }
 
 export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { projects } = useProjects();
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { projects } = useProjects();
 
-  var [path, setPath] = useState("");
-  var [entries, setEntries] = useState<BrowseEntry[]>([]);
-  var [title, setTitle] = useState("");
-  var [titleManuallySet, setTitleManuallySet] = useState(false);
-  var [dropdownOpen, setDropdownOpen] = useState(false);
-  var [highlightIndex, setHighlightIndex] = useState(-1);
-  var [error, setError] = useState<string | null>(null);
-  var [adding, setAdding] = useState(false);
-  var [suggestions, setSuggestions] = useState<Array<{ path: string; name: string; hasClaudeMd: boolean }>>([]);
-  var [homedir, setHomedir] = useState("");
-  var debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var inputRef = useRef<HTMLInputElement>(null);
-  var dropdownRef = useRef<HTMLDivElement>(null);
-  var inputFocusedRef = useRef(false);
-  var addingRef = useRef(false);
-  var modalRef = useRef<HTMLDivElement>(null);
-  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  const [path, setPath] = useState("");
+  const [entries, setEntries] = useState<BrowseEntry[]>([]);
+  const [title, setTitle] = useState("");
+  const [titleManuallySet, setTitleManuallySet] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ path: string; name: string; hasClaudeMd: boolean }>>([]);
+  const [homedir, setHomedir] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputFocusedRef = useRef(false);
+  const addingRef = useRef(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const stableOnClose = useCallback(function () { onClose(); }, [onClose]);
   useFocusTrap(modalRef, stableOnClose, isOpen);
 
   useEffect(function () {
@@ -58,7 +58,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
 
     function handleBrowseResult(msg: ServerMessage) {
       if (msg.type !== "browse:list_result") return;
-      var data = msg as { type: "browse:list_result"; path: string; homedir: string; entries: BrowseEntry[] };
+      const data = msg as { type: "browse:list_result"; path: string; homedir: string; entries: BrowseEntry[] };
       setEntries(data.entries);
       setHomedir(data.homedir);
       setHighlightIndex(-1);
@@ -69,7 +69,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
 
     function handleSuggestions(msg: ServerMessage) {
       if (msg.type !== "browse:suggestions_result") return;
-      var data = msg as { type: "browse:suggestions_result"; suggestions: Array<{ path: string; name: string; hasClaudeMd: boolean }> };
+      const data = msg as { type: "browse:suggestions_result"; suggestions: Array<{ path: string; name: string; hasClaudeMd: boolean }> };
       setSuggestions(data.suggestions);
     }
 
@@ -117,16 +117,16 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     if (!isOpen) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    var trimmed = path.trim();
+    const trimmed = path.trim();
     if (!trimmed) {
       send({ type: "browse:list", path: "~" } as any);
       return;
     }
 
     debounceRef.current = setTimeout(function () {
-      var parentDir = trimmed;
+      let parentDir = trimmed;
       if (!trimmed.endsWith("/")) {
-        var lastSlash = trimmed.lastIndexOf("/");
+        const lastSlash = trimmed.lastIndexOf("/");
         parentDir = lastSlash >= 0 ? trimmed.slice(0, lastSlash + 1) : trimmed;
       }
       send({ type: "browse:list", path: parentDir } as any);
@@ -140,7 +140,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   }
 
   function handleSelectEntry(entry: BrowseEntry) {
-    var newPath = entry.path + "/";
+    const newPath = entry.path + "/";
     setPath(newPath);
     setDropdownOpen(false);
     setError(null);
@@ -177,11 +177,11 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   }
 
   function getFilteredEntries(): BrowseEntry[] {
-    var trimmed = path.trim();
+    const trimmed = path.trim();
     if (!trimmed || trimmed.endsWith("/")) return entries;
 
-    var lastSlash = trimmed.lastIndexOf("/");
-    var filter = lastSlash >= 0 ? trimmed.slice(lastSlash + 1).toLowerCase() : trimmed.toLowerCase();
+    const lastSlash = trimmed.lastIndexOf("/");
+    const filter = lastSlash >= 0 ? trimmed.slice(lastSlash + 1).toLowerCase() : trimmed.toLowerCase();
     if (!filter) return entries;
 
     return entries.filter(function (e) {
@@ -190,27 +190,27 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   }
 
   function isValidPath(): boolean {
-    var trimmed = path.trim();
+    const trimmed = path.trim();
     if (!trimmed) return false;
-    var resolved = resolvePath(trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed);
-    var alreadyAdded = projects.some(function (p) { return p.path === resolved; });
+    const resolved = resolvePath(trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed);
+    const alreadyAdded = projects.some(function (p) { return p.path === resolved; });
     if (alreadyAdded) return false;
     return true;
   }
 
   function getValidationMessage(): { type: "info" | "error" | "success"; text: string } | null {
-    var trimmed = path.trim();
+    const trimmed = path.trim();
     if (!trimmed) return { type: "info", text: "Type a path to browse directories" };
 
-    var resolved = resolvePath(trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed);
-    var alreadyAdded = projects.some(function (p) { return p.path === resolved; });
+    const resolved = resolvePath(trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed);
+    const alreadyAdded = projects.some(function (p) { return p.path === resolved; });
     if (alreadyAdded) return { type: "error", text: "Already added as a project" };
 
     return null;
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    var filtered = getFilteredEntries();
+    const filtered = getFilteredEntries();
     if (!dropdownOpen || filtered.length === 0) {
       if (e.key === "Enter" && canAdd) {
         e.preventDefault();
@@ -222,7 +222,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlightIndex(function (prev) {
-        var next = prev + 1;
+        let next = prev + 1;
         if (next >= filtered.length) next = 0;
         scrollHighlightIntoView(next);
         return next;
@@ -230,7 +230,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlightIndex(function (prev) {
-        var next = prev - 1;
+        let next = prev - 1;
         if (next < 0) next = filtered.length - 1;
         scrollHighlightIntoView(next);
         return next;
@@ -253,20 +253,20 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
 
   function scrollHighlightIntoView(index: number) {
     if (!dropdownRef.current) return;
-    var items = dropdownRef.current.children;
+    const items = dropdownRef.current.children;
     if (items[index]) {
       (items[index] as HTMLElement).scrollIntoView({ block: "nearest" });
     }
   }
 
-  var canAdd = isValidPath() && !adding;
+  const canAdd = isValidPath() && !adding;
 
   function handleAdd() {
-    var trimmed = path.trim();
+    const trimmed = path.trim();
     if (!trimmed || adding) return;
 
-    var resolved = resolvePath(trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed);
-    var finalTitle = title.trim() || resolved.split("/").pop() || "Untitled";
+    const resolved = resolvePath(trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed);
+    const finalTitle = title.trim() || resolved.split("/").pop() || "Untitled";
 
     setAdding(true);
     addingRef.current = true;
@@ -280,8 +280,8 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
 
   if (!isOpen) return null;
 
-  var filtered = getFilteredEntries();
-  var validation = getValidationMessage();
+  const filtered = getFilteredEntries();
+  const validation = getValidationMessage();
 
   return (
     <div ref={modalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Add Project">
@@ -324,7 +324,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
                   className="absolute top-full left-0 right-0 mt-1 z-50 bg-base-200 border border-base-content/15 rounded-xl shadow-lg max-h-48 overflow-y-auto"
                 >
                   {filtered.map(function (entry, idx) {
-                    var isHighlighted = idx === highlightIndex;
+                    const isHighlighted = idx === highlightIndex;
                     return (
                       <button
                         key={entry.path}

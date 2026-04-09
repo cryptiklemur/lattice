@@ -7,7 +7,7 @@ import { guessContextWindow } from "./session";
 import { loadConfig } from "../config";
 import { getInstalledPluginCount, getPluginSkillRuleTokenEstimate } from "../handlers/plugins";
 
-var encoder = encodingForModel("gpt-4o");
+const encoder = encodingForModel("gpt-4o");
 
 function countTokens(text: string): number {
   if (!text) return 0;
@@ -24,9 +24,9 @@ function readFileSafe(path: string): string {
 function readDirFiles(dirPath: string): string {
   try {
     if (!existsSync(dirPath)) return "";
-    var files = readdirSync(dirPath, { withFileTypes: true });
-    var content = "";
-    for (var i = 0; i < files.length; i++) {
+    const files = readdirSync(dirPath, { withFileTypes: true });
+    let content = "";
+    for (let i = 0; i < files.length; i++) {
       if (files[i].isFile()) {
         content += readFileSafe(join(dirPath, files[i].name)) + "\n";
       }
@@ -41,14 +41,14 @@ function projectPathToHash(projectPath: string): string {
 }
 
 function getProjectPath(projectSlug: string): string | null {
-  var config = loadConfig();
-  var project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
+  const config = loadConfig();
+  const project = config.projects.find(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
   return project ? project.path : null;
 }
 
 // Known built-in Claude Code tools with approximate per-tool token counts
 // These are the tool definitions sent in every API request
-var BUILTIN_TOOLS: Record<string, number> = {
+const BUILTIN_TOOLS: Record<string, number> = {
   "Read": 350,
   "Write": 300,
   "Edit": 400,
@@ -75,7 +75,7 @@ var BUILTIN_TOOLS: Record<string, number> = {
 };
 
 // Average tokens per MCP tool definition (name + description + JSON schema)
-var MCP_TOOL_AVG_TOKENS = 250;
+const MCP_TOOL_AVG_TOKENS = 250;
 
 interface ToolCounts {
   builtinTools: string[];
@@ -83,18 +83,18 @@ interface ToolCounts {
 }
 
 function extractToolsFromSession(lines: string[]): ToolCounts {
-  var builtinSet = new Set<string>();
-  var mcpMap = new Map<string, Set<string>>();
+  const builtinSet = new Set<string>();
+  const mcpMap = new Map<string, Set<string>>();
 
   // First: check compact boundary metadata for preCompactDiscoveredTools
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
     if (!line || !line.includes("compactMetadata")) continue;
     try {
-      var parsed = JSON.parse(line);
-      var tools = parsed.compactMetadata?.preCompactDiscoveredTools;
+      const parsed = JSON.parse(line);
+      const tools = parsed.compactMetadata?.preCompactDiscoveredTools;
       if (Array.isArray(tools)) {
-        for (var t = 0; t < tools.length; t++) {
+        for (let t = 0; t < tools.length; t++) {
           categorizeToolName(tools[t], builtinSet, mcpMap);
         }
       }
@@ -102,14 +102,14 @@ function extractToolsFromSession(lines: string[]): ToolCounts {
   }
 
   // Second: scan tool_use blocks from assistant messages for any we missed
-  for (var j = 0; j < lines.length; j++) {
-    var aLine = lines[j].trim();
+  for (let j = 0; j < lines.length; j++) {
+    const aLine = lines[j].trim();
     if (!aLine || !aLine.includes("tool_use")) continue;
     try {
-      var aParsed = JSON.parse(aLine);
+      const aParsed = JSON.parse(aLine);
       if (aParsed.type === "assistant" && aParsed.message && Array.isArray(aParsed.message.content)) {
-        for (var k = 0; k < aParsed.message.content.length; k++) {
-          var block = aParsed.message.content[k];
+        for (let k = 0; k < aParsed.message.content.length; k++) {
+          const block = aParsed.message.content[k];
           if (block.type === "tool_use" && block.name) {
             categorizeToolName(block.name, builtinSet, mcpMap);
           }
@@ -136,8 +136,8 @@ function extractToolsFromSession(lines: string[]): ToolCounts {
 
 function categorizeToolName(name: string, builtinSet: Set<string>, mcpMap: Map<string, Set<string>>): void {
   if (name.startsWith("mcp__")) {
-    var parts = name.split("__");
-    var serverName = parts[1] || "unknown";
+    const parts = name.split("__");
+    const serverName = parts[1] || "unknown";
     if (!mcpMap.has(serverName)) {
       mcpMap.set(serverName, new Set());
     }
@@ -148,13 +148,13 @@ function categorizeToolName(name: string, builtinSet: Set<string>, mcpMap: Map<s
 }
 
 function estimateBuiltinToolTokens(toolNames: string[]): number {
-  var total = 0;
-  for (var i = 0; i < toolNames.length; i++) {
+  let total = 0;
+  for (let i = 0; i < toolNames.length; i++) {
     total += BUILTIN_TOOLS[toolNames[i]] || 300;
   }
   // Also include tools that are always sent but might not appear in usage
-  var knownKeys = Object.keys(BUILTIN_TOOLS);
-  for (var j = 0; j < knownKeys.length; j++) {
+  const knownKeys = Object.keys(BUILTIN_TOOLS);
+  for (let j = 0; j < knownKeys.length; j++) {
     if (toolNames.indexOf(knownKeys[j]) === -1) {
       total += BUILTIN_TOOLS[knownKeys[j]];
     }
@@ -169,66 +169,66 @@ export interface ContextBreakdownResult {
 }
 
 export async function getContextBreakdown(projectSlug: string, sessionId: string): Promise<ContextBreakdownResult | null> {
-  var projectPath = getProjectPath(projectSlug);
+  const projectPath = getProjectPath(projectSlug);
   if (!projectPath) return null;
 
-  var home = homedir();
-  var hash = projectPathToHash(projectPath);
-  var sessionFile = join(home, ".claude", "projects", hash, sessionId + ".jsonl");
+  const home = homedir();
+  const hash = projectPathToHash(projectPath);
+  const sessionFile = join(home, ".claude", "projects", hash, sessionId + ".jsonl");
   if (!existsSync(sessionFile)) return null;
 
   // Read instruction files
-  var globalClaudeMd = readFileSafe(join(home, ".claude", "CLAUDE.md"));
-  var globalRulesContent = readDirFiles(join(home, ".claude", "rules"));
-  var projectClaudeMd = readFileSafe(join(projectPath, "CLAUDE.md"));
-  var projectLocalClaudeMd = readFileSafe(join(home, ".claude", "projects", hash, "CLAUDE.md"));
+  const globalClaudeMd = readFileSafe(join(home, ".claude", "CLAUDE.md"));
+  const globalRulesContent = readDirFiles(join(home, ".claude", "rules"));
+  const projectClaudeMd = readFileSafe(join(projectPath, "CLAUDE.md"));
+  const projectLocalClaudeMd = readFileSafe(join(home, ".claude", "projects", hash, "CLAUDE.md"));
 
-  var memoryContent = readDirFiles(join(home, ".claude", "projects", hash, "memory"));
-  var memoryIndex = readFileSafe(join(home, ".claude", "projects", hash, "MEMORY.md"));
+  const memoryContent = readDirFiles(join(home, ".claude", "projects", hash, "memory"));
+  const memoryIndex = readFileSafe(join(home, ".claude", "projects", hash, "MEMORY.md"));
 
-  var instructionsTokens = countTokens(globalClaudeMd + globalRulesContent + projectClaudeMd + projectLocalClaudeMd);
-  var memoryTokens = countTokens(memoryContent + memoryIndex);
+  const instructionsTokens = countTokens(globalClaudeMd + globalRulesContent + projectClaudeMd + projectLocalClaudeMd);
+  const memoryTokens = countTokens(memoryContent + memoryIndex);
 
   // Parse session — read last 2MB for recent context (avoids reading 35MB+ files)
-  var fd = openSync(sessionFile, "r");
-  var fileStat = fstatSync(fd);
-  var readSize = Math.min(fileStat.size, 2 * 1024 * 1024);
-  var readBuf = Buffer.alloc(readSize);
+  const fd = openSync(sessionFile, "r");
+  const fileStat = fstatSync(fd);
+  const readSize = Math.min(fileStat.size, 2 * 1024 * 1024);
+  const readBuf = Buffer.alloc(readSize);
   readSync(fd, readBuf, 0, readSize, fileStat.size - readSize);
   closeSync(fd);
-  var content = readBuf.toString("utf-8");
-  var lines = content.split("\n").filter(function (l) { return l.length > 0; });
+  const content = readBuf.toString("utf-8");
+  const lines = content.split("\n").filter(function (l) { return l.length > 0; });
 
   // Extract tool info
-  var toolCounts = extractToolsFromSession(lines);
-  var builtinToolTokens = estimateBuiltinToolTokens(toolCounts.builtinTools);
+  const toolCounts = extractToolsFromSession(lines);
+  const builtinToolTokens = estimateBuiltinToolTokens(toolCounts.builtinTools);
 
   // Parse conversation messages
-  var userText = "";
-  var assistantText = "";
-  var toolResultText = "";
-  var contextWindow = 0;
-  var lastModel = "";
+  let userText = "";
+  let assistantText = "";
+  let toolResultText = "";
+  let contextWindow = 0;
+  let lastModel = "";
 
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
     if (!line) continue;
     try {
-      var parsed = JSON.parse(line);
+      const parsed = JSON.parse(line);
       if (parsed.type === "user" && parsed.message) {
-        var userContent = parsed.message.content;
+        const userContent = parsed.message.content;
         if (typeof userContent === "string") {
           userText += userContent + "\n";
         } else if (Array.isArray(userContent)) {
-          for (var j = 0; j < userContent.length; j++) {
-            var block = userContent[j];
+          for (let j = 0; j < userContent.length; j++) {
+            const block = userContent[j];
             if (block.type === "text" && block.text) {
               userText += block.text + "\n";
             } else if (block.type === "tool_result") {
               if (typeof block.content === "string") {
                 toolResultText += block.content + "\n";
               } else if (Array.isArray(block.content)) {
-                for (var ri = 0; ri < block.content.length; ri++) {
+                for (let ri = 0; ri < block.content.length; ri++) {
                   if (block.content[ri].type === "text" && block.content[ri].text) {
                     toolResultText += block.content[ri].text + "\n";
                   }
@@ -238,12 +238,12 @@ export async function getContextBreakdown(projectSlug: string, sessionId: string
           }
         }
       } else if (parsed.type === "assistant" && parsed.message) {
-        var aContent = parsed.message.content;
+        const aContent = parsed.message.content;
         if (typeof aContent === "string") {
           assistantText += aContent + "\n";
         } else if (Array.isArray(aContent)) {
-          for (var k = 0; k < aContent.length; k++) {
-            var ab = aContent[k];
+          for (let k = 0; k < aContent.length; k++) {
+            const ab = aContent[k];
             if (ab.type === "text" && ab.text) {
               assistantText += ab.text + "\n";
             } else if (ab.type === "tool_use" && ab.input) {
@@ -260,22 +260,22 @@ export async function getContextBreakdown(projectSlug: string, sessionId: string
     } catch {}
   }
 
-  var userTokens = countTokens(userText);
-  var assistantTokens = countTokens(assistantText);
-  var toolResultTokens = countTokens(toolResultText);
+  const userTokens = countTokens(userText);
+  const assistantTokens = countTokens(assistantText);
+  const toolResultTokens = countTokens(toolResultText);
   contextWindow = guessContextWindow(lastModel);
 
-  var autocompactAt = Math.round(contextWindow * 0.9);
-  var systemPromptEstimate = 4500;
+  const autocompactAt = Math.round(contextWindow * 0.9);
+  const systemPromptEstimate = 4500;
 
-  var segments: ContextBreakdownSegment[] = [
+  const segments: ContextBreakdownSegment[] = [
     { label: "System prompt", tokens: systemPromptEstimate, id: "system", estimated: true },
     { label: "Built-in tools (" + Object.keys(BUILTIN_TOOLS).length + ")", tokens: builtinToolTokens, id: "builtin_tools", estimated: true },
   ];
 
   // Add per-MCP-server segments
   toolCounts.mcpTools.forEach(function (tools, serverName) {
-    var mcpTokens = tools.length * MCP_TOOL_AVG_TOKENS;
+    const mcpTokens = tools.length * MCP_TOOL_AVG_TOKENS;
     segments.push({
       label: serverName + " (" + tools.length + " tools)",
       tokens: mcpTokens,
@@ -284,9 +284,9 @@ export async function getContextBreakdown(projectSlug: string, sessionId: string
     });
   });
 
-  var pluginCount = getInstalledPluginCount();
+  const pluginCount = getInstalledPluginCount();
   if (pluginCount > 0) {
-    var pluginTokens = getPluginSkillRuleTokenEstimate();
+    const pluginTokens = getPluginSkillRuleTokenEstimate();
     segments.push({
       label: "Plugins (" + pluginCount + ")",
       tokens: pluginTokens,

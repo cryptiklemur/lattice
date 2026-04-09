@@ -6,20 +6,20 @@ import { useTheme } from "../../hooks/useTheme";
 import type { ServerMessage } from "#shared";
 
 function resolveThemeVars(): string {
-  var style = getComputedStyle(document.documentElement);
-  var base100 = style.getPropertyValue("--color-base-100").trim();
-  var base200 = style.getPropertyValue("--color-base-200").trim();
-  var base300 = style.getPropertyValue("--color-base-300").trim();
-  var baseContent = style.getPropertyValue("--color-base-content").trim();
-  var primary = style.getPropertyValue("--color-primary").trim();
-  var primaryContent = style.getPropertyValue("--color-primary-content").trim();
+  const style = getComputedStyle(document.documentElement);
+  const base100 = style.getPropertyValue("--color-base-100").trim();
+  const base200 = style.getPropertyValue("--color-base-200").trim();
+  const base300 = style.getPropertyValue("--color-base-300").trim();
+  const baseContent = style.getPropertyValue("--color-base-content").trim();
+  const primary = style.getPropertyValue("--color-primary").trim();
+  const primaryContent = style.getPropertyValue("--color-primary-content").trim();
 
   // Extract raw oklch values (strip "oklch(" and ")")
   function raw(v: string): string {
     return v.replace(/^oklch\(/, "").replace(/\)$/, "");
   }
-  var bc = raw(baseContent);
-  var p = raw(primary);
+  const bc = raw(baseContent);
+  const p = raw(primary);
 
   return `
   :root {
@@ -36,7 +36,7 @@ function resolveThemeVars(): string {
   }`;
 }
 
-var IFRAME_CSS_BODY = `
+const IFRAME_CSS_BODY = `
 
   *, *::before, *::after { box-sizing: border-box; }
 
@@ -240,10 +240,10 @@ var IFRAME_CSS_BODY = `
   }
 `;
 
-var CLICK_SCRIPT = `
+const CLICK_SCRIPT = `
   function toggleSelect(el) {
-    var isOption = el.classList.contains('option');
-    var isCard = el.classList.contains('card');
+    const isOption = el.classList.contains('option');
+    const isCard = el.classList.contains('card');
     if (!isOption && !isCard) return;
     if (el.classList.contains('selected')) {
       el.classList.remove('selected');
@@ -253,21 +253,21 @@ var CLICK_SCRIPT = `
   }
 
   document.addEventListener('click', function(e) {
-    var el = e.target.closest('[data-choice]');
+    const el = e.target.closest('[data-choice]');
     if (!el) return;
     toggleSelect(el);
-    var h3 = el.querySelector('h3');
-    var label = h3 ? h3.textContent.trim() : (el.textContent || '').trim().slice(0, 80);
+    const h3 = el.querySelector('h3');
+    const label = h3 ? h3.textContent.trim() : (el.textContent || '').trim().slice(0, 80);
     parent.postMessage({ type: 'brainstorm-select', choice: el.dataset.choice, text: label }, '*');
   });
 `;
 
 export function BrainstormView() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { sendMessage } = useSession();
-  var [html, setHtml] = useState<string | null>(null);
-  var [sessionDir, setSessionDir] = useState<string | null>(null);
-  var sessionDirRef = useRef<string | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { sendMessage } = useSession();
+  const [html, setHtml] = useState<string | null>(null);
+  const [sessionDir, setSessionDir] = useState<string | null>(null);
+  const sessionDirRef = useRef<string | null>(null);
 
   sessionDirRef.current = sessionDir;
 
@@ -311,7 +311,7 @@ export function BrainstormView() {
   useEffect(function () {
     function onMessage(e: MessageEvent) {
       if (!e.data || e.data.type !== "brainstorm-select") return;
-      var dir = sessionDirRef.current;
+      const dir = sessionDirRef.current;
       if (!dir) return;
       send({
         type: "brainstorm:select",
@@ -328,10 +328,10 @@ export function BrainstormView() {
     };
   }, []);
 
-  var { currentThemeId } = useTheme();
-  var themeVars = useMemo(resolveThemeVars, [currentThemeId]);
+  const { currentThemeId } = useTheme();
+  const themeVars = useMemo(resolveThemeVars, [currentThemeId]);
 
-  var srcdoc = html
+  const srcdoc = html
     ? `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${themeVars}\n${IFRAME_CSS_BODY}</style></head><body>${html}<script>${CLICK_SCRIPT}</script></body></html>`
     : null;
 

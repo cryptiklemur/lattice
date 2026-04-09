@@ -27,7 +27,7 @@ function renderFormField(
   onChange: (key: string, val: unknown) => void,
   required: boolean,
 ) {
-  var label = key.replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  const label = key.replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
 
   if (prop.type === "boolean") {
     return (
@@ -102,14 +102,14 @@ function renderFormField(
 }
 
 export function ElicitationCard(props: ElicitationCardProps) {
-  var { send } = useWebSocket();
-  var [formData, setFormData] = useState<Record<string, unknown>>({});
-  var [submitted, setSubmitted] = useState(props.resolved || false);
-  var [action, setAction] = useState<"accept" | "decline" | null>(props.resolvedAction || null);
+  const { send } = useWebSocket();
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [submitted, setSubmitted] = useState(props.resolved || false);
+  const [action, setAction] = useState<"accept" | "decline" | null>(props.resolvedAction || null);
 
   function handleFieldChange(key: string, value: unknown) {
     setFormData(function (prev) {
-      var next = { ...prev };
+      const next = { ...prev };
       next[key] = value;
       return next;
     });
@@ -127,7 +127,7 @@ export function ElicitationCard(props: ElicitationCardProps) {
   }
 
   if (submitted) {
-    var isAccepted = action === "accept";
+    const isAccepted = action === "accept";
     return (
       <div className="ml-14 mr-5 py-0.5 max-w-[95%] sm:max-w-[75%]">
         <div className={"rounded-lg text-[12px] border px-2.5 py-1.5 flex items-center gap-2 " + (isAccepted ? "border-success/15 bg-success/3" : "border-error/15 bg-error/3")}>
@@ -140,9 +140,9 @@ export function ElicitationCard(props: ElicitationCardProps) {
     );
   }
 
-  var schema = props.requestedSchema;
-  var properties: Record<string, SchemaProperty> = {};
-  var requiredFields: string[] = [];
+  const schema = props.requestedSchema;
+  let properties: Record<string, SchemaProperty> = {};
+  let requiredFields: string[] = [];
   if (schema && typeof schema === "object") {
     if (schema.properties && typeof schema.properties === "object") {
       properties = schema.properties as Record<string, SchemaProperty>;
@@ -151,7 +151,7 @@ export function ElicitationCard(props: ElicitationCardProps) {
       requiredFields = schema.required as string[];
     }
   }
-  var hasFormFields = Object.keys(properties).length > 0;
+  const hasFormFields = Object.keys(properties).length > 0;
 
   return (
     <div className="ml-14 mr-5 py-1 max-w-[95%] sm:max-w-[75%]">

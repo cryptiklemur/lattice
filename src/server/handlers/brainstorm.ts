@@ -6,7 +6,7 @@ import { getActiveProjectForClient } from "./fs";
 
 registerHandler("brainstorm", function (clientId: string, message: ClientMessage) {
   if (message.type === "brainstorm:select") {
-    var selectMsg = message as BrainstormSelectMessage;
+    const selectMsg = message as BrainstormSelectMessage;
     writeBrainstormEvent(selectMsg.sessionDir, {
       type: "click",
       choice: selectMsg.choice,
@@ -17,14 +17,14 @@ registerHandler("brainstorm", function (clientId: string, message: ClientMessage
   }
 
   if (message.type === "brainstorm:stop") {
-    var stopProjectSlug = getActiveProjectForClient(clientId);
+    const stopProjectSlug = getActiveProjectForClient(clientId);
     stopBrainstorm(stopProjectSlug || undefined);
     return;
   }
 
   if (message.type === "brainstorm:status_request") {
-    var projectSlug = getActiveProjectForClient(clientId);
-    var active = projectSlug ? getActiveBrainstorm(projectSlug) : getAnyActiveBrainstorm();
+    const projectSlug = getActiveProjectForClient(clientId);
+    const active = projectSlug ? getActiveBrainstorm(projectSlug) : getAnyActiveBrainstorm();
     if (active) {
       sendTo(clientId, {
         type: "brainstorm:status",

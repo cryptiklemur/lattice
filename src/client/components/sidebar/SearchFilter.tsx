@@ -9,7 +9,7 @@ interface SearchFilterProps {
 }
 
 export function SearchFilter(props: SearchFilterProps) {
-  var inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(function () {
     if (inputRef.current) {

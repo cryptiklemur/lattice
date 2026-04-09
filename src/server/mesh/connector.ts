@@ -17,17 +17,17 @@ interface PeerConnection {
   projects: Array<{ slug: string; title: string }>;
 }
 
-var connections = new Map<string, PeerConnection>();
-var lastKnownProjects = new Map<string, Array<{ slug: string; title: string }>>();
-var connectedCallbacks: Array<(nodeId: string) => void> = [];
-var disconnectedCallbacks: Array<(nodeId: string) => void> = [];
-var messageCallbacks: Array<(nodeId: string, msg: MeshMessage) => void> = [];
+const connections = new Map<string, PeerConnection>();
+const lastKnownProjects = new Map<string, Array<{ slug: string; title: string }>>();
+const connectedCallbacks: Array<(nodeId: string) => void> = [];
+const disconnectedCallbacks: Array<(nodeId: string) => void> = [];
+const messageCallbacks: Array<(nodeId: string, msg: MeshMessage) => void> = [];
 
-var MIN_BACKOFF_MS = 1000;
-var MAX_BACKOFF_MS = 30000;
-var CONNECTION_TIMEOUT_MS = 10000;
-var CIRCUIT_BREAKER_THRESHOLD = 5;
-var CIRCUIT_BREAKER_COOLDOWN = 60000;
+const MIN_BACKOFF_MS = 1000;
+const MAX_BACKOFF_MS = 30000;
+const CONNECTION_TIMEOUT_MS = 10000;
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+const CIRCUIT_BREAKER_COOLDOWN = 60000;
 
 interface CircuitState {
   failures: number;
@@ -35,11 +35,11 @@ interface CircuitState {
   halfOpen: boolean;
 }
 
-var circuitBreakers = new Map<string, CircuitState>();
+const circuitBreakers = new Map<string, CircuitState>();
 
-var RECONNECT_INTERVAL_MS = 15000;
-var HEALTH_CHECK_INTERVAL_MS = 30000;
-var HEALTH_MISS_THRESHOLD = 3;
+const RECONNECT_INTERVAL_MS = 15000;
+const HEALTH_CHECK_INTERVAL_MS = 30000;
+const HEALTH_MISS_THRESHOLD = 3;
 
 interface HealthState {
   lastPongAt: number;
@@ -49,27 +49,27 @@ interface HealthState {
   pingTimer: ReturnType<typeof setInterval> | null;
 }
 
-var healthStates = new Map<string, HealthState>();
+const healthStates = new Map<string, HealthState>();
 
 export function getPeerHealth(nodeId: string): { latencyMs: number; healthy: boolean } | undefined {
-  var state = healthStates.get(nodeId);
+  const state = healthStates.get(nodeId);
   if (!state) return undefined;
   return { latencyMs: state.latencyMs, healthy: state.healthy };
 }
 
 export function getAllPeerHealth(): Map<string, { latencyMs: number; healthy: boolean }> {
-  var result = new Map<string, { latencyMs: number; healthy: boolean }>();
-  for (var [nodeId, state] of healthStates) {
+  const result = new Map<string, { latencyMs: number; healthy: boolean }>();
+  for (const [nodeId, state] of healthStates) {
     result.set(nodeId, { latencyMs: state.latencyMs, healthy: state.healthy });
   }
   return result;
 }
 
 function startHealthCheck(conn: PeerConnection): void {
-  var state = healthStates.get(conn.nodeId);
+  const state = healthStates.get(conn.nodeId);
   if (state && state.pingTimer) return;
 
-  var healthState: HealthState = {
+  const healthState: HealthState = {
     lastPongAt: Date.now(),
     latencyMs: 0,
     missedPongs: 0,
@@ -78,7 +78,7 @@ function startHealthCheck(conn: PeerConnection): void {
   };
   healthStates.set(conn.nodeId, healthState);
 
-  var lastPingSentAt = 0;
+  let lastPingSentAt = 0;
 
   healthState.pingTimer = setInterval(function () {
     if (conn.dead || !isWebSocketOpen(conn.ws)) {
@@ -103,7 +103,7 @@ function startHealthCheck(conn: PeerConnection): void {
 }
 
 function stopHealthCheck(nodeId: string): void {
-  var state = healthStates.get(nodeId);
+  const state = healthStates.get(nodeId);
   if (state && state.pingTimer) {
     clearInterval(state.pingTimer);
     state.pingTimer = null;
@@ -112,7 +112,7 @@ function stopHealthCheck(nodeId: string): void {
 }
 
 function handlePong(nodeId: string, timestamp: number): void {
-  var state = healthStates.get(nodeId);
+  const state = healthStates.get(nodeId);
   if (!state) return;
   state.lastPongAt = Date.now();
   state.latencyMs = Date.now() - timestamp;
@@ -129,14 +129,14 @@ export function startMeshConnections(): void {
 }
 
 function reconcilePeers(): void {
-  var peers = loadPeers();
-  for (var i = 0; i < peers.length; i++) {
-    var peer = peers[i];
+  const peers = loadPeers();
+  for (let i = 0; i < peers.length; i++) {
+    const peer = peers[i];
     if (!peer.addresses || peer.addresses.length === 0) {
       log.meshConnect("skip %s — no addresses", peer.name);
       continue;
     }
-    var existing = connections.get(peer.id);
+    const existing = connections.get(peer.id);
     if (existing && !existing.dead && isWebSocketOpen(existing.ws)) continue;
     if (existing && !existing.dead && existing.retryTimer !== null) {
       log.meshConnect("skip %s — retry pending", peer.name);
@@ -151,7 +151,7 @@ function reconcilePeers(): void {
 }
 
 export function stopMeshConnections(): void {
-  for (var [nodeId, conn] of connections) {
+  for (const [nodeId, conn] of connections) {
     conn.dead = true;
     if (conn.retryTimer !== null) {
       clearTimeout(conn.retryTimer);
@@ -168,19 +168,19 @@ export function connectToPeer(nodeId: string, address: string): void {
     return;
   }
 
-  var peers = loadPeers();
-  var peer = peers.find(function (p) { return p.id === nodeId; });
+  const peers = loadPeers();
+  const peer = peers.find(function (p) { return p.id === nodeId; });
   if (!peer) {
     return;
   }
 
-  var config = loadConfig();
-  var protocol = config.tls ? "wss" : "ws";
-  var url = address.includes(":")
+  const config = loadConfig();
+  const protocol = config.tls ? "wss" : "ws";
+  const url = address.includes(":")
     ? protocol + "://" + address + "/ws"
     : protocol + "://" + address + ":" + config.port + "/ws";
 
-  var conn: PeerConnection = {
+  const conn: PeerConnection = {
     nodeId: nodeId,
     ws: null as unknown as WebSocket,
     backoffMs: MIN_BACKOFF_MS,
@@ -194,7 +194,7 @@ export function connectToPeer(nodeId: string, address: string): void {
 }
 
 function openConnection(conn: PeerConnection, url: string): void {
-  var circuit = circuitBreakers.get(conn.nodeId);
+  let circuit = circuitBreakers.get(conn.nodeId);
   if (circuit && circuit.failures >= CIRCUIT_BREAKER_THRESHOLD && !circuit.halfOpen) {
     if (Date.now() < circuit.openUntil) {
       log.meshConnect("circuit breaker open for %s, retry in %dms", conn.nodeId.slice(0, 8), circuit.openUntil - Date.now());
@@ -210,10 +210,10 @@ function openConnection(conn: PeerConnection, url: string): void {
   }
 
   log.meshConnect("opening WebSocket to %s", url);
-  var ws = new WebSocket(url);
+  const ws = new WebSocket(url);
   conn.ws = ws;
 
-  var connectionTimer = setTimeout(function () {
+  const connectionTimer = setTimeout(function () {
     if (!isWebSocketOpen(ws)) {
       log.meshConnect("connection timeout for %s at %s", conn.nodeId.slice(0, 8), url);
       ws.close();
@@ -230,11 +230,11 @@ function openConnection(conn: PeerConnection, url: string): void {
     circuitBreakers.delete(conn.nodeId);
     conn.backoffMs = MIN_BACKOFF_MS;
 
-    var identity = loadOrCreateIdentity();
-    var config = loadConfig();
-    var projects = listProjects(identity.id);
+    const identity = loadOrCreateIdentity();
+    const config = loadConfig();
+    const projects = listProjects(identity.id);
 
-    var hello: MeshHelloMessage & { publicKey?: string } = {
+    const hello: MeshHelloMessage & { publicKey?: string } = {
       type: "mesh:hello",
       nodeId: identity.id,
       name: config.name,
@@ -248,7 +248,7 @@ function openConnection(conn: PeerConnection, url: string): void {
 
     log.mesh("Connected to peer: %s", conn.nodeId);
 
-    for (var i = 0; i < connectedCallbacks.length; i++) {
+    for (let i = 0; i < connectedCallbacks.length; i++) {
       connectedCallbacks[i](conn.nodeId);
     }
   });
@@ -259,7 +259,7 @@ function openConnection(conn: PeerConnection, url: string): void {
     }
 
     try {
-      var msg = JSON.parse(event.data as string) as MeshMessage;
+      const msg = JSON.parse(event.data as string) as MeshMessage;
 
       if (msg.type === "mesh:hello") {
         conn.projects = msg.projects;
@@ -268,24 +268,24 @@ function openConnection(conn: PeerConnection, url: string): void {
         }
         startHealthCheck(conn);
       } else if (msg.type === "mesh:ping") {
-        var pingMsg = msg as MeshPingMessage;
+        const pingMsg = msg as MeshPingMessage;
         conn.ws.send(JSON.stringify({ type: "mesh:pong", timestamp: pingMsg.timestamp }));
         return;
       } else if (msg.type === "mesh:pong") {
-        var pongMsg = msg as MeshPongMessage;
+        const pongMsg = msg as MeshPongMessage;
         handlePong(conn.nodeId, pongMsg.timestamp);
         return;
       } else if (msg.type === "mesh:session_sync") {
         handleSessionSync(conn.nodeId, msg as MeshSessionSyncMessage);
       } else if (msg.type === "mesh:session_request") {
-        var reqMsg = msg as MeshSessionRequestMessage;
-        var reqProject = getProjectBySlug(reqMsg.projectSlug);
+        const reqMsg = msg as MeshSessionRequestMessage;
+        const reqProject = getProjectBySlug(reqMsg.projectSlug);
         if (reqProject) {
           handleSessionRequest(conn.nodeId, reqMsg, reqProject.path);
         }
       }
 
-      for (var i = 0; i < messageCallbacks.length; i++) {
+      for (let i = 0; i < messageCallbacks.length; i++) {
         messageCallbacks[i](conn.nodeId, msg);
       }
     } catch {
@@ -299,7 +299,7 @@ function openConnection(conn: PeerConnection, url: string): void {
       return;
     }
 
-    var circuit = circuitBreakers.get(conn.nodeId);
+    let circuit = circuitBreakers.get(conn.nodeId);
     if (!circuit) {
       circuit = { failures: 0, openUntil: 0, halfOpen: false };
       circuitBreakers.set(conn.nodeId, circuit);
@@ -315,11 +315,11 @@ function openConnection(conn: PeerConnection, url: string): void {
       log.mesh("Circuit breaker open for peer: %s after %d consecutive failures", conn.nodeId, circuit.failures);
     }
 
-    for (var i = 0; i < disconnectedCallbacks.length; i++) {
+    for (let i = 0; i < disconnectedCallbacks.length; i++) {
       disconnectedCallbacks[i](conn.nodeId);
     }
 
-    var delay = conn.backoffMs;
+    const delay = conn.backoffMs;
     conn.backoffMs = Math.min(conn.backoffMs * 2, MAX_BACKOFF_MS);
 
     conn.retryTimer = setTimeout(function () {
@@ -337,7 +337,7 @@ function openConnection(conn: PeerConnection, url: string): void {
 }
 
 export function getPeerConnection(nodeId: string): WebSocket | undefined {
-  var conn = connections.get(nodeId);
+  const conn = connections.get(nodeId);
   if (!conn) {
     return undefined;
   }
@@ -348,7 +348,7 @@ export function getPeerConnection(nodeId: string): WebSocket | undefined {
 }
 
 export function registerInboundPeer(nodeId: string, ws: { send: (data: string) => void; readyState: number }, peerProjects?: Array<{ slug: string; title: string }>): void {
-  var existing = connections.get(nodeId);
+  const existing = connections.get(nodeId);
   if (existing && !existing.dead && isWebSocketOpen(existing.ws)) {
     log.meshConnect("inbound peer %s already connected, skipping", nodeId.slice(0, 8));
     return;
@@ -364,8 +364,8 @@ export function registerInboundPeer(nodeId: string, ws: { send: (data: string) =
 
   circuitBreakers.delete(nodeId);
 
-  var incomingProjects = peerProjects ?? [];
-  var conn: PeerConnection = {
+  const incomingProjects = peerProjects ?? [];
+  const conn: PeerConnection = {
     nodeId: nodeId,
     ws: ws as WebSocket,
     backoffMs: 1000,
@@ -380,12 +380,12 @@ export function registerInboundPeer(nodeId: string, ws: { send: (data: string) =
 
   connections.set(nodeId, conn);
 
-  var peers = loadPeers();
-  var peer = peers.find(function (p) { return p.id === nodeId; });
+  const peers = loadPeers();
+  const peer = peers.find(function (p) { return p.id === nodeId; });
   if (peer) {
-    var identity = loadOrCreateIdentity();
-    var config = loadConfig();
-    var projects = config.projects || [];
+    const identity = loadOrCreateIdentity();
+    const config = loadConfig();
+    const projects = config.projects || [];
     conn.projects = [];
 
     ws.send(JSON.stringify({
@@ -401,7 +401,7 @@ export function registerInboundPeer(nodeId: string, ws: { send: (data: string) =
 }
 
 export function disconnectPeer(nodeId: string): void {
-  var existing = connections.get(nodeId);
+  const existing = connections.get(nodeId);
   if (existing) {
     existing.dead = true;
     if (existing.retryTimer !== null) {
@@ -416,7 +416,7 @@ export function disconnectPeer(nodeId: string): void {
 }
 
 export function reconnectPeer(nodeId: string): void {
-  var existing = connections.get(nodeId);
+  const existing = connections.get(nodeId);
   if (existing) {
     existing.dead = true;
     if (existing.retryTimer !== null) {
@@ -428,16 +428,16 @@ export function reconnectPeer(nodeId: string): void {
   }
   circuitBreakers.delete(nodeId);
 
-  var peers = loadPeers();
-  var peer = peers.find(function (p) { return p.id === nodeId; });
+  const peers = loadPeers();
+  const peer = peers.find(function (p) { return p.id === nodeId; });
   if (peer && peer.addresses && peer.addresses.length > 0) {
     connectToPeer(nodeId, peer.addresses[0]);
   }
 }
 
 export function getConnectedPeerIds(): string[] {
-  var ids: string[] = [];
-  for (var [nodeId, conn] of connections) {
+  const ids: string[] = [];
+  for (const [nodeId, conn] of connections) {
     if (isWebSocketOpen(conn.ws)) {
       ids.push(nodeId);
     }
@@ -462,29 +462,29 @@ function isWebSocketOpen(ws: { readyState: number }): boolean {
 }
 
 export function getConnectedPeerProjects(nodeId: string): Array<{ slug: string; title: string }> {
-  var conn = connections.get(nodeId);
+  const conn = connections.get(nodeId);
   if (!conn || !isWebSocketOpen(conn.ws)) return [];
   return conn.projects;
 }
 
 export function getAllRemoteProjects(localNodeId: string): Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean; online: boolean }> {
-  var allPeers = peersModule.loadPeers();
-  var connectedIds = new Set(getConnectedPeerIds());
-  var results: Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean; online: boolean }> = [];
+  const allPeers = peersModule.loadPeers();
+  const connectedIds = new Set(getConnectedPeerIds());
+  const results: Array<{ slug: string; path: string; title: string; nodeId: string; nodeName: string; isRemote: boolean; online: boolean }> = [];
 
-  for (var p = 0; p < allPeers.length; p++) {
-    var peer = allPeers[p];
-    var isOnline = connectedIds.has(peer.id);
-    var projects: Array<{ slug: string; title: string }> = [];
+  for (let p = 0; p < allPeers.length; p++) {
+    const peer = allPeers[p];
+    const isOnline = connectedIds.has(peer.id);
+    let projects: Array<{ slug: string; title: string }> = [];
 
-    var conn = connections.get(peer.id);
+    const conn = connections.get(peer.id);
     if (conn && conn.projects.length > 0) {
       projects = conn.projects;
     } else if (lastKnownProjects.has(peer.id)) {
       projects = lastKnownProjects.get(peer.id)!;
     }
 
-    for (var i = 0; i < projects.length; i++) {
+    for (let i = 0; i < projects.length; i++) {
       results.push({
         slug: projects[i].slug,
         path: "",
@@ -500,11 +500,11 @@ export function getAllRemoteProjects(localNodeId: string): Array<{ slug: string;
 }
 
 export function findNodeForProject(projectSlug: string): string | undefined {
-  for (var [nodeId, conn] of connections) {
+  for (const [nodeId, conn] of connections) {
     if (!isWebSocketOpen(conn.ws)) {
       continue;
     }
-    for (var i = 0; i < conn.projects.length; i++) {
+    for (let i = 0; i < conn.projects.length; i++) {
       if (conn.projects[i].slug === projectSlug) {
         return nodeId;
       }

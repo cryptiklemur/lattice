@@ -5,7 +5,7 @@ interface NodeBadgeProps {
 }
 
 export function NodeBadge(props: NodeBadgeProps) {
-  var initials = props.node.name.slice(0, 2).toUpperCase();
+  const initials = props.node.name.slice(0, 2).toUpperCase();
 
   return (
     <span

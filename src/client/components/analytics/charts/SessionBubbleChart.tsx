@@ -26,13 +26,13 @@ interface SessionBubbleChartProps {
 }
 
 function formatDate(ts: number): string {
-  var d = new Date(ts);
+  const d = new Date(ts);
   return (d.getMonth() + 1) + "/" + d.getDate();
 }
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: SessionBubbleDatum }> }) {
   if (!active || !payload || payload.length === 0) return null;
-  var d = payload[0].payload;
+  const d = payload[0].payload;
   return (
     <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg max-w-[180px]">
       <p className="text-[10px] font-mono text-base-content/50 mb-1 truncate">{d.title || d.id}</p>
@@ -46,21 +46,21 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function SessionBubbleChart({ data }: SessionBubbleChartProps) {
-  var fullscreenHeight = useChartFullscreen();
-  var colors = getChartColors();
+  const fullscreenHeight = useChartFullscreen();
+  const colors = getChartColors();
 
-  var { byProject, minTs, maxTs } = useMemo(function () {
-    var projectSet = new Set<string>();
-    var minTs = Infinity;
-    var maxTs = -Infinity;
-    for (var i = 0; i < data.length; i++) {
+  const { byProject, minTs, maxTs } = useMemo(function () {
+    const projectSet = new Set<string>();
+    let minTs = Infinity;
+    let maxTs = -Infinity;
+    for (let i = 0; i < data.length; i++) {
       projectSet.add(data[i].project);
       if (data[i].timestamp < minTs) minTs = data[i].timestamp;
       if (data[i].timestamp > maxTs) maxTs = data[i].timestamp;
     }
-    var projects = Array.from(projectSet);
+    const projects = Array.from(projectSet);
 
-    var byProject = projects.map(function (project, idx) {
+    const byProject = projects.map(function (project, idx) {
       return {
         project,
         color: colors.palette[idx % colors.palette.length],

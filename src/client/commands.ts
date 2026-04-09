@@ -9,7 +9,7 @@ export interface SlashCommand {
   handler: CommandHandler;
 }
 
-export var builtinCommands: SlashCommand[] = [
+export const builtinCommands: SlashCommand[] = [
   { name: "clear", description: "Clear conversation, start new session", aliases: ["reset", "new"], category: "command", handler: "client" },
   { name: "compact", description: "Compact conversation context", args: "[instructions]", category: "command", handler: "passthrough" },
   { name: "cost", description: "Show token usage and estimated cost", category: "command", handler: "client" },

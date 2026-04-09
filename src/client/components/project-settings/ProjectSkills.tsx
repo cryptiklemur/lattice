@@ -10,16 +10,16 @@ interface ProjectSkillsProps {
 }
 
 export function ProjectSkills({ settings, projectSlug }: ProjectSkillsProps) {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var globalSkills = settings.global.skills;
-  var projectSkills = settings.skills;
-  var hasAny = globalSkills.length > 0 || projectSkills.length > 0;
-  var [viewContent, setViewContent] = useState<{ path: string; content: string } | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const globalSkills = settings.global.skills;
+  const projectSkills = settings.skills;
+  const hasAny = globalSkills.length > 0 || projectSkills.length > 0;
+  const [viewContent, setViewContent] = useState<{ path: string; content: string } | null>(null);
 
   useEffect(function () {
     function handleViewResult(msg: ServerMessage) {
       if (msg.type !== "skills:view_result") return;
-      var data = msg as { type: "skills:view_result"; path: string; content: string };
+      const data = msg as { type: "skills:view_result"; path: string; content: string };
       setViewContent({ path: data.path, content: data.content });
     }
 

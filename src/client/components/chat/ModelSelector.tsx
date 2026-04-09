@@ -7,14 +7,14 @@ interface ModelSelectorState {
   effort: string;
 }
 
-var FALLBACK_MODELS: ModelOption[] = [
+const FALLBACK_MODELS: ModelOption[] = [
   { value: "default", displayName: "Default" },
   { value: "opus", displayName: "Opus" },
   { value: "sonnet", displayName: "Sonnet" },
   { value: "haiku", displayName: "Haiku" },
 ];
 
-var EFFORT_OPTIONS = [
+const EFFORT_OPTIONS = [
   { value: "low", label: "Effort: Low" },
   { value: "medium", label: "Effort: Medium" },
   { value: "high", label: "Effort: High" },
@@ -26,13 +26,13 @@ interface ModelSelectorProps {
 }
 
 export function ModelSelector(props: ModelSelectorProps) {
-  var [model, setModel] = useState<string>("default");
-  var [effort, setEffort] = useState<string>("medium");
-  var [models, setModels] = useState<ModelOption[]>(function () {
-    var warmup = getAvailableModels();
+  const [model, setModel] = useState<string>("default");
+  const [effort, setEffort] = useState<string>("medium");
+  const [models, setModels] = useState<ModelOption[]>(function () {
+    const warmup = getAvailableModels();
     return warmup.length > 0 ? warmup : FALLBACK_MODELS;
   });
-  var ws = useWebSocket();
+  const ws = useWebSocket();
 
   useEffect(function () {
     function handleWarmupModels(msg: { type: string; models?: ModelOption[] }) {
@@ -48,7 +48,7 @@ export function ModelSelector(props: ModelSelectorProps) {
   }, [ws]);
 
   function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    var val = e.currentTarget.value;
+    const val = e.currentTarget.value;
     setModel(val);
     ws.send({ type: "chat:set_model", model: val } as any);
     if (props.onChange) {
@@ -57,7 +57,7 @@ export function ModelSelector(props: ModelSelectorProps) {
   }
 
   function handleEffortChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    var val = e.currentTarget.value;
+    const val = e.currentTarget.value;
     setEffort(val);
     if (props.onChange) {
       props.onChange({ model, effort: val });

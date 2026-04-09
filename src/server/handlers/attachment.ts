@@ -8,7 +8,7 @@ import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 import { log } from "../logger";
 
-var MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
 interface PendingUpload {
   tempDir: string;
@@ -21,14 +21,14 @@ interface PendingUpload {
   chunksSeen: Set<number>;
 }
 
-var stores = new Map<string, Map<string, PendingUpload>>();
-var completed = new Map<string, Map<string, Attachment>>();
+const stores = new Map<string, Map<string, PendingUpload>>();
+const completed = new Map<string, Map<string, Attachment>>();
 
-var TTL_MS = 5 * 60 * 1000;
-var CLEANUP_INTERVAL_MS = 60 * 1000;
+const TTL_MS = 5 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 60 * 1000;
 
 function getClientStore(clientId: string): Map<string, PendingUpload> {
-  var store = stores.get(clientId);
+  let store = stores.get(clientId);
   if (!store) {
     store = new Map();
     stores.set(clientId, store);
@@ -37,7 +37,7 @@ function getClientStore(clientId: string): Map<string, PendingUpload> {
 }
 
 function getClientCompleted(clientId: string): Map<string, Attachment> {
-  var store = completed.get(clientId);
+  let store = completed.get(clientId);
   if (!store) {
     store = new Map();
     completed.set(clientId, store);
@@ -55,13 +55,13 @@ async function cleanupPending(pending: PendingUpload): Promise<void> {
 
 registerHandler("attachment", async function (clientId: string, message: ClientMessage) {
   if (message.type === "attachment:chunk") {
-    var msg = message as AttachmentChunkMessage;
-    var store = getClientStore(clientId);
+    const msg = message as AttachmentChunkMessage;
+    const store = getClientStore(clientId);
 
-    var pending = store.get(msg.attachmentId);
+    let pending = store.get(msg.attachmentId);
     if (!pending) {
-      var tempDir = await mkdtemp(join(tmpdir(), "lattice-attach-"));
-      var tempPath = join(tempDir, "data.bin");
+      const tempDir = await mkdtemp(join(tmpdir(), "lattice-attach-"));
+      const tempPath = join(tempDir, "data.bin");
       pending = {
         tempDir: tempDir,
         tempPath: tempPath,
@@ -84,7 +84,7 @@ registerHandler("attachment", async function (clientId: string, message: ClientM
       return;
     }
 
-    var chunkBuffer = Buffer.from(msg.data, "base64");
+    const chunkBuffer = Buffer.from(msg.data, "base64");
     if (pending.totalBytes + chunkBuffer.length > MAX_ATTACHMENT_SIZE) {
       await cleanupPending(pending);
       store.delete(msg.attachmentId);
@@ -111,9 +111,9 @@ registerHandler("attachment", async function (clientId: string, message: ClientM
   }
 
   if (message.type === "attachment:complete") {
-    var completeMsg = message as AttachmentCompleteMessage;
-    var completeStore = getClientStore(clientId);
-    var completePending = completeStore.get(completeMsg.attachmentId);
+    const completeMsg = message as AttachmentCompleteMessage;
+    const completeStore = getClientStore(clientId);
+    const completePending = completeStore.get(completeMsg.attachmentId);
 
     if (!completePending) {
       sendTo(clientId, {
@@ -138,11 +138,11 @@ registerHandler("attachment", async function (clientId: string, message: ClientM
     });
 
     try {
-      var assembled = await readTempFile(completePending.tempPath);
-      var isText = completeMsg.attachmentType === "paste" || isTextMimeType(completeMsg.mimeType);
-      var content = isText ? assembled.toString("utf-8") : assembled.toString("base64");
+      const assembled = await readTempFile(completePending.tempPath);
+      const isText = completeMsg.attachmentType === "paste" || isTextMimeType(completeMsg.mimeType);
+      const content = isText ? assembled.toString("utf-8") : assembled.toString("base64");
 
-      var attachment: Attachment = {
+      const attachment: Attachment = {
         type: completeMsg.attachmentType,
         name: completeMsg.name,
         content,
@@ -151,7 +151,7 @@ registerHandler("attachment", async function (clientId: string, message: ClientM
         lineCount: completeMsg.lineCount,
       };
 
-      var finishedStore = getClientCompleted(clientId);
+      const finishedStore = getClientCompleted(clientId);
       finishedStore.set(completeMsg.attachmentId, attachment);
     } catch (err) {
       log.ws("Failed to read assembled attachment: %O", err);
@@ -170,8 +170,8 @@ registerHandler("attachment", async function (clientId: string, message: ClientM
 
 function readTempFile(path: string): Promise<Buffer> {
   return new Promise(function (resolve, reject) {
-    var chunks: Buffer[] = [];
-    var stream = createReadStream(path);
+    const chunks: Buffer[] = [];
+    const stream = createReadStream(path);
     stream.on("data", function (chunk) { chunks.push(chunk as Buffer); });
     stream.on("end", function () { resolve(Buffer.concat(chunks)); });
     stream.on("error", reject);
@@ -180,7 +180,7 @@ function readTempFile(path: string): Promise<Buffer> {
 
 function isTextMimeType(mime: string): boolean {
   if (mime.startsWith("text/")) return true;
-  var textTypes = [
+  const textTypes = [
     "application/json",
     "application/xml",
     "application/javascript",
@@ -193,10 +193,10 @@ function isTextMimeType(mime: string): boolean {
 }
 
 export function getAttachments(clientId: string, ids: string[]): Attachment[] {
-  var store = getClientCompleted(clientId);
-  var result: Attachment[] = [];
-  for (var i = 0; i < ids.length; i++) {
-    var att = store.get(ids[i]);
+  const store = getClientCompleted(clientId);
+  const result: Attachment[] = [];
+  for (let i = 0; i < ids.length; i++) {
+    const att = store.get(ids[i]);
     if (att) {
       result.push(att);
       store.delete(ids[i]);
@@ -206,9 +206,9 @@ export function getAttachments(clientId: string, ids: string[]): Attachment[] {
 }
 
 export function cleanupClient(clientId: string): void {
-  var clientStore = stores.get(clientId);
+  const clientStore = stores.get(clientId);
   if (clientStore) {
-    for (var [, pending] of clientStore) {
+    for (const [, pending] of clientStore) {
       void cleanupPending(pending);
     }
   }
@@ -216,8 +216,8 @@ export function cleanupClient(clientId: string): void {
   completed.delete(clientId);
 }
 
-var ttlCleanupInterval = setInterval(function () {
-  var now = Date.now();
+const ttlCleanupInterval = setInterval(function () {
+  const now = Date.now();
   stores.forEach(function (store) {
     store.forEach(function (pending, id) {
       if (now - pending.createdAt > TTL_MS) {

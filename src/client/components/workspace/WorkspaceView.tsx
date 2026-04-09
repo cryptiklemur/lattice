@@ -19,7 +19,7 @@ import { DropZoneOverlay } from "./DropZoneOverlay";
 import { openTab } from "../../stores/workspace";
 import type { Pane, Tab, TabType } from "../../stores/workspace";
 
-var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
+const NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
   files: FileBrowser,
   terminal: TerminalView,
   notes: NotesView,
@@ -31,7 +31,7 @@ var NON_CHAT_COMPONENTS: Record<string, () => React.JSX.Element> = {
   context: ContextAnalyzerView,
 };
 
-var QUICK_ACTIONS: Array<{ type: TabType; icon: typeof MessageSquare; label: string; hint: string }> = [
+const QUICK_ACTIONS: Array<{ type: TabType; icon: typeof MessageSquare; label: string; hint: string }> = [
   { type: "chat", icon: MessageSquare, label: "Chat", hint: "New session" },
   { type: "files", icon: FolderOpen, label: "Files", hint: "Browse project" },
   { type: "terminal", icon: TerminalSquare, label: "Terminal", hint: "Shell access" },
@@ -78,8 +78,8 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
   isActive: boolean;
   onFocus: () => void;
 }) {
-  var online = useOnline();
-  var paneTabs = pane.tabIds.map(function (id) {
+  const online = useOnline();
+  const paneTabs = pane.tabIds.map(function (id) {
     return tabs.find(function (t) { return t.id === id; });
   }).filter(function (t): t is Tab { return t != null; });
 
@@ -98,7 +98,7 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
       <div className="flex-1 min-h-0 relative">
         <DropZoneOverlay paneId={pane.id} />
         {paneTabs.map(function (tab) {
-          var isTabActive = tab.id === pane.activeTabId;
+          const isTabActive = tab.id === pane.activeTabId;
           if (tab.type === "chat") {
             return (
               <div
@@ -110,7 +110,7 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
               </div>
             );
           }
-          var Component = NON_CHAT_COMPONENTS[tab.type];
+          const Component = NON_CHAT_COMPONENTS[tab.type];
           if (!Component) return null;
           return (
             <div
@@ -128,12 +128,12 @@ function PaneContent({ pane, tabs, isActive, onFocus }: {
 }
 
 function WorkspaceViewInner() {
-  var { tabs, panes, activePaneId, splitDirection, splitRatio, setSplitRatio, setActivePaneId } = useWorkspace();
-  var online = useOnline();
+  const { tabs, panes, activePaneId, splitDirection, splitRatio, setSplitRatio, setActivePaneId } = useWorkspace();
+  const online = useOnline();
 
   if (!splitDirection || panes.length < 2) {
-    var singlePane = panes[0];
-    var hasTabs = tabs.length > 0 && singlePane && singlePane.tabIds.length > 0;
+    const singlePane = panes[0];
+    const hasTabs = tabs.length > 0 && singlePane && singlePane.tabIds.length > 0;
     return (
       <div className="flex flex-col h-full w-full overflow-hidden">
         {hasTabs && <TabBar paneId={singlePane?.id} />}
@@ -147,7 +147,7 @@ function WorkspaceViewInner() {
           <div className="flex-1 min-h-0 relative order-0 sm:order-none">
             <DropZoneOverlay paneId={singlePane?.id || "pane-1"} />
             {tabs.map(function (tab) {
-              var isActive = singlePane ? tab.id === singlePane.activeTabId : tab.id === "chat";
+              const isActive = singlePane ? tab.id === singlePane.activeTabId : tab.id === "chat";
               if (tab.type === "chat") {
                 return (
                   <div
@@ -159,7 +159,7 @@ function WorkspaceViewInner() {
                   </div>
                 );
               }
-              var Component = NON_CHAT_COMPONENTS[tab.type];
+              const Component = NON_CHAT_COMPONENTS[tab.type];
               if (!Component) return null;
               return (
                 <div

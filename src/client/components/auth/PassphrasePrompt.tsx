@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 export function PassphrasePrompt() {
-  var [passphrase, setPassphrase] = useState("");
-  var [error, setError] = useState("");
-  var [loading, setLoading] = useState(false);
+  const [passphrase, setPassphrase] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

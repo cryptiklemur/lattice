@@ -6,7 +6,7 @@ interface NodeFleetOverviewProps {
 }
 
 export function NodeFleetOverview(props: NodeFleetOverviewProps) {
-  var nodes = props.nodes;
+  const nodes = props.nodes;
 
   if (nodes.length === 0) {
     return (

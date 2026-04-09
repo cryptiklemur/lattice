@@ -23,22 +23,22 @@ interface ChatInputProps {
 
 function getModKey(): string {
   if (typeof navigator === "undefined") return "Ctrl";
-  var platform = navigator.platform || "";
+  const platform = navigator.platform || "";
   if (platform.indexOf("Mac") !== -1) return "⌘";
   return "Ctrl";
 }
 
-var historyBySession = new Map<string, string[]>();
-var MAX_HISTORY = 100;
+const historyBySession = new Map<string, string[]>();
+const MAX_HISTORY = 100;
 
 function extractTypedInput(text: string): string | null {
-  var firstNewline = text.search(/\r?\n/);
-  var firstLine = firstNewline !== -1 ? text.slice(0, firstNewline).trim() : text;
+  const firstNewline = text.search(/\r?\n/);
+  const firstLine = firstNewline !== -1 ? text.slice(0, firstNewline).trim() : text;
   if (firstLine.indexOf(":") !== -1 && /\n---[\r\n]/.test(text)) {
     return "/" + firstLine;
   }
   if (text.startsWith("<skill-name>")) {
-    var endTag = text.indexOf("</skill-name>");
+    const endTag = text.indexOf("</skill-name>");
     if (endTag !== -1) {
       return "/" + text.slice(12, endTag);
     }
@@ -51,7 +51,7 @@ function extractTypedInput(text: string): string | null {
 
 function getHistory(sessionId: string | null | undefined): string[] {
   if (!sessionId) return [];
-  var hist = historyBySession.get(sessionId);
+  let hist = historyBySession.get(sessionId);
   if (!hist) {
     hist = [];
     historyBySession.set(sessionId, hist);
@@ -60,20 +60,20 @@ function getHistory(sessionId: string | null | undefined): string[] {
 }
 
 export function ChatInput(props: ChatInputProps) {
-  var textareaRef = useRef<HTMLTextAreaElement>(null);
-  var popupRef = useRef<HTMLDivElement>(null);
-  var settingsRef = useRef<HTMLDivElement>(null);
-  var settingsBtnRef = useRef<HTMLButtonElement>(null);
-  var skills = useSkills();
-  var [slashQuery, setSlashQuery] = useState<string | null>(null);
-  var [selectedIndex, setSelectedIndex] = useState(0);
-  var [showMobileSettings, setShowMobileSettings] = useState(false);
-  var modKey = useMemo(getModKey, []);
-  var [historyIndex, setHistoryIndex] = useState(-1);
-  var savedCurrentRef = useRef("");
-  var inputHistory = getHistory(props.sessionId);
-  var historyLoading = useStore(getSessionStore(), function (s) { return s.historyLoading; });
-  var messages = useStore(getSessionStore(), function (s) { return s.messages; });
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
+  const skills = useSkills();
+  const [slashQuery, setSlashQuery] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [showMobileSettings, setShowMobileSettings] = useState(false);
+  const modKey = useMemo(getModKey, []);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const savedCurrentRef = useRef("");
+  const inputHistory = getHistory(props.sessionId);
+  const historyLoading = useStore(getSessionStore(), function (s) { return s.historyLoading; });
+  const messages = useStore(getSessionStore(), function (s) { return s.messages; });
 
   useEffect(function () {
     setHistoryIndex(-1);
@@ -82,9 +82,9 @@ export function ChatInput(props: ChatInputProps) {
 
   useEffect(function () {
     if (!props.sessionId || historyLoading) return;
-    for (var i = 0; i < messages.length; i++) {
+    for (let i = 0; i < messages.length; i++) {
       if (messages[i].type === "user" && messages[i].text) {
-        var typed = extractTypedInput(messages[i].text!.trim());
+        const typed = extractTypedInput(messages[i].text!.trim());
         if (typed && inputHistory.indexOf(typed) === -1) {
           inputHistory.push(typed);
         }
@@ -95,19 +95,19 @@ export function ChatInput(props: ChatInputProps) {
     }
   }, [props.sessionId, historyLoading]);
 
-  var attachmentsHook = useAttachments();
-  var voice = useVoiceRecorder();
-  var [isDragging, setIsDragging] = useState(false);
-  var dragCounter = useRef(0);
-  var fileInputRef = useRef<HTMLInputElement>(null);
-  var savedTextRef = useRef("");
+  const attachmentsHook = useAttachments();
+  const voice = useVoiceRecorder();
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedTextRef = useRef("");
 
-  var itemCount = useMemo(function () {
+  const itemCount = useMemo(function () {
     if (slashQuery === null) return 0;
     return getFilteredItems(slashQuery, skills).length;
   }, [slashQuery, skills]);
 
-  var isOpen = slashQuery !== null && itemCount > 0;
+  const isOpen = slashQuery !== null && itemCount > 0;
 
   useEffect(function () {
     setSelectedIndex(0);
@@ -115,7 +115,7 @@ export function ChatInput(props: ChatInputProps) {
 
   useEffect(function () {
     if (!isOpen || !popupRef.current) return;
-    var active = popupRef.current.querySelector("[data-active='true']") as HTMLElement | null;
+    const active = popupRef.current.querySelector("[data-active='true']") as HTMLElement | null;
     if (active) {
       active.scrollIntoView({ block: "nearest" });
     }
@@ -124,7 +124,7 @@ export function ChatInput(props: ChatInputProps) {
   useEffect(function () {
     if (!showMobileSettings) return;
     function handleClick(e: MouseEvent) {
-      var target = e.target as Node;
+      const target = e.target as Node;
       if (settingsRef.current && settingsRef.current.contains(target)) return;
       if (settingsBtnRef.current && settingsBtnRef.current.contains(target)) return;
       setShowMobileSettings(false);
@@ -135,7 +135,7 @@ export function ChatInput(props: ChatInputProps) {
 
   useEffect(function () {
     if (props.failedInput && textareaRef.current) {
-      var el = textareaRef.current;
+      const el = textareaRef.current;
       el.value = props.failedInput;
       el.style.height = "auto";
       el.style.height = Math.min(el.scrollHeight, 160) + "px";
@@ -149,7 +149,7 @@ export function ChatInput(props: ChatInputProps) {
 
   useEffect(function () {
     if (props.prefillText && textareaRef.current) {
-      var el = textareaRef.current;
+      const el = textareaRef.current;
       el.value = props.prefillText;
       el.style.height = "auto";
       el.style.height = Math.min(el.scrollHeight, 160) + "px";
@@ -162,9 +162,9 @@ export function ChatInput(props: ChatInputProps) {
   }, [props.prefillText]);
 
   function checkSlash() {
-    var el = textareaRef.current;
+    const el = textareaRef.current;
     if (!el) return;
-    var val = el.value;
+    const val = el.value;
     if (val.startsWith("/")) {
       setSlashQuery(val.slice(1));
     } else {
@@ -173,11 +173,11 @@ export function ChatInput(props: ChatInputProps) {
   }
 
   function selectItem(item: { name: string; args?: string; category: string; handler: string }) {
-    var el = textareaRef.current;
+    const el = textareaRef.current;
     if (!el) return;
 
-    var hasArgs = !!item.args;
-    var isSkill = item.category === "skill";
+    const hasArgs = !!item.args;
+    const isSkill = item.category === "skill";
 
     if (hasArgs || isSkill) {
       el.value = "/" + item.name + " ";
@@ -205,7 +205,7 @@ export function ChatInput(props: ChatInputProps) {
       }
       if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
         e.preventDefault();
-        var items = getFilteredItems(slashQuery!, skills);
+        const items = getFilteredItems(slashQuery!, skills);
         if (items[selectedIndex]) {
           selectItem(items[selectedIndex]);
         }
@@ -224,17 +224,17 @@ export function ChatInput(props: ChatInputProps) {
     }
 
     if (e.key === "ArrowUp" && inputHistory.length > 0) {
-      var el = textareaRef.current;
+      const el = textareaRef.current;
       if (!el) return;
-      var val = el.value;
-      var cursorPos = el.selectionStart;
-      var isAtTop = cursorPos === 0 || val.indexOf("\n") === -1 || cursorPos <= val.indexOf("\n");
+      const val = el.value;
+      const cursorPos = el.selectionStart;
+      const isAtTop = cursorPos === 0 || val.indexOf("\n") === -1 || cursorPos <= val.indexOf("\n");
       if (isAtTop) {
         e.preventDefault();
         if (historyIndex === -1) {
           savedCurrentRef.current = val;
         }
-        var newIdx = historyIndex === -1 ? inputHistory.length - 1 : Math.max(0, historyIndex - 1);
+        const newIdx = historyIndex === -1 ? inputHistory.length - 1 : Math.max(0, historyIndex - 1);
         setHistoryIndex(newIdx);
         el.value = inputHistory[newIdx];
         el.style.height = "auto";
@@ -245,25 +245,25 @@ export function ChatInput(props: ChatInputProps) {
     }
 
     if (e.key === "ArrowDown" && historyIndex >= 0) {
-      var el = textareaRef.current;
+      const el = textareaRef.current;
       if (!el) return;
-      var val = el.value;
-      var cursorPos = el.selectionStart;
-      var lastNewline = val.lastIndexOf("\n");
-      var isAtBottom = lastNewline === -1 || cursorPos > lastNewline;
+      const val = el.value;
+      const cursorPos = el.selectionStart;
+      const lastNewline = val.lastIndexOf("\n");
+      const isAtBottom = lastNewline === -1 || cursorPos > lastNewline;
       if (isAtBottom) {
         e.preventDefault();
         if (historyIndex >= inputHistory.length - 1) {
           setHistoryIndex(-1);
           el.value = savedCurrentRef.current;
         } else {
-          var newIdx = historyIndex + 1;
+          const newIdx = historyIndex + 1;
           setHistoryIndex(newIdx);
           el.value = inputHistory[newIdx];
         }
         el.style.height = "auto";
         el.style.height = Math.min(el.scrollHeight, 160) + "px";
-        var len = el.value.length;
+        const len = el.value.length;
         el.setSelectionRange(len, len);
       }
       return;
@@ -271,18 +271,18 @@ export function ChatInput(props: ChatInputProps) {
   }
 
   function handleInput(e: React.FormEvent<HTMLTextAreaElement>) {
-    var el = e.currentTarget;
+    const el = e.currentTarget;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
     checkSlash();
   }
 
   function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
-    var items = e.clipboardData.items;
-    for (var i = 0; i < items.length; i++) {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
       if (items[i].type.startsWith("image/")) {
         e.preventDefault();
-        var file = items[i].getAsFile();
+        const file = items[i].getAsFile();
         if (file && attachmentsHook.canAttach) {
           attachmentsHook.addFile(file);
         }
@@ -290,7 +290,7 @@ export function ChatInput(props: ChatInputProps) {
       }
     }
 
-    var text = e.clipboardData.getData("text/plain");
+    const text = e.clipboardData.getData("text/plain");
     if (text && text.split("\n").length >= 10) {
       e.preventDefault();
       if (attachmentsHook.canAttach) {
@@ -323,8 +323,8 @@ export function ChatInput(props: ChatInputProps) {
     e.preventDefault();
     dragCounter.current = 0;
     setIsDragging(false);
-    var files = e.dataTransfer.files;
-    for (var i = 0; i < files.length; i++) {
+    const files = e.dataTransfer.files;
+    for (let i = 0; i < files.length; i++) {
       if (attachmentsHook.canAttach) {
         attachmentsHook.addFile(files[i]);
       }
@@ -337,10 +337,10 @@ export function ChatInput(props: ChatInputProps) {
   }
 
   function handleVoiceStop() {
-    var transcript = voice.stop();
+    const transcript = voice.stop();
     if (transcript && textareaRef.current) {
-      var el = textareaRef.current;
-      var existing = savedTextRef.current;
+      const el = textareaRef.current;
+      const existing = savedTextRef.current;
       el.value = existing ? existing + " " + transcript : transcript;
       el.style.height = "auto";
       el.style.height = Math.min(el.scrollHeight, 160) + "px";
@@ -355,9 +355,9 @@ export function ChatInput(props: ChatInputProps) {
   }
 
   function submit() {
-    var el = textareaRef.current;
+    const el = textareaRef.current;
     if (!el) return;
-    var text = el.value.trim();
+    const text = el.value.trim();
     if ((!text && attachmentsHook.attachments.length === 0) || props.disabled || attachmentsHook.hasUploading) return;
     if (text) {
       if (inputHistory.length === 0 || inputHistory[inputHistory.length - 1] !== text) {
@@ -393,7 +393,6 @@ export function ChatInput(props: ChatInputProps) {
           />
         </div>
       )}
-
       {showMobileSettings && (
         <div
           ref={settingsRef}
@@ -404,16 +403,15 @@ export function ChatInput(props: ChatInputProps) {
           </div>
         </div>
       )}
-
       <input
         ref={fileInputRef}
         type="file"
         multiple
         className="hidden"
         onChange={function (e) {
-          var files = e.target.files;
+          const files = e.target.files;
           if (files) {
-            for (var i = 0; i < files.length; i++) {
+            for (let i = 0; i < files.length; i++) {
               if (attachmentsHook.canAttach) {
                 attachmentsHook.addFile(files[i]);
               }
@@ -422,7 +420,6 @@ export function ChatInput(props: ChatInputProps) {
           e.target.value = "";
         }}
       />
-
       <div
         className={
           "border rounded-xl bg-base-300/60 overflow-hidden transition-all duration-150 " +
@@ -522,7 +519,6 @@ export function ChatInput(props: ChatInputProps) {
           </div>
         </div>
       </div>
-
       {isDragging && (
         <div className="absolute inset-0 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center z-40 pointer-events-none">
           <span className="text-[13px] text-primary/60 font-mono">Drop files to attach</span>

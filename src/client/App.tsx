@@ -13,13 +13,13 @@ import type { Theme, ThemeEntry } from "./themes/index";
 import type { ServerMessage } from "#shared";
 
 function useCustomThemeSync() {
-  var ws = useWebSocket();
+  const ws = useWebSocket();
 
   useEffect(function () {
     function handleCustomList(msg: ServerMessage) {
       if ((msg as any).type === "theme:custom_list") {
-        var raw = (msg as any).themes || [];
-        var entries: ThemeEntry[] = raw.map(function (ct: any): ThemeEntry {
+        const raw = (msg as any).themes || [];
+        const entries: ThemeEntry[] = raw.map(function (ct: any): ThemeEntry {
           return {
             id: "custom:" + ct.filename,
             theme: {
@@ -50,7 +50,7 @@ function useCustomThemeSync() {
 }
 
 function AppInner() {
-  var { items, dismiss } = useToastState();
+  const { items, dismiss } = useToastState();
   useCustomThemeSync();
 
   useEffect(function () {

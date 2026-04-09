@@ -5,21 +5,21 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 
-var __dirname_local = dirname(fileURLToPath(import.meta.url));
+const __dirname_local = dirname(fileURLToPath(import.meta.url));
 
 interface TerminalWorker {
   process: ChildProcess;
   send: (msg: object) => void;
 }
 
-var terminals = new Map<string, TerminalWorker>();
+const terminals = new Map<string, TerminalWorker>();
 
-var WORKER_PATH = join(__dirname_local, "pty-worker.cjs");
+const WORKER_PATH = join(__dirname_local, "pty-worker.cjs");
 
-var NODE_MODULES_PATH = (function () {
+const NODE_MODULES_PATH = (function () {
   try {
-    var resolved = require.resolve("node-pty");
-    var parts = resolved.split("/node_modules/");
+    const resolved = require.resolve("node-pty");
+    const parts = resolved.split("/node_modules/");
     parts.pop();
     return parts.join("/node_modules/") + "/node_modules";
   } catch {
@@ -32,25 +32,25 @@ export function createTerminal(
   onData: (data: string) => void,
   onExit: (code: number) => void,
 ): string {
-  var termId = randomUUID();
+  const termId = randomUUID();
 
-  var child = spawn("node", [WORKER_PATH], {
+  const child = spawn("node", [WORKER_PATH], {
     stdio: ["pipe", "pipe", "ignore"],
     cwd: cwd,
     env: { ...process.env, NODE_PATH: NODE_MODULES_PATH },
   });
 
-  var buffer = "";
+  let buffer = "";
 
   child.stdout!.setEncoding("utf-8");
   child.stdout!.on("data", function (chunk: string) {
     buffer += chunk;
-    var lines = buffer.split("\n");
+    const lines = buffer.split("\n");
     buffer = lines.pop() || "";
-    for (var i = 0; i < lines.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       try {
-        var msg = JSON.parse(lines[i]);
+        const msg = JSON.parse(lines[i]);
         if (msg.type === "data") {
           onData(msg.data);
         } else if (msg.type === "exit") {
@@ -85,21 +85,21 @@ export function createTerminal(
 }
 
 export function writeToTerminal(termId: string, data: string): void {
-  var worker = terminals.get(termId);
+  const worker = terminals.get(termId);
   if (worker) {
     worker.send({ type: "input", data: data });
   }
 }
 
 export function resizeTerminal(termId: string, cols: number, rows: number): void {
-  var worker = terminals.get(termId);
+  const worker = terminals.get(termId);
   if (worker) {
     worker.send({ type: "resize", cols: cols, rows: rows });
   }
 }
 
 export function destroyTerminal(termId: string): void {
-  var worker = terminals.get(termId);
+  const worker = terminals.get(termId);
   if (worker) {
     worker.send({ type: "kill" });
     terminals.delete(termId);

@@ -4,13 +4,13 @@ import type { ServerMessage } from "#shared";
 import { useWebSocket } from "./useWebSocket";
 
 export function useSkills(): SkillInfo[] {
-  var ws = useWebSocket();
-  var [skills, setSkills] = useState<SkillInfo[]>([]);
+  const ws = useWebSocket();
+  const [skills, setSkills] = useState<SkillInfo[]>([]);
 
   useEffect(function () {
     function handleSkillsList(msg: ServerMessage) {
       if (msg.type === "skills:list") {
-        var listMsg = msg as { type: string; skills: SkillInfo[] };
+        const listMsg = msg as { type: string; skills: SkillInfo[] };
         setSkills(listMsg.skills);
       }
     }

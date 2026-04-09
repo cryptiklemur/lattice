@@ -9,7 +9,7 @@ import { existsSync, unlinkSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-var claudeExePath: string | null = null;
+let claudeExePath: string | null = null;
 
 function getClaudeExecutablePath(): string {
   if (claudeExePath) return claudeExePath;
@@ -26,17 +26,17 @@ export interface ModelEntry {
   displayName: string;
 }
 
-var KNOWN_MODELS: ModelEntry[] = [
+const KNOWN_MODELS: ModelEntry[] = [
   { value: "default", displayName: "Default" },
   { value: "opus", displayName: "Opus" },
   { value: "sonnet", displayName: "Sonnet" },
   { value: "haiku", displayName: "Haiku" },
 ];
 
-var warmupModels: ModelEntry[] = [];
-var warmupSlashCommands: string[] = [];
-var warmupAccountInfo: AccountInfo | null = null;
-var warmupComplete = false;
+let warmupModels: ModelEntry[] = [];
+let warmupSlashCommands: string[] = [];
+let warmupAccountInfo: AccountInfo | null = null;
+let warmupComplete = false;
 
 interface WarmupRateLimitEntry {
   status: string;
@@ -48,15 +48,15 @@ interface WarmupRateLimitEntry {
   isUsingOverage?: boolean;
 }
 
-var warmupRateLimits: Map<string, WarmupRateLimitEntry> = new Map();
+const warmupRateLimits: Map<string, WarmupRateLimitEntry> = new Map();
 
 function ensureKnownModels(sdkModels: ModelEntry[]): ModelEntry[] {
-  var seen = new Set<string>();
-  for (var i = 0; i < sdkModels.length; i++) {
+  const seen = new Set<string>();
+  for (let i = 0; i < sdkModels.length; i++) {
     seen.add(sdkModels[i].value);
   }
-  var result = sdkModels.slice();
-  for (var j = 0; j < KNOWN_MODELS.length; j++) {
+  const result = sdkModels.slice();
+  for (let j = 0; j < KNOWN_MODELS.length; j++) {
     if (!seen.has(KNOWN_MODELS[j].value)) {
       result.push(KNOWN_MODELS[j]);
     }
@@ -67,10 +67,10 @@ function ensureKnownModels(sdkModels: ModelEntry[]): ModelEntry[] {
 function deleteWarmupSession(cwd: string, sessionId: string | null): void {
   if (!sessionId) return;
   try {
-    var hash = cwd.replace(/\//g, "-");
-    var projectDir = join(homedir(), ".claude", "projects", hash);
-    var jsonlPath = join(projectDir, sessionId + ".jsonl");
-    var dirPath = join(projectDir, sessionId);
+    const hash = cwd.replace(/\//g, "-");
+    const projectDir = join(homedir(), ".claude", "projects", hash);
+    const jsonlPath = join(projectDir, sessionId + ".jsonl");
+    const dirPath = join(projectDir, sessionId);
     if (existsSync(jsonlPath)) {
       unlinkSync(jsonlPath);
       log.server("Deleted warmup session file: %s", sessionId);
@@ -86,11 +86,11 @@ function deleteWarmupSession(cwd: string, sessionId: string | null): void {
 export async function runWarmup(cwd: string): Promise<void> {
   log.server("SDK warmup starting (cwd: %s)...", cwd);
   try {
-    var ac = new AbortController();
-    var ended = false;
-    var WARMUP_SESSION_ID = "lattice-warmup";
+    const ac = new AbortController();
+    let ended = false;
+    const WARMUP_SESSION_ID = "lattice-warmup";
 
-    var mq = {
+    const mq = {
       [Symbol.asyncIterator]: function () {
         return {
           next: function () {
@@ -110,7 +110,7 @@ export async function runWarmup(cwd: string): Promise<void> {
       },
     };
 
-    var stream = query({
+    const stream = query({
       prompt: mq as any,
       options: {
         cwd,
@@ -125,16 +125,16 @@ export async function runWarmup(cwd: string): Promise<void> {
       },
     });
 
-    for await (var msg of stream) {
+    for await (const msg of stream) {
       if (msg.type === "system") {
-        var sysMsg = msg as any;
+        const sysMsg = msg as any;
         if (sysMsg.subtype === "init") {
           if (sysMsg.slash_commands) {
             warmupSlashCommands = sysMsg.slash_commands;
           }
 
           try {
-            var models = await stream.supportedModels();
+            const models = await stream.supportedModels();
             warmupModels = ensureKnownModels((models || []) as ModelEntry[]);
           } catch {
             warmupModels = KNOWN_MODELS.slice();
@@ -150,9 +150,9 @@ export async function runWarmup(cwd: string): Promise<void> {
       }
 
       if (msg.type === "rate_limit_event") {
-        var rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
-        var rli = rlMsg.rate_limit_info;
-        var cacheKey = rli.rateLimitType || "default";
+        const rlMsg = msg as { type: string; rate_limit_info: { status: string; utilization?: number; resetsAt?: number; rateLimitType?: string; overageStatus?: string; overageResetsAt?: number; isUsingOverage?: boolean } };
+        const rli = rlMsg.rate_limit_info;
+        const cacheKey = rli.rateLimitType || "default";
         warmupRateLimits.set(cacheKey, {
           status: rli.status,
           utilization: rli.utilization,
@@ -217,19 +217,19 @@ export async function runWarmup(cwd: string): Promise<void> {
 }
 
 async function warmupProjectData(): Promise<void> {
-  var t0 = Date.now();
-  var config = loadConfig();
-  var projects = config.projects;
+  const t0 = Date.now();
+  const config = loadConfig();
+  const projects = config.projects;
   if (projects.length === 0) return;
 
   log.server("Data warmup: pre-caching %d project(s)...", projects.length);
 
-  var totalSessions = 0;
-  var recentSessionIds: Array<{ projectSlug: string; sessionId: string }> = [];
+  let totalSessions = 0;
+  const recentSessionIds: Array<{ projectSlug: string; sessionId: string }> = [];
 
-  for (var i = 0; i < projects.length; i++) {
+  for (let i = 0; i < projects.length; i++) {
     try {
-      var result = await listSessions(projects[i].slug, { limit: 40 });
+      const result = await listSessions(projects[i].slug, { limit: 40 });
       totalSessions += result.sessions.length;
       broadcast({
         type: "session:list",
@@ -237,8 +237,8 @@ async function warmupProjectData(): Promise<void> {
         sessions: result.sessions,
         totalCount: result.totalCount,
       } as any);
-      var preWarmCount = Math.min(5, result.sessions.length);
-      for (var k = 0; k < preWarmCount; k++) {
+      const preWarmCount = Math.min(5, result.sessions.length);
+      for (let k = 0; k < preWarmCount; k++) {
         recentSessionIds.push({
           projectSlug: projects[i].slug,
           sessionId: result.sessions[k].id,
@@ -249,7 +249,7 @@ async function warmupProjectData(): Promise<void> {
 
   log.server("Data warmup: cached %d sessions across %d projects (%dms)", totalSessions, projects.length, Date.now() - t0);
 
-  for (var j = 0; j < recentSessionIds.length; j++) {
+  for (let j = 0; j < recentSessionIds.length; j++) {
     try {
       await loadSessionHistory(recentSessionIds[j].projectSlug, recentSessionIds[j].sessionId);
     } catch {}
@@ -276,7 +276,7 @@ export function getWarmupRateLimits(): WarmupRateLimitEntry[] {
 }
 
 export function cacheRateLimitEntry(entry: WarmupRateLimitEntry): void {
-  var key = entry.rateLimitType || "default";
+  const key = entry.rateLimitType || "default";
   warmupRateLimits.set(key, entry);
 }
 

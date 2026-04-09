@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 
-var LOCK_THRESHOLD = 15;
-var SNAP_THRESHOLD = 0.35; // fraction of drawer width to snap open/close
-var VELOCITY_THRESHOLD = 0.4; // px/ms — fast flick overrides position
-var TRANSITION = "translate 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
-var OVERLAY_TRANSITION = "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
-var CONTENT_TRANSITION = "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
+const LOCK_THRESHOLD = 15;
+const SNAP_THRESHOLD = 0.35; // fraction of drawer width to snap open/close
+const VELOCITY_THRESHOLD = 0.4; // px/ms — fast flick overrides position
+const TRANSITION = "translate 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
+const OVERLAY_TRANSITION = "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
+const CONTENT_TRANSITION = "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
 
 /**
  * Discord-style drag-follow drawer. The sidebar follows your finger
@@ -20,32 +20,32 @@ export function useSwipeDrawer(
   onOpen: () => void,
   onClose: () => void,
 ) {
-  var stateRef = useRef({ isOpen: isOpen, onOpen: onOpen, onClose: onClose });
+  const stateRef = useRef({ isOpen: isOpen, onOpen: onOpen, onClose: onClose });
   stateRef.current = { isOpen: isOpen, onOpen: onOpen, onClose: onClose };
 
   useEffect(function () {
-    var startX = 0;
-    var startY = 0;
-    var lastX = 0;
-    var lastTime = 0;
-    var velocity = 0;
-    var tracking = false;
-    var dragging = false; // true once direction locked to horizontal
-    var direction: "h" | "v" | null = null;
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastTime = 0;
+    let velocity = 0;
+    let tracking = false;
+    let dragging = false; // true once direction locked to horizontal
+    let direction: "h" | "v" | null = null;
 
-    var panel: HTMLElement | null = null;
-    var overlay: HTMLElement | null = null;
-    var content: HTMLElement | null = null;
-    var drawerWidth = 0;
+    let panel: HTMLElement | null = null;
+    let overlay: HTMLElement | null = null;
+    let content: HTMLElement | null = null;
+    let drawerWidth = 0;
 
     function getElements() {
-      var side = drawerSideRef.current;
+      const side = drawerSideRef.current;
       if (!side) return false;
       // panel = the sidebar content (not the overlay)
       panel = side.querySelector(":scope > *:not(.drawer-overlay)") as HTMLElement | null;
       overlay = side.querySelector(":scope > .drawer-overlay") as HTMLElement | null;
       // content = the main content area (sibling of drawer-side)
-      var parent = side.parentElement;
+      const parent = side.parentElement;
       if (parent) {
         content = parent.querySelector(":scope > .drawer-content") as HTMLElement | null;
       }
@@ -58,8 +58,8 @@ export function useSwipeDrawer(
     function setDragStyles(offsetX: number) {
       if (!panel) return;
       // offsetX: 0 = fully open, -drawerWidth = fully closed
-      var clamped = Math.max(-drawerWidth, Math.min(0, offsetX));
-      var progress = 1 + clamped / drawerWidth; // 0 = closed, 1 = open
+      const clamped = Math.max(-drawerWidth, Math.min(0, offsetX));
+      const progress = 1 + clamped / drawerWidth; // 0 = closed, 1 = open
 
       panel.style.transition = "none";
       panel.style.translate = clamped + "px";
@@ -70,7 +70,7 @@ export function useSwipeDrawer(
       }
 
       if (content) {
-        var scale = 1 - progress * 0.03;
+        const scale = 1 - progress * 0.03;
         content.style.transition = "none";
         content.style.transform = "scale(" + scale + ")";
         content.style.transformOrigin = "left center";
@@ -123,7 +123,7 @@ export function useSwipeDrawer(
       }
     }
 
-    var cleanupTimer: ReturnType<typeof setTimeout> | null = null;
+    let cleanupTimer: ReturnType<typeof setTimeout> | null = null;
 
     function cancelPendingCleanup() {
       if (cleanupTimer !== null) {
@@ -138,7 +138,7 @@ export function useSwipeDrawer(
 
       // Listen for the transition to actually finish, with a fallback timer
       if (panel) {
-        var handled = false;
+        let handled = false;
         function onEnd() {
           if (handled) return;
           handled = true;
@@ -156,7 +156,7 @@ export function useSwipeDrawer(
 
     function onTouchStart(e: TouchEvent) {
       if (window.innerWidth >= 1024) return;
-      var t = e.touches[0];
+      const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
       lastX = t.clientX;
@@ -169,11 +169,11 @@ export function useSwipeDrawer(
 
     function onTouchMove(e: TouchEvent) {
       if (!tracking) return;
-      var t = e.touches[0];
-      var now = Date.now();
+      const t = e.touches[0];
+      const now = Date.now();
 
       // Calculate velocity
-      var dt = now - lastTime;
+      const dt = now - lastTime;
       if (dt > 0) {
         velocity = (t.clientX - lastX) / dt;
       }
@@ -182,8 +182,8 @@ export function useSwipeDrawer(
 
       // Lock direction
       if (direction === null) {
-        var dx = Math.abs(t.clientX - startX);
-        var dy = Math.abs(t.clientY - startY);
+        const dx = Math.abs(t.clientX - startX);
+        const dy = Math.abs(t.clientY - startY);
         if (dx >= LOCK_THRESHOLD || dy >= LOCK_THRESHOLD) {
           if (dx > dy) {
             direction = "h";
@@ -193,7 +193,7 @@ export function useSwipeDrawer(
               return;
             }
             // Make drawer-side visible during drag if it's currently hidden
-            var side = drawerSideRef.current;
+            const side = drawerSideRef.current;
             if (side) {
               side.style.visibility = "visible";
               side.style.pointerEvents = "auto";
@@ -211,8 +211,8 @@ export function useSwipeDrawer(
 
       if (!dragging) return;
 
-      var deltaX = t.clientX - startX;
-      var isOpen = stateRef.current.isOpen;
+      const deltaX = t.clientX - startX;
+      const isOpen = stateRef.current.isOpen;
 
       if (isOpen) {
         // Dragging from open position: offset relative to 0 (fully open)
@@ -230,8 +230,8 @@ export function useSwipeDrawer(
         return;
       }
 
-      var deltaX = lastX - startX;
-      var isOpen = stateRef.current.isOpen;
+      const deltaX = lastX - startX;
+      const isOpen = stateRef.current.isOpen;
 
       tracking = false;
       dragging = false;
@@ -239,7 +239,7 @@ export function useSwipeDrawer(
 
       // Decide: snap open or closed?
       // Fast flick overrides position
-      var shouldOpen: boolean;
+      let shouldOpen: boolean;
 
       if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
         shouldOpen = velocity > 0;
@@ -266,7 +266,7 @@ export function useSwipeDrawer(
       if (dragging) {
         clearDragStyles();
         // Restore drawer-side to CSS-driven state
-        var side = drawerSideRef.current;
+        const side = drawerSideRef.current;
         if (side) {
           side.style.visibility = "";
           side.style.pointerEvents = "";

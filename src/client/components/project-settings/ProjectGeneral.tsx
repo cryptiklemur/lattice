@@ -10,9 +10,9 @@ interface ProjectGeneralProps {
 }
 
 export function ProjectGeneral({ settings, updateSection }: ProjectGeneralProps) {
-  var [title, setTitle] = useState(settings.title);
-  var [icon, setIcon] = useState<ProjectIcon | undefined>(settings.icon);
-  var save = useSaveState();
+  const [title, setTitle] = useState(settings.title);
+  const [icon, setIcon] = useState<ProjectIcon | undefined>(settings.icon);
+  const save = useSaveState();
 
   useEffect(function () {
     if (save.savingRef.current) {

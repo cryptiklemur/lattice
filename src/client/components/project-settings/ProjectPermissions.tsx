@@ -60,10 +60,10 @@ function RuleList({
 }
 
 function AddRuleRow({ onAdd, label }: { onAdd: (rule: string) => void; label: string }) {
-  var [value, setValue] = useState("");
+  const [value, setValue] = useState("");
 
   function handleAdd() {
-    var trimmed = value.trim();
+    const trimmed = value.trim();
     if (!trimmed) return;
     onAdd(trimmed);
     setValue("");
@@ -109,13 +109,13 @@ export function ProjectPermissions({
   settings: ProjectSettings;
   updateSection: (section: string, data: Record<string, unknown>) => void;
 }) {
-  var [allow, setAllow] = useState<string[]>(function () {
+  const [allow, setAllow] = useState<string[]>(function () {
     return [...(settings.permissions.allow ?? [])];
   });
-  var [deny, setDeny] = useState<string[]>(function () {
+  const [deny, setDeny] = useState<string[]>(function () {
     return [...(settings.permissions.deny ?? [])];
   });
-  var save = useSaveState();
+  const save = useSaveState();
 
   useEffect(function () {
     if (save.savingRef.current) {
@@ -129,7 +129,7 @@ export function ProjectPermissions({
 
   function handleDeleteAllow(idx: number) {
     setAllow(function (prev) {
-      var next = [...prev];
+      const next = [...prev];
       next.splice(idx, 1);
       return next;
     });
@@ -138,7 +138,7 @@ export function ProjectPermissions({
 
   function handleDeleteDeny(idx: number) {
     setDeny(function (prev) {
-      var next = [...prev];
+      const next = [...prev];
       next.splice(idx, 1);
       return next;
     });
@@ -160,8 +160,8 @@ export function ProjectPermissions({
     updateSection("permissions", { allow, deny });
   }
 
-  var globalAllow = settings.global.permissions?.allow ?? [];
-  var globalDeny = settings.global.permissions?.deny ?? [];
+  const globalAllow = settings.global.permissions?.allow ?? [];
+  const globalDeny = settings.global.permissions?.deny ?? [];
 
   return (
     <div className="py-2">

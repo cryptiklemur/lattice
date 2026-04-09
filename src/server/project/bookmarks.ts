@@ -4,8 +4,8 @@ import { randomBytes } from "node:crypto";
 import { getLatticeHome } from "../config";
 import type { MessageBookmark } from "#shared";
 
-var bookmarksFile = "";
-var bookmarks: MessageBookmark[] = [];
+let bookmarksFile = "";
+let bookmarks: MessageBookmark[] = [];
 
 function getBookmarksPath(): string {
   if (!bookmarksFile) {
@@ -15,13 +15,13 @@ function getBookmarksPath(): string {
 }
 
 export function loadBookmarks(): void {
-  var path = getBookmarksPath();
+  const path = getBookmarksPath();
   if (!existsSync(path)) {
     bookmarks = [];
     return;
   }
   try {
-    var raw = readFileSync(path, "utf-8");
+    const raw = readFileSync(path, "utf-8");
     bookmarks = JSON.parse(raw) as MessageBookmark[];
   } catch (err) {
     console.error("[bookmarks] Failed to load bookmarks:", err);
@@ -30,12 +30,12 @@ export function loadBookmarks(): void {
 }
 
 function saveBookmarks(): void {
-  var path = getBookmarksPath();
-  var dir = join(path, "..");
+  const path = getBookmarksPath();
+  const dir = join(path, "..");
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  var tmp = path + ".tmp";
+  const tmp = path + ".tmp";
   try {
     writeFileSync(tmp, JSON.stringify(bookmarks, null, 2));
     renameSync(tmp, path);
@@ -45,7 +45,7 @@ function saveBookmarks(): void {
 }
 
 export function listBookmarks(projectSlug?: string, sessionId?: string): MessageBookmark[] {
-  var result = bookmarks;
+  let result = bookmarks;
   if (projectSlug) {
     result = result.filter(function (b) { return b.projectSlug === projectSlug; });
   }
@@ -56,8 +56,8 @@ export function listBookmarks(projectSlug?: string, sessionId?: string): Message
 }
 
 export function addBookmark(bookmark: Omit<MessageBookmark, "id" | "createdAt">): MessageBookmark {
-  var now = Date.now();
-  var entry: MessageBookmark = {
+  const now = Date.now();
+  const entry: MessageBookmark = {
     id: "bm_" + now + "_" + randomBytes(3).toString("hex"),
     sessionId: bookmark.sessionId,
     projectSlug: bookmark.projectSlug,
@@ -72,7 +72,7 @@ export function addBookmark(bookmark: Omit<MessageBookmark, "id" | "createdAt">)
 }
 
 export function removeBookmark(id: string): boolean {
-  for (var i = 0; i < bookmarks.length; i++) {
+  for (let i = 0; i < bookmarks.length; i++) {
     if (bookmarks[i].id === id) {
       bookmarks.splice(i, 1);
       saveBookmarks();

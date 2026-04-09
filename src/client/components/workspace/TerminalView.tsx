@@ -7,20 +7,20 @@ interface TerminalTab {
   label: string;
 }
 
-var nextTermNum = 1;
+let nextTermNum = 1;
 
 function makeTab(): TerminalTab {
-  var num = nextTermNum++;
+  const num = nextTermNum++;
   return { id: `term-${num}-${Date.now()}`, label: `Terminal ${num}` };
 }
 
 export function TerminalView() {
-  var initialTab = makeTab();
-  var [tabs, setTabs] = useState<TerminalTab[]>([initialTab]);
-  var [activeId, setActiveId] = useState<string>(initialTab.id);
+  const initialTab = makeTab();
+  const [tabs, setTabs] = useState<TerminalTab[]>([initialTab]);
+  const [activeId, setActiveId] = useState<string>(initialTab.id);
 
   function addTab() {
-    var tab = makeTab();
+    const tab = makeTab();
     setTabs(function(prev) { return [...prev, tab]; });
     setActiveId(tab.id);
   }
@@ -28,14 +28,14 @@ export function TerminalView() {
   function closeTab(id: string) {
     setTabs(function(prev) {
       if (prev.length === 1) {
-        var replacement = makeTab();
+        const replacement = makeTab();
         setActiveId(replacement.id);
         return [replacement];
       }
-      var next = prev.filter(function(t) { return t.id !== id; });
+      const next = prev.filter(function(t) { return t.id !== id; });
       if (id === activeId) {
-        var idx = prev.findIndex(function(t) { return t.id === id; });
-        var newActive = next[Math.min(idx, next.length - 1)];
+        const idx = prev.findIndex(function(t) { return t.id === id; });
+        const newActive = next[Math.min(idx, next.length - 1)];
         setActiveId(newActive.id);
       }
       return next;
@@ -46,7 +46,7 @@ export function TerminalView() {
     <div className="flex flex-col h-full w-full overflow-hidden">
       <div role="tablist" className="flex items-center h-8 bg-base-200 border-b border-base-content/15 flex-shrink-0 overflow-x-auto">
         {tabs.map(function(tab) {
-          var isActive = tab.id === activeId;
+          const isActive = tab.id === activeId;
           return (
             <div
               key={tab.id}

@@ -22,15 +22,15 @@ export interface UseMeshResult {
 }
 
 export function useMesh(): UseMeshResult {
-  var ws = useWebSocket();
-  var store = getMeshStore();
+  const ws = useWebSocket();
+  const store = getMeshStore();
 
-  var nodes = useStore(store, function (s) { return s.nodes; });
-  var activeNodeId = useStore(store, function (s) { return s.selectedNodeId; });
-  var inviteCode = useStore(store, function (s) { return s.inviteCode; });
-  var inviteQr = useStore(store, function (s) { return s.inviteQr; });
+  const nodes = useStore(store, function (s) { return s.nodes; });
+  const activeNodeId = useStore(store, function (s) { return s.selectedNodeId; });
+  const inviteCode = useStore(store, function (s) { return s.inviteCode; });
+  const inviteQr = useStore(store, function (s) { return s.inviteQr; });
 
-  var handleRef = useRef<(msg: ServerMessage) => void>(function () {});
+  const handleRef = useRef<(msg: ServerMessage) => void>(function () {});
 
   useEffect(function () {
     handleRef.current = function (msg: ServerMessage) {

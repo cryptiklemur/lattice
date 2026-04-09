@@ -17,18 +17,18 @@ interface ProjectMemoryProps {
   projectSlug?: string;
 }
 
-var MEMORY_TYPES = ["user", "feedback", "project", "reference"];
+const MEMORY_TYPES = ["user", "feedback", "project", "reference"];
 
 function parseFrontmatter(content: string): { meta: Record<string, string>; body: string } {
-  var match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/);
   if (!match) return { meta: {}, body: content };
-  var meta: Record<string, string> = {};
-  var lines = match[1].split(/\r?\n/);
-  for (var i = 0; i < lines.length; i++) {
-    var colonIdx = lines[i].indexOf(":");
+  const meta: Record<string, string> = {};
+  const lines = match[1].split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const colonIdx = lines[i].indexOf(":");
     if (colonIdx > 0) {
-      var key = lines[i].slice(0, colonIdx).trim();
-      var value = lines[i].slice(colonIdx + 1).trim().replace(/^["']|["']$/g, "");
+      const key = lines[i].slice(0, colonIdx).trim();
+      const value = lines[i].slice(colonIdx + 1).trim().replace(/^["']|["']$/g, "");
       meta[key] = value;
     }
   }
@@ -56,7 +56,7 @@ function MemoryCard({
   onClick: () => void;
   onDelete: () => void;
 }) {
-  var [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div
@@ -119,10 +119,10 @@ function MemoryViewModal({
   onClose: () => void;
   onEdit: () => void;
 }) {
-  var parsed = parseFrontmatter(content);
-  var hasMeta = Object.keys(parsed.meta).length > 0;
-  var modalRef = useRef<HTMLDivElement>(null);
-  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  const parsed = parseFrontmatter(content);
+  const hasMeta = Object.keys(parsed.meta).length > 0;
+  const modalRef = useRef<HTMLDivElement>(null);
+  const stableOnClose = useCallback(function () { onClose(); }, [onClose]);
   useFocusTrap(modalRef, stableOnClose);
 
   return (
@@ -198,20 +198,20 @@ function MemoryEditModal({
   onSave: (filename: string, content: string) => void;
   isSaving: boolean;
 }) {
-  var isNew = memory === null;
-  var parsed = parseFrontmatter(initialContent);
+  const isNew = memory === null;
+  const parsed = parseFrontmatter(initialContent);
 
-  var [name, setName] = useState(parsed.meta.name || (memory ? memory.name : ""));
-  var [description, setDescription] = useState(parsed.meta.description || (memory ? memory.description : ""));
-  var [type, setType] = useState(parsed.meta.type || (memory ? memory.type : "project"));
-  var [body, setBody] = useState(parsed.body);
-  var editModalRef = useRef<HTMLDivElement>(null);
-  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  const [name, setName] = useState(parsed.meta.name || (memory ? memory.name : ""));
+  const [description, setDescription] = useState(parsed.meta.description || (memory ? memory.description : ""));
+  const [type, setType] = useState(parsed.meta.type || (memory ? memory.type : "project"));
+  const [body, setBody] = useState(parsed.body);
+  const editModalRef = useRef<HTMLDivElement>(null);
+  const stableOnClose = useCallback(function () { onClose(); }, [onClose]);
   useFocusTrap(editModalRef, stableOnClose);
 
   function handleSave() {
-    var content = buildContent(name, description, type, body);
-    var filename = isNew ? slugify(name) + ".md" : memory!.filename;
+    const content = buildContent(name, description, type, body);
+    const filename = isNew ? slugify(name) + ".md" : memory!.filename;
     onSave(filename, content);
   }
 
@@ -323,25 +323,25 @@ function MemoryEditModal({
 }
 
 export function ProjectMemory({ projectSlug }: ProjectMemoryProps) {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [memories, setMemories] = useState<MemoryEntry[]>([]);
-  var [loading, setLoading] = useState(false);
-  var [viewState, setViewState] = useState<{ memory: MemoryEntry; content: string } | null>(null);
-  var [editState, setEditState] = useState<{ memory: MemoryEntry | null; content: string } | null>(null);
-  var [isSaving, setIsSaving] = useState(false);
-  var [pendingView, setPendingView] = useState<MemoryEntry | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [memories, setMemories] = useState<MemoryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [viewState, setViewState] = useState<{ memory: MemoryEntry; content: string } | null>(null);
+  const [editState, setEditState] = useState<{ memory: MemoryEntry | null; content: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [pendingView, setPendingView] = useState<MemoryEntry | null>(null);
 
   useEffect(function () {
     function handleListResult(msg: ServerMessage) {
       if (msg.type !== "memory:list_result") return;
-      var data = msg as { type: "memory:list_result"; memories: MemoryEntry[] };
+      const data = msg as { type: "memory:list_result"; memories: MemoryEntry[] };
       setMemories(data.memories);
       setLoading(false);
     }
 
     function handleViewResult(msg: ServerMessage) {
       if (msg.type !== "memory:view_result") return;
-      var data = msg as { type: "memory:view_result"; content: string };
+      const data = msg as { type: "memory:view_result"; content: string };
       setPendingView(function (prev) {
         if (prev) {
           setViewState({ memory: prev, content: data.content });
@@ -400,15 +400,15 @@ export function ProjectMemory({ projectSlug }: ProjectMemoryProps) {
     setViewState(null);
   }
 
-  var grouped: Record<string, MemoryEntry[]> = {};
-  for (var i = 0; i < memories.length; i++) {
-    var m = memories[i];
-    var t = m.type || "other";
+  const grouped: Record<string, MemoryEntry[]> = {};
+  for (let i = 0; i < memories.length; i++) {
+    const m = memories[i];
+    const t = m.type || "other";
     if (!grouped[t]) grouped[t] = [];
     grouped[t].push(m);
   }
 
-  var groupKeys = Object.keys(grouped);
+  const groupKeys = Object.keys(grouped);
 
   return (
     <div className="py-2 space-y-6">

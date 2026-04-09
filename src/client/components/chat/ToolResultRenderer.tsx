@@ -20,7 +20,7 @@ function parseArgs(argsStr: string): Record<string, unknown> {
 }
 
 function isImagePath(path: string): boolean {
-  var ext = path.split(".").pop()?.toLowerCase() || "";
+  const ext = path.split(".").pop()?.toLowerCase() || "";
   return ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"].includes(ext);
 }
 
@@ -29,16 +29,16 @@ function hasMarkdownTable(text: string): boolean {
 }
 
 function computeLineDiff(oldText: string, newText: string): Array<{ type: "same" | "add" | "remove"; text: string }> {
-  var oldLines = oldText.split("\n");
-  var newLines = newText.split("\n");
-  var result: Array<{ type: "same" | "add" | "remove"; text: string }> = [];
+  const oldLines = oldText.split("\n");
+  const newLines = newText.split("\n");
+  const result: Array<{ type: "same" | "add" | "remove"; text: string }> = [];
 
-  var prefixLen = 0;
+  let prefixLen = 0;
   while (prefixLen < oldLines.length && prefixLen < newLines.length && oldLines[prefixLen] === newLines[prefixLen]) {
     prefixLen++;
   }
 
-  var suffixLen = 0;
+  let suffixLen = 0;
   while (
     suffixLen < oldLines.length - prefixLen &&
     suffixLen < newLines.length - prefixLen &&
@@ -47,21 +47,21 @@ function computeLineDiff(oldText: string, newText: string): Array<{ type: "same"
     suffixLen++;
   }
 
-  var contextBefore = Math.max(0, prefixLen - 3);
-  for (var i = contextBefore; i < prefixLen; i++) {
+  const contextBefore = Math.max(0, prefixLen - 3);
+  for (let i = contextBefore; i < prefixLen; i++) {
     result.push({ type: "same", text: oldLines[i] });
   }
 
-  for (var j = prefixLen; j < oldLines.length - suffixLen; j++) {
+  for (let j = prefixLen; j < oldLines.length - suffixLen; j++) {
     result.push({ type: "remove", text: oldLines[j] });
   }
-  for (var k = prefixLen; k < newLines.length - suffixLen; k++) {
+  for (let k = prefixLen; k < newLines.length - suffixLen; k++) {
     result.push({ type: "add", text: newLines[k] });
   }
 
-  var suffixStart = Math.max(oldLines.length - suffixLen, prefixLen);
-  var contextAfter = Math.min(suffixStart + 3, oldLines.length);
-  for (var l = suffixStart; l < contextAfter; l++) {
+  const suffixStart = Math.max(oldLines.length - suffixLen, prefixLen);
+  const contextAfter = Math.min(suffixStart + 3, oldLines.length);
+  for (let l = suffixStart; l < contextAfter; l++) {
     result.push({ type: "same", text: oldLines[l] });
   }
 
@@ -69,13 +69,13 @@ function computeLineDiff(oldText: string, newText: string): Array<{ type: "same"
 }
 
 function DiffUnified(props: { oldText: string; newText: string }) {
-  var lines = computeLineDiff(props.oldText, props.newText);
+  const lines = computeLineDiff(props.oldText, props.newText);
   return (
     <div className="font-mono text-[11px] leading-relaxed overflow-x-auto">
       {lines.map(function (line, i) {
-        var bg = line.type === "add" ? "bg-success/10" : line.type === "remove" ? "bg-error/10" : "";
-        var prefix = line.type === "add" ? "+" : line.type === "remove" ? "-" : " ";
-        var color = line.type === "add" ? "text-success/70" : line.type === "remove" ? "text-error/70" : "text-base-content/40";
+        const bg = line.type === "add" ? "bg-success/10" : line.type === "remove" ? "bg-error/10" : "";
+        const prefix = line.type === "add" ? "+" : line.type === "remove" ? "-" : " ";
+        const color = line.type === "add" ? "text-success/70" : line.type === "remove" ? "text-error/70" : "text-base-content/40";
         return (
           <div key={i} className={bg + " px-2 whitespace-pre-wrap break-words"}>
             <span className={color + " select-none inline-block w-4"}>{prefix}</span>
@@ -88,11 +88,11 @@ function DiffUnified(props: { oldText: string; newText: string }) {
 }
 
 function DiffSideBySide(props: { oldText: string; newText: string }) {
-  var lines = computeLineDiff(props.oldText, props.newText);
-  var leftLines: Array<{ text: string; type: string }> = [];
-  var rightLines: Array<{ text: string; type: string }> = [];
+  const lines = computeLineDiff(props.oldText, props.newText);
+  const leftLines: Array<{ text: string; type: string }> = [];
+  const rightLines: Array<{ text: string; type: string }> = [];
 
-  for (var i = 0; i < lines.length; i++) {
+  for (let i = 0; i < lines.length; i++) {
     if (lines[i].type === "same") {
       leftLines.push({ text: lines[i].text, type: "same" });
       rightLines.push({ text: lines[i].text, type: "same" });
@@ -103,7 +103,7 @@ function DiffSideBySide(props: { oldText: string; newText: string }) {
     }
   }
 
-  var maxLen = Math.max(leftLines.length, rightLines.length);
+  const maxLen = Math.max(leftLines.length, rightLines.length);
   while (leftLines.length < maxLen) leftLines.push({ text: "", type: "pad" });
   while (rightLines.length < maxLen) rightLines.push({ text: "", type: "pad" });
 
@@ -111,8 +111,8 @@ function DiffSideBySide(props: { oldText: string; newText: string }) {
     <div className="font-mono text-[11px] leading-relaxed overflow-x-auto grid grid-cols-2 gap-0">
       <div className="border-r border-base-content/8">
         {leftLines.map(function (line, i) {
-          var bg = line.type === "remove" ? "bg-error/10" : "";
-          var color = line.type === "remove" ? "text-error/70" : line.type === "same" ? "text-base-content/40" : "text-transparent";
+          const bg = line.type === "remove" ? "bg-error/10" : "";
+          const color = line.type === "remove" ? "text-error/70" : line.type === "same" ? "text-base-content/40" : "text-transparent";
           return (
             <div key={i} className={bg + " px-2 whitespace-pre-wrap break-words min-h-[1.4em]"}>
               <span className={color}>{line.text}</span>
@@ -122,8 +122,8 @@ function DiffSideBySide(props: { oldText: string; newText: string }) {
       </div>
       <div>
         {rightLines.map(function (line, i) {
-          var bg = line.type === "add" ? "bg-success/10" : "";
-          var color = line.type === "add" ? "text-success/70" : line.type === "same" ? "text-base-content/40" : "text-transparent";
+          const bg = line.type === "add" ? "bg-success/10" : "";
+          const color = line.type === "add" ? "text-success/70" : line.type === "same" ? "text-base-content/40" : "text-transparent";
           return (
             <div key={i} className={bg + " px-2 whitespace-pre-wrap break-words min-h-[1.4em]"}>
               <span className={color}>{line.text}</span>
@@ -136,7 +136,7 @@ function DiffSideBySide(props: { oldText: string; newText: string }) {
 }
 
 function DiffRenderer(props: { oldText: string; newText: string }) {
-  var [mode, setMode] = useState<"unified" | "split">("unified");
+  const [mode, setMode] = useState<"unified" | "split">("unified");
 
   return (
     <div>
@@ -173,16 +173,16 @@ function DiffRenderer(props: { oldText: string; newText: string }) {
 }
 
 function ImageRenderer(props: { path: string }) {
-  var [error, setError] = useState(false);
-  var [modalOpen, setModalOpen] = useState(false);
-  var imgSrc = "/api/file?path=" + encodeURIComponent(props.path);
-  var imageModalRef = useRef<HTMLDivElement>(null);
-  var closeImageModal = useCallback(function () { setModalOpen(false); }, []);
+  const [error, setError] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const imgSrc = "/api/file?path=" + encodeURIComponent(props.path);
+  const imageModalRef = useRef<HTMLDivElement>(null);
+  const closeImageModal = useCallback(function () { setModalOpen(false); }, []);
   useFocusTrap(imageModalRef, closeImageModal, modalOpen);
 
   useEffect(function () {
     if (!modalOpen) return;
-    var root = document.getElementById("root");
+    const root = document.getElementById("root");
     if (root) root.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
@@ -260,9 +260,9 @@ function ImageRenderer(props: { path: string }) {
 }
 
 function FileHeader(props: { path: string }) {
-  var parts = props.path.split("/");
-  var filename = parts[parts.length - 1] || props.path;
-  var ext = filename.split(".").pop() || "";
+  const parts = props.path.split("/");
+  const filename = parts[parts.length - 1] || props.path;
+  const ext = filename.split(".").pop() || "";
   return (
     <div className="flex items-center gap-1.5 mb-1">
       <FileText size={10} className="text-base-content/25" />
@@ -273,8 +273,8 @@ function FileHeader(props: { path: string }) {
 }
 
 export function ToolResultRenderer(props: ToolResultRendererProps) {
-  var args = parseArgs(props.args);
-  var result = props.result;
+  const args = parseArgs(props.args);
+  const result = props.result;
 
   if ((props.toolName === "Edit" || props.toolName === "MultiEdit") && args.old_string && args.new_string) {
     return (
@@ -293,9 +293,9 @@ export function ToolResultRenderer(props: ToolResultRendererProps) {
   }
 
   if (props.toolName === "mcp__playwright__browser_take_screenshot" || props.toolName === "mcp__playwright__browser_snapshot") {
-    var screenshotMatch = result.match(/\[Screenshot[^\]]*\]\(([^)]+)\)/);
-    var pathMatch = result.match(/path:\s*['"]?([^\s'"]+\.(?:png|jpg|jpeg))/i);
-    var imagePath = screenshotMatch ? screenshotMatch[1] : pathMatch ? pathMatch[1] : null;
+    const screenshotMatch = result.match(/\[Screenshot[^\]]*\]\(([^)]+)\)/);
+    const pathMatch = result.match(/path:\s*['"]?([^\s'"]+\.(?:png|jpg|jpeg))/i);
+    const imagePath = screenshotMatch ? screenshotMatch[1] : pathMatch ? pathMatch[1] : null;
     if (imagePath) {
       return (
         <div className="px-2.5 py-2">

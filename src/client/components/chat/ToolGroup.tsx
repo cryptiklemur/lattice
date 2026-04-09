@@ -4,7 +4,7 @@ import type { HistoryMessage } from "#shared";
 import { ToolResultRenderer } from "./ToolResultRenderer";
 import { formatToolSummary } from "./toolSummary";
 
-var TOOL_ICONS: Record<string, typeof Wrench> = {
+const TOOL_ICONS: Record<string, typeof Wrench> = {
   Read: FileText,
   Grep: Search,
   Glob: Search,
@@ -22,11 +22,11 @@ function getToolIcon(name: string) {
 
 
 function ToolDetail(props: { tool: HistoryMessage }) {
-  var tool = props.tool;
-  var [detailOpen, setDetailOpen] = useState(false);
-  var hasResult = Boolean(tool.content);
+  const tool = props.tool;
+  const [detailOpen, setDetailOpen] = useState(false);
+  const hasResult = Boolean(tool.content);
 
-  var parsedArgs = tool.args || "";
+  let parsedArgs = tool.args || "";
   try {
     if (tool.args) {
       parsedArgs = JSON.stringify(JSON.parse(tool.args), null, 2);
@@ -35,8 +35,8 @@ function ToolDetail(props: { tool: HistoryMessage }) {
     parsedArgs = tool.args || "";
   }
 
-  var Icon = getToolIcon(tool.name || "");
-  var summary = formatToolSummary(tool.name || "", tool.args || "");
+  const Icon = getToolIcon(tool.name || "");
+  const summary = formatToolSummary(tool.name || "", tool.args || "");
 
   return (
     <div className="border-t border-base-content/6 first:border-t-0">
@@ -84,13 +84,13 @@ interface ToolGroupProps {
 }
 
 export function ToolGroup(props: ToolGroupProps) {
-  var [expanded, setExpanded] = useState(false);
-  var tools = props.tools;
-  var allDone = tools.every(function (t) { return Boolean(t.content); });
-  var uniqueNames = useMemo(function () {
+  const [expanded, setExpanded] = useState(false);
+  const tools = props.tools;
+  const allDone = tools.every(function (t) { return Boolean(t.content); });
+  const uniqueNames = useMemo(function () {
     return Array.from(new Set(tools.map(function (t) { return t.name || "unknown"; })));
   }, [tools]);
-  var summary = uniqueNames.length <= 3
+  const summary = uniqueNames.length <= 3
     ? uniqueNames.join(", ")
     : uniqueNames.slice(0, 2).join(", ") + " + " + (uniqueNames.length - 2) + " more";
 

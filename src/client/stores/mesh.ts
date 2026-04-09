@@ -8,7 +8,7 @@ export interface MeshState {
   inviteQr: string | null;
 }
 
-var meshStore = new Store<MeshState>({
+const meshStore = new Store<MeshState>({
   nodes: [],
   selectedNodeId: null,
   inviteCode: null,
@@ -27,7 +27,7 @@ export function setNodes(nodes: NodeInfo[]): void {
 
 export function setNodeOnline(nodeId: string): void {
   meshStore.setState(function (state) {
-    var nodes = state.nodes.map(function (n) {
+    const nodes = state.nodes.map(function (n) {
       if (n.id === nodeId) {
         return { ...n, online: true };
       }
@@ -39,7 +39,7 @@ export function setNodeOnline(nodeId: string): void {
 
 export function setNodeOffline(nodeId: string): void {
   meshStore.setState(function (state) {
-    var nodes = state.nodes.map(function (n) {
+    const nodes = state.nodes.map(function (n) {
       if (n.id === nodeId) {
         return { ...n, online: false };
       }
@@ -51,8 +51,8 @@ export function setNodeOffline(nodeId: string): void {
 
 export function addOrUpdateNode(node: NodeInfo): void {
   meshStore.setState(function (state) {
-    var exists = state.nodes.some(function (n) { return n.id === node.id; });
-    var nodes = exists
+    const exists = state.nodes.some(function (n) { return n.id === node.id; });
+    const nodes = exists
       ? state.nodes.map(function (n) { return n.id === node.id ? node : n; })
       : [...state.nodes, node];
     return { ...state, nodes };

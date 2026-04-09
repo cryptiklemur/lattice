@@ -7,11 +7,11 @@ import { broadcast } from "../ws/broadcast";
 import { getProjectBySlug } from "../project/registry";
 import type { LoopStatus } from "#shared";
 
-var activeLoops = new Map<string, LoopStatus>();
+const activeLoops = new Map<string, LoopStatus>();
 
 function readLoopFile(projectPath: string, filename: string): string | null {
-  var loopsDir = join(projectPath, ".claude", "loops");
-  var filePath = join(loopsDir, filename);
+  const loopsDir = join(projectPath, ".claude", "loops");
+  const filePath = join(loopsDir, filename);
   if (!existsSync(filePath)) {
     return null;
   }
@@ -24,17 +24,17 @@ async function runIteration(
   cwd: string,
   iterationNum: number
 ): Promise<string> {
-  var accumulated = "";
+  let accumulated = "";
 
-  var stream = query({ prompt, options: { cwd, allowedTools: ["*"], permissionMode: "acceptEdits" } });
+  const stream = query({ prompt, options: { cwd, allowedTools: ["*"], permissionMode: "acceptEdits" } });
 
-  for await (var msg of stream) {
-    var typedMsg = msg as SDKMessage;
+  for await (const msg of stream) {
+    const typedMsg = msg as SDKMessage;
     if (typedMsg.type === "stream_event") {
-      var partial = typedMsg as SDKPartialAssistantMessage;
-      var evt = partial.event;
+      const partial = typedMsg as SDKPartialAssistantMessage;
+      const evt = partial.event;
       if (evt.type === "content_block_delta") {
-        var deltaEvt = evt as { delta: { type: string; text?: string } };
+        const deltaEvt = evt as { delta: { type: string; text?: string } };
         if (deltaEvt.delta.type === "text_delta" && typeof deltaEvt.delta.text === "string") {
           accumulated += deltaEvt.delta.text;
           broadcast({ type: "loop:delta", loopId, iteration: iterationNum, text: deltaEvt.delta.text });
@@ -51,18 +51,18 @@ async function runJudge(
   iterationResult: string,
   cwd: string
 ): Promise<{ pass: boolean; reason: string }> {
-  var fullPrompt = `${judgePrompt}\n\n<iteration_result>\n${iterationResult}\n</iteration_result>\n\nRespond with PASS or FAIL on the first line, followed by a brief reason.`;
-  var accumulated = "";
+  const fullPrompt = `${judgePrompt}\n\n<iteration_result>\n${iterationResult}\n</iteration_result>\n\nRespond with PASS or FAIL on the first line, followed by a brief reason.`;
+  let accumulated = "";
 
-  var stream = query({ prompt: fullPrompt, options: { cwd, allowedTools: [], permissionMode: "acceptEdits" } });
+  const stream = query({ prompt: fullPrompt, options: { cwd, allowedTools: [], permissionMode: "acceptEdits" } });
 
-  for await (var msg of stream) {
-    var typedMsg = msg as SDKMessage;
+  for await (const msg of stream) {
+    const typedMsg = msg as SDKMessage;
     if (typedMsg.type === "stream_event") {
-      var partial = typedMsg as SDKPartialAssistantMessage;
-      var evt = partial.event;
+      const partial = typedMsg as SDKPartialAssistantMessage;
+      const evt = partial.event;
       if (evt.type === "content_block_delta") {
-        var deltaEvt = evt as { delta: { type: string; text?: string } };
+        const deltaEvt = evt as { delta: { type: string; text?: string } };
         if (deltaEvt.delta.type === "text_delta" && typeof deltaEvt.delta.text === "string") {
           accumulated += deltaEvt.delta.text;
         }
@@ -70,26 +70,26 @@ async function runJudge(
     }
   }
 
-  var firstLine = accumulated.trim().split("\n")[0].toUpperCase();
-  var pass = firstLine.startsWith("PASS");
-  var reason = accumulated.trim().split("\n").slice(1).join("\n").trim() || accumulated.trim();
+  const firstLine = accumulated.trim().split("\n")[0].toUpperCase();
+  const pass = firstLine.startsWith("PASS");
+  const reason = accumulated.trim().split("\n").slice(1).join("\n").trim() || accumulated.trim();
 
   return { pass, reason };
 }
 
 export function startLoop(projectSlug: string): LoopStatus | null {
-  var project = getProjectBySlug(projectSlug);
+  const project = getProjectBySlug(projectSlug);
   if (!project) {
     return null;
   }
 
-  var prompt = readLoopFile(project.path, "PROMPT.md");
+  const prompt = readLoopFile(project.path, "PROMPT.md");
   if (!prompt) {
     return null;
   }
 
-  var loopId = "loop_" + Date.now() + "_" + randomBytes(3).toString("hex");
-  var loopStatus: LoopStatus = {
+  const loopId = "loop_" + Date.now() + "_" + randomBytes(3).toString("hex");
+  const loopStatus: LoopStatus = {
     id: loopId,
     projectSlug,
     status: "running",
@@ -104,10 +104,10 @@ export function startLoop(projectSlug: string): LoopStatus | null {
   broadcast({ type: "loop:started", loop: loopStatus });
 
   void (async function () {
-    var judgePrompt = readLoopFile(project.path, "JUDGE.md");
+    const judgePrompt = readLoopFile(project.path, "JUDGE.md");
 
-    for (var i = 1; i <= loopStatus.maxIterations; i++) {
-      var current = activeLoops.get(loopId);
+    for (let i = 1; i <= loopStatus.maxIterations; i++) {
+      const current = activeLoops.get(loopId);
       if (!current || current.status === "stopped") {
         break;
       }
@@ -117,10 +117,10 @@ export function startLoop(projectSlug: string): LoopStatus | null {
       broadcast({ type: "loop:status_update", loop: { ...current } });
 
       try {
-        var result = await runIteration(loopId, prompt, project.path, i);
+        const result = await runIteration(loopId, prompt, project.path, i);
 
         if (judgePrompt) {
-          var judgment = await runJudge(judgePrompt, result, project.path);
+          const judgment = await runJudge(judgePrompt, result, project.path);
           current.judgeReason = judgment.reason;
           activeLoops.set(loopId, current);
 
@@ -133,7 +133,7 @@ export function startLoop(projectSlug: string): LoopStatus | null {
           }
         }
       } catch (err: unknown) {
-        var errMsg = err instanceof Error ? err.message : String(err);
+        const errMsg = err instanceof Error ? err.message : String(err);
         console.error(`[ralph-loop] Iteration ${i} error:`, errMsg);
         current.status = "error";
         current.judgeReason = errMsg;
@@ -144,7 +144,7 @@ export function startLoop(projectSlug: string): LoopStatus | null {
       }
     }
 
-    var final = activeLoops.get(loopId);
+    const final = activeLoops.get(loopId);
     if (final && final.status === "running") {
       final.status = "done";
       final.finishedAt = Date.now();
@@ -157,7 +157,7 @@ export function startLoop(projectSlug: string): LoopStatus | null {
 }
 
 export function stopLoop(loopId: string): boolean {
-  var loop = activeLoops.get(loopId);
+  const loop = activeLoops.get(loopId);
   if (!loop || loop.status !== "running") {
     return false;
   }

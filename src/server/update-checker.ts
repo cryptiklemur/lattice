@@ -3,11 +3,11 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { log } from "./logger";
 
-var __dirname_local = dirname(fileURLToPath(import.meta.url));
+const __dirname_local = dirname(fileURLToPath(import.meta.url));
 
-var PKG_NAME = "@cryptiklemur/lattice";
-var GITHUB_REPO = "cryptiklemur/lattice";
-var CHECK_INTERVAL_MS = 3600000;
+const PKG_NAME = "@cryptiklemur/lattice";
+const GITHUB_REPO = "cryptiklemur/lattice";
+const CHECK_INTERVAL_MS = 3600000;
 
 export type InstallMode = "binary" | "npm";
 
@@ -20,13 +20,13 @@ export interface UpdateInfo {
   installMode: InstallMode;
 }
 
-var cached: UpdateInfo | null = null;
-var checking = false;
+let cached: UpdateInfo | null = null;
+let checking = false;
 
 function getCurrentVersion(): string {
   if (process.env.LATTICE_VERSION) return process.env.LATTICE_VERSION;
   try {
-    var pkg = JSON.parse(readFileSync(join(__dirname_local, "../../package.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(__dirname_local, "../../package.json"), "utf-8"));
     return pkg.version || "0.0.0";
   } catch {
     return "0.0.0";
@@ -35,11 +35,11 @@ function getCurrentVersion(): string {
 
 function compareVersions(a: string, b: string): number {
   if (!a || !b || typeof a !== "string" || typeof b !== "string") return 0;
-  var pa = a.replace(/^v/, "").split(".").map(Number);
-  var pb = b.replace(/^v/, "").split(".").map(Number);
-  for (var i = 0; i < 3; i++) {
-    var va = pa[i] || 0;
-    var vb = pb[i] || 0;
+  const pa = a.replace(/^v/, "").split(".").map(Number);
+  const pb = b.replace(/^v/, "").split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const va = pa[i] || 0;
+    const vb = pb[i] || 0;
     if (va !== vb) return va - vb;
   }
   return 0;
@@ -50,7 +50,7 @@ export function getInstallMode(): InstallMode {
 }
 
 async function checkGitHub(currentVersion: string): Promise<UpdateInfo> {
-  var res = await fetch("https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest", {
+  const res = await fetch("https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest", {
     headers: { "Accept": "application/vnd.github.v3+json" },
     signal: AbortSignal.timeout(10000),
   });
@@ -60,9 +60,9 @@ async function checkGitHub(currentVersion: string): Promise<UpdateInfo> {
     return { currentVersion, latestVersion: null, updateAvailable: false, lastCheckedAt: Date.now(), releaseUrl: null, installMode: "binary" };
   }
 
-  var data = await res.json() as { tag_name?: string; html_url?: string };
-  var latestVersion = data.tag_name ? data.tag_name.replace(/^v/, "") : null;
-  var updateAvailable = latestVersion !== null && compareVersions(latestVersion, currentVersion) > 0;
+  const data = await res.json() as { tag_name?: string; html_url?: string };
+  const latestVersion = data.tag_name ? data.tag_name.replace(/^v/, "") : null;
+  const updateAvailable = latestVersion !== null && compareVersions(latestVersion, currentVersion) > 0;
 
   return {
     currentVersion,
@@ -75,7 +75,7 @@ async function checkGitHub(currentVersion: string): Promise<UpdateInfo> {
 }
 
 async function checkNpm(currentVersion: string): Promise<UpdateInfo> {
-  var res = await fetch("https://registry.npmjs.org/" + PKG_NAME + "/latest", {
+  const res = await fetch("https://registry.npmjs.org/" + PKG_NAME + "/latest", {
     headers: { "Accept": "application/json" },
     signal: AbortSignal.timeout(10000),
   });
@@ -85,9 +85,9 @@ async function checkNpm(currentVersion: string): Promise<UpdateInfo> {
     return { currentVersion, latestVersion: null, updateAvailable: false, lastCheckedAt: Date.now(), releaseUrl: null, installMode: "npm" };
   }
 
-  var data = await res.json() as { version?: string };
-  var latestVersion = data.version ?? null;
-  var updateAvailable = latestVersion !== null && compareVersions(latestVersion, currentVersion) > 0;
+  const data = await res.json() as { version?: string };
+  const latestVersion = data.version ?? null;
+  const updateAvailable = latestVersion !== null && compareVersions(latestVersion, currentVersion) > 0;
 
   return {
     currentVersion,
@@ -100,7 +100,7 @@ async function checkNpm(currentVersion: string): Promise<UpdateInfo> {
 }
 
 export async function checkForUpdate(force: boolean = false): Promise<UpdateInfo> {
-  var currentVersion = getCurrentVersion();
+  const currentVersion = getCurrentVersion();
 
   if (!force && cached && Date.now() - cached.lastCheckedAt < CHECK_INTERVAL_MS) {
     return cached;

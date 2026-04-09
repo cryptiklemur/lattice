@@ -11,10 +11,10 @@ export interface WebSocketContextValue {
   reconnectNow: () => void;
 }
 
-export var WebSocketContext = createContext<WebSocketContextValue | null>(null);
+export const WebSocketContext = createContext<WebSocketContextValue | null>(null);
 
 export function useWebSocket(): WebSocketContextValue {
-  var ctx = useContext(WebSocketContext);
+  const ctx = useContext(WebSocketContext);
   if (!ctx) {
     throw new Error("useWebSocket must be used within a WebSocketProvider");
   }
@@ -22,6 +22,6 @@ export function useWebSocket(): WebSocketContextValue {
 }
 
 export function getWebSocketUrl(): string {
-  var protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return protocol + "//" + window.location.host + "/ws";
 }

@@ -9,7 +9,7 @@ import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 import type { ContextMenuEntry } from "../ui/ContextMenu";
 
 function getProjectInitials(title: string): string {
-  var words = title.trim().split(/[\s\-_]+/);
+  const words = title.trim().split(/[\s\-_]+/);
   if (words.length >= 3) {
     return (words[0][0] + words[1][0] + words[2][0]).toUpperCase();
   }
@@ -27,12 +27,12 @@ interface ProjectGroup {
 }
 
 function groupProjectsBySlug(projects: ProjectInfo[], nodes: NodeInfo[]): ProjectGroup[] {
-  var groups = new Map<string, ProjectGroup>();
-  for (var i = 0; i < projects.length; i++) {
-    var p = projects[i];
-    var existing = groups.get(p.slug);
-    var node = nodes.find(function (n) { return n.id === p.nodeId; });
-    var nodeEntry = {
+  const groups = new Map<string, ProjectGroup>();
+  for (let i = 0; i < projects.length; i++) {
+    const p = projects[i];
+    const existing = groups.get(p.slug);
+    const node = nodes.find(function (n) { return n.id === p.nodeId; });
+    const nodeEntry = {
       nodeId: p.nodeId,
       nodeName: p.nodeName,
       online: node ? node.online : (p.online ?? !p.isRemote),
@@ -56,9 +56,9 @@ interface ProjectButtonProps {
 }
 
 function ProjectButton(props: ProjectButtonProps) {
-  var [hovered, setHovered] = useState(false);
-  var [tooltipTop, setTooltipTop] = useState(0);
-  var initials = getProjectInitials(props.group.title);
+  const [hovered, setHovered] = useState(false);
+  const [tooltipTop, setTooltipTop] = useState(0);
+  const initials = getProjectInitials(props.group.title);
 
   return (
     <div className="relative flex items-center">
@@ -68,7 +68,6 @@ function ProjectButton(props: ProjectButtonProps) {
           style={{ height: "32px", top: "50%", transform: "translateY(-50%)" }}
         />
       )}
-
       <button
         onClick={props.onClick}
         onContextMenu={function (e) {
@@ -76,7 +75,7 @@ function ProjectButton(props: ProjectButtonProps) {
           props.onContextMenu(e, props.group.slug);
         }}
         onMouseEnter={function (e) {
-          var rect = e.currentTarget.getBoundingClientRect();
+          const rect = e.currentTarget.getBoundingClientRect();
           setTooltipTop(rect.top + rect.height / 2);
           setHovered(true);
         }}
@@ -92,13 +91,11 @@ function ProjectButton(props: ProjectButtonProps) {
       >
         {initials}
       </button>
-
       {props.group.activeSessions > 0 && (
         <div className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-success/80 text-success-content text-[8px] font-bold flex items-center justify-center pointer-events-none px-0.5">
           {props.group.activeSessions}
         </div>
       )}
-
       <div className="absolute bottom-0 right-0 flex gap-[2px] pointer-events-none">
         {props.group.nodes.map(function (n) {
           return (
@@ -112,7 +109,6 @@ function ProjectButton(props: ProjectButtonProps) {
           );
         })}
       </div>
-
       {hovered && createPortal(
         <div
           className="pointer-events-none z-[99999] bg-base-300 border border-base-content/20 rounded-lg px-2.5 py-1.5 shadow-xl"
@@ -143,10 +139,10 @@ function ProjectButton(props: ProjectButtonProps) {
 }
 
 function NodeIndicator({ node, onContextMenu }: { node: NodeInfo; onContextMenu: (e: React.MouseEvent, node: NodeInfo) => void }) {
-  var [hovered, setHovered] = useState(false);
-  var [tooltipTop, setTooltipTop] = useState(0);
-  var sidebar = useSidebar();
-  var initial = node.name.charAt(0).toUpperCase();
+  const [hovered, setHovered] = useState(false);
+  const [tooltipTop, setTooltipTop] = useState(0);
+  const sidebar = useSidebar();
+  const initial = node.name.charAt(0).toUpperCase();
 
   return (
     <div className="relative flex items-center">
@@ -154,7 +150,7 @@ function NodeIndicator({ node, onContextMenu }: { node: NodeInfo; onContextMenu:
         onClick={function () { sidebar.openSettings("nodes"); }}
         onContextMenu={function (e) { e.preventDefault(); onContextMenu(e, node); }}
         onMouseEnter={function (e) {
-          var rect = e.currentTarget.getBoundingClientRect();
+          const rect = e.currentTarget.getBoundingClientRect();
           setTooltipTop(rect.top + rect.height / 2);
           setHovered(true);
         }}
@@ -208,14 +204,14 @@ interface ProjectRailProps {
 }
 
 export function ProjectRail(props: ProjectRailProps) {
-  var ws = useWebSocket();
-  var sidebar = useSidebar();
-  var groups = useMemo(function () { return groupProjectsBySlug(props.projects, props.nodes); }, [props.projects, props.nodes]);
-  var localNode = useMemo(function () { return props.nodes.find(function (n) { return n.isLocal; }); }, [props.nodes]);
-  var remoteNodes = useMemo(function () { return props.nodes.filter(function (n) { return !n.isLocal; }); }, [props.nodes]);
-  var allMeshNodes = useMemo(function () { return localNode ? [localNode].concat(remoteNodes) : remoteNodes; }, [localNode, remoteNodes]);
-  var projectCtx = useContextMenu<string>();
-  var nodeCtx = useContextMenu<NodeInfo>();
+  const ws = useWebSocket();
+  const sidebar = useSidebar();
+  const groups = useMemo(function () { return groupProjectsBySlug(props.projects, props.nodes); }, [props.projects, props.nodes]);
+  const localNode = useMemo(function () { return props.nodes.find(function (n) { return n.isLocal; }); }, [props.nodes]);
+  const remoteNodes = useMemo(function () { return props.nodes.filter(function (n) { return !n.isLocal; }); }, [props.nodes]);
+  const allMeshNodes = useMemo(function () { return localNode ? [localNode].concat(remoteNodes) : remoteNodes; }, [localNode, remoteNodes]);
+  const projectCtx = useContextMenu<string>();
+  const nodeCtx = useContextMenu<NodeInfo>();
 
   function handleNodeContextMenu(e: React.MouseEvent, node: NodeInfo) {
     nodeCtx.open(e, node);
@@ -262,9 +258,7 @@ export function ProjectRail(props: ProjectRailProps) {
           />
         </button>
       </div>
-
       <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
-
       {groups.map(function (group) {
         return (
           <ProjectButton
@@ -276,12 +270,9 @@ export function ProjectRail(props: ProjectRailProps) {
           />
         );
       })}
-
-
       {groups.length > 0 && (
         <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
       )}
-
       <button
         onClick={function () { sidebar.openAddProject(); }}
         className="w-[42px] h-[42px] flex items-center justify-center rounded-full border-2 border-dashed border-base-content/25 text-base-content/20 hover:border-base-content/40 hover:text-base-content/40 transition-colors duration-[120ms] flex-shrink-0 cursor-pointer"
@@ -289,17 +280,14 @@ export function ProjectRail(props: ProjectRailProps) {
       >
         <Plus size={18} />
       </button>
-
       {allMeshNodes.length > 0 && (
         <div className="w-6 h-px bg-base-300 my-0.5 flex-shrink-0" />
       )}
-
       {allMeshNodes.map(function (node) {
         return (
           <NodeIndicator key={node.id} node={node} onContextMenu={handleNodeContextMenu} />
         );
       })}
-
       <button
         onClick={function () { sidebar.openSettings("nodes"); }}
         className="w-[26px] h-[26px] flex items-center justify-center rounded-full border border-dashed border-base-content/15 text-base-content/15 hover:border-base-content/30 hover:text-base-content/30 transition-colors duration-[120ms] flex-shrink-0 cursor-pointer"
@@ -307,9 +295,7 @@ export function ProjectRail(props: ProjectRailProps) {
       >
         <Plus size={12} />
       </button>
-
       <div className="flex-1" />
-
       {projectCtx.state !== null && (
         <ContextMenu
           x={projectCtx.state.x}
@@ -324,10 +310,9 @@ export function ProjectRail(props: ProjectRailProps) {
           label="Project actions"
         />
       )}
-
       {nodeCtx.state !== null && (function () {
-        var node = nodeCtx.state!.data;
-        var items: ContextMenuEntry[] = [
+        const node = nodeCtx.state!.data;
+        const items: ContextMenuEntry[] = [
           { label: "Node Settings", icon: <Settings size={14} />, onClick: function () { sidebar.openSettings("nodes"); } },
         ];
         if (!node.isLocal) {
@@ -347,7 +332,6 @@ export function ProjectRail(props: ProjectRailProps) {
           />
         );
       })()}
-
     </div>
   );
 }

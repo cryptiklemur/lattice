@@ -9,7 +9,7 @@ import { useTimeTick } from "../../hooks/useTimeTick";
 import { markSessionHasUpdates, sessionHasUpdates, markSessionRead } from "../../stores/session";
 import { formatSessionTitle } from "../../utils/formatSessionTitle";
 
-var PAGE_SIZE = 40;
+const PAGE_SIZE = 40;
 
 interface SessionGroup {
   label: string;
@@ -17,16 +17,16 @@ interface SessionGroup {
 }
 
 function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
-  var todayStart = new Date();
+  const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  var todayMs = todayStart.getTime();
-  var yesterdayStart = new Date(todayStart);
+  const todayMs = todayStart.getTime();
+  const yesterdayStart = new Date(todayStart);
   yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  var yesterdayMs = yesterdayStart.getTime();
-  var weekMs = todayMs - 6 * 86400000;
-  var monthMs = todayMs - 29 * 86400000;
+  const yesterdayMs = yesterdayStart.getTime();
+  const weekMs = todayMs - 6 * 86400000;
+  const monthMs = todayMs - 29 * 86400000;
 
-  var groups: Record<string, SessionSummary[]> = {
+  const groups: Record<string, SessionSummary[]> = {
     Today: [],
     Yesterday: [],
     "This Week": [],
@@ -34,8 +34,8 @@ function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
     Older: [],
   };
 
-  for (var i = 0; i < sessions.length; i++) {
-    var ts = sessions[i].updatedAt;
+  for (let i = 0; i < sessions.length; i++) {
+    const ts = sessions[i].updatedAt;
     if (ts >= todayMs) {
       groups["Today"].push(sessions[i]);
     } else if (ts >= yesterdayMs && ts < todayMs) {
@@ -49,9 +49,9 @@ function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
     }
   }
 
-  var order = ["Today", "Yesterday", "This Week", "This Month", "Older"];
-  var result: SessionGroup[] = [];
-  for (var j = 0; j < order.length; j++) {
+  const order = ["Today", "Yesterday", "This Week", "This Month", "Older"];
+  const result: SessionGroup[] = [];
+  for (let j = 0; j < order.length; j++) {
     if (groups[order[j]].length > 0) {
       result.push({ label: order[j], sessions: groups[order[j]] });
     }
@@ -59,7 +59,7 @@ function groupByTime(sessions: SessionSummary[]): SessionGroup[] {
   return result;
 }
 
-var knownUpdatedAt = new Map<string, number>();
+const knownUpdatedAt = new Map<string, number>();
 
 export interface DateRange {
   from?: number;
@@ -76,10 +76,10 @@ interface SessionListProps {
 }
 
 function formatDate(ts: number): string {
-  var d = new Date(ts);
-  var now = new Date();
-  var diff = now.getTime() - d.getTime();
-  var day = 86400000;
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const day = 86400000;
 
   if (diff < day && d.getDate() === now.getDate()) {
     return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -93,8 +93,8 @@ function formatDate(ts: number): string {
 function formatDuration(ms: number): string {
   if (ms < 60000) return Math.round(ms / 1000) + "s";
   if (ms < 3600000) return Math.round(ms / 60000) + "m";
-  var hours = Math.floor(ms / 3600000);
-  var mins = Math.round((ms % 3600000) / 60000);
+  const hours = Math.floor(ms / 3600000);
+  const mins = Math.round((ms % 3600000) / 60000);
   return hours + "h " + mins + "m";
 }
 
@@ -116,20 +116,20 @@ function SessionSkeleton() {
 function PreviewPopover(props: { preview: SessionPreview | null; anchorRect: DOMRect | null }) {
   if (!props.anchorRect) return null;
 
-  var top = props.anchorRect.top;
-  var left = props.anchorRect.right + 8;
+  let top = props.anchorRect.top;
+  let left = props.anchorRect.right + 8;
 
-  var fitsRight = left + 280 < window.innerWidth;
+  const fitsRight = left + 280 < window.innerWidth;
   if (!fitsRight) {
     left = props.anchorRect.left - 288;
   }
 
-  var fitsBelow = top + 160 < window.innerHeight;
+  const fitsBelow = top + 160 < window.innerHeight;
   if (!fitsBelow) {
     top = Math.max(8, props.anchorRect.bottom - 160);
   }
 
-  var content = (
+  const content = (
     <div
       className="fixed z-[9999] w-[270px] bg-base-300 border border-base-content/15 rounded-lg shadow-xl p-3 pointer-events-none"
       style={{ top, left }}
@@ -173,7 +173,7 @@ function PreviewPopover(props: { preview: SessionPreview | null; anchorRect: DOM
 function loadCachedSessions(slug: string | null): SessionSummary[] {
   if (!slug) return [];
   try {
-    var raw = localStorage.getItem("lattice:sessions:" + slug);
+    const raw = localStorage.getItem("lattice:sessions:" + slug);
     if (raw) return JSON.parse(raw);
   } catch {}
   return [];
@@ -187,49 +187,49 @@ function cacheSessions(slug: string, sessions: SessionSummary[]): void {
 
 export function SessionList(props: SessionListProps) {
   useTimeTick();
-  var ws = useWebSocket();
-  var [sessions, setSessions] = useState<SessionSummary[]>(function () { return loadCachedSessions(props.projectSlug); });
-  var [loading, setLoading] = useState<boolean>(false);
-  var [loadingMore, setLoadingMore] = useState<boolean>(false);
-  var [totalCount, setTotalCount] = useState<number>(0);
-  var [renameId, setRenameId] = useState<string | null>(null);
-  var [renameValue, setRenameValue] = useState<string>("");
-  var ctxMenu = useContextMenu<SessionSummary>();
-  var [unreadTick, setUnreadTick] = useState<number>(0);
-  var [hoveredId, setHoveredId] = useState<string | null>(null);
-  var [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
-  var [previews, setPreviews] = useState<Map<string, SessionPreview>>(new Map());
-  var renameInputRef = useRef<HTMLInputElement | null>(null);
-  var handleRef = useRef<(msg: ServerMessage) => void>(function () {});
-  var activeSessionIdRef = useRef<string | null>(props.activeSessionId);
-  var hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var sentinelRef = useRef<HTMLDivElement | null>(null);
-  var scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  var offsetRef = useRef<number>(0);
-  var hasMoreRef = useRef<boolean>(true);
+  const ws = useWebSocket();
+  const [sessions, setSessions] = useState<SessionSummary[]>(function () { return loadCachedSessions(props.projectSlug); });
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState<string>("");
+  const ctxMenu = useContextMenu<SessionSummary>();
+  const [unreadTick, setUnreadTick] = useState<number>(0);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
+  const [previews, setPreviews] = useState<Map<string, SessionPreview>>(new Map());
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const handleRef = useRef<(msg: ServerMessage) => void>(function () {});
+  const activeSessionIdRef = useRef<string | null>(props.activeSessionId);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const offsetRef = useRef<number>(0);
+  const hasMoreRef = useRef<boolean>(true);
   activeSessionIdRef.current = props.activeSessionId;
 
   useEffect(function () {
     handleRef.current = function (msg: ServerMessage) {
       if (msg.type === "session:list") {
-        var listMsg = msg as SessionListMessage;
+        const listMsg = msg as SessionListMessage;
         if (listMsg.projectSlug === props.projectSlug) {
-          var incoming = listMsg.sessions.slice().sort(function (a: typeof listMsg.sessions[number], b: typeof listMsg.sessions[number]) { return b.updatedAt - a.updatedAt; });
-          var listOffset = listMsg.offset || 0;
-          var listTotal = listMsg.totalCount || incoming.length;
+          const incoming = listMsg.sessions.slice().sort(function (a: typeof listMsg.sessions[number], b: typeof listMsg.sessions[number]) { return b.updatedAt - a.updatedAt; });
+          const listOffset = listMsg.offset || 0;
+          const listTotal = listMsg.totalCount || incoming.length;
 
           if (listOffset > 0) {
             setSessions(function (prev) {
-              var existingIds = new Set(prev.map(function (s: typeof prev[number]) { return s.id; }));
-              var newSessions = incoming.filter(function (s: typeof incoming[number]) { return !existingIds.has(s.id); });
+              const existingIds = new Set(prev.map(function (s: typeof prev[number]) { return s.id; }));
+              const newSessions = incoming.filter(function (s: typeof incoming[number]) { return !existingIds.has(s.id); });
               return prev.concat(newSessions);
             });
             setLoadingMore(false);
           } else {
-            var hadChanges = false;
-            for (var i = 0; i < incoming.length; i++) {
-              var s = incoming[i];
-              var prev = knownUpdatedAt.get(s.id);
+            let hadChanges = false;
+            for (let i = 0; i < incoming.length; i++) {
+              const s = incoming[i];
+              const prev = knownUpdatedAt.get(s.id);
               if (prev !== undefined && s.updatedAt > prev && s.id !== activeSessionIdRef.current) {
                 markSessionHasUpdates(s.id);
                 hadChanges = true;
@@ -238,8 +238,8 @@ export function SessionList(props: SessionListProps) {
             }
             setSessions(function (existing) {
               if (existing.length <= PAGE_SIZE) return incoming;
-              var incomingIds = new Set(incoming.map(function (s: typeof incoming[number]) { return s.id; }));
-              var kept = existing.filter(function (s: typeof existing[number]) { return !incomingIds.has(s.id); });
+              const incomingIds = new Set(incoming.map(function (s: typeof incoming[number]) { return s.id; }));
+              const kept = existing.filter(function (s: typeof existing[number]) { return !incomingIds.has(s.id); });
               return incoming.concat(kept).sort(function (a: typeof incoming[number], b: typeof incoming[number]) { return b.updatedAt - a.updatedAt; });
             });
             setLoading(false);
@@ -256,7 +256,7 @@ export function SessionList(props: SessionListProps) {
           hasMoreRef.current = listOffset + incoming.length < listTotal;
         }
       } else if (msg.type === "session:created") {
-        var createdMsg = msg as SessionCreatedMessage;
+        const createdMsg = msg as SessionCreatedMessage;
         if (createdMsg.session.projectSlug === props.projectSlug) {
           knownUpdatedAt.set(createdMsg.session.id, createdMsg.session.updatedAt);
           setSessions(function (prev2) {
@@ -266,11 +266,11 @@ export function SessionList(props: SessionListProps) {
           props.onSessionActivate(createdMsg.session);
         }
       } else if (msg.type === "session:preview") {
-        var previewMsg = msg as SessionPreviewMessage;
+        const previewMsg = msg as SessionPreviewMessage;
         setPreviews(function (prev3) {
-          var next = new Map(prev3);
+          const next = new Map(prev3);
           if (next.size >= 100 && !next.has(previewMsg.sessionId)) {
-            var oldest = next.keys().next().value;
+            const oldest = next.keys().next().value;
             if (oldest !== undefined) next.delete(oldest);
           }
           next.set(previewMsg.sessionId, previewMsg.preview);
@@ -294,18 +294,18 @@ export function SessionList(props: SessionListProps) {
     };
   }, [ws]);
 
-  var sendRef = useRef(ws.send);
+  const sendRef = useRef(ws.send);
   sendRef.current = ws.send;
 
   useEffect(function () {
     if (props.projectSlug && ws.status === "connected") {
-      var cached = loadCachedSessions(props.projectSlug);
+      const cached = loadCachedSessions(props.projectSlug);
       setSessions(cached);
       setLoading(cached.length === 0);
       offsetRef.current = 0;
       hasMoreRef.current = true;
       sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
-      var interval = setInterval(function () {
+      const interval = setInterval(function () {
         if (props.projectSlug && ws.status === "connected") {
           sendRef.current({ type: "session:list_request", projectSlug: props.projectSlug, offset: 0, limit: PAGE_SIZE });
         }
@@ -314,7 +314,7 @@ export function SessionList(props: SessionListProps) {
     }
   }, [props.projectSlug, ws.status]);
 
-  var loadMore = useCallback(function () {
+  const loadMore = useCallback(function () {
     if (!props.projectSlug || loadingMore || !hasMoreRef.current) return;
     setLoadingMore(true);
     sendRef.current({
@@ -326,10 +326,10 @@ export function SessionList(props: SessionListProps) {
   }, [props.projectSlug, loadingMore]);
 
   useEffect(function () {
-    var sentinel = sentinelRef.current;
+    const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
-    var observer = new IntersectionObserver(function (entries) {
+    const observer = new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting) {
         loadMore();
       }
@@ -370,7 +370,7 @@ export function SessionList(props: SessionListProps) {
 
   function handleRenameCommit() {
     if (renameId && renameValue.trim()) {
-      var originalSession = sessions.find(function (s) { return s.id === renameId; });
+      const originalSession = sessions.find(function (s) { return s.id === renameId; });
       if (originalSession && renameValue.trim() === originalSession.title) {
         setRenameId(null);
         setRenameValue("");
@@ -409,7 +409,7 @@ export function SessionList(props: SessionListProps) {
   }
 
   function handleMouseEnter(session: SessionSummary, e: React.PointerEvent | React.MouseEvent) {
-    var rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = setTimeout(function () {
       setHoveredId(session.id);
@@ -429,12 +429,12 @@ export function SessionList(props: SessionListProps) {
     setHoveredRect(null);
   }
 
-  var grouped = useMemo(function () {
-    var displayed = sessions;
+  const grouped = useMemo(function () {
+    let displayed = sessions;
     if (props.filter) {
-      var term = props.filter.toLowerCase();
+      const term = props.filter.toLowerCase();
       if (term.startsWith("*")) {
-        var idSuffix = term.slice(1);
+        const idSuffix = term.slice(1);
         displayed = displayed.filter(function (s) {
           return s.id.toLowerCase().endsWith(idSuffix) || s.id.toLowerCase().includes(idSuffix);
         });
@@ -445,8 +445,8 @@ export function SessionList(props: SessionListProps) {
       }
     }
     if (props.dateRange) {
-      var from = props.dateRange.from;
-      var to = props.dateRange.to;
+      const from = props.dateRange.from;
+      const to = props.dateRange.to;
       if (from !== undefined || to !== undefined) {
         displayed = displayed.filter(function (s) {
           if (from !== undefined && s.updatedAt < from) return false;
@@ -476,7 +476,7 @@ export function SessionList(props: SessionListProps) {
     );
   }
 
-  var activePreview = hoveredId ? (previews.get(hoveredId) || null) : null;
+  const activePreview = hoveredId ? (previews.get(hoveredId) || null) : null;
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
@@ -501,9 +501,9 @@ export function SessionList(props: SessionListProps) {
                 </div>
                 <div className="flex flex-col gap-0.5 overflow-hidden">
                   {group.sessions.map(function (session) {
-                    var isActive = props.activeSessionId === session.id;
-                    var isRenaming = renameId === session.id;
-                    var isUnread = !isActive && sessionHasUpdates(session.id);
+                    const isActive = props.activeSessionId === session.id;
+                    const isRenaming = renameId === session.id;
+                    const isUnread = !isActive && sessionHasUpdates(session.id);
                     return (
                       <button
                         key={session.id}
@@ -577,11 +577,9 @@ export function SessionList(props: SessionListProps) {
           </div>
         )}
       </div>
-
       {hoveredId && (
         <PreviewPopover preview={activePreview} anchorRect={hoveredRect} />
       )}
-
       {ctxMenu.state !== null && (
         <ContextMenu
           x={ctxMenu.state.x}

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb, ClipboardList, Activity } from "lucide-react";
+import { X, Columns2, Rows2, MessageSquare, FolderOpen, TerminalSquare, StickyNote, Calendar, Bookmark, BarChart3, Lightbulb, ClipboardList, Activity, Play, PenLine, Sparkles } from "lucide-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useSession } from "../../hooks/useSession";
 import type { Tab, TabType } from "../../stores/workspace";
@@ -13,7 +13,7 @@ interface TabBarProps {
   isActivePane?: boolean;
 }
 
-var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
+const TAB_ICONS: Record<TabType, typeof MessageSquare> = {
   chat: MessageSquare,
   files: FolderOpen,
   terminal: TerminalSquare,
@@ -27,20 +27,20 @@ var TAB_ICONS: Record<TabType, typeof MessageSquare> = {
 };
 
 export function TabBar({ paneId, isActivePane }: TabBarProps) {
-  var workspace = useWorkspace();
-  var session = useSession();
-  var ctxMenu = useContextMenu<string>();
-  var drag = useTabDrag();
-  var [dropIndex, setDropIndex] = useState<number | null>(null);
-  var tabBarRef = useRef<HTMLDivElement>(null);
+  const workspace = useWorkspace();
+  const session = useSession();
+  const ctxMenu = useContextMenu<string>();
+  const drag = useTabDrag();
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const tabBarRef = useRef<HTMLDivElement>(null);
 
-  var paneTabs: Tab[];
-  var activeTabId: string;
+  let paneTabs: Tab[];
+  let activeTabId: string;
 
   if (paneId) {
-    var pane = workspace.panes.find(function (p) { return p.id === paneId; });
+    const pane = workspace.panes.find(function (p) { return p.id === paneId; });
     if (!pane) return null;
-    var seenIds = new Set<string>();
+    const seenIds = new Set<string>();
     paneTabs = pane.tabIds.map(function (id) {
       if (seenIds.has(id)) return null;
       seenIds.add(id);
@@ -52,7 +52,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     activeTabId = workspace.activeTabId;
   }
 
-  var shouldShow = paneTabs.length > 1 || workspace.panes.length > 1;
+  const shouldShow = paneTabs.length > 1 || workspace.panes.length > 1;
 
   function getTabLabel(tab: Tab): string {
     if (tab.type === "chat" && tab.sessionId) {
@@ -70,7 +70,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     } else {
       workspace.setActiveTab(tabId);
     }
-    var tab = workspace.tabs.find(function (t) { return t.id === tabId; });
+    const tab = workspace.tabs.find(function (t) { return t.id === tabId; });
     if (tab && tab.type === "chat" && tab.sessionId && tab.projectSlug) {
       if (session.activeSessionId !== tab.sessionId) {
         session.activateSession(tab.projectSlug, tab.sessionId);
@@ -84,7 +84,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
 
   function handleContextMenu(e: React.MouseEvent, tabId: string) {
     if (workspace.panes.length >= 2) return;
-    var contextPane = paneId
+    const contextPane = paneId
       ? workspace.panes.find(function (p) { return p.id === paneId; })
       : workspace.panes[0];
     if (!contextPane || contextPane.tabIds.length < 2) return;
@@ -105,10 +105,10 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
   }
 
   function handleDragStart(e: React.DragEvent, tab: Tab) {
-    var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
+    const effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
     e.dataTransfer.setData("text/plain", tab.id);
     e.dataTransfer.effectAllowed = "move";
-    var target = e.currentTarget as HTMLElement;
+    const target = e.currentTarget as HTMLElement;
     e.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
     drag.startDrag(tab.id, effectivePaneId);
   }
@@ -117,17 +117,17 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     if (!drag.isDragging) return;
-    var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
+    const effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
     if (drag.sourcePaneId !== effectivePaneId) return;
     if (!tabBarRef.current) return;
 
-    var tabElements = tabBarRef.current.querySelectorAll("[role='tab']");
-    var clientX = e.clientX;
-    var targetIndex = paneTabs.length;
+    const tabElements = tabBarRef.current.querySelectorAll("[role='tab']");
+    const clientX = e.clientX;
+    let targetIndex = paneTabs.length;
 
-    for (var i = 0; i < tabElements.length; i++) {
-      var rect = tabElements[i].getBoundingClientRect();
-      var midX = rect.left + rect.width / 2;
+    for (let i = 0; i < tabElements.length; i++) {
+      const rect = tabElements[i].getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
       if (clientX < midX) {
         targetIndex = i;
         break;
@@ -145,7 +145,7 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
-    var effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
+    const effectivePaneId = paneId || workspace.panes[0]?.id || "pane-1";
 
     if (drag.sourcePaneId !== effectivePaneId && drag.draggedTabId && drag.sourcePaneId) {
       workspace.moveTabToPane(drag.draggedTabId, drag.sourcePaneId, effectivePaneId);
@@ -156,9 +156,9 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
 
     if (!drag.isDragging || dropIndex === null) return;
     if (drag.sourcePaneId !== effectivePaneId) return;
-    var fromIndex = paneTabs.findIndex(function (t) { return t.id === drag.draggedTabId; });
+    const fromIndex = paneTabs.findIndex(function (t) { return t.id === drag.draggedTabId; });
     if (fromIndex === -1) return;
-    var adjustedTo = dropIndex > fromIndex ? dropIndex - 1 : dropIndex;
+    const adjustedTo = dropIndex > fromIndex ? dropIndex - 1 : dropIndex;
     workspace.reorderTab(effectivePaneId, fromIndex, adjustedTo);
     setDropIndex(null);
     drag.endDrag();
@@ -189,9 +189,24 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
         onDrop={handleDrop}
       >
         {paneTabs.map(function (tab, index) {
-          var isActive = tab.id === activeTabId;
-          var Icon = TAB_ICONS[tab.type] || MessageSquare;
-          var label = getTabLabel(tab);
+          const isActive = tab.id === activeTabId;
+          let Icon = TAB_ICONS[tab.type] || MessageSquare;
+          let specIconColor = "";
+          let specBorderColor = "";
+          if (tab.sessionType === "execute") {
+            Icon = Play;
+            specIconColor = "text-success";
+            specBorderColor = "border-b-success";
+          } else if (tab.sessionType === "write-plan") {
+            Icon = PenLine;
+            specIconColor = "text-info";
+            specBorderColor = "border-b-info";
+          } else if (tab.sessionType === "brainstorm") {
+            Icon = Sparkles;
+            specIconColor = "text-warning";
+            specBorderColor = "border-b-warning";
+          }
+          const label = getTabLabel(tab);
           return (
             <React.Fragment key={tab.id}>
               {dropIndex === index && drag.sourcePaneId === (paneId || workspace.panes[0]?.id || "pane-1") && (
@@ -217,12 +232,12 @@ export function TabBar({ paneId, isActivePane }: TabBarProps) {
                 className={
                   "flex items-center gap-2 px-4 py-2.5 text-[13px] font-mono border-r border-base-content/10 transition-colors overflow-hidden flex-shrink-0 outline-none cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset max-w-[200px] " +
                   (isActive
-                    ? "bg-base-100 text-base-content border-b-2 border-b-primary"
+                    ? "bg-base-100 text-base-content border-b-2 " + (specBorderColor || "border-b-primary")
                     : "text-base-content/40 hover:text-base-content/70 hover:bg-base-300/30") +
                   (drag.draggedTabId === tab.id ? " opacity-30" : "")
                 }
               >
-                <Icon size={14} className={isActive ? "text-primary" : ""} />
+                <Icon size={14} className={specIconColor || (isActive ? "text-primary" : "")} />
                 <span className={"truncate text-[12px]" + (tab.pinned ? "" : " italic")}>{label}</span>
                 {tab.closeable && (
                   <button

@@ -26,17 +26,17 @@ async function ensureThemesDir(): Promise<void> {
 
 export async function loadAllThemes(): Promise<Array<{ name: string; author: string; variant: string; filename: string; colors: Record<string, string> }>> {
   await ensureThemesDir();
-  var dir = themesDir();
-  var files = await readdir(dir);
-  var jsonFiles = files.filter((f) => f.endsWith(".json"));
-  var themes: Array<{ name: string; author: string; variant: string; filename: string; colors: Record<string, string> }> = [];
+  const dir = themesDir();
+  const files = await readdir(dir);
+  const jsonFiles = files.filter((f) => f.endsWith(".json"));
+  const themes: Array<{ name: string; author: string; variant: string; filename: string; colors: Record<string, string> }> = [];
 
-  for (var file of jsonFiles) {
+  for (const file of jsonFiles) {
     try {
-      var raw = await readFile(join(dir, file), "utf-8");
-      var data = JSON.parse(raw);
-      var colors: Record<string, string> = {};
-      for (var key of Object.keys(data)) {
+      const raw = await readFile(join(dir, file), "utf-8");
+      const data = JSON.parse(raw);
+      const colors: Record<string, string> = {};
+      for (const key of Object.keys(data)) {
         if (key.startsWith("base0")) {
           colors[key] = data[key];
         }
@@ -58,16 +58,16 @@ export async function loadAllThemes(): Promise<Array<{ name: string; author: str
 
 registerHandler("theme", async function (clientId: string, message: ClientMessage) {
   if (message.type === "theme:list_custom") {
-    var themes = await loadAllThemes();
+    const themes = await loadAllThemes();
     sendTo(clientId, { type: "theme:custom_list", themes });
     return;
   }
 
   if (message.type === "theme:save") {
-    var saveMsg = message as ThemeSaveMessage;
-    var slug = slugify(saveMsg.name);
-    var filename = slug + ".json";
-    var themeData: Record<string, string> = {
+    const saveMsg = message as ThemeSaveMessage;
+    const slug = slugify(saveMsg.name);
+    const filename = slug + ".json";
+    const themeData: Record<string, string> = {
       name: saveMsg.name,
       author: saveMsg.author,
       variant: saveMsg.variant,
@@ -77,8 +77,8 @@ registerHandler("theme", async function (clientId: string, message: ClientMessag
     await ensureThemesDir();
     await writeFile(join(themesDir(), filename), JSON.stringify(themeData, null, 2));
 
-    var savedColors: Record<string, string> = {};
-    for (var key of Object.keys(saveMsg.colors)) {
+    const savedColors: Record<string, string> = {};
+    for (const key of Object.keys(saveMsg.colors)) {
       if (key.startsWith("base0")) {
         savedColors[key] = saveMsg.colors[key];
       }
@@ -95,15 +95,15 @@ registerHandler("theme", async function (clientId: string, message: ClientMessag
       },
     });
 
-    var allThemes = await loadAllThemes();
+    const allThemes = await loadAllThemes();
     broadcast({ type: "theme:custom_list", themes: allThemes });
     return;
   }
 
   if (message.type === "theme:delete") {
-    var deleteMsg = message as ThemeDeleteMessage;
-    var deleteSlug = slugify(deleteMsg.name);
-    var deleteFilename = deleteSlug + ".json";
+    const deleteMsg = message as ThemeDeleteMessage;
+    const deleteSlug = slugify(deleteMsg.name);
+    const deleteFilename = deleteSlug + ".json";
 
     try {
       await unlink(join(themesDir(), deleteFilename));
@@ -114,7 +114,7 @@ registerHandler("theme", async function (clientId: string, message: ClientMessag
 
     sendTo(clientId, { type: "theme:deleted", filename: deleteFilename });
 
-    var updatedThemes = await loadAllThemes();
+    const updatedThemes = await loadAllThemes();
     broadcast({ type: "theme:custom_list", themes: updatedThemes });
     return;
   }

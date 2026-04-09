@@ -15,21 +15,21 @@ interface SessionTimelineProps {
   data: TimelineDatum[];
 }
 
-var ROW_HEIGHT = 16;
-var ROW_GAP = 2;
-var ROW_STEP = ROW_HEIGHT + ROW_GAP;
-var LEFT_MARGIN = 8;
-var RIGHT_MARGIN = 8;
+const ROW_HEIGHT = 16;
+const ROW_GAP = 2;
+const ROW_STEP = ROW_HEIGHT + ROW_GAP;
+const LEFT_MARGIN = 8;
+const RIGHT_MARGIN = 8;
 
 
 function formatTime(ts: number): string {
-  var d = new Date(ts);
+  const d = new Date(ts);
   return (d.getMonth() + 1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
 export function SessionTimeline({ data }: SessionTimelineProps) {
-  var [hover, setHover] = useState<{ x: number; y: number; datum: TimelineDatum } | null>(null);
-  var colors = getChartColors();
+  const [hover, setHover] = useState<{ x: number; y: number; datum: TimelineDatum } | null>(null);
+  const colors = getChartColors();
 
   if (!data || data.length === 0) {
     return (
@@ -40,32 +40,32 @@ export function SessionTimeline({ data }: SessionTimelineProps) {
     );
   }
 
-  var projects = Array.from(new Set(data.map(function (d) { return d.project; })));
+  const projects = Array.from(new Set(data.map(function (d) { return d.project; })));
   function getColor(project: string): string {
-    var idx = projects.indexOf(project);
+    const idx = projects.indexOf(project);
     return colors.palette[idx % colors.palette.length];
   }
 
-  var minTime = Infinity;
-  var maxTime = -Infinity;
-  for (var i = 0; i < data.length; i++) {
+  let minTime = Infinity;
+  let maxTime = -Infinity;
+  for (let i = 0; i < data.length; i++) {
     if (data[i].start < minTime) minTime = data[i].start;
     if (data[i].end > maxTime) maxTime = data[i].end;
   }
-  var timeRange = maxTime - minTime || 1;
+  const timeRange = maxTime - minTime || 1;
 
-  var svgHeight = data.length * ROW_STEP;
-  var maxHeight = 300;
+  const svgHeight = data.length * ROW_STEP;
+  const maxHeight = 300;
 
   return (
     <div className="relative overflow-y-auto overflow-x-hidden" style={{ maxHeight: maxHeight }}>
       <svg width="100%" height={svgHeight} className="block" viewBox={"0 0 600 " + svgHeight} preserveAspectRatio="none">
         {data.map(function (d, idx) {
-          var barWidth = 600 - LEFT_MARGIN - RIGHT_MARGIN;
-          var x1 = LEFT_MARGIN + ((d.start - minTime) / timeRange) * barWidth;
-          var x2 = LEFT_MARGIN + ((d.end - minTime) / timeRange) * barWidth;
-          var w = Math.max(x2 - x1, 3);
-          var y = idx * ROW_STEP;
+          const barWidth = 600 - LEFT_MARGIN - RIGHT_MARGIN;
+          const x1 = LEFT_MARGIN + ((d.start - minTime) / timeRange) * barWidth;
+          const x2 = LEFT_MARGIN + ((d.end - minTime) / timeRange) * barWidth;
+          const w = Math.max(x2 - x1, 3);
+          const y = idx * ROW_STEP;
 
           return (
             <rect
@@ -86,7 +86,6 @@ export function SessionTimeline({ data }: SessionTimelineProps) {
           );
         })}
       </svg>
-
       {hover && createPortal(
         <div
           className="fixed z-[9999] rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none max-w-[200px]"

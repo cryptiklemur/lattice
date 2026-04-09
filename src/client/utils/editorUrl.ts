@@ -1,4 +1,4 @@
-export var JETBRAINS_IDS: Record<string, string> = {
+export const JETBRAINS_IDS: Record<string, string> = {
   webstorm: "web-storm",
   intellij: "idea",
   pycharm: "py-charm",
@@ -10,8 +10,8 @@ function toWindowsPath(linuxPath: string, wslDistro: string): string {
 }
 
 function buildJetBrainsUrl(ideId: string, relativePath: string, line?: number, projectName?: string): string {
-  var url = "jetbrains://" + ideId + "/navigate/reference?";
-  var params: string[] = [];
+  const url = "jetbrains://" + ideId + "/navigate/reference?";
+  const params: string[] = [];
   if (projectName) {
     params.push("project=" + encodeURIComponent(projectName));
   }
@@ -29,19 +29,19 @@ export function isJetBrainsEditor(editorType: string): boolean {
 }
 
 export function getEditorUrl(editorType: string, projectPath: string, filePath: string, line?: number, wslDistro?: string, ideProjectName?: string): string | null {
-  var fullPath = filePath === "." ? projectPath : projectPath + "/" + filePath;
-  var resolvedPath = wslDistro ? toWindowsPath(fullPath, wslDistro) : fullPath;
+  const fullPath = filePath === "." ? projectPath : projectPath + "/" + filePath;
+  const resolvedPath = wslDistro ? toWindowsPath(fullPath, wslDistro) : fullPath;
 
-  var jetbrainsId = JETBRAINS_IDS[editorType];
+  const jetbrainsId = JETBRAINS_IDS[editorType];
   if (jetbrainsId) {
-    var jbRelativePath = filePath === "." ? "" : filePath;
+    const jbRelativePath = filePath === "." ? "" : filePath;
     return buildJetBrainsUrl(jetbrainsId, jbRelativePath, line, ideProjectName || undefined);
   }
 
   if (editorType === "vscode" || editorType === "vscode-insiders" || editorType === "cursor") {
-    var scheme = editorType;
-    var isFile = filePath !== ".";
-    var lineSuffix = isFile ? ":" + (line || 1) : "";
+    const scheme = editorType;
+    const isFile = filePath !== ".";
+    const lineSuffix = isFile ? ":" + (line || 1) : "";
     if (wslDistro) {
       return scheme + "://vscode-remote/wsl+" + wslDistro + fullPath + lineSuffix;
     }

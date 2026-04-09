@@ -15,23 +15,23 @@ import {
 } from "./mcp-shared";
 
 export function GlobalMcp() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [servers, setServers] = useState<Record<string, McpServerConfig>>({});
-  var save = useSaveState();
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [servers, setServers] = useState<Record<string, McpServerConfig>>({});
+  const save = useSaveState();
 
-  var [adding, setAdding] = useState(false);
-  var [addForm, setAddForm] = useState<FormState>(emptyForm);
-  var [editingName, setEditingName] = useState<string | null>(null);
-  var [editForm, setEditForm] = useState<FormState>(emptyForm);
-  var [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [addForm, setAddForm] = useState<FormState>(emptyForm);
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<FormState>(emptyForm);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(function () {
     function handleMessage(msg: ServerMessage) {
       if (msg.type !== "settings:data") {
         return;
       }
-      var data = msg as SettingsDataMessage;
-      var mcpServers = data.mcpServers ?? {};
+      const data = msg as SettingsDataMessage;
+      const mcpServers = data.mcpServers ?? {};
 
       if (save.savingRef.current) {
         save.confirmSave();
@@ -49,12 +49,12 @@ export function GlobalMcp() {
     };
   }, []);
 
-  var entries = Object.entries(servers);
+  const entries = Object.entries(servers);
 
   function handleAddSave() {
-    var name = addForm.name.trim();
+    const name = addForm.name.trim();
     if (!name) return;
-    var next = { ...servers, [name]: formToConfig(addForm) };
+    const next = { ...servers, [name]: formToConfig(addForm) };
     setServers(next);
     setAdding(false);
     setAddForm(emptyForm());
@@ -70,9 +70,9 @@ export function GlobalMcp() {
 
   function handleEditSave() {
     if (!editingName) return;
-    var newName = editForm.name.trim();
+    const newName = editForm.name.trim();
     if (!newName) return;
-    var next = { ...servers };
+    const next = { ...servers };
     if (newName !== editingName) {
       delete next[editingName];
     }
@@ -87,7 +87,7 @@ export function GlobalMcp() {
       setConfirmDelete(name);
       return;
     }
-    var next = { ...servers };
+    const next = { ...servers };
     delete next[name];
     setServers(next);
     if (editingName === name) setEditingName(null);
@@ -103,10 +103,10 @@ export function GlobalMcp() {
     });
   }
 
-  var existingNamesForAdd = useMemo(function () {
+  const existingNamesForAdd = useMemo(function () {
     return new Set(Object.keys(servers));
   }, [servers]);
-  var existingNamesForEdit = useMemo(function () {
+  const existingNamesForEdit = useMemo(function () {
     return new Set(Object.keys(servers).filter(function (n) { return n !== editingName; }));
   }, [servers, editingName]);
 
@@ -126,7 +126,6 @@ export function GlobalMcp() {
           No global MCP servers configured.
         </div>
       )}
-
       <div className="flex flex-col gap-2 mb-3">
         {entries.map(function ([name, config]) {
           if (editingName === name) {
@@ -142,7 +141,7 @@ export function GlobalMcp() {
               />
             );
           }
-          var isConfirming = confirmDelete === name;
+          const isConfirming = confirmDelete === name;
           return (
             <div
               key={name}
@@ -188,7 +187,6 @@ export function GlobalMcp() {
           );
         })}
       </div>
-
       {adding && (
         <div className="mb-3">
           <ServerForm
@@ -201,7 +199,6 @@ export function GlobalMcp() {
           />
         </div>
       )}
-
       {!adding && (
         <button
           onClick={function () { setAdding(true); setEditingName(null); setConfirmDelete(null); }}
@@ -211,7 +208,6 @@ export function GlobalMcp() {
           Add Server
         </button>
       )}
-
       <SaveFooter dirty={save.dirty} saving={save.saving} saveState={save.saveState} onSave={handleSave} />
     </div>
   );

@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
 export function UpdatePrompt() {
-  var [showUpdate, setShowUpdate] = useState(false);
-  var [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [showUpdate, setShowUpdate] = useState(false);
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(function () {
     if (!("serviceWorker" in navigator)) return;
 
     navigator.serviceWorker.ready.then(function (reg) {
       reg.addEventListener("updatefound", function () {
-        var newWorker = reg.installing;
+        const newWorker = reg.installing;
         if (!newWorker) return;
-        var worker: ServiceWorker = newWorker;
+        const worker: ServiceWorker = newWorker;
         worker.addEventListener("statechange", function () {
           if (worker.state === "installed" && navigator.serviceWorker.controller) {
             setRegistration(reg);

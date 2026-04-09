@@ -11,8 +11,8 @@ function hexToStyle(hex: string): string {
 }
 
 export function ThemePreview(props: ThemePreviewProps) {
-  var c = props.colors;
-  var style = useMemo(function () {
+  const c = props.colors;
+  const style = useMemo(function () {
     return {
       "--preview-bg": hexToStyle(c.base00 || "1f1f28"),
       "--preview-surface": hexToStyle(c.base01 || "2a2a37"),
@@ -122,7 +122,7 @@ export function ThemePreview(props: ThemePreviewProps) {
 }
 
 export function ThemeSwatches(props: { colors: Record<string, string> }) {
-  var keys = ["base00", "base01", "base02", "base03", "base04", "base05", "base06", "base07", "base08", "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F"];
+  const keys = ["base00", "base01", "base02", "base03", "base04", "base05", "base06", "base07", "base08", "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F"];
   return (
     <div className="flex gap-0.5 rounded overflow-hidden">
       {keys.map(function (key) {

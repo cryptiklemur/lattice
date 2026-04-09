@@ -20,15 +20,15 @@ import { useSwipeDrawer } from "./hooks/useSwipeDrawer";
 import { exitSettings, getSidebarStore, handlePopState, closeDrawer, toggleDrawer } from "./stores/sidebar";
 
 function LoadingScreen() {
-  var ws = useWebSocket();
-  var [dataReceived, setDataReceived] = useState(false);
-  var [minTimeElapsed, setMinTimeElapsed] = useState(false);
-  var [initialLoadDone, setInitialLoadDone] = useState(false);
-  var canvasRef = useRef<HTMLCanvasElement>(null);
-  var frameRef = useRef<number>(0);
+  const ws = useWebSocket();
+  const [dataReceived, setDataReceived] = useState(false);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef<number>(0);
 
   useEffect(function () {
-    var timer = setTimeout(function () {
+    const timer = setTimeout(function () {
       setMinTimeElapsed(true);
     }, 600);
     return function () { clearTimeout(timer); };
@@ -43,14 +43,14 @@ function LoadingScreen() {
     return function () { ws.unsubscribe("projects:list", handleProjects); };
   }, [ws]);
 
-  var initialReady = dataReceived && minTimeElapsed;
-  var isDisconnected = initialLoadDone && ws.status !== "connected";
-  var ready = initialReady && !isDisconnected;
-  var visible = !initialReady || isDisconnected;
+  const initialReady = dataReceived && minTimeElapsed;
+  const isDisconnected = initialLoadDone && ws.status !== "connected";
+  const ready = initialReady && !isDisconnected;
+  const visible = !initialReady || isDisconnected;
 
   useEffect(function () {
     if (initialReady && !initialLoadDone) {
-      var timer = setTimeout(function () {
+      const timer = setTimeout(function () {
         setInitialLoadDone(true);
       }, 300);
       return function () { clearTimeout(timer); };
@@ -58,17 +58,17 @@ function LoadingScreen() {
   }, [initialReady, initialLoadDone]);
 
   useEffect(function () {
-    var canvas = canvasRef.current;
+    const canvas = canvasRef.current;
     if (!canvas) return;
-    var ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    var gridSize = 9;
-    var spacing = 26;
-    var dotRadius = 3.5;
-    var padding = 20;
-    var canvasSize = padding * 2 + (gridSize - 1) * spacing;
-    var dpr = window.devicePixelRatio || 1;
+    const gridSize = 9;
+    const spacing = 26;
+    const dotRadius = 3.5;
+    const padding = 20;
+    const canvasSize = padding * 2 + (gridSize - 1) * spacing;
+    const dpr = window.devicePixelRatio || 1;
 
     canvas.width = canvasSize * dpr;
     canvas.height = canvasSize * dpr;
@@ -76,28 +76,28 @@ function LoadingScreen() {
     canvas.style.height = canvasSize + "px";
     ctx.scale(dpr, dpr);
 
-    var centerX = canvasSize / 2;
-    var centerY = canvasSize / 2;
-    var logoSquare = 14;
-    var logoGap = 4;
-    var logoHalf = (logoSquare * 2 + logoGap) / 2;
-    var logoLeft = centerX - logoHalf;
-    var logoTop = centerY - logoHalf;
-    var logoRight = centerX + logoHalf;
-    var logoBottom = centerY + logoHalf;
+    const centerX = canvasSize / 2;
+    const centerY = canvasSize / 2;
+    const logoSquare = 14;
+    const logoGap = 4;
+    const logoHalf = (logoSquare * 2 + logoGap) / 2;
+    const logoLeft = centerX - logoHalf;
+    const logoTop = centerY - logoHalf;
+    const logoRight = centerX + logoHalf;
+    const logoBottom = centerY + logoHalf;
 
-    var computedPrimary = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim();
-    var primary = computedPrimary ? "oklch(" + computedPrimary + ")" : "oklch(55% 0.25 280)";
+    const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim();
+    const primary = computedPrimary ? "oklch(" + computedPrimary + ")" : "oklch(55% 0.25 280)";
 
-    var prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     type Dot = { x: number; y: number; col: number; row: number; hidden: boolean; brightness: number };
-    var dots: Dot[] = [];
-    for (var row = 0; row < gridSize; row++) {
-      for (var col = 0; col < gridSize; col++) {
-        var x = padding + col * spacing;
-        var y = padding + row * spacing;
-        var hidden = x + dotRadius > logoLeft && x - dotRadius < logoRight &&
+    const dots: Dot[] = [];
+    for (let row = 0; row < gridSize; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        const x = padding + col * spacing;
+        const y = padding + row * spacing;
+        const hidden = x + dotRadius > logoLeft && x - dotRadius < logoRight &&
                      y + dotRadius > logoTop && y - dotRadius < logoBottom;
         dots.push({ x: x, y: y, col: col, row: row, hidden: hidden, brightness: 0.08 });
       }
@@ -108,20 +108,20 @@ function LoadingScreen() {
       birth: number; duration: number;
       fadeIn: number; fadeOut: number;
     };
-    var connections: Connection[] = [];
-    var maxConnections = 10;
-    var now = performance.now();
+    let connections: Connection[] = [];
+    const maxConnections = 10;
+    let now = performance.now();
 
     function getNeighbors(idx: number): number[] {
-      var d = dots[idx];
-      var result: number[] = [];
-      for (var dr = -1; dr <= 1; dr++) {
-        for (var dc = -1; dc <= 1; dc++) {
+      const d = dots[idx];
+      const result: number[] = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
           if (dr === 0 && dc === 0) continue;
-          var nr = d.row + dr;
-          var nc = d.col + dc;
+          const nr = d.row + dr;
+          const nc = d.col + dc;
           if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
-            var ni = nr * gridSize + nc;
+            const ni = nr * gridSize + nc;
             if (!dots[ni].hidden) result.push(ni);
           }
         }
@@ -131,8 +131,8 @@ function LoadingScreen() {
 
     function drawStatic() {
       ctx!.clearRect(0, 0, canvasSize, canvasSize);
-      for (var di = 0; di < dots.length; di++) {
-        var dot = dots[di];
+      for (let di = 0; di < dots.length; di++) {
+        const dot = dots[di];
         if (dot.hidden) continue;
         ctx!.beginPath();
         ctx!.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
@@ -141,13 +141,13 @@ function LoadingScreen() {
         ctx!.fill();
         ctx!.globalAlpha = 1.0;
       }
-      var squares = [
+      const squares = [
         [logoLeft, logoTop],
         [logoLeft + logoSquare + logoGap, logoTop],
         [logoLeft, logoTop + logoSquare + logoGap],
         [logoLeft + logoSquare + logoGap, logoTop + logoSquare + logoGap],
       ];
-      for (var si = 0; si < squares.length; si++) {
+      for (let si = 0; si < squares.length; si++) {
         ctx!.fillStyle = primary;
         ctx!.globalAlpha = 0.9;
         ctx!.fillRect(squares[si][0], squares[si][1], logoSquare, logoSquare);
@@ -165,18 +165,18 @@ function LoadingScreen() {
       ctx!.clearRect(0, 0, canvasSize, canvasSize);
 
       if (connections.length < maxConnections && Math.random() < 0.04) {
-        var candidates: number[] = [];
-        for (var i = 0; i < dots.length; i++) {
+        const candidates: number[] = [];
+        for (let i = 0; i < dots.length; i++) {
           if (!dots[i].hidden) candidates.push(i);
         }
-        var attempts = 0;
+        let attempts = 0;
         while (attempts < 5 && connections.length < maxConnections) {
-          var ai = candidates[Math.floor(Math.random() * candidates.length)];
-          var neighbors = getNeighbors(ai);
+          const ai = candidates[Math.floor(Math.random() * candidates.length)];
+          const neighbors = getNeighbors(ai);
           if (neighbors.length > 0) {
-            var bi = neighbors[Math.floor(Math.random() * neighbors.length)];
-            var exists = false;
-            for (var j = 0; j < connections.length; j++) {
+            const bi = neighbors[Math.floor(Math.random() * neighbors.length)];
+            let exists = false;
+            for (let j = 0; j < connections.length; j++) {
               if ((connections[j].a === ai && connections[j].b === bi) ||
                   (connections[j].a === bi && connections[j].b === ai)) {
                 exists = true;
@@ -198,15 +198,15 @@ function LoadingScreen() {
         }
       }
 
-      var connectedSet = new Set<number>();
-      var keep: Connection[] = [];
-      for (var ci = 0; ci < connections.length; ci++) {
-        var c = connections[ci];
-        var age = now - c.birth;
+      const connectedSet = new Set<number>();
+      const keep: Connection[] = [];
+      for (let ci = 0; ci < connections.length; ci++) {
+        const c = connections[ci];
+        const age = now - c.birth;
         if (age > c.duration) continue;
         keep.push(c);
 
-        var alpha = 1.0;
+        let alpha = 1.0;
         if (age < c.fadeIn) {
           alpha = age / c.fadeIn;
         } else if (age > c.duration - c.fadeOut) {
@@ -216,8 +216,8 @@ function LoadingScreen() {
         connectedSet.add(c.a);
         connectedSet.add(c.b);
 
-        var da = dots[c.a];
-        var db = dots[c.b];
+        const da = dots[c.a];
+        const db = dots[c.b];
         ctx!.beginPath();
         ctx!.moveTo(da.x, da.y);
         ctx!.lineTo(db.x, db.y);
@@ -229,10 +229,10 @@ function LoadingScreen() {
       }
       connections = keep;
 
-      for (var di = 0; di < dots.length; di++) {
-        var dot = dots[di];
+      for (let di = 0; di < dots.length; di++) {
+        const dot = dots[di];
         if (dot.hidden) continue;
-        var targetBrightness = connectedSet.has(di) ? 0.7 : 0.08;
+        const targetBrightness = connectedSet.has(di) ? 0.7 : 0.08;
         dot.brightness += (targetBrightness - dot.brightness) * 0.08;
         ctx!.beginPath();
         ctx!.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
@@ -242,16 +242,16 @@ function LoadingScreen() {
         ctx!.globalAlpha = 1.0;
       }
 
-      var pulse = 0.4 + 0.2 * Math.sin(now / 800);
-      var squares = [
+      const pulse = 0.4 + 0.2 * Math.sin(now / 800);
+      const squares = [
         [logoLeft, logoTop],
         [logoLeft + logoSquare + logoGap, logoTop],
         [logoLeft, logoTop + logoSquare + logoGap],
         [logoLeft + logoSquare + logoGap, logoTop + logoSquare + logoGap],
       ];
-      for (var si = 0; si < squares.length; si++) {
-        var sx = squares[si][0];
-        var sy = squares[si][1];
+      for (let si = 0; si < squares.length; si++) {
+        const sx = squares[si][0];
+        const sy = squares[si][1];
         ctx!.save();
         ctx!.shadowColor = primary;
         ctx!.shadowBlur = 8 + pulse * 6;
@@ -275,12 +275,12 @@ function LoadingScreen() {
     return null;
   }
 
-  var statusText = isDisconnected
+  const statusText = isDisconnected
     ? "Reconnecting..."
     : ws.status === "connecting" ? "Connecting..."
     : "Loading projects...";
 
-  var bgClass = isDisconnected ? "bg-base-100/90" : "bg-base-100";
+  const bgClass = isDisconnected ? "bg-base-100/90" : "bg-base-100";
 
   return (
     <div
@@ -299,18 +299,18 @@ function LoadingScreen() {
 }
 
 function RemoveProjectConfirm() {
-  var sidebar = useSidebar();
-  var ws = useWebSocket();
-  var slug = sidebar.confirmRemoveSlug;
-  var removeModalRef = useRef<HTMLDivElement>(null);
-  var stableCloseRemove = useCallback(function () { sidebar.closeConfirmRemove(); }, [sidebar.closeConfirmRemove]);
+  const sidebar = useSidebar();
+  const ws = useWebSocket();
+  const slug = sidebar.confirmRemoveSlug;
+  const removeModalRef = useRef<HTMLDivElement>(null);
+  const stableCloseRemove = useCallback(function () { sidebar.closeConfirmRemove(); }, [sidebar.closeConfirmRemove]);
   useFocusTrap(removeModalRef, stableCloseRemove, !!slug);
 
   if (!slug) return null;
 
-  var projects = (function () {
+  const projects = (function () {
     try {
-      var store = getSidebarStore();
+      const store = getSidebarStore();
       return store.state;
     } catch {
       return null;
@@ -358,8 +358,8 @@ function RemoveProjectConfirm() {
 }
 
 function RootLayout() {
-  var [setupComplete, setSetupComplete] = useState<boolean | null>(null);
-  var ws = useWebSocket();
+  const [setupComplete, setSetupComplete] = useState<boolean | null>(null);
+  const ws = useWebSocket();
 
   useEffect(function () {
     function handleSettingsData(msg: { type: string; config?: { setupComplete?: boolean } }) {
@@ -375,15 +375,15 @@ function RootLayout() {
     };
   }, [ws.status]);
 
-  var sidebar = useSidebar();
-  var drawerSideRef = useRef<HTMLDivElement>(null);
+  const sidebar = useSidebar();
+  const drawerSideRef = useRef<HTMLDivElement>(null);
 
   useSwipeDrawer(drawerSideRef, sidebar.drawerOpen, toggleDrawer, closeDrawer);
 
   useEffect(function () {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        var state = getSidebarStore().state;
+        const state = getSidebarStore().state;
         if (state.sidebarMode === "settings") {
           exitSettings();
         }
@@ -469,7 +469,7 @@ class ViewErrorBoundary extends Component<{ children: ReactNode; viewName: strin
   }
   render() {
     if (this.state.hasError) {
-      var self = this;
+      const self = this;
       return (
         <div className="flex flex-col items-center justify-center h-full bg-base-100 bg-lattice-grid gap-4 p-8">
           <AlertTriangle size={32} className="text-warning/50" />
@@ -496,17 +496,17 @@ class ViewErrorBoundary extends Component<{ children: ReactNode; viewName: strin
 }
 
 function IndexPage() {
-  var sidebar = useSidebar();
-  var workspace = useWorkspace();
-  var viewName = sidebar.activeView.type;
+  const sidebar = useSidebar();
+  const workspace = useWorkspace();
+  const viewName = sidebar.activeView.type;
 
-  var activePane = workspace.panes.find(function (p) { return p.id === workspace.activePaneId; });
-  var activeTab = activePane
+  const activePane = workspace.panes.find(function (p) { return p.id === workspace.activePaneId; });
+  const activeTab = activePane
     ? workspace.tabs.find(function (t) { return t.id === activePane!.activeTabId; })
     : null;
-  var hasWorkspaceTab = activeTab && activeTab.id !== "chat";
+  const hasWorkspaceTab = activeTab && activeTab.id !== "chat";
 
-  var content;
+  let content;
   if (viewName === "settings") {
     content = <SettingsView />;
   } else if (viewName === "project-settings") {
@@ -529,49 +529,49 @@ function IndexPage() {
   );
 }
 
-var rootRoute = createRootRoute({
+const rootRoute = createRootRoute({
   component: RootLayout,
 });
 
-var indexRoute = createRoute({
+const indexRoute = createRoute({
   getParentRoute: function () { return rootRoute; },
   path: "/",
   component: IndexPage,
 });
 
-var projectRoute = createRoute({
+const projectRoute = createRoute({
   getParentRoute: function () { return rootRoute; },
   path: "/$projectSlug",
   component: IndexPage,
 });
 
-var settingsRoute = createRoute({
+const settingsRoute = createRoute({
   getParentRoute: function () { return rootRoute; },
   path: "/settings/$section",
   component: IndexPage,
 });
 
-var settingsIndexRoute = createRoute({
+const settingsIndexRoute = createRoute({
   getParentRoute: function () { return rootRoute; },
   path: "/settings",
   component: IndexPage,
 });
 
-var projectSettingsRoute = createRoute({
+const projectSettingsRoute = createRoute({
   getParentRoute: function () { return rootRoute; },
   path: "/$projectSlug/settings/$section",
   component: IndexPage,
 });
 
-var projectSettingsIndexRoute = createRoute({
+const projectSettingsIndexRoute = createRoute({
   getParentRoute: function () { return rootRoute; },
   path: "/$projectSlug/settings",
   component: IndexPage,
 });
 
-var routeTree = rootRoute.addChildren([indexRoute, settingsIndexRoute, settingsRoute, projectSettingsIndexRoute, projectSettingsRoute, projectRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, settingsIndexRoute, settingsRoute, projectSettingsIndexRoute, projectSettingsRoute, projectRoute]);
 
-export var router = createRouter({ routeTree });
+export const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
   interface Register {

@@ -10,7 +10,7 @@ interface StatusBarProps {
 }
 
 export function StatusBar(props: StatusBarProps) {
-  var active = props.status !== null;
+  const active = props.status !== null;
 
   return (
     <div

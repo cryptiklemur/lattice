@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { loadConfig } from "../config";
 
-var activeProjectByClient = new Map<string, string>();
+const activeProjectByClient = new Map<string, string>();
 
 export function setActiveProject(clientId: string, projectSlug: string): void {
   activeProjectByClient.set(clientId, projectSlug);
@@ -26,8 +26,8 @@ export function getActiveProjectForClient(clientId: string): string | undefined 
 
 registerHandler("fs", async function (clientId: string, message: ClientMessage) {
   if (message.type === "fs:list") {
-    var listMsg = message as FsListMessage;
-    var projectSlug = activeProjectByClient.get(clientId) || listMsg.projectSlug;
+    const listMsg = message as FsListMessage;
+    let projectSlug = activeProjectByClient.get(clientId) || listMsg.projectSlug;
     if (listMsg.projectSlug) {
       setActiveProject(clientId, listMsg.projectSlug);
       projectSlug = listMsg.projectSlug;
@@ -37,20 +37,20 @@ registerHandler("fs", async function (clientId: string, message: ClientMessage) 
       return;
     }
 
-    var project = getProjectBySlug(projectSlug);
+    const project = getProjectBySlug(projectSlug);
     if (!project) {
       sendTo(clientId, { type: "chat:error", message: "Project not found: " + projectSlug });
       return;
     }
 
-    var entries = await listDirectory(project.path, listMsg.path);
+    const entries = await listDirectory(project.path, listMsg.path);
     sendTo(clientId, { type: "fs:list_result", path: listMsg.path, entries });
     return;
   }
 
   if (message.type === "fs:read") {
-    var readMsg = message as FsReadMessage;
-    var projectSlugRead = activeProjectByClient.get(clientId) || readMsg.projectSlug;
+    const readMsg = message as FsReadMessage;
+    let projectSlugRead = activeProjectByClient.get(clientId) || readMsg.projectSlug;
     if (readMsg.projectSlug) {
       setActiveProject(clientId, readMsg.projectSlug);
       projectSlugRead = readMsg.projectSlug;
@@ -60,13 +60,13 @@ registerHandler("fs", async function (clientId: string, message: ClientMessage) 
       return;
     }
 
-    var projectRead = getProjectBySlug(projectSlugRead);
+    const projectRead = getProjectBySlug(projectSlugRead);
     if (!projectRead) {
       sendTo(clientId, { type: "chat:error", message: "Project not found: " + projectSlugRead });
       return;
     }
 
-    var content = await readFile(projectRead.path, readMsg.path);
+    const content = await readFile(projectRead.path, readMsg.path);
     if (content === null) {
       sendTo(clientId, { type: "chat:error", message: "Cannot read file: " + readMsg.path });
       return;
@@ -77,20 +77,20 @@ registerHandler("fs", async function (clientId: string, message: ClientMessage) 
   }
 
   if (message.type === "fs:write") {
-    var writeMsg = message as FsWriteMessage;
-    var projectSlugWrite = activeProjectByClient.get(clientId);
+    const writeMsg = message as FsWriteMessage;
+    const projectSlugWrite = activeProjectByClient.get(clientId);
     if (!projectSlugWrite) {
       sendTo(clientId, { type: "chat:error", message: "No active project for fs:write" });
       return;
     }
 
-    var projectWrite = getProjectBySlug(projectSlugWrite);
+    const projectWrite = getProjectBySlug(projectSlugWrite);
     if (!projectWrite) {
       sendTo(clientId, { type: "chat:error", message: "Project not found: " + projectSlugWrite });
       return;
     }
 
-    var ok = await writeFile(projectWrite.path, writeMsg.path, writeMsg.content);
+    const ok = await writeFile(projectWrite.path, writeMsg.path, writeMsg.content);
     if (!ok) {
       sendTo(clientId, { type: "chat:error", message: "Cannot write file: " + writeMsg.path });
       return;
@@ -109,44 +109,44 @@ function resolvePath(path: string): string {
 
 async function detectProjectName(dirPath: string): Promise<string | null> {
   try {
-    var pkgPath = join(dirPath, "package.json");
-    var pkg = JSON.parse(await fsReadFile(pkgPath, "utf-8"));
+    const pkgPath = join(dirPath, "package.json");
+    const pkg = JSON.parse(await fsReadFile(pkgPath, "utf-8"));
     if (pkg.name) return pkg.name;
   } catch {}
 
   try {
-    var cargoPath = join(dirPath, "Cargo.toml");
-    var cargo = await fsReadFile(cargoPath, "utf-8");
-    var cargoMatch = cargo.match(/\[package\][\s\S]*?name\s*=\s*"([^"]+)"/);
+    const cargoPath = join(dirPath, "Cargo.toml");
+    const cargo = await fsReadFile(cargoPath, "utf-8");
+    const cargoMatch = cargo.match(/\[package\][\s\S]*?name\s*=\s*"([^"]+)"/);
     if (cargoMatch) return cargoMatch[1];
   } catch {}
 
   try {
-    var composerPath = join(dirPath, "composer.json");
-    var composer = JSON.parse(await fsReadFile(composerPath, "utf-8"));
+    const composerPath = join(dirPath, "composer.json");
+    const composer = JSON.parse(await fsReadFile(composerPath, "utf-8"));
     if (composer.name) return composer.name;
   } catch {}
 
   try {
-    var pyprojectPath = join(dirPath, "pyproject.toml");
-    var pyproject = await fsReadFile(pyprojectPath, "utf-8");
-    var pyMatch = pyproject.match(/\[project\][\s\S]*?name\s*=\s*"([^"]+)"/);
+    const pyprojectPath = join(dirPath, "pyproject.toml");
+    const pyproject = await fsReadFile(pyprojectPath, "utf-8");
+    const pyMatch = pyproject.match(/\[project\][\s\S]*?name\s*=\s*"([^"]+)"/);
     if (pyMatch) return pyMatch[1];
   } catch {}
 
   try {
-    var goModPath = join(dirPath, "go.mod");
-    var goMod = await fsReadFile(goModPath, "utf-8");
-    var goMatch = goMod.match(/^module\s+(\S+)/m);
+    const goModPath = join(dirPath, "go.mod");
+    const goMod = await fsReadFile(goModPath, "utf-8");
+    const goMatch = goMod.match(/^module\s+(\S+)/m);
     if (goMatch) {
-      var parts = goMatch[1].split("/");
+      const parts = goMatch[1].split("/");
       return parts[parts.length - 1];
     }
   } catch {}
 
   try {
-    var entries = await readdir(dirPath);
-    for (var i = 0; i < entries.length; i++) {
+    const entries = await readdir(dirPath);
+    for (let i = 0; i < entries.length; i++) {
       if (entries[i].endsWith(".sln") || entries[i].endsWith(".csproj")) {
         return entries[i].replace(/\.[^.]+$/, "");
       }
@@ -158,12 +158,12 @@ async function detectProjectName(dirPath: string): Promise<string | null> {
 
 registerHandler("browse", async function (clientId: string, message: ClientMessage) {
   if (message.type === "browse:list") {
-    var browseMsg = message as { type: "browse:list"; path: string };
-    var resolvedPath = resolvePath(browseMsg.path);
-    var home = homedir();
+    const browseMsg = message as { type: "browse:list"; path: string };
+    const resolvedPath = resolvePath(browseMsg.path);
+    const home = homedir();
 
     try {
-      var pathStat = await stat(resolvedPath);
+      const pathStat = await stat(resolvedPath);
       if (!pathStat.isDirectory()) {
         sendTo(clientId, { type: "browse:list_result", path: resolvedPath, homedir: home, entries: [] });
         return;
@@ -174,16 +174,16 @@ registerHandler("browse", async function (clientId: string, message: ClientMessa
     }
 
     try {
-      var dirEntries = await readdir(resolvedPath, { withFileTypes: true });
-      var results: Array<{ name: string; path: string; hasClaudeMd: boolean; projectName: string | null }> = [];
+      const dirEntries = await readdir(resolvedPath, { withFileTypes: true });
+      const results: Array<{ name: string; path: string; hasClaudeMd: boolean; projectName: string | null }> = [];
 
-      for (var i = 0; i < dirEntries.length; i++) {
-        var entry = dirEntries[i];
+      for (let i = 0; i < dirEntries.length; i++) {
+        const entry = dirEntries[i];
         if (!entry.isDirectory()) continue;
 
-        var entryPath = join(resolvedPath, entry.name);
-        var hasClaudeMd = existsSync(join(entryPath, "CLAUDE.md"));
-        var projectName = await detectProjectName(entryPath);
+        const entryPath = join(resolvedPath, entry.name);
+        const hasClaudeMd = existsSync(join(entryPath, "CLAUDE.md"));
+        const projectName = await detectProjectName(entryPath);
 
         results.push({
           name: entry.name,
@@ -203,27 +203,27 @@ registerHandler("browse", async function (clientId: string, message: ClientMessa
   }
 
   if (message.type === "browse:suggestions") {
-    var claudeProjectsDir = join(homedir(), ".claude", "projects");
-    var config = loadConfig();
-    var existingPaths = new Set(config.projects.map(function (p: typeof config.projects[number]) { return p.path; }));
-    var suggestions: Array<{ path: string; name: string; hasClaudeMd: boolean }> = [];
+    const claudeProjectsDir = join(homedir(), ".claude", "projects");
+    const config = loadConfig();
+    const existingPaths = new Set(config.projects.map(function (p: typeof config.projects[number]) { return p.path; }));
+    const suggestions: Array<{ path: string; name: string; hasClaudeMd: boolean }> = [];
 
     try {
-      var hashDirs = await readdir(claudeProjectsDir);
-      for (var i = 0; i < hashDirs.length; i++) {
-        var hashDir = hashDirs[i];
-        var candidatePath = "/" + hashDir.slice(1).replace(/-/g, "/");
+      const hashDirs = await readdir(claudeProjectsDir);
+      for (let i = 0; i < hashDirs.length; i++) {
+        const hashDir = hashDirs[i];
+        const candidatePath = "/" + hashDir.slice(1).replace(/-/g, "/");
 
         if (!existsSync(candidatePath)) continue;
         if (existingPaths.has(candidatePath)) continue;
 
         try {
-          var candidateStat = await stat(candidatePath);
+          const candidateStat = await stat(candidatePath);
           if (!candidateStat.isDirectory()) continue;
         } catch { continue; }
 
-        var hasClaudeMd = existsSync(join(candidatePath, "CLAUDE.md"));
-        var name = candidatePath.split("/").pop() || hashDir;
+        const hasClaudeMd = existsSync(join(candidatePath, "CLAUDE.md"));
+        const name = candidatePath.split("/").pop() || hashDir;
 
         suggestions.push({
           path: candidatePath,

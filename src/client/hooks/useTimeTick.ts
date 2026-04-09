@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 
-var globalTick = 0;
-var listeners = new Set<() => void>();
-var interval: ReturnType<typeof setInterval> | null = null;
+let globalTick = 0;
+const listeners = new Set<() => void>();
+let interval: ReturnType<typeof setInterval> | null = null;
 
 function startTicker() {
   if (interval) return;
@@ -21,7 +21,7 @@ function stopTicker() {
 }
 
 export function useTimeTick(): number {
-  var [tick, setTick] = useState(globalTick);
+  const [tick, setTick] = useState(globalTick);
   useEffect(function () {
     function update() { setTick(globalTick); }
     listeners.add(update);

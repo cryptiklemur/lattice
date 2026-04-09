@@ -19,7 +19,7 @@ function renderPreview(value?: ProjectIcon) {
   }
 
   if (value.type === "lucide") {
-    var LucideIcon = icons[value.name as keyof typeof icons];
+    const LucideIcon = icons[value.name as keyof typeof icons];
     if (!LucideIcon) return null;
     return (
       <div className="w-8 h-8 rounded-lg bg-base-300 border border-base-content/15 flex items-center justify-center text-base-content">
@@ -49,33 +49,33 @@ function renderPreview(value?: ProjectIcon) {
 }
 
 export function IconPicker({ value, onChange }: IconPickerProps) {
-  var normalizedValue = value && (value as { type: string }).type === "emoji" ? undefined : value;
-  var [tab, setTab] = useState<Tab>(normalizedValue?.type === "text" ? "text" : normalizedValue?.type === "image" ? "upload" : "lucide");
-  var [search, setSearch] = useState("");
-  var [textValue, setTextValue] = useState(normalizedValue?.type === "text" ? normalizedValue.value : "");
-  var [textColor, setTextColor] = useState(normalizedValue?.type === "text" ? (normalizedValue.color || "#ffffff") : "#ffffff");
+  const normalizedValue = value && (value as { type: string }).type === "emoji" ? undefined : value;
+  const [tab, setTab] = useState<Tab>(normalizedValue?.type === "text" ? "text" : normalizedValue?.type === "image" ? "upload" : "lucide");
+  const [search, setSearch] = useState("");
+  const [textValue, setTextValue] = useState(normalizedValue?.type === "text" ? normalizedValue.value : "");
+  const [textColor, setTextColor] = useState(normalizedValue?.type === "text" ? (normalizedValue.color || "#ffffff") : "#ffffff");
 
-  var iconNames = useMemo(function () {
-    var allNames = Object.keys(icons);
+  const iconNames = useMemo(function () {
+    const allNames = Object.keys(icons);
     if (!search.trim()) return allNames.slice(0, 60);
-    var term = search.toLowerCase();
+    const term = search.toLowerCase();
     return allNames.filter(function (name) {
       return name.toLowerCase().includes(term);
     }).slice(0, 60);
   }, [search]);
 
-  var tabs: { id: Tab; label: string }[] = [
+  const tabs: { id: Tab; label: string }[] = [
     { id: "lucide", label: "Lucide" },
     { id: "text", label: "Text" },
     { id: "upload", label: "Upload" },
   ];
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    var file = e.target.files?.[0];
+    const file = e.target.files?.[0];
     if (!file) return;
-    var reader = new FileReader();
+    const reader = new FileReader();
     reader.onload = function (ev) {
-      var dataUrl = ev.target?.result as string;
+      const dataUrl = ev.target?.result as string;
       onChange({ type: "image", path: dataUrl });
     };
     reader.readAsDataURL(file);
@@ -87,7 +87,6 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
         {renderPreview(normalizedValue)}
         <span className="text-[11px] text-base-content/40">Current icon</span>
       </div>
-
       <div className="flex gap-1">
         {tabs.map(function (t) {
           return (
@@ -102,7 +101,6 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           );
         })}
       </div>
-
       {tab === "lucide" && (
         <div className="space-y-2">
           <input
@@ -115,8 +113,8 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           />
           <div className="grid grid-cols-10 gap-1 max-h-48 overflow-y-auto">
             {iconNames.map(function (name) {
-              var Icon = icons[name as keyof typeof icons];
-              var selected = normalizedValue?.type === "lucide" && normalizedValue.name === name;
+              const Icon = icons[name as keyof typeof icons];
+              const selected = normalizedValue?.type === "lucide" && normalizedValue.name === name;
               return (
                 <button
                   key={name}
@@ -135,7 +133,6 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           </div>
         </div>
       )}
-
       {tab === "text" && (
         <div className="flex gap-2">
           <input
@@ -165,7 +162,6 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           />
         </div>
       )}
-
       {tab === "upload" && (
         <div className="space-y-2">
           <input

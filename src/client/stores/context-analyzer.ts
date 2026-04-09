@@ -74,16 +74,16 @@ export interface ContextAnalyzerState {
   selectedSessionId: string | null;
 }
 
-var MAX_DELTAS = 500;
-var MAX_TOOL_EVENTS = 500;
-var MAX_ANOMALIES = 200;
+const MAX_DELTAS = 500;
+const MAX_TOOL_EVENTS = 500;
+const MAX_ANOMALIES = 200;
 
 function emptyAnalysis(): SessionAnalysis {
   return { deltas: [], anomalies: [], baselines: {}, burnRate: null, toolEvents: [] };
 }
 
 function cappedAppend<T>(arr: T[], item: T, max: number): T[] {
-  var next = [...arr, item];
+  const next = [...arr, item];
   return next.length > max ? next.slice(next.length - max) : next;
 }
 
@@ -109,7 +109,7 @@ function updateSessionAnalysis(state: ContextAnalyzerState, sessionId: string | 
   if (!sessionId) {
     return { ...state, activeSession: updater(state.activeSession) };
   }
-  var existing = state.sessionAnalysis[sessionId] || emptyAnalysis();
+  const existing = state.sessionAnalysis[sessionId] || emptyAnalysis();
   return {
     ...state,
     sessionAnalysis: { ...state.sessionAnalysis, [sessionId]: updater(existing) },
@@ -134,7 +134,7 @@ export function addAnomaly(anomaly: Omit<AnomalyEntry, "dismissed">, hookSession
 
 export function dismissAnomaly(toolId: string, timestamp: number): void {
   contextAnalyzerStore.setState(function (s) {
-    var sid = s.selectedSessionId;
+    const sid = s.selectedSessionId;
     return updateSessionAnalysis(s, sid, function (a) {
       return {
         ...a,
@@ -167,11 +167,11 @@ export function updateBurnRate(burnRate: BurnRate, hookSessionId?: string): void
 
 export function addToolEvent(event: ToolEventEntry, hookSessionId?: string, projectName?: string | null, projectSlug?: string | null): void {
   contextAnalyzerStore.setState(function (s) {
-    var updated = updateSessionAnalysis(s, hookSessionId || null, function (a) {
+    let updated = updateSessionAnalysis(s, hookSessionId || null, function (a) {
       return { ...a, toolEvents: cappedAppend(a.toolEvents, event, MAX_TOOL_EVENTS) };
     });
     if (hookSessionId && (projectName || projectSlug)) {
-      var existing = updated.externalSessions[hookSessionId];
+      const existing = updated.externalSessions[hookSessionId];
       if (existing && !existing.projectName) {
         updated = {
           ...updated,
@@ -191,8 +191,8 @@ export function setHooksStatus(installed: boolean, message?: string): void {
 
 export function updateExternalSession(snapshot: ExternalSessionSnapshot): void {
   contextAnalyzerStore.setState(function (s) {
-    var existing = s.externalSessions[snapshot.hookSessionId];
-    var merged = existing
+    const existing = s.externalSessions[snapshot.hookSessionId];
+    const merged = existing
       ? { ...snapshot, projectName: snapshot.projectName || existing.projectName, projectSlug: snapshot.projectSlug || existing.projectSlug }
       : snapshot;
     return {
@@ -204,7 +204,7 @@ export function updateExternalSession(snapshot: ExternalSessionSnapshot): void {
 
 export function markExternalSessionEnded(hookSessionId: string): void {
   contextAnalyzerStore.setState(function (s) {
-    var session = s.externalSessions[hookSessionId];
+    const session = s.externalSessions[hookSessionId];
     if (!session) return s;
     return {
       ...s,

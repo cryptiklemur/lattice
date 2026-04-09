@@ -15,42 +15,42 @@ import type {
 } from "#shared";
 
 export function GlobalPlugins() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var [plugins, setPlugins] = useState<PluginInfo[]>([]);
-  var [marketplaces, setMarketplaces] = useState<PluginMarketplaceInfo[]>([]);
-  var [loaded, setLoaded] = useState(false);
-  var [detailPlugin, setDetailPlugin] = useState<PluginDetails | null>(null);
-  var [searchQuery, setSearchQuery] = useState("");
-  var [searchResults, setSearchResults] = useState<MarketplacePluginEntry[]>([]);
-  var [searching, setSearching] = useState(false);
-  var [hasSearched, setHasSearched] = useState(false);
-  var [installingKey, setInstallingKey] = useState<string | null>(null);
-  var [uninstallingKey, setUninstallingKey] = useState<string | null>(null);
-  var [updatingKey, setUpdatingKey] = useState<string | null>(null);
-  var [confirmUninstall, setConfirmUninstall] = useState<string | null>(null);
-  var [actionMessage, setActionMessage] = useState<{ text: string; success: boolean } | null>(null);
-  var [pluginErrors, setPluginErrors] = useState<PluginError[]>([]);
-  var [discoverPlugins, setDiscoverPlugins] = useState<MarketplacePluginEntry[]>([]);
-  var [discoverLoaded, setDiscoverLoaded] = useState(false);
-  var searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const [plugins, setPlugins] = useState<PluginInfo[]>([]);
+  const [marketplaces, setMarketplaces] = useState<PluginMarketplaceInfo[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [detailPlugin, setDetailPlugin] = useState<PluginDetails | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<MarketplacePluginEntry[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [installingKey, setInstallingKey] = useState<string | null>(null);
+  const [uninstallingKey, setUninstallingKey] = useState<string | null>(null);
+  const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+  const [confirmUninstall, setConfirmUninstall] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<{ text: string; success: boolean } | null>(null);
+  const [pluginErrors, setPluginErrors] = useState<PluginError[]>([]);
+  const [discoverPlugins, setDiscoverPlugins] = useState<MarketplacePluginEntry[]>([]);
+  const [discoverLoaded, setDiscoverLoaded] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
     function handleListResult(msg: ServerMessage) {
       if (msg.type !== "plugin:list_result") return;
-      var data = msg as { type: "plugin:list_result"; plugins: PluginInfo[] };
+      const data = msg as { type: "plugin:list_result"; plugins: PluginInfo[] };
       setPlugins(data.plugins);
       setLoaded(true);
     }
 
     function handleMarketplacesResult(msg: ServerMessage) {
       if (msg.type !== "plugin:marketplaces_result") return;
-      var data = msg as { type: "plugin:marketplaces_result"; marketplaces: PluginMarketplaceInfo[] };
+      const data = msg as { type: "plugin:marketplaces_result"; marketplaces: PluginMarketplaceInfo[] };
       setMarketplaces(data.marketplaces);
     }
 
     function handleSearchResult(msg: ServerMessage) {
       if (msg.type !== "plugin:search_result") return;
-      var data = msg as { type: "plugin:search_result"; query: string; plugins: MarketplacePluginEntry[]; count: number };
+      const data = msg as { type: "plugin:search_result"; query: string; plugins: MarketplacePluginEntry[]; count: number };
       setSearchResults(data.plugins);
       setSearching(false);
       setHasSearched(true);
@@ -58,40 +58,40 @@ export function GlobalPlugins() {
 
     function handleInstallResult(msg: ServerMessage) {
       if (msg.type !== "plugin:install_result") return;
-      var data = msg as { type: "plugin:install_result"; success: boolean; message?: string };
+      const data = msg as { type: "plugin:install_result"; success: boolean; message?: string };
       setInstallingKey(null);
       showAction(data.message ?? (data.success ? "Installed" : "Install failed"), data.success);
     }
 
     function handleUninstallResult(msg: ServerMessage) {
       if (msg.type !== "plugin:uninstall_result") return;
-      var data = msg as { type: "plugin:uninstall_result"; success: boolean; message?: string };
+      const data = msg as { type: "plugin:uninstall_result"; success: boolean; message?: string };
       setUninstallingKey(null);
       showAction(data.message ?? (data.success ? "Uninstalled" : "Uninstall failed"), data.success);
     }
 
     function handleUpdateResult(msg: ServerMessage) {
       if (msg.type !== "plugin:update_result") return;
-      var data = msg as { type: "plugin:update_result"; success: boolean; message?: string };
+      const data = msg as { type: "plugin:update_result"; success: boolean; message?: string };
       setUpdatingKey(null);
       showAction(data.message ?? (data.success ? "Updated" : "Update failed"), data.success);
     }
 
     function handleDetailsResult(msg: ServerMessage) {
       if (msg.type !== "plugin:details_result") return;
-      var data = msg as { type: "plugin:details_result"; plugin: PluginDetails | null };
+      const data = msg as { type: "plugin:details_result"; plugin: PluginDetails | null };
       setDetailPlugin(data.plugin);
     }
 
     function handleErrorsResult(msg: ServerMessage) {
       if (msg.type !== "plugin:errors_result") return;
-      var data = msg as { type: "plugin:errors_result"; errors: PluginError[] };
+      const data = msg as { type: "plugin:errors_result"; errors: PluginError[] };
       setPluginErrors(data.errors);
     }
 
     function handleDiscoverResult(msg: ServerMessage) {
       if (msg.type !== "plugin:discover_result") return;
-      var data = msg as { type: "plugin:discover_result"; plugins: MarketplacePluginEntry[] };
+      const data = msg as { type: "plugin:discover_result"; plugins: MarketplacePluginEntry[] };
       setDiscoverPlugins(data.plugins);
       setDiscoverLoaded(true);
     }
@@ -134,7 +134,7 @@ export function GlobalPlugins() {
   }
 
   function handleInstall(name: string, marketplace: string) {
-    var key = name + "@" + marketplace;
+    const key = name + "@" + marketplace;
     setInstallingKey(key);
     send({ type: "plugin:install", name: name, marketplace: marketplace } as any);
   }
@@ -150,7 +150,7 @@ export function GlobalPlugins() {
     send({ type: "plugin:update", name: plugin.name, marketplace: plugin.marketplace } as any);
   }
 
-  var handleSearchInput = useCallback(function (value: string) {
+  const handleSearchInput = useCallback(function (value: string) {
     setSearchQuery(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     if (!value.trim()) {
@@ -165,7 +165,7 @@ export function GlobalPlugins() {
     }, 300);
   }, [send]);
 
-  var installedKeys = useMemo(function () {
+  const installedKeys = useMemo(function () {
     return new Set(plugins.map(function (p) { return p.key; }));
   }, [plugins]);
 
@@ -410,19 +410,17 @@ function MarketplaceSearch({
           <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary animate-spin" />
         )}
       </div>
-
       {hasSearched && results.length === 0 && !searching && (
         <div className="py-4 text-center text-[13px] text-base-content/30">
           No plugins found for "{query}"
         </div>
       )}
-
       {results.length > 0 && (
         <div className="space-y-2">
           {results.map(function (entry) {
-            var key = entry.name + "@" + entry.marketplace;
-            var isInstalled = installedKeys.has(key);
-            var isInstalling = installingKey === key;
+            const key = entry.name + "@" + entry.marketplace;
+            const isInstalled = installedKeys.has(key);
+            const isInstalling = installingKey === key;
             return (
               <div
                 key={key}
@@ -699,13 +697,13 @@ function DiscoverSection({
   installedKeys: Set<string>;
   onInstall: (name: string, marketplace: string) => void;
 }) {
-  var [showAll, setShowAll] = useState(false);
-  var INITIAL_COUNT = 12;
+  const [showAll, setShowAll] = useState(false);
+  const INITIAL_COUNT = 12;
 
   if (!loaded) return null;
   if (plugins.length === 0) return null;
 
-  var visible = showAll ? plugins : plugins.slice(0, INITIAL_COUNT);
+  const visible = showAll ? plugins : plugins.slice(0, INITIAL_COUNT);
 
   return (
     <div>
@@ -716,9 +714,9 @@ function DiscoverSection({
       </div>
       <div className="space-y-2">
         {visible.map(function (entry) {
-          var key = entry.name + "@" + entry.marketplace;
-          var isInstalled = installedKeys.has(key);
-          var isInstalling = installingKey === key;
+          const key = entry.name + "@" + entry.marketplace;
+          const isInstalled = installedKeys.has(key);
+          const isInstalling = installingKey === key;
           return (
             <div
               key={key}
@@ -802,7 +800,7 @@ function formatInstalls(count: number): string {
 
 function formatDate(iso: string): string {
   try {
-    var d = new Date(iso);
+    const d = new Date(iso);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   } catch {
     return iso;

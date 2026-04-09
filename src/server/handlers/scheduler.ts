@@ -16,8 +16,8 @@ registerHandler("scheduler", function (clientId: string, message: ClientMessage)
   }
 
   if (message.type === "scheduler:create") {
-    var createMsg = message as SchedulerCreateMessage;
-    var task = createTask({
+    const createMsg = message as SchedulerCreateMessage;
+    const task = createTask({
       name: createMsg.name,
       prompt: createMsg.prompt,
       cron: createMsg.cron,
@@ -33,22 +33,22 @@ registerHandler("scheduler", function (clientId: string, message: ClientMessage)
   }
 
   if (message.type === "scheduler:delete") {
-    var deleteMsg = message as SchedulerDeleteMessage;
+    const deleteMsg = message as SchedulerDeleteMessage;
     deleteTask(deleteMsg.taskId);
     sendTo(clientId, { type: "scheduler:tasks", tasks: listTasks() });
     return;
   }
 
   if (message.type === "scheduler:toggle") {
-    var toggleMsg = message as SchedulerToggleMessage;
+    const toggleMsg = message as SchedulerToggleMessage;
     toggleTask(toggleMsg.taskId);
     sendTo(clientId, { type: "scheduler:tasks", tasks: listTasks() });
     return;
   }
 
   if (message.type === "scheduler:update") {
-    var updateMsg = message as SchedulerUpdateMessage;
-    var updated = updateTask(updateMsg.taskId, {
+    const updateMsg = message as SchedulerUpdateMessage;
+    const updated = updateTask(updateMsg.taskId, {
       name: updateMsg.name,
       prompt: updateMsg.prompt,
       cron: updateMsg.cron,

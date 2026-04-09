@@ -65,7 +65,7 @@ export interface ThemeEntry {
   theme: Theme;
 }
 
-export var themes: ThemeEntry[] = [
+export const themes: ThemeEntry[] = [
   { id: "alabaster", theme: alabaster as Theme },
   { id: "amoled", theme: amoled as Theme },
   { id: "ayu-light", theme: ayuLight as Theme },

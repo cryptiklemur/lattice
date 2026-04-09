@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
-var IDLE_TIMEOUT = 60 * 1000;
+const IDLE_TIMEOUT = 60 * 1000;
 
 export function useIdleDetection(): boolean {
-  var [isIdle, setIsIdle] = useState(false);
-  var timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isIdle, setIsIdle] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
-    var lastReset = 0;
+    let lastReset = 0;
 
     function resetTimer() {
-      var now = Date.now();
+      const now = Date.now();
       if (now - lastReset < 500) return;
       lastReset = now;
 
@@ -29,7 +29,7 @@ export function useIdleDetection(): boolean {
       }
     }
 
-    var events = ["mousemove", "keydown", "mousedown", "touchstart", "scroll"];
+    const events = ["mousemove", "keydown", "mousedown", "touchstart", "scroll"];
     events.forEach(function (event) {
       document.addEventListener(event, resetTimer, { passive: true });
     });

@@ -13,18 +13,18 @@ interface UserIslandProps {
 }
 
 export function UserIsland(props: UserIslandProps) {
-  var { mode, toggleMode } = useTheme();
-  var sidebar = useSidebar();
-  var { canInstall, install } = useInstallPrompt();
-  var ws = useWebSocket();
-  var [updateAvailable, setUpdateAvailable] = useState(false);
-  var [latestVersion, setLatestVersion] = useState<string | null>(null);
-  var [currentVersion, setCurrentVersion] = useState(pkg.version);
+  const { mode, toggleMode } = useTheme();
+  const sidebar = useSidebar();
+  const { canInstall, install } = useInstallPrompt();
+  const ws = useWebSocket();
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [currentVersion, setCurrentVersion] = useState(pkg.version);
 
   useEffect(function () {
     function handleUpdateStatus(msg: ServerMessage) {
       if (msg.type !== "update:status") return;
-      var data = msg as { type: string; updateAvailable: boolean; latestVersion: string | null; currentVersion: string };
+      const data = msg as { type: string; updateAvailable: boolean; latestVersion: string | null; currentVersion: string };
       setUpdateAvailable(data.updateAvailable);
       setLatestVersion(data.latestVersion);
       if (data.currentVersion && data.currentVersion !== "0.0.0") {
@@ -36,7 +36,7 @@ export function UserIsland(props: UserIslandProps) {
     return function () { ws.unsubscribe("update:status", handleUpdateStatus); };
   }, []);
 
-  var initial = props.nodeName.charAt(0).toUpperCase();
+  const initial = props.nodeName.charAt(0).toUpperCase();
 
   return (
     <div

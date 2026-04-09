@@ -17,8 +17,8 @@ interface PushSubscription {
   };
 }
 
-var vapidKeys: VapidKeys | null = null;
-var subscriptions = new Map<string, PushSubscription>();
+let vapidKeys: VapidKeys | null = null;
+const subscriptions = new Map<string, PushSubscription>();
 
 function getVapidPath(): string {
   return join(getLatticeHome(), "vapid.json");
@@ -31,7 +31,7 @@ function getSubscriptionsPath(): string {
 function ensureVapidKeys(): VapidKeys {
   if (vapidKeys) return vapidKeys;
 
-  var vapidPath = getVapidPath();
+  const vapidPath = getVapidPath();
   if (existsSync(vapidPath)) {
     try {
       vapidKeys = JSON.parse(readFileSync(vapidPath, "utf-8"));
@@ -39,13 +39,13 @@ function ensureVapidKeys(): VapidKeys {
     } catch {}
   }
 
-  var generated = webpush.generateVAPIDKeys();
+  const generated = webpush.generateVAPIDKeys();
   vapidKeys = {
     publicKey: generated.publicKey,
     privateKey: generated.privateKey,
   };
 
-  var dir = getLatticeHome();
+  const dir = getLatticeHome();
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -55,18 +55,18 @@ function ensureVapidKeys(): VapidKeys {
 }
 
 function loadSubscriptions(): void {
-  var subsPath = getSubscriptionsPath();
+  const subsPath = getSubscriptionsPath();
   if (!existsSync(subsPath)) return;
   try {
-    var data = JSON.parse(readFileSync(subsPath, "utf-8")) as PushSubscription[];
-    for (var i = 0; i < data.length; i++) {
+    const data = JSON.parse(readFileSync(subsPath, "utf-8")) as PushSubscription[];
+    for (let i = 0; i < data.length; i++) {
       subscriptions.set(data[i].endpoint, data[i]);
     }
   } catch {}
 }
 
 function saveSubscriptions(): void {
-  var arr: PushSubscription[] = [];
+  const arr: PushSubscription[] = [];
   subscriptions.forEach(function (sub) {
     arr.push(sub);
   });
@@ -74,7 +74,7 @@ function saveSubscriptions(): void {
 }
 
 export function initPush(): void {
-  var keys = ensureVapidKeys();
+  const keys = ensureVapidKeys();
   webpush.setVapidDetails(
     "mailto:lattice@localhost",
     keys.publicKey,
@@ -109,7 +109,7 @@ export interface PushPayload {
 export function sendPush(payload: PushPayload): void {
   if (subscriptions.size === 0) return;
 
-  var json = JSON.stringify(payload);
+  const json = JSON.stringify(payload);
   subscriptions.forEach(function (sub, endpoint) {
     webpush.sendNotification(sub, json).catch(function (err: { statusCode?: number }) {
       if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 403) {

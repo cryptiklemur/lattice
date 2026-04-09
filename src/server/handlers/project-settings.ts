@@ -23,7 +23,7 @@ import {
 } from "../project/project-files";
 
 function loadGlobalClaudeMd(): string {
-  var mdPath = join(homedir(), ".claude", "CLAUDE.md");
+  const mdPath = join(homedir(), ".claude", "CLAUDE.md");
   if (existsSync(mdPath)) {
     try {
       return readFileSync(mdPath, "utf-8");
@@ -33,7 +33,7 @@ function loadGlobalClaudeMd(): string {
 }
 
 function buildProjectSettings(projectSlug: string): ProjectSettings | { error: string } {
-  var project = getProjectBySlug(projectSlug);
+  const project = getProjectBySlug(projectSlug);
   if (!project) {
     return { error: "Project not found" };
   }
@@ -41,17 +41,17 @@ function buildProjectSettings(projectSlug: string): ProjectSettings | { error: s
     return { error: "Project path does not exist on disk" };
   }
 
-  var claudeMd = readProjectClaudeMd(project.path);
-  var claudeSettings = readProjectClaudeSettings(project.path);
-  var lattice = (claudeSettings.lattice ?? {}) as Record<string, unknown>;
-  var permissions = (claudeSettings.permissions ?? { allow: [], deny: [] }) as { allow: string[]; deny: string[] };
-  var rules = readProjectRules(project.path);
-  var mcpServers = readProjectMcpServers(project.path) as Record<string, McpServerConfig>;
-  var skills = readProjectSkills(project.path);
+  const claudeMd = readProjectClaudeMd(project.path);
+  const claudeSettings = readProjectClaudeSettings(project.path);
+  const lattice = (claudeSettings.lattice ?? {}) as Record<string, unknown>;
+  const permissions = (claudeSettings.permissions ?? { allow: [], deny: [] }) as { allow: string[]; deny: string[] };
+  const rules = readProjectRules(project.path);
+  const mcpServers = readProjectMcpServers(project.path) as Record<string, McpServerConfig>;
+  const skills = readProjectSkills(project.path);
 
-  var config = loadConfig();
+  const config = loadConfig();
 
-  var settings: ProjectSettings = {
+  const settings: ProjectSettings = {
     title: project.title,
     path: project.path,
     icon: (project as Record<string, unknown>).icon as ProjectSettings["icon"],
@@ -86,8 +86,8 @@ function buildProjectSettings(projectSlug: string): ProjectSettings | { error: s
 
 registerHandler("project-settings", function (clientId: string, message: ClientMessage) {
   if (message.type === "project-settings:get") {
-    var getMsg = message as ProjectSettingsGetMessage;
-    var result = buildProjectSettings(getMsg.projectSlug);
+    const getMsg = message as ProjectSettingsGetMessage;
+    const result = buildProjectSettings(getMsg.projectSlug);
     if ("error" in result) {
       sendTo(clientId, { type: "project-settings:error", projectSlug: getMsg.projectSlug, message: result.error });
       return;
@@ -97,12 +97,12 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
   }
 
   if (message.type === "project-settings:update") {
-    var updateMsg = message as ProjectSettingsUpdateMessage;
-    var projectSlug = updateMsg.projectSlug;
-    var section = updateMsg.section;
-    var settings = updateMsg.settings;
+    const updateMsg = message as ProjectSettingsUpdateMessage;
+    const projectSlug = updateMsg.projectSlug;
+    const section = updateMsg.section;
+    const settings = updateMsg.settings;
 
-    var project = getProjectBySlug(projectSlug);
+    const project = getProjectBySlug(projectSlug);
     if (!project) {
       sendTo(clientId, { type: "project-settings:error", projectSlug, message: "Project not found" });
       return;
@@ -115,8 +115,8 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
     try {
       if (section === "general") {
         invalidateConfigCache();
-        var config = loadConfig();
-        var idx = config.projects.findIndex(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
+        const config = loadConfig();
+        const idx = config.projects.findIndex(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
         if (idx !== -1) {
           if (typeof settings.title === "string") {
             config.projects[idx].title = settings.title;
@@ -130,7 +130,7 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
         if (typeof settings.claudeMd === "string") {
           writeProjectClaudeMd(project.path, settings.claudeMd);
         }
-        var latticeUpdates: Record<string, unknown> = {};
+        const latticeUpdates: Record<string, unknown> = {};
         if (settings.defaultModel !== undefined) latticeUpdates.defaultModel = settings.defaultModel;
         if (settings.defaultEffort !== undefined) latticeUpdates.defaultEffort = settings.defaultEffort;
         if (settings.thinking !== undefined) latticeUpdates.thinking = settings.thinking;
@@ -140,8 +140,8 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
         }
       } else if (section === "environment") {
         invalidateConfigCache();
-        var config = loadConfig();
-        var idx = config.projects.findIndex(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
+        const config = loadConfig();
+        const idx = config.projects.findIndex(function (p: typeof config.projects[number]) { return p.slug === projectSlug; });
         if (idx !== -1) {
           config.projects[idx].env = (settings.env as Record<string, string>) ?? {};
           saveConfig(config);
@@ -151,7 +151,7 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
       } else if (section === "rules") {
         writeProjectRules(project.path, (settings.rules as Array<{ filename: string; content: string }>) ?? []);
       } else if (section === "plugins") {
-        var disabledPlugins = Array.isArray(settings.disabledPlugins) ? settings.disabledPlugins : [];
+        const disabledPlugins = Array.isArray(settings.disabledPlugins) ? settings.disabledPlugins : [];
         mergeProjectClaudeSettings(project.path, {
           lattice: { disabledPlugins: disabledPlugins },
         });
@@ -164,12 +164,12 @@ registerHandler("project-settings", function (clientId: string, message: ClientM
         });
       }
     } catch (err) {
-      var errMsg = err instanceof Error ? err.message : String(err);
+      const errMsg = err instanceof Error ? err.message : String(err);
       sendTo(clientId, { type: "project-settings:error", projectSlug, message: errMsg });
       return;
     }
 
-    var updated = buildProjectSettings(projectSlug);
+    const updated = buildProjectSettings(projectSlug);
     if ("error" in updated) {
       sendTo(clientId, { type: "project-settings:error", projectSlug, message: updated.error });
       return;

@@ -16,30 +16,30 @@ interface GroupedBookmarks {
 }
 
 export function BookmarksView() {
-  var { allBookmarks, requestAllBookmarks } = useBookmarks();
-  var { activateSession } = useSession();
-  var { projects } = useProjects();
+  const { allBookmarks, requestAllBookmarks } = useBookmarks();
+  const { activateSession } = useSession();
+  const { projects } = useProjects();
 
   useEffect(function () {
     requestAllBookmarks();
   }, []);
 
-  var grouped = useMemo(function () {
-    var projectMap = new Map<string, Map<string, MessageBookmark[]>>();
-    for (var i = 0; i < allBookmarks.length; i++) {
-      var bm = allBookmarks[i];
+  const grouped = useMemo(function () {
+    const projectMap = new Map<string, Map<string, MessageBookmark[]>>();
+    for (let i = 0; i < allBookmarks.length; i++) {
+      const bm = allBookmarks[i];
       if (!projectMap.has(bm.projectSlug)) {
         projectMap.set(bm.projectSlug, new Map());
       }
-      var sessionMap = projectMap.get(bm.projectSlug)!;
+      const sessionMap = projectMap.get(bm.projectSlug)!;
       if (!sessionMap.has(bm.sessionId)) {
         sessionMap.set(bm.sessionId, []);
       }
       sessionMap.get(bm.sessionId)!.push(bm);
     }
-    var result: GroupedBookmarks[] = [];
+    const result: GroupedBookmarks[] = [];
     projectMap.forEach(function (sessionMap, projectSlug) {
-      var sessions: GroupedBookmarks["sessions"] = [];
+      const sessions: GroupedBookmarks["sessions"] = [];
       sessionMap.forEach(function (bookmarks, sessionId) {
         sessions.push({ sessionId, bookmarks });
       });
@@ -49,15 +49,15 @@ export function BookmarksView() {
       result.push({ projectSlug, sessions });
     });
     result.sort(function (a, b) {
-      var aLatest = a.sessions[0]?.bookmarks[0]?.createdAt ?? 0;
-      var bLatest = b.sessions[0]?.bookmarks[0]?.createdAt ?? 0;
+      const aLatest = a.sessions[0]?.bookmarks[0]?.createdAt ?? 0;
+      const bLatest = b.sessions[0]?.bookmarks[0]?.createdAt ?? 0;
       return bLatest - aLatest;
     });
     return result;
   }, [allBookmarks]);
 
   function getProjectTitle(slug: string): string {
-    for (var i = 0; i < projects.length; i++) {
+    for (let i = 0; i < projects.length; i++) {
       if (projects[i].slug === slug) return projects[i].title;
     }
     return slug;
@@ -67,7 +67,7 @@ export function BookmarksView() {
     activateSession(bm.projectSlug, bm.sessionId);
     openTab("chat");
     setTimeout(function () {
-      var el = document.getElementById("msg-" + bm.messageUuid);
+      const el = document.getElementById("msg-" + bm.messageUuid);
       if (el) {
         el.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
         el.classList.add("ring-2", "ring-warning/40");

@@ -19,19 +19,19 @@ interface ToastProps {
   onDismiss: (id: string) => void;
 }
 
-var ICON_MAP = {
+const ICON_MAP = {
   info: Info,
   warning: AlertTriangle,
   error: AlertCircle,
 };
 
-var ACCENT_MAP = {
+const ACCENT_MAP = {
   info: "bg-primary",
   warning: "bg-warning",
   error: "bg-error",
 };
 
-var ICON_COLOR_MAP = {
+const ICON_COLOR_MAP = {
   info: "text-primary",
   warning: "text-warning",
   error: "text-error",
@@ -45,7 +45,7 @@ export function Toast(props: ToastProps) {
   return (
     <div className="fixed top-3 right-3 z-[9999] flex flex-col gap-2 max-w-[340px]" role="status" aria-live="polite" aria-atomic="false">
       {props.items.map(function (item) {
-        var Icon = ICON_MAP[item.type];
+        const Icon = ICON_MAP[item.type];
         return (
           <div
             key={item.id}
@@ -68,17 +68,17 @@ export function Toast(props: ToastProps) {
   );
 }
 
-var toastListeners: Array<(item: ToastItem) => void> = [];
+let toastListeners: Array<(item: ToastItem) => void> = [];
 
 export function showToast(message: string, type: ToastItem["type"] = "info", options?: ToastOptions): void {
-  var persistent = options?.persistent;
-  var duration = options?.duration;
+  let persistent = options?.persistent;
+  const duration = options?.duration;
 
   if (type === "error" && persistent === undefined && duration === undefined) {
     persistent = true;
   }
 
-  var item: ToastItem = {
+  const item: ToastItem = {
     id: Math.random().toString(36).slice(2),
     message,
     type,
@@ -91,9 +91,9 @@ export function showToast(message: string, type: ToastItem["type"] = "info", opt
 }
 
 export function useToastState(): { items: ToastItem[]; dismiss: (id: string) => void } {
-  var [items, setItems] = useState<ToastItem[]>([]);
+  const [items, setItems] = useState<ToastItem[]>([]);
 
-  var dismiss = useCallback(function (id: string) {
+  const dismiss = useCallback(function (id: string) {
     setItems(function (prev) {
       return prev.filter(function (item) {
         return item.id !== id;
@@ -109,7 +109,7 @@ export function useToastState(): { items: ToastItem[]; dismiss: (id: string) => 
 
       if (item.persistent) return;
 
-      var timeout = item.duration ?? 5000;
+      const timeout = item.duration ?? 5000;
       setTimeout(function () {
         setItems(function (prev) {
           return prev.filter(function (i) {

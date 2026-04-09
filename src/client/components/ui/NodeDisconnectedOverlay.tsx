@@ -4,14 +4,14 @@ import { useMesh } from "../../hooks/useMesh";
 import { useSidebar } from "../../hooks/useSidebar";
 
 export function NodeDisconnectedOverlay() {
-  var { activeProject } = useProjects();
-  var { nodes } = useMesh();
-  var sidebar = useSidebar();
+  const { activeProject } = useProjects();
+  const { nodes } = useMesh();
+  const sidebar = useSidebar();
 
   if (!activeProject || !activeProject.isRemote) return null;
   if (sidebar.activeView.type !== "chat") return null;
 
-  var remoteNode = nodes.find(function (n) { return n.id === activeProject!.nodeId; });
+  const remoteNode = nodes.find(function (n) { return n.id === activeProject!.nodeId; });
   if (!remoteNode || remoteNode.online) return null;
 
   return (

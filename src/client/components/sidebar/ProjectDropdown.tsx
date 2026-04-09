@@ -19,11 +19,11 @@ interface ProjectDropdownProps {
 }
 
 export function ProjectDropdown(props: ProjectDropdownProps) {
-  var menuRef = useRef<HTMLDivElement>(null);
-  var { activeProject } = useProjects();
-  var sidebar = useSidebar();
-  var { editorType, wslDistro } = useEditorConfig();
-  var [copied, setCopied] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { activeProject } = useProjects();
+  const sidebar = useSidebar();
+  const { editorType, wslDistro } = useEditorConfig();
+  const [copied, setCopied] = useState(false);
 
   useEffect(function () {
     function handleClickOutside(e: MouseEvent) {
@@ -49,9 +49,9 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
     };
   }, [props.onClose, props.anchorRef]);
 
-  var style: React.CSSProperties = {};
+  const style: React.CSSProperties = {};
   if (props.anchorRef.current) {
-    var rect = props.anchorRef.current.getBoundingClientRect();
+    const rect = props.anchorRef.current.getBoundingClientRect();
     style.top = rect.bottom + 4 + "px";
     style.left = rect.left + "px";
     style.width = Math.max(rect.width, 240) + "px";
@@ -70,17 +70,17 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
     }
   }
 
-  var ws = useWebSocket();
-  var ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".", undefined, wslDistro, activeProject.ideProjectName) : null;
+  const ws = useWebSocket();
+  const ideUrl = activeProject ? getEditorUrl(editorType, activeProject.path, ".", undefined, wslDistro, activeProject.ideProjectName) : null;
 
   function handleOpenInIde() {
     if (!activeProject || !ideUrl) return;
     if (isJetBrainsEditor(editorType) && !activeProject.ideProjectName) {
-      var handler = function (msg: { type: string; projectSlug?: string; ideProjectName?: string }) {
+      const handler = function (msg: { type: string; projectSlug?: string; ideProjectName?: string }) {
         if (msg.type !== "editor:ensure-project_result") return;
         if (msg.projectSlug !== activeProject!.slug) return;
         ws.unsubscribe("editor:ensure-project_result", handler as any);
-        var updatedUrl = getEditorUrl(editorType, activeProject!.path, ".", undefined, wslDistro, msg.ideProjectName);
+        const updatedUrl = getEditorUrl(editorType, activeProject!.path, ".", undefined, wslDistro, msg.ideProjectName);
         if (updatedUrl) window.location.href = updatedUrl;
       };
       ws.subscribe("editor:ensure-project_result", handler as any);
@@ -93,7 +93,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
 
   function handleOpenTerminal() {
     openTab("terminal");
-    var state = getSidebarStore().state;
+    const state = getSidebarStore().state;
     if (state.activeView.type !== "chat") {
       getSidebarStore().setState(function (s) {
         return { ...s, activeView: { type: "chat" } };
@@ -104,7 +104,7 @@ export function ProjectDropdown(props: ProjectDropdownProps) {
 
   function handleViewClaudeMd() {
     openTab("files");
-    var state = getSidebarStore().state;
+    const state = getSidebarStore().state;
     if (state.activeView.type !== "chat") {
       getSidebarStore().setState(function (s) {
         return { ...s, activeView: { type: "chat" } };

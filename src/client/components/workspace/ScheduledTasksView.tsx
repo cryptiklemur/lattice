@@ -8,13 +8,13 @@ import { TaskCard } from "./TaskCard";
 import { TaskEditModal } from "./TaskEditModal";
 
 export function ScheduledTasksView() {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { activeProjectSlug } = useSession();
-  var online = useOnline();
-  var [tasks, setTasks] = useState<ScheduledTask[]>([]);
-  var [editingTask, setEditingTask] = useState<ScheduledTask | null | undefined>(undefined);
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { activeProjectSlug } = useSession();
+  const online = useOnline();
+  const [tasks, setTasks] = useState<ScheduledTask[]>([]);
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null | undefined>(undefined);
 
-  var handleMessage = useCallback(function (msg: ServerMessage) {
+  const handleMessage = useCallback(function (msg: ServerMessage) {
     if (msg.type === "scheduler:tasks") {
       setTasks(msg.tasks);
       return;
@@ -43,7 +43,7 @@ export function ScheduledTasksView() {
     };
   }, [send, subscribe, unsubscribe, handleMessage]);
 
-  var filtered = tasks.filter(function (t) { return t.projectSlug === activeProjectSlug; });
+  const filtered = tasks.filter(function (t) { return t.projectSlug === activeProjectSlug; });
 
   function handleToggle(taskId: string) {
     send({ type: "scheduler:toggle", taskId });

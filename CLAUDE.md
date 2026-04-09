@@ -50,7 +50,7 @@ DO NOT EVER LEAVE PRE-EXISTING ERRORS. FIX THEM.
 - Playwright tests live in `tests/` at the project root.
 - Tests require the server running on localhost:7654.
 - Screenshots on failure go to `test-results/`.
-- Use Playwright MCP for visual verification. Save screenshots to `.playwright-mcp/`.
+- Use `agent-browser` CLI for visual verification. Save screenshots to `.agent-browser/`.
 
 ### Testing Mesh/Node Functionality
 Run a second Lattice instance with a separate data directory and port:

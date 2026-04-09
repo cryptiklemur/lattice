@@ -183,34 +183,34 @@ export function SpecEditor({ spec, onBack }: SpecEditorProps) {
             </>
           )}
         </div>
-        {spec.sections.summary && spec.sections.requirements && (
+        <div className="tooltip tooltip-bottom" data-tip={!spec.sections.summary || !spec.sections.requirements ? "Fill in Summary and Requirements first" : undefined}>
           <button
             type="button"
             onClick={function () {
               send({ type: "specs:start-plan", specId: spec.id, projectSlug: spec.projectSlug } as any);
             }}
-            disabled={!online}
-            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content"
+            disabled={!online || !spec.sections.summary || !spec.sections.requirements}
+            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content disabled:text-base-content/20"
             aria-label="Write Plan"
           >
             <ClipboardList size={12} />
             <span className="hidden sm:inline">Write Plan</span>
           </button>
-        )}
-        {spec.sections.implementationPlan && (
+        </div>
+        <div className="tooltip tooltip-bottom" data-tip={!spec.sections.implementationPlan ? "Write an Implementation Plan first" : undefined}>
           <button
             type="button"
             onClick={function () {
               send({ type: "specs:start-execute", specId: spec.id, projectSlug: spec.projectSlug } as any);
             }}
-            disabled={!online}
-            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content"
+            disabled={!online || !spec.sections.implementationPlan}
+            className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-base-content disabled:text-base-content/20"
             aria-label="Execute Plan"
           >
             <Play size={12} />
             <span className="hidden sm:inline">Execute Plan</span>
           </button>
-        )}
+        </div>
         <button
           type="button"
           onClick={function () { setShowDeleteModal(true); }}

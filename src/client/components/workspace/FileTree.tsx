@@ -22,9 +22,9 @@ interface FileTreeItemProps {
 }
 
 function FileTreeItem(props: FileTreeItemProps) {
-  var { node, depth, selectedPath, onToggle, onSelect } = props;
-  var isSelected = selectedPath === node.entry.path;
-  var isDir = node.entry.isDirectory;
+  const { node, depth, selectedPath, onToggle, onSelect } = props;
+  const isSelected = selectedPath === node.entry.path;
+  const isDir = node.entry.isDirectory;
 
   function handleActivate() {
     if (isDir) {
@@ -102,7 +102,7 @@ interface FileTreeProps {
 }
 
 export function FileTree(props: FileTreeProps) {
-  var { nodes, selectedPath, onToggle, onSelect } = props;
+  const { nodes, selectedPath, onToggle, onSelect } = props;
 
   return (
     <div role="tree" aria-label="File tree">

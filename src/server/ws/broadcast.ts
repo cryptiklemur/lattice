@@ -1,10 +1,10 @@
 import type { WebSocket } from "ws";
 import { log } from "../logger";
 
-var clients = new Map<string, WebSocket>();
-var clientAlive = new Map<string, boolean>();
-var clientProjects = new Map<string, Set<string>>();
-var virtualSendHandlers = new Map<string, (message: object) => void>();
+const clients = new Map<string, WebSocket>();
+const clientAlive = new Map<string, boolean>();
+const clientProjects = new Map<string, Set<string>>();
+const virtualSendHandlers = new Map<string, (message: object) => void>();
 
 export function registerVirtualClient(id: string, handler: (message: object) => void): void {
   virtualSendHandlers.set(id, handler);
@@ -30,7 +30,7 @@ export function markClientAlive(id: string): void {
 }
 
 export function subscribeClientToProject(clientId: string, projectSlug: string): void {
-  var projects = clientProjects.get(clientId);
+  let projects = clientProjects.get(clientId);
   if (!projects) {
     projects = new Set();
     clientProjects.set(clientId, projects);
@@ -39,10 +39,10 @@ export function subscribeClientToProject(clientId: string, projectSlug: string):
 }
 
 export function broadcastToProject(projectSlug: string, message: object, excludeId?: string): void {
-  var text = JSON.stringify(message);
-  for (var [id, ws] of clients) {
+  const text = JSON.stringify(message);
+  for (const [id, ws] of clients) {
     if (id !== excludeId && ws.readyState === ws.OPEN) {
-      var projects = clientProjects.get(id);
+      const projects = clientProjects.get(id);
       if (projects && projects.has(projectSlug)) {
         ws.send(text);
       }
@@ -51,8 +51,8 @@ export function broadcastToProject(projectSlug: string, message: object, exclude
 }
 
 export function broadcast(message: object, excludeId?: string): void {
-  var text = JSON.stringify(message);
-  for (var [id, ws] of clients) {
+  const text = JSON.stringify(message);
+  for (const [id, ws] of clients) {
     if (id !== excludeId && ws.readyState === ws.OPEN) {
       ws.send(text);
     }
@@ -60,12 +60,12 @@ export function broadcast(message: object, excludeId?: string): void {
 }
 
 export function sendTo(id: string, message: object): void {
-  var ws = clients.get(id);
+  const ws = clients.get(id);
   if (ws && ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify(message));
     return;
   }
-  var virtualHandler = virtualSendHandlers.get(id);
+  const virtualHandler = virtualSendHandlers.get(id);
   if (virtualHandler) {
     virtualHandler(message);
     return;
@@ -84,7 +84,7 @@ export function getClientCount(): number {
 }
 
 export function closeAllClients(): void {
-  for (var [, ws] of clients) {
+  for (const [, ws] of clients) {
     ws.close();
   }
   clients.clear();
@@ -92,14 +92,14 @@ export function closeAllClients(): void {
   clientProjects.clear();
 }
 
-var HEARTBEAT_INTERVAL_MS = 30000;
-var heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+const HEARTBEAT_INTERVAL_MS = 30000;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 export function startHeartbeat(onDead: (clientId: string, ws: WebSocket) => void): void {
   if (heartbeatTimer) return;
   heartbeatTimer = setInterval(function () {
-    var dead: Array<[string, WebSocket]> = [];
-    for (var [id, ws] of clients) {
+    const dead: Array<[string, WebSocket]> = [];
+    for (const [id, ws] of clients) {
       if (!clientAlive.get(id)) {
         dead.push([id, ws]);
         continue;
@@ -109,7 +109,7 @@ export function startHeartbeat(onDead: (clientId: string, ws: WebSocket) => void
         ws.ping();
       }
     }
-    for (var i = 0; i < dead.length; i++) {
+    for (let i = 0; i < dead.length; i++) {
       log.ws("Heartbeat: client %s unresponsive, terminating", dead[i][0].slice(0, 8));
       onDead(dead[i][0], dead[i][1]);
       dead[i][1].terminate();

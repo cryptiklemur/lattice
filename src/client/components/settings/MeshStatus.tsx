@@ -12,8 +12,8 @@ interface NodeRowProps {
 }
 
 function NodeRow(props: NodeRowProps) {
-  var [confirming, setConfirming] = useState(false);
-  var [reconnecting, setReconnecting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
 
   function handleUnpair() {
     if (!confirming) {
@@ -109,11 +109,11 @@ function NodeRow(props: NodeRowProps) {
 }
 
 export function MeshStatus() {
-  var ws = useWebSocket();
-  var { nodes } = useMesh();
-  var [pairingOpen, setPairingOpen] = useState(false);
+  const ws = useWebSocket();
+  const { nodes } = useMesh();
+  const [pairingOpen, setPairingOpen] = useState(false);
 
-  var handleClosePairing = useCallback(function () { setPairingOpen(false); }, []);
+  const handleClosePairing = useCallback(function () { setPairingOpen(false); }, []);
 
   function handleUnpair(nodeId: string) {
     ws.send({ type: "mesh:unpair", nodeId });
@@ -123,8 +123,8 @@ export function MeshStatus() {
     ws.send({ type: "mesh:reconnect", nodeId } as any);
   }
 
-  var localNode = nodes.find(function (n) { return n.isLocal; });
-  var remoteNodes = nodes.filter(function (n) { return !n.isLocal; });
+  const localNode = nodes.find(function (n) { return n.isLocal; });
+  const remoteNodes = nodes.filter(function (n) { return !n.isLocal; });
 
   return (
     <div className="py-2">

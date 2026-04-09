@@ -2,9 +2,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 
-var __dirname_local = dirname(fileURLToPath(import.meta.url));
+const __dirname_local = dirname(fileURLToPath(import.meta.url));
 
-var CONTENT_TYPES: Record<string, string> = {
+const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript",
   ".css": "text/css",
@@ -34,12 +34,12 @@ export function hasEmbeddedAssets(): boolean {
 }
 
 export function getClientDir(): string {
-  var distPath = join(__dirname_local, "../../dist/client");
+  const distPath = join(__dirname_local, "../../dist/client");
   if (existsSync(distPath)) return distPath;
   return join(__dirname_local, "../../dist/client");
 }
 
 export function guessContentType(path: string): string {
-  var ext = path.slice(path.lastIndexOf("."));
+  const ext = path.slice(path.lastIndexOf("."));
   return CONTENT_TYPES[ext] || "application/octet-stream";
 }

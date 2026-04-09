@@ -7,20 +7,20 @@ interface ToolSunburstProps {
 }
 
 function getCategoryColor(category: string): string {
-  var colors = getChartColors();
+  const colors = getChartColors();
   return colors.category[category] || colors.category.Other;
 }
 
 function getToolColor(category: string, index: number): string {
-  var base = getCategoryColor(category);
-  var opacity = 0.9 - index * 0.12;
+  const base = getCategoryColor(category);
+  let opacity = 0.9 - index * 0.12;
   if (opacity < 0.4) opacity = 0.4;
   return base.startsWith("oklch") ? base.replace(")", " / " + opacity + ")") : base + String(Math.round(opacity * 255).toString(16)).padStart(2, "0");
 }
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { category?: string } }> }) {
   if (!active || !payload || payload.length === 0) return null;
-  var entry = payload[0];
+  const entry = payload[0];
   return (
     <div className="rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg">
       <p className="text-[11px] font-mono text-base-content font-bold">{entry.name}</p>
@@ -41,25 +41,25 @@ export function ToolSunburst({ data }: ToolSunburstProps) {
     );
   }
 
-  var { innerData, outerData } = useMemo(function () {
-    var categoryTotals = new Map<string, number>();
-    for (var i = 0; i < data.length; i++) {
-      var cat = data[i].category;
+  const { innerData, outerData } = useMemo(function () {
+    const categoryTotals = new Map<string, number>();
+    for (let i = 0; i < data.length; i++) {
+      const cat = data[i].category;
       categoryTotals.set(cat, (categoryTotals.get(cat) || 0) + data[i].count);
     }
-    var innerData: Array<{ name: string; value: number }> = [];
+    const innerData: Array<{ name: string; value: number }> = [];
     categoryTotals.forEach(function (count, category) {
       innerData.push({ name: category, value: count });
     });
     innerData.sort(function (a, b) { return b.value - a.value; });
-    var categoryOrder = innerData.map(function (d) { return d.name; });
-    var outerData: Array<{ name: string; category: string; value: number }> = [];
-    for (var ci = 0; ci < categoryOrder.length; ci++) {
-      var catName = categoryOrder[ci];
-      var catTools = data
+    const categoryOrder = innerData.map(function (d) { return d.name; });
+    const outerData: Array<{ name: string; category: string; value: number }> = [];
+    for (let ci = 0; ci < categoryOrder.length; ci++) {
+      const catName = categoryOrder[ci];
+      const catTools = data
         .filter(function (d) { return d.category === catName; })
         .sort(function (a, b) { return b.count - a.count; });
-      for (var ti = 0; ti < catTools.length; ti++) {
+      for (let ti = 0; ti < catTools.length; ti++) {
         outerData.push({ name: catTools[ti].name, category: catName, value: catTools[ti].count });
       }
     }
@@ -97,7 +97,7 @@ export function ToolSunburst({ data }: ToolSunburstProps) {
             isAnimationActive={false}
           >
             {outerData.map(function (entry, index) {
-              var catIndex = outerData.slice(0, index).filter(function (d) { return d.category === entry.category; }).length;
+              const catIndex = outerData.slice(0, index).filter(function (d) { return d.category === entry.category; }).length;
               return <Cell key={"outer-" + entry.name} fill={getToolColor(entry.category, catIndex)} />;
             })}
           </Pie>

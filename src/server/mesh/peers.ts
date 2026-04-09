@@ -8,27 +8,27 @@ function getPeersPath(): string {
 }
 
 export function loadPeers(): PeerInfo[] {
-  var path = getPeersPath();
+  const path = getPeersPath();
   if (!existsSync(path)) {
     return [];
   }
-  var raw = readFileSync(path, "utf-8");
+  const raw = readFileSync(path, "utf-8");
   return JSON.parse(raw) as PeerInfo[];
 }
 
 export function savePeers(peers: PeerInfo[]): void {
-  var path = getPeersPath();
+  const path = getPeersPath();
   writeFileSync(path, JSON.stringify(peers, null, 2), "utf-8");
 }
 
 export function addPeer(peer: PeerInfo): void {
-  var peers = loadPeers();
-  var idx = peers.findIndex(function (p) { return p.id === peer.id; });
+  const peers = loadPeers();
+  const idx = peers.findIndex(function (p) { return p.id === peer.id; });
   if (idx >= 0) {
     peers[idx] = peer;
   } else {
-    var addrSet = new Set(peer.addresses);
-    var dupeIdx = peers.findIndex(function (p) {
+    const addrSet = new Set(peer.addresses);
+    const dupeIdx = peers.findIndex(function (p) {
       return p.addresses.some(function (a) { return addrSet.has(a); });
     });
     if (dupeIdx >= 0) {
@@ -41,8 +41,8 @@ export function addPeer(peer: PeerInfo): void {
 }
 
 export function removePeer(nodeId: string): boolean {
-  var peers = loadPeers();
-  var next = peers.filter(function (p) { return p.id !== nodeId; });
+  const peers = loadPeers();
+  const next = peers.filter(function (p) { return p.id !== nodeId; });
   if (next.length === peers.length) {
     return false;
   }
@@ -51,7 +51,7 @@ export function removePeer(nodeId: string): boolean {
 }
 
 export function getPeer(nodeId: string): PeerInfo | undefined {
-  var peers = loadPeers();
+  const peers = loadPeers();
   return peers.find(function (p) { return p.id === nodeId; });
 }
 

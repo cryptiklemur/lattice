@@ -8,10 +8,10 @@ interface SplitPaneProps {
 }
 
 export function SplitPane({ direction, ratio, onRatioChange, children }: SplitPaneProps) {
-  var containerRef = useRef<HTMLDivElement>(null);
-  var [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  var handleMouseDown = useCallback(function (e: React.MouseEvent) {
+  const handleMouseDown = useCallback(function (e: React.MouseEvent) {
     e.preventDefault();
     setIsDragging(true);
   }, []);
@@ -20,10 +20,10 @@ export function SplitPane({ direction, ratio, onRatioChange, children }: SplitPa
     if (!isDragging) return;
 
     function handleMouseMove(e: MouseEvent) {
-      var container = containerRef.current;
+      const container = containerRef.current;
       if (!container) return;
-      var rect = container.getBoundingClientRect();
-      var newRatio: number;
+      const rect = container.getBoundingClientRect();
+      let newRatio: number;
       if (direction === "horizontal") {
         newRatio = (e.clientX - rect.left) / rect.width;
       } else {
@@ -44,9 +44,9 @@ export function SplitPane({ direction, ratio, onRatioChange, children }: SplitPa
     };
   }, [isDragging, direction, onRatioChange]);
 
-  var isHorizontal = direction === "horizontal";
-  var firstSize = (ratio * 100) + "%";
-  var secondSize = ((1 - ratio) * 100) + "%";
+  const isHorizontal = direction === "horizontal";
+  const firstSize = (ratio * 100) + "%";
+  const secondSize = ((1 - ratio) * 100) + "%";
 
   return (
     <div

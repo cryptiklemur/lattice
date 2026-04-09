@@ -37,7 +37,7 @@ export interface UseWorkspaceReturn extends WorkspaceState {
 }
 
 export function useWorkspace(): UseWorkspaceReturn {
-  var state = useStore(getWorkspaceStore(), function (s) { return s; });
+  const state = useStore(getWorkspaceStore(), function (s) { return s; });
   return {
     tabs: state.tabs,
     panes: state.panes,

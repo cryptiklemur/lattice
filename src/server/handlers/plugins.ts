@@ -13,10 +13,10 @@ import type {
 import { registerHandler } from "../ws/router";
 import { sendTo } from "../ws/broadcast";
 
-var PLUGINS_DIR = join(homedir(), ".claude", "plugins");
-var INSTALLED_FILE = join(PLUGINS_DIR, "installed_plugins.json");
-var MARKETPLACES_FILE = join(PLUGINS_DIR, "known_marketplaces.json");
-var INSTALL_COUNTS_FILE = join(PLUGINS_DIR, "install-counts-cache.json");
+const PLUGINS_DIR = join(homedir(), ".claude", "plugins");
+const INSTALLED_FILE = join(PLUGINS_DIR, "installed_plugins.json");
+const MARKETPLACES_FILE = join(PLUGINS_DIR, "known_marketplaces.json");
+const INSTALL_COUNTS_FILE = join(PLUGINS_DIR, "install-counts-cache.json");
 
 interface InstalledPluginsFile {
   version: number;
@@ -64,27 +64,27 @@ function readJsonFile<T>(path: string): T | null {
 }
 
 function getInstallCounts(): Map<string, number> {
-  var data = readJsonFile<InstallCountsFile>(INSTALL_COUNTS_FILE);
-  var map = new Map<string, number>();
+  const data = readJsonFile<InstallCountsFile>(INSTALL_COUNTS_FILE);
+  const map = new Map<string, number>();
   if (!data || !data.counts) return map;
-  for (var i = 0; i < data.counts.length; i++) {
+  for (let i = 0; i < data.counts.length; i++) {
     map.set(data.counts[i].plugin, data.counts[i].unique_installs);
   }
   return map;
 }
 
 function readPluginJson(installPath: string): PluginJson | null {
-  var pluginJsonPath = join(installPath, ".claude-plugin", "plugin.json");
+  const pluginJsonPath = join(installPath, ".claude-plugin", "plugin.json");
   return readJsonFile<PluginJson>(pluginJsonPath);
 }
 
 function countSkills(installPath: string): number {
-  var skillsDir = join(installPath, "skills");
+  const skillsDir = join(installPath, "skills");
   if (!existsSync(skillsDir)) return 0;
   try {
-    var entries = readdirSync(skillsDir, { withFileTypes: true });
-    var count = 0;
-    for (var i = 0; i < entries.length; i++) {
+    const entries = readdirSync(skillsDir, { withFileTypes: true });
+    let count = 0;
+    for (let i = 0; i < entries.length; i++) {
       if (entries[i].isDirectory()) count++;
     }
     return count;
@@ -94,19 +94,19 @@ function countSkills(installPath: string): number {
 }
 
 function countHooks(installPath: string): number {
-  var hooksPath = join(installPath, "hooks", "hooks.json");
-  var data = readJsonFile<{ hooks: Record<string, unknown> }>(hooksPath);
+  const hooksPath = join(installPath, "hooks", "hooks.json");
+  const data = readJsonFile<{ hooks: Record<string, unknown> }>(hooksPath);
   if (!data || !data.hooks) return 0;
   return Object.keys(data.hooks).length;
 }
 
 function countRules(installPath: string): number {
-  var rulesDir = join(installPath, "rules");
+  const rulesDir = join(installPath, "rules");
   if (!existsSync(rulesDir)) return 0;
   try {
-    var entries = readdirSync(rulesDir);
-    var count = 0;
-    for (var i = 0; i < entries.length; i++) {
+    const entries = readdirSync(rulesDir);
+    let count = 0;
+    for (let i = 0; i < entries.length; i++) {
       if (entries[i].endsWith(".md")) count++;
     }
     return count;
@@ -116,22 +116,22 @@ function countRules(installPath: string): number {
 }
 
 function getInstalledPlugins(): PluginInfo[] {
-  var data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
   if (!data || !data.plugins) return [];
-  var installCounts = getInstallCounts();
-  var plugins: PluginInfo[] = [];
+  const installCounts = getInstallCounts();
+  const plugins: PluginInfo[] = [];
 
-  var keys = Object.keys(data.plugins);
-  for (var k = 0; k < keys.length; k++) {
-    var key = keys[k];
-    var entries = data.plugins[key];
-    var atIdx = key.lastIndexOf("@");
-    var pluginName = atIdx > 0 ? key.slice(0, atIdx) : key;
-    var marketplace = atIdx > 0 ? key.slice(atIdx + 1) : "";
+  const keys = Object.keys(data.plugins);
+  for (let k = 0; k < keys.length; k++) {
+    const key = keys[k];
+    const entries = data.plugins[key];
+    const atIdx = key.lastIndexOf("@");
+    const pluginName = atIdx > 0 ? key.slice(0, atIdx) : key;
+    const marketplace = atIdx > 0 ? key.slice(atIdx + 1) : "";
 
-    for (var e = 0; e < entries.length; e++) {
-      var entry = entries[e];
-      var meta = readPluginJson(entry.installPath);
+    for (let e = 0; e < entries.length; e++) {
+      const entry = entries[e];
+      const meta = readPluginJson(entry.installPath);
       plugins.push({
         name: pluginName,
         marketplace: marketplace,
@@ -156,12 +156,12 @@ function getInstalledPlugins(): PluginInfo[] {
 }
 
 function getMarketplaces(): PluginMarketplaceInfo[] {
-  var data = readJsonFile<MarketplacesFile>(MARKETPLACES_FILE);
+  const data = readJsonFile<MarketplacesFile>(MARKETPLACES_FILE);
   if (!data) return [];
-  var result: PluginMarketplaceInfo[] = [];
-  var keys = Object.keys(data);
-  for (var i = 0; i < keys.length; i++) {
-    var entry = data[keys[i]];
+  const result: PluginMarketplaceInfo[] = [];
+  const keys = Object.keys(data);
+  for (let i = 0; i < keys.length; i++) {
+    const entry = data[keys[i]];
     result.push({
       name: keys[i],
       source: entry.source,
@@ -173,49 +173,49 @@ function getMarketplaces(): PluginMarketplaceInfo[] {
 }
 
 function searchMarketplacePlugins(query: string, marketplaceFilter?: string): MarketplacePluginEntry[] {
-  var marketplaces = readJsonFile<MarketplacesFile>(MARKETPLACES_FILE);
+  const marketplaces = readJsonFile<MarketplacesFile>(MARKETPLACES_FILE);
   if (!marketplaces) return [];
-  var installCounts = getInstallCounts();
-  var installedData = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
-  var installedKeys = new Set<string>();
-  var installedVersions = new Map<string, string>();
+  const installCounts = getInstallCounts();
+  const installedData = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const installedKeys = new Set<string>();
+  const installedVersions = new Map<string, string>();
   if (installedData && installedData.plugins) {
-    var iKeys = Object.keys(installedData.plugins);
-    for (var ik = 0; ik < iKeys.length; ik++) {
+    const iKeys = Object.keys(installedData.plugins);
+    for (let ik = 0; ik < iKeys.length; ik++) {
       installedKeys.add(iKeys[ik]);
-      var versions = installedData.plugins[iKeys[ik]];
+      const versions = installedData.plugins[iKeys[ik]];
       if (versions.length > 0) {
         installedVersions.set(iKeys[ik], versions[0].version);
       }
     }
   }
 
-  var results: MarketplacePluginEntry[] = [];
-  var lowerQuery = query.toLowerCase();
-  var mKeys = Object.keys(marketplaces);
+  const results: MarketplacePluginEntry[] = [];
+  const lowerQuery = query.toLowerCase();
+  const mKeys = Object.keys(marketplaces);
 
-  for (var m = 0; m < mKeys.length; m++) {
-    var mName = mKeys[m];
+  for (let m = 0; m < mKeys.length; m++) {
+    const mName = mKeys[m];
     if (marketplaceFilter && mName !== marketplaceFilter) continue;
 
-    var mkt = marketplaces[mName];
-    var pluginsDir = join(mkt.installLocation, "plugins");
+    const mkt = marketplaces[mName];
+    const pluginsDir = join(mkt.installLocation, "plugins");
     if (!existsSync(pluginsDir)) continue;
 
     try {
-      var pluginDirs = readdirSync(pluginsDir, { withFileTypes: true });
-      for (var p = 0; p < pluginDirs.length; p++) {
+      const pluginDirs = readdirSync(pluginsDir, { withFileTypes: true });
+      for (let p = 0; p < pluginDirs.length; p++) {
         if (!pluginDirs[p].isDirectory()) continue;
-        var dirName = pluginDirs[p].name;
+        const dirName = pluginDirs[p].name;
         if (dirName.toLowerCase().indexOf(lowerQuery) === -1) {
-          var meta = readPluginJson(join(pluginsDir, dirName));
+          const meta = readPluginJson(join(pluginsDir, dirName));
           if (!meta || meta.description.toLowerCase().indexOf(lowerQuery) === -1) {
             continue;
           }
         }
 
-        var pluginMeta = readPluginJson(join(pluginsDir, dirName));
-        var key = dirName + "@" + mName;
+        const pluginMeta = readPluginJson(join(pluginsDir, dirName));
+        const key = dirName + "@" + mName;
         results.push({
           name: dirName,
           marketplace: mName,
@@ -230,8 +230,8 @@ function searchMarketplacePlugins(query: string, marketplaceFilter?: string): Ma
   }
 
   results.sort(function (a, b) {
-    var ai = a.installs ?? 0;
-    var bi = b.installs ?? 0;
+    const ai = a.installs ?? 0;
+    const bi = b.installs ?? 0;
     return bi - ai;
   });
 
@@ -239,63 +239,63 @@ function searchMarketplacePlugins(query: string, marketplaceFilter?: string): Ma
 }
 
 function parseFrontmatter(content: string): { name: string; description: string } {
-  var match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return { name: "", description: "" };
-  var yaml = match[1];
-  var name = "";
-  var desc = "";
-  var lines = yaml.split(/\r?\n/);
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    var nameMatch = line.match(/^name:\s*(.+)/);
+  const yaml = match[1];
+  let name = "";
+  let desc = "";
+  const lines = yaml.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const nameMatch = line.match(/^name:\s*(.+)/);
     if (nameMatch) name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
-    var descMatch = line.match(/^description:\s*(.+)/);
+    const descMatch = line.match(/^description:\s*(.+)/);
     if (descMatch) desc = descMatch[1].trim().replace(/^["']|["']$/g, "");
   }
   return { name, description: desc };
 }
 
 function getPluginDetails(pluginName: string, marketplace: string): PluginDetails | null {
-  var data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
   if (!data || !data.plugins) return null;
 
-  var key = pluginName + "@" + marketplace;
-  var entries = data.plugins[key];
+  const key = pluginName + "@" + marketplace;
+  const entries = data.plugins[key];
   if (!entries || entries.length === 0) return null;
 
-  var entry = entries[0];
-  var meta = readPluginJson(entry.installPath);
+  const entry = entries[0];
+  const meta = readPluginJson(entry.installPath);
 
-  var skills: Array<{ name: string; description: string }> = [];
-  var skillsDir = join(entry.installPath, "skills");
+  const skills: Array<{ name: string; description: string }> = [];
+  const skillsDir = join(entry.installPath, "skills");
   if (existsSync(skillsDir)) {
     try {
-      var skillDirs = readdirSync(skillsDir, { withFileTypes: true });
-      for (var s = 0; s < skillDirs.length; s++) {
+      const skillDirs = readdirSync(skillsDir, { withFileTypes: true });
+      for (let s = 0; s < skillDirs.length; s++) {
         if (!skillDirs[s].isDirectory()) continue;
-        var skillFile = join(skillsDir, skillDirs[s].name, "SKILL.md");
+        const skillFile = join(skillsDir, skillDirs[s].name, "SKILL.md");
         if (existsSync(skillFile)) {
-          var content = readFileSync(skillFile, "utf-8");
-          var fm = parseFrontmatter(content);
+          const content = readFileSync(skillFile, "utf-8");
+          const fm = parseFrontmatter(content);
           skills.push({ name: fm.name || skillDirs[s].name, description: fm.description });
         }
       }
     } catch {}
   }
 
-  var hooks: Record<string, unknown> = {};
-  var hooksPath = join(entry.installPath, "hooks", "hooks.json");
-  var hooksData = readJsonFile<{ hooks: Record<string, unknown> }>(hooksPath);
+  let hooks: Record<string, unknown> = {};
+  const hooksPath = join(entry.installPath, "hooks", "hooks.json");
+  const hooksData = readJsonFile<{ hooks: Record<string, unknown> }>(hooksPath);
   if (hooksData && hooksData.hooks) {
     hooks = hooksData.hooks;
   }
 
-  var rules: string[] = [];
-  var rulesDir = join(entry.installPath, "rules");
+  const rules: string[] = [];
+  const rulesDir = join(entry.installPath, "rules");
   if (existsSync(rulesDir)) {
     try {
-      var ruleFiles = readdirSync(rulesDir);
-      for (var r = 0; r < ruleFiles.length; r++) {
+      const ruleFiles = readdirSync(rulesDir);
+      for (let r = 0; r < ruleFiles.length; r++) {
         if (ruleFiles[r].endsWith(".md")) {
           rules.push(ruleFiles[r]);
         }
@@ -323,18 +323,18 @@ function getPluginDetails(pluginName: string, marketplace: string): PluginDetail
 }
 
 export function getPluginMcpServers(): Record<string, unknown> {
-  var data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
   if (!data || !data.plugins) return {};
-  var servers: Record<string, unknown> = {};
-  var keys = Object.keys(data.plugins);
-  for (var k = 0; k < keys.length; k++) {
-    var entries = data.plugins[keys[k]];
-    for (var e = 0; e < entries.length; e++) {
-      var mcpPath = join(entries[e].installPath, ".mcp.json");
-      var mcpData = readJsonFile<{ mcpServers?: Record<string, unknown> }>(mcpPath);
+  const servers: Record<string, unknown> = {};
+  const keys = Object.keys(data.plugins);
+  for (let k = 0; k < keys.length; k++) {
+    const entries = data.plugins[keys[k]];
+    for (let e = 0; e < entries.length; e++) {
+      const mcpPath = join(entries[e].installPath, ".mcp.json");
+      const mcpData = readJsonFile<{ mcpServers?: Record<string, unknown> }>(mcpPath);
       if (mcpData && mcpData.mcpServers) {
-        var sKeys = Object.keys(mcpData.mcpServers);
-        for (var s = 0; s < sKeys.length; s++) {
+        const sKeys = Object.keys(mcpData.mcpServers);
+        for (let s = 0; s < sKeys.length; s++) {
           servers[sKeys[s]] = mcpData.mcpServers[sKeys[s]];
         }
       }
@@ -344,37 +344,37 @@ export function getPluginMcpServers(): Record<string, unknown> {
 }
 
 export function getInstalledPluginCount(): number {
-  var data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
   if (!data || !data.plugins) return 0;
   return Object.keys(data.plugins).length;
 }
 
 export function getPluginSkillRuleTokenEstimate(): number {
-  var data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
   if (!data || !data.plugins) return 0;
-  var totalChars = 0;
-  var keys = Object.keys(data.plugins);
-  for (var k = 0; k < keys.length; k++) {
-    var entries = data.plugins[keys[k]];
-    for (var e = 0; e < entries.length; e++) {
-      var skillsDir = join(entries[e].installPath, "skills");
+  let totalChars = 0;
+  const keys = Object.keys(data.plugins);
+  for (let k = 0; k < keys.length; k++) {
+    const entries = data.plugins[keys[k]];
+    for (let e = 0; e < entries.length; e++) {
+      const skillsDir = join(entries[e].installPath, "skills");
       if (existsSync(skillsDir)) {
         try {
-          var dirs = readdirSync(skillsDir, { withFileTypes: true });
-          for (var d = 0; d < dirs.length; d++) {
+          const dirs = readdirSync(skillsDir, { withFileTypes: true });
+          for (let d = 0; d < dirs.length; d++) {
             if (!dirs[d].isDirectory()) continue;
-            var skillFile = join(skillsDir, dirs[d].name, "SKILL.md");
+            const skillFile = join(skillsDir, dirs[d].name, "SKILL.md");
             if (existsSync(skillFile)) {
               totalChars += readFileSync(skillFile, "utf-8").length;
             }
           }
         } catch {}
       }
-      var rulesDir = join(entries[e].installPath, "rules");
+      const rulesDir = join(entries[e].installPath, "rules");
       if (existsSync(rulesDir)) {
         try {
-          var ruleFiles = readdirSync(rulesDir);
-          for (var r = 0; r < ruleFiles.length; r++) {
+          const ruleFiles = readdirSync(rulesDir);
+          for (let r = 0; r < ruleFiles.length; r++) {
             if (ruleFiles[r].endsWith(".md")) {
               totalChars += readFileSync(join(rulesDir, ruleFiles[r]), "utf-8").length;
             }
@@ -395,7 +395,7 @@ function whichBinary(name: string): boolean {
   }
 }
 
-var LSP_BINARY_MAP: Record<string, string> = {
+const LSP_BINARY_MAP: Record<string, string> = {
   "typescript-lsp": "typescript-language-server",
   "pyright-lsp": "pyright-langserver",
   "gopls-lsp": "gopls",
@@ -411,46 +411,46 @@ var LSP_BINARY_MAP: Record<string, string> = {
 };
 
 function getPluginErrors(): PluginError[] {
-  var data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const data = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
   if (!data || !data.plugins) return [];
-  var errors: PluginError[] = [];
+  const errors: PluginError[] = [];
 
-  var keys = Object.keys(data.plugins);
-  for (var k = 0; k < keys.length; k++) {
-    var key = keys[k];
-    var entries = data.plugins[key];
-    var atIdx = key.lastIndexOf("@");
-    var pluginName = atIdx > 0 ? key.slice(0, atIdx) : key;
-    var marketplace = atIdx > 0 ? key.slice(atIdx + 1) : "";
+  const keys = Object.keys(data.plugins);
+  for (let k = 0; k < keys.length; k++) {
+    const key = keys[k];
+    const entries = data.plugins[key];
+    const atIdx = key.lastIndexOf("@");
+    const pluginName = atIdx > 0 ? key.slice(0, atIdx) : key;
+    const marketplace = atIdx > 0 ? key.slice(atIdx + 1) : "";
 
-    for (var e = 0; e < entries.length; e++) {
-      var entry = entries[e];
-      var errs: string[] = [];
+    for (let e = 0; e < entries.length; e++) {
+      const entry = entries[e];
+      const errs: string[] = [];
 
       if (!existsSync(entry.installPath)) {
         errs.push("Install path does not exist: " + entry.installPath);
       } else {
         try {
-          var output = execSync(
+          const output = execSync(
             "claude plugin validate " + JSON.stringify(entry.installPath) + " 2>&1",
             { encoding: "utf-8", timeout: 10000 }
           );
-          var errorLines = output.split("\n").filter(function (l) { return l.trim().startsWith("❯") || l.trim().startsWith("✘"); });
-          for (var el = 0; el < errorLines.length; el++) {
-            var line = errorLines[el].trim();
+          const errorLines = output.split("\n").filter(function (l) { return l.trim().startsWith("❯") || l.trim().startsWith("✘"); });
+          for (let el = 0; el < errorLines.length; el++) {
+            const line = errorLines[el].trim();
             if (line.startsWith("❯")) {
               errs.push(line.slice(1).trim());
             }
           }
         } catch (validateErr) {
-          var stderr = String(validateErr);
-          var stderrLines = stderr.split("\n").filter(function (l) { return l.trim().startsWith("❯"); });
-          for (var sl = 0; sl < stderrLines.length; sl++) {
+          const stderr = String(validateErr);
+          const stderrLines = stderr.split("\n").filter(function (l) { return l.trim().startsWith("❯"); });
+          for (let sl = 0; sl < stderrLines.length; sl++) {
             errs.push(stderrLines[sl].trim().slice(1).trim());
           }
         }
 
-        var lspBinary = LSP_BINARY_MAP[pluginName];
+        const lspBinary = LSP_BINARY_MAP[pluginName];
         if (lspBinary && !whichBinary(lspBinary)) {
           errs.push("Executable not found in $PATH: \"" + lspBinary + "\"");
         }
@@ -466,39 +466,39 @@ function getPluginErrors(): PluginError[] {
 }
 
 function discoverPlugins(): MarketplacePluginEntry[] {
-  var marketplaces = readJsonFile<MarketplacesFile>(MARKETPLACES_FILE);
+  const marketplaces = readJsonFile<MarketplacesFile>(MARKETPLACES_FILE);
   if (!marketplaces) return [];
-  var installCounts = getInstallCounts();
-  var installedData = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
-  var installedKeys = new Set<string>();
-  var installedVersions = new Map<string, string>();
+  const installCounts = getInstallCounts();
+  const installedData = readJsonFile<InstalledPluginsFile>(INSTALLED_FILE);
+  const installedKeys = new Set<string>();
+  const installedVersions = new Map<string, string>();
   if (installedData && installedData.plugins) {
-    var iKeys = Object.keys(installedData.plugins);
-    for (var ik = 0; ik < iKeys.length; ik++) {
+    const iKeys = Object.keys(installedData.plugins);
+    for (let ik = 0; ik < iKeys.length; ik++) {
       installedKeys.add(iKeys[ik]);
-      var versions = installedData.plugins[iKeys[ik]];
+      const versions = installedData.plugins[iKeys[ik]];
       if (versions.length > 0) {
         installedVersions.set(iKeys[ik], versions[0].version);
       }
     }
   }
 
-  var results: MarketplacePluginEntry[] = [];
-  var mKeys = Object.keys(marketplaces);
+  const results: MarketplacePluginEntry[] = [];
+  const mKeys = Object.keys(marketplaces);
 
-  for (var m = 0; m < mKeys.length; m++) {
-    var mName = mKeys[m];
-    var mkt = marketplaces[mName];
-    var pluginsDir = join(mkt.installLocation, "plugins");
+  for (let m = 0; m < mKeys.length; m++) {
+    const mName = mKeys[m];
+    const mkt = marketplaces[mName];
+    const pluginsDir = join(mkt.installLocation, "plugins");
     if (!existsSync(pluginsDir)) continue;
 
     try {
-      var pluginDirs = readdirSync(pluginsDir, { withFileTypes: true });
-      for (var p = 0; p < pluginDirs.length; p++) {
+      const pluginDirs = readdirSync(pluginsDir, { withFileTypes: true });
+      for (let p = 0; p < pluginDirs.length; p++) {
         if (!pluginDirs[p].isDirectory()) continue;
-        var dirName = pluginDirs[p].name;
-        var meta = readPluginJson(join(pluginsDir, dirName));
-        var key = dirName + "@" + mName;
+        const dirName = pluginDirs[p].name;
+        const meta = readPluginJson(join(pluginsDir, dirName));
+        const key = dirName + "@" + mName;
         results.push({
           name: dirName,
           marketplace: mName,
@@ -513,8 +513,8 @@ function discoverPlugins(): MarketplacePluginEntry[] {
   }
 
   results.sort(function (a, b) {
-    var ai = a.installs ?? 0;
-    var bi = b.installs ?? 0;
+    const ai = a.installs ?? 0;
+    const bi = b.installs ?? 0;
     return bi - ai;
   });
 
@@ -523,39 +523,39 @@ function discoverPlugins(): MarketplacePluginEntry[] {
 
 registerHandler("plugin", function (clientId: string, message: ClientMessage) {
   if (message.type === "plugin:list") {
-    var plugins = getInstalledPlugins();
+    const plugins = getInstalledPlugins();
     sendTo(clientId, { type: "plugin:list_result", plugins: plugins });
     return;
   }
 
   if (message.type === "plugin:marketplaces") {
-    var marketplaces = getMarketplaces();
+    const marketplaces = getMarketplaces();
     sendTo(clientId, { type: "plugin:marketplaces_result", marketplaces: marketplaces });
     return;
   }
 
   if (message.type === "plugin:search") {
-    var searchMsg = message as { type: "plugin:search"; query: string; marketplace?: string };
-    var query = searchMsg.query.trim();
+    const searchMsg = message as { type: "plugin:search"; query: string; marketplace?: string };
+    const query = searchMsg.query.trim();
     if (!query) {
       sendTo(clientId, { type: "plugin:search_result", query: query, plugins: [], count: 0 });
       return;
     }
-    var found = searchMarketplacePlugins(query, searchMsg.marketplace);
+    const found = searchMarketplacePlugins(query, searchMsg.marketplace);
     sendTo(clientId, { type: "plugin:search_result", query: query, plugins: found, count: found.length });
     return;
   }
 
   if (message.type === "plugin:install") {
-    var installMsg = message as { type: "plugin:install"; name: string; marketplace: string };
-    var installArg = installMsg.name + "@" + installMsg.marketplace;
+    const installMsg = message as { type: "plugin:install"; name: string; marketplace: string };
+    const installArg = installMsg.name + "@" + installMsg.marketplace;
     try {
-      var proc = spawn("claude", ["plugin", "install", installArg], {
+      const proc = spawn("claude", ["plugin", "install", installArg], {
         cwd: homedir(),
         stdio: ["ignore", "pipe", "pipe"],
       });
 
-      var timeout = setTimeout(function () {
+      const timeout = setTimeout(function () {
         proc.kill();
       }, 120000);
 
@@ -575,15 +575,15 @@ registerHandler("plugin", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "plugin:uninstall") {
-    var uninstallMsg = message as { type: "plugin:uninstall"; name: string; marketplace: string };
-    var uninstallArg = uninstallMsg.name + "@" + uninstallMsg.marketplace;
+    const uninstallMsg = message as { type: "plugin:uninstall"; name: string; marketplace: string };
+    const uninstallArg = uninstallMsg.name + "@" + uninstallMsg.marketplace;
     try {
-      var uninstallProc = spawn("claude", ["plugin", "uninstall", uninstallArg], {
+      const uninstallProc = spawn("claude", ["plugin", "uninstall", uninstallArg], {
         cwd: homedir(),
         stdio: ["ignore", "pipe", "pipe"],
       });
 
-      var uninstallTimeout = setTimeout(function () {
+      const uninstallTimeout = setTimeout(function () {
         uninstallProc.kill();
       }, 60000);
 
@@ -603,15 +603,15 @@ registerHandler("plugin", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "plugin:update") {
-    var updateMsg = message as { type: "plugin:update"; name: string; marketplace: string };
-    var updateArg = updateMsg.name + "@" + updateMsg.marketplace;
+    const updateMsg = message as { type: "plugin:update"; name: string; marketplace: string };
+    const updateArg = updateMsg.name + "@" + updateMsg.marketplace;
     try {
-      var updateProc = spawn("claude", ["plugin", "update", updateArg], {
+      const updateProc = spawn("claude", ["plugin", "update", updateArg], {
         cwd: homedir(),
         stdio: ["ignore", "pipe", "pipe"],
       });
 
-      var updateTimeout = setTimeout(function () {
+      const updateTimeout = setTimeout(function () {
         updateProc.kill();
       }, 120000);
 
@@ -631,8 +631,8 @@ registerHandler("plugin", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "plugin:details") {
-    var detailsMsg = message as { type: "plugin:details"; name: string; marketplace: string };
-    var details = getPluginDetails(detailsMsg.name, detailsMsg.marketplace);
+    const detailsMsg = message as { type: "plugin:details"; name: string; marketplace: string };
+    const details = getPluginDetails(detailsMsg.name, detailsMsg.marketplace);
     if (details) {
       sendTo(clientId, { type: "plugin:details_result", plugin: details });
     } else {
@@ -642,13 +642,13 @@ registerHandler("plugin", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "plugin:discover") {
-    var allPlugins = discoverPlugins();
+    const allPlugins = discoverPlugins();
     sendTo(clientId, { type: "plugin:discover_result", plugins: allPlugins });
     return;
   }
 
   if (message.type === "plugin:errors") {
-    var pluginErrors = getPluginErrors();
+    const pluginErrors = getPluginErrors();
     sendTo(clientId, { type: "plugin:errors_result", errors: pluginErrors });
     return;
   }

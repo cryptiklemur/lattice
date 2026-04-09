@@ -14,7 +14,7 @@ export interface UseProjectsResult {
 
 function loadCachedProjects(): ProjectInfo[] {
   try {
-    var raw = localStorage.getItem("lattice:projects");
+    const raw = localStorage.getItem("lattice:projects");
     if (raw) return JSON.parse(raw);
   } catch {}
   return [];
@@ -27,36 +27,36 @@ function cacheProjects(projects: ProjectInfo[]): void {
 }
 
 export function useProjects(): UseProjectsResult {
-  var ws = useWebSocket();
-  var [projects, setProjects] = useState<ProjectInfo[]>(loadCachedProjects);
-  var activeProjectSlug = useStore(getSidebarStore(), function (state) { return state.activeProjectSlug; });
+  const ws = useWebSocket();
+  const [projects, setProjects] = useState<ProjectInfo[]>(loadCachedProjects);
+  const activeProjectSlug = useStore(getSidebarStore(), function (state) { return state.activeProjectSlug; });
 
-  var handleRef = useRef<(msg: ServerMessage) => void>(function () {});
+  const handleRef = useRef<(msg: ServerMessage) => void>(function () {});
 
   useEffect(function () {
     handleRef.current = function (msg: ServerMessage) {
       if (msg.type === "projects:list") {
-        var incoming = (msg as ProjectsListMessage).projects;
+        const incoming = (msg as ProjectsListMessage).projects;
         setProjects(function (prev) {
-          var incomingKeys = new Set(incoming.map(function (p) { return p.slug + "@" + p.nodeId; }));
-          var kept = prev.filter(function (p) {
+          const incomingKeys = new Set(incoming.map(function (p) { return p.slug + "@" + p.nodeId; }));
+          const kept = prev.filter(function (p) {
             if (!p.isRemote) return false;
             return !incomingKeys.has(p.slug + "@" + p.nodeId);
           });
-          for (var i = 0; i < kept.length; i++) {
+          for (let i = 0; i < kept.length; i++) {
             (kept[i] as any).online = false;
           }
-          var merged = incoming.concat(kept);
+          const merged = incoming.concat(kept);
           cacheProjects(merged);
           return merged;
         });
-        var storeState = getSidebarStore().state;
-        var currentSlug = storeState.activeProjectSlug;
+        const storeState = getSidebarStore().state;
+        const currentSlug = storeState.activeProjectSlug;
         if (currentSlug !== null) {
-          var found = incoming.find(function (p: typeof incoming[number]) { return p.slug === currentSlug; });
+          const found = incoming.find(function (p: typeof incoming[number]) { return p.slug === currentSlug; });
           if (!found) {
             setProjects(function (current) {
-              var stillExists = current.find(function (p) { return p.slug === currentSlug; });
+              const stillExists = current.find(function (p) { return p.slug === currentSlug; });
               if (!stillExists && current.length > 0) {
                 setActiveProjectSlug(current[0].slug);
               }
@@ -86,7 +86,7 @@ export function useProjects(): UseProjectsResult {
     }
   }, [ws.status, ws]);
 
-  var activeProject = activeProjectSlug !== null
+  const activeProject = activeProjectSlug !== null
     ? (projects.find(function (p) { return p.slug === activeProjectSlug; }) ?? null)
     : null;
 

@@ -13,13 +13,13 @@ interface ActivityCalendarProps {
   data: CalendarDatum[];
 }
 
-var DAY_LABEL_WIDTH = 28;
-var MONTH_LABEL_HEIGHT = 16;
+const DAY_LABEL_WIDTH = 28;
+const MONTH_LABEL_HEIGHT = 16;
 
-var INTENSITY_OPACITIES = [0.05, 0.15, 0.3, 0.5, 0.8];
+const INTENSITY_OPACITIES = [0.05, 0.15, 0.3, 0.5, 0.8];
 
-var MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-var DAY_LABELS = [
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAY_LABELS = [
   { index: 1, label: "Mon" },
   { index: 3, label: "Wed" },
   { index: 5, label: "Fri" },
@@ -27,7 +27,7 @@ var DAY_LABELS = [
 
 function getIntensity(count: number, maxCount: number): number {
   if (count === 0 || maxCount === 0) return -1;
-  var ratio = count / maxCount;
+  const ratio = count / maxCount;
   if (ratio <= 0.2) return 0;
   if (ratio <= 0.4) return 1;
   if (ratio <= 0.6) return 2;
@@ -36,16 +36,16 @@ function getIntensity(count: number, maxCount: number): number {
 }
 
 function parseDateParts(dateStr: string): { year: number; month: number; day: number } {
-  var parts = dateStr.split("-");
+  const parts = dateStr.split("-");
   return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) - 1, day: parseInt(parts[2], 10) };
 }
 
 export function ActivityCalendar({ data }: ActivityCalendarProps) {
-  var colors = getChartColors();
-  var PRIMARY_COLOR = colors.primary;
-  var [hover, setHover] = useState<{ x: number; y: number; datum: CalendarDatum } | null>(null);
-  var containerRef = useRef<HTMLDivElement>(null);
-  var [containerWidth, setContainerWidth] = useState(0);
+  const colors = getChartColors();
+  const PRIMARY_COLOR = colors.primary;
+  const [hover, setHover] = useState<{ x: number; y: number; datum: CalendarDatum } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(function () {
     if (!containerRef.current) return;
@@ -66,32 +66,32 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
     );
   }
 
-  var dataMap = new Map<string, CalendarDatum>();
-  var maxCount = 0;
-  for (var i = 0; i < data.length; i++) {
+  const dataMap = new Map<string, CalendarDatum>();
+  let maxCount = 0;
+  for (let i = 0; i < data.length; i++) {
     dataMap.set(data[i].date, data[i]);
     if (data[i].count > maxCount) maxCount = data[i].count;
   }
 
-  var lastDate = new Date(data[data.length - 1].date + "T00:00:00");
-  var startDate = new Date(lastDate);
+  const lastDate = new Date(data[data.length - 1].date + "T00:00:00");
+  const startDate = new Date(lastDate);
   startDate.setDate(startDate.getDate() - 364);
-  var startDay = startDate.getDay();
+  const startDay = startDate.getDay();
   if (startDay !== 0) {
     startDate.setDate(startDate.getDate() - startDay);
   }
 
-  var weeks: Array<Array<{ date: string; datum: CalendarDatum | undefined } | null>> = [];
-  var cursor = new Date(startDate);
-  var currentWeek: Array<{ date: string; datum: CalendarDatum | undefined } | null> = [];
+  const weeks: Array<Array<{ date: string; datum: CalendarDatum | undefined } | null>> = [];
+  const cursor = new Date(startDate);
+  let currentWeek: Array<{ date: string; datum: CalendarDatum | undefined } | null> = [];
 
   while (cursor <= lastDate) {
-    var dow = cursor.getDay();
+    const dow = cursor.getDay();
     if (dow === 0 && currentWeek.length > 0) {
       weeks.push(currentWeek);
       currentWeek = [];
     }
-    var key = cursor.getFullYear() + "-" + String(cursor.getMonth() + 1).padStart(2, "0") + "-" + String(cursor.getDate()).padStart(2, "0");
+    const key = cursor.getFullYear() + "-" + String(cursor.getMonth() + 1).padStart(2, "0") + "-" + String(cursor.getDate()).padStart(2, "0");
     currentWeek.push({ date: key, datum: dataMap.get(key) });
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -100,25 +100,25 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
     weeks.push(currentWeek);
   }
 
-  var monthLabels: Array<{ col: number; label: string }> = [];
-  var lastMonth = -1;
-  for (var wi = 0; wi < weeks.length; wi++) {
-    var firstCell = weeks[wi][0];
+  const monthLabels: Array<{ col: number; label: string }> = [];
+  let lastMonth = -1;
+  for (let wi = 0; wi < weeks.length; wi++) {
+    const firstCell = weeks[wi][0];
     if (!firstCell) continue;
-    var parts = parseDateParts(firstCell.date);
+    const parts = parseDateParts(firstCell.date);
     if (parts.month !== lastMonth) {
       monthLabels.push({ col: wi, label: MONTH_NAMES[parts.month] });
       lastMonth = parts.month;
     }
   }
 
-  var availableWidth = (containerWidth || 800) - DAY_LABEL_WIDTH;
-  var CELL_STEP = Math.max(3, Math.floor(availableWidth / weeks.length));
-  var CELL_GAP = Math.max(1, Math.round(CELL_STEP * 0.15));
-  var CELL_SIZE = CELL_STEP - CELL_GAP;
+  const availableWidth = (containerWidth || 800) - DAY_LABEL_WIDTH;
+  const CELL_STEP = Math.max(3, Math.floor(availableWidth / weeks.length));
+  const CELL_GAP = Math.max(1, Math.round(CELL_STEP * 0.15));
+  const CELL_SIZE = CELL_STEP - CELL_GAP;
 
-  var svgWidth = DAY_LABEL_WIDTH + weeks.length * CELL_STEP;
-  var svgHeight = MONTH_LABEL_HEIGHT + 7 * CELL_STEP;
+  const svgWidth = DAY_LABEL_WIDTH + weeks.length * CELL_STEP;
+  const svgHeight = MONTH_LABEL_HEIGHT + 7 * CELL_STEP;
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -154,11 +154,11 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
         {weeks.map(function (week, col) {
           return week.map(function (cell, row) {
             if (!cell) return null;
-            var intensity = getIntensity(cell.datum?.count || 0, maxCount);
-            var x = DAY_LABEL_WIDTH + col * CELL_STEP;
-            var y = MONTH_LABEL_HEIGHT + row * CELL_STEP;
-            var opacity = intensity >= 0 ? INTENSITY_OPACITIES[intensity] : 0.05;
-            var fillColor = intensity >= 0 ? PRIMARY_COLOR : undefined;
+            const intensity = getIntensity(cell.datum?.count || 0, maxCount);
+            const x = DAY_LABEL_WIDTH + col * CELL_STEP;
+            const y = MONTH_LABEL_HEIGHT + row * CELL_STEP;
+            const opacity = intensity >= 0 ? INTENSITY_OPACITIES[intensity] : 0.05;
+            const fillColor = intensity >= 0 ? PRIMARY_COLOR : undefined;
 
             return (
               <rect
@@ -185,7 +185,6 @@ export function ActivityCalendar({ data }: ActivityCalendarProps) {
           });
         })}
       </svg>
-
       {hover && createPortal(
         <div
           className="fixed z-[9999] rounded-lg border border-base-content/8 bg-base-200 px-3 py-2 shadow-lg pointer-events-none"

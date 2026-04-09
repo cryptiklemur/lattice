@@ -16,18 +16,18 @@ import { existsSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 function getLocalAddress(): string {
-  var all = getAllAddresses();
+  const all = getAllAddresses();
   return all.length > 0 ? all[0].address : "localhost";
 }
 
 function getAllAddresses(): Array<{ name: string; address: string }> {
-  var interfaces = networkInterfaces();
-  var keys = Object.keys(interfaces);
-  var results: Array<{ name: string; address: string }> = [];
-  for (var i = 0; i < keys.length; i++) {
-    var addrs = interfaces[keys[i]];
+  const interfaces = networkInterfaces();
+  const keys = Object.keys(interfaces);
+  const results: Array<{ name: string; address: string }> = [];
+  for (let i = 0; i < keys.length; i++) {
+    const addrs = interfaces[keys[i]];
     if (!addrs) continue;
-    for (var j = 0; j < addrs.length; j++) {
+    for (let j = 0; j < addrs.length; j++) {
       if (!addrs[j].internal && addrs[j].family === "IPv4") {
         results.push({ name: keys[i], address: addrs[j].address });
       }
@@ -35,9 +35,9 @@ function getAllAddresses(): Array<{ name: string; address: string }> {
   }
 
   if (isWSL()) {
-    var windowsAddrs = getWindowsHostAddresses();
-    for (var w = 0; w < windowsAddrs.length; w++) {
-      var exists = results.some(function (r) { return r.address === windowsAddrs[w].address; });
+    const windowsAddrs = getWindowsHostAddresses();
+    for (let w = 0; w < windowsAddrs.length; w++) {
+      const exists = results.some(function (r) { return r.address === windowsAddrs[w].address; });
       if (!exists) {
         results.push(windowsAddrs[w]);
       }
@@ -50,7 +50,7 @@ function getAllAddresses(): Array<{ name: string; address: string }> {
 function isWSL(): boolean {
   try {
     if (existsSync("/proc/version")) {
-      var version = readFileSync("/proc/version", "utf-8");
+      const version = readFileSync("/proc/version", "utf-8");
       return version.toLowerCase().includes("microsoft");
     }
   } catch {}
@@ -58,17 +58,17 @@ function isWSL(): boolean {
 }
 
 function getWindowsHostAddresses(): Array<{ name: string; address: string }> {
-  var results: Array<{ name: string; address: string }> = [];
+  const results: Array<{ name: string; address: string }> = [];
   try {
-    var output = execSync(
+    const output = execSync(
       "powershell.exe -NoProfile -Command \"Get-NetIPAddress -AddressFamily IPv4 | ForEach-Object { \\$_.IPAddress + '|' + \\$_.InterfaceAlias }\"",
       { encoding: "utf-8", timeout: 5000, stdio: ["pipe", "pipe", "pipe"] }
     );
-    var lines = output.trim().split(/\r?\n/);
-    for (var i = 0; i < lines.length; i++) {
-      var parts = lines[i].trim().split("|");
-      var ip = parts[0];
-      var iface = parts[1] || "windows";
+    const lines = output.trim().split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].trim().split("|");
+      const ip = parts[0];
+      const iface = parts[1] || "windows";
       if (!ip || ip === "127.0.0.1") continue;
       if (ip.startsWith("169.254.")) continue;
       if (iface.includes("WSL")) continue;
@@ -79,20 +79,20 @@ function getWindowsHostAddresses(): Array<{ name: string; address: string }> {
 }
 
 function getLocalProjectsList(): Array<{ slug: string; title: string }> {
-  var config = loadConfig();
+  const config = loadConfig();
   return config.projects.map(function (p: typeof config.projects[number]) {
     return { slug: p.slug, title: p.title };
   });
 }
 
 export function buildNodesMessage(): NodeInfo[] {
-  var peers = loadPeers();
-  var config = loadConfig();
-  var identity = loadOrCreateIdentity();
-  var connectedIds = new Set(getConnectedPeerIds());
-  var localAddrs = getAllAddresses().map(function (a) { return a.address + ":" + config.port; });
+  const peers = loadPeers();
+  const config = loadConfig();
+  const identity = loadOrCreateIdentity();
+  const connectedIds = new Set(getConnectedPeerIds());
+  const localAddrs = getAllAddresses().map(function (a) { return a.address + ":" + config.port; });
 
-  var local: NodeInfo = {
+  const local: NodeInfo = {
     id: identity.id,
     name: config.name,
     address: localAddrs[0] ?? "localhost:" + config.port,
@@ -105,9 +105,9 @@ export function buildNodesMessage(): NodeInfo[] {
     }),
   };
 
-  var remotes: NodeInfo[] = peers.map(function (peer) {
-    var peerProjects = getConnectedPeerProjects(peer.id);
-    var health = getPeerHealth(peer.id);
+  const remotes: NodeInfo[] = peers.map(function (peer) {
+    const peerProjects = getConnectedPeerProjects(peer.id);
+    const health = getPeerHealth(peer.id);
     return {
       id: peer.id,
       name: peer.name,
@@ -131,9 +131,9 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   log.meshHello("mesh message: %s from %s", (message as any).type, clientId.slice(0, 8));
 
   if (message.type === "mesh:generate_invite") {
-    var genMsg = message as any as { type: "mesh:generate_invite"; address?: string };
-    var config = loadConfig();
-    var address = genMsg.address || getLocalAddress();
+    const genMsg = message as any as { type: "mesh:generate_invite"; address?: string };
+    const config = loadConfig();
+    const address = genMsg.address || getLocalAddress();
     generateInviteCode(address, config.port).then(function (result) {
       sendTo(clientId, {
         type: "mesh:invite_code",
@@ -147,29 +147,29 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "mesh:addresses") {
-    var addresses = getAllAddresses();
+    const addresses = getAllAddresses();
     sendTo(clientId, { type: "mesh:addresses_result" as any, addresses: addresses });
     return;
   }
 
   if (message.type === "mesh:pair") {
-    var pairMsg = message as MeshPairMessage;
-    var parsed = parseInviteCode(pairMsg.code);
+    const pairMsg = message as MeshPairMessage;
+    const parsed = parseInviteCode(pairMsg.code);
     if (!parsed) {
       sendTo(clientId, { type: "mesh:pair_failed", message: "Invalid invite code format" });
       return;
     }
 
-    var wsUrl = "ws://" + parsed.address + ":" + parsed.port + "/ws";
-    var pairWs = new WebSocket(wsUrl);
-    var pairTimeout = setTimeout(function () {
+    const wsUrl = "ws://" + parsed.address + ":" + parsed.port + "/ws";
+    const pairWs = new WebSocket(wsUrl);
+    const pairTimeout = setTimeout(function () {
       pairWs.close();
       sendTo(clientId, { type: "mesh:pair_failed", message: "Connection timed out" });
     }, 15000);
 
     pairWs.addEventListener("open", function () {
-      var identity = loadOrCreateIdentity();
-      var pairConfig = loadConfig();
+      const identity = loadOrCreateIdentity();
+      const pairConfig = loadConfig();
       pairWs.send(JSON.stringify({
         type: "mesh:hello",
         nodeId: identity.id,
@@ -184,7 +184,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
     pairWs.addEventListener("message", function (event: MessageEvent) {
       try {
-        var data = JSON.parse(event.data as string) as { type: string; nodeId?: string; name?: string; publicKey?: string; error?: string };
+        const data = JSON.parse(event.data as string) as { type: string; nodeId?: string; name?: string; publicKey?: string; error?: string };
 
         if (data.type === "mesh:hello_rejected") {
           clearTimeout(pairTimeout);
@@ -195,8 +195,8 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
         if (data.type === "mesh:hello" && data.nodeId && data.name) {
           clearTimeout(pairTimeout);
-          var peerAddr = parsed!.address + ":" + parsed!.port;
-          var peer: PeerInfo = {
+          const peerAddr = parsed!.address + ":" + parsed!.port;
+          const peer: PeerInfo = {
             id: data.nodeId,
             name: data.name,
             addresses: [peerAddr],
@@ -208,8 +208,8 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
 
           connectToPeer(peer.id, peerAddr);
 
-          var remoteProjectsList = (data as any).projects ?? [];
-          var nodeInfo: NodeInfo = {
+          const remoteProjectsList = (data as any).projects ?? [];
+          const nodeInfo: NodeInfo = {
             id: peer.id,
             name: peer.name,
             address: peerAddr,
@@ -237,9 +237,9 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "mesh:hello") {
-    var hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; publicKey?: string; token?: string; port?: number; addresses?: string[]; projects: Array<{ slug: string; title: string }> };
+    const hello = message as any as { type: "mesh:hello"; nodeId: string; name: string; publicKey?: string; token?: string; port?: number; addresses?: string[]; projects: Array<{ slug: string; title: string }> };
 
-    var knownPeer = hello.nodeId ? getPeer(hello.nodeId) : undefined;
+    const knownPeer = hello.nodeId ? getPeer(hello.nodeId) : undefined;
     log.meshHello("mesh:hello from nodeId=%s name=%s known=%s", hello.nodeId?.slice(0, 8), hello.name, !!knownPeer);
 
     if (knownPeer) {
@@ -249,13 +249,13 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
         return;
       }
 
-      var inboundWs = getClientWebSocket(clientId);
+      const inboundWs = getClientWebSocket(clientId);
       log.meshHello("  registering inbound connection for %s (ws=%s, projects=%d)", hello.name, !!inboundWs, hello.projects?.length ?? 0);
       if (inboundWs) {
         registerInboundPeer(hello.nodeId, inboundWs as any, hello.projects ?? []);
       }
 
-      var identity = loadOrCreateIdentity();
+      const identity = loadOrCreateIdentity();
       sendTo(clientId, {
         type: "mesh:hello" as any,
         nodeId: identity.id,
@@ -273,9 +273,9 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
     }
     consumePairingToken(hello.token);
 
-    var peerAddresses = hello.addresses ?? [];
+    const peerAddresses = hello.addresses ?? [];
 
-    var peer: PeerInfo = {
+    const peer: PeerInfo = {
       id: hello.nodeId,
       name: hello.name,
       addresses: peerAddresses,
@@ -288,7 +288,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
       connectToPeer(peer.id, peerAddresses[0]);
     }
 
-    var identity2 = loadOrCreateIdentity();
+    const identity2 = loadOrCreateIdentity();
     sendTo(clientId, {
       type: "mesh:hello" as any,
       nodeId: identity2.id,
@@ -302,7 +302,7 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "mesh:proxy_request") {
-    var proxyReq = message as unknown as MeshProxyRequestMessage;
+    const proxyReq = message as unknown as MeshProxyRequestMessage;
     log.meshProxy("received proxy_request via handler from %s: %s for %s", clientId.slice(0, 8), (proxyReq.payload as any).type, proxyReq.projectSlug);
 
     registerVirtualClient("mesh-proxy:" + clientId + ":" + proxyReq.requestId, function (response: object) {
@@ -323,14 +323,14 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "mesh:proxy_response") {
-    var proxyRes = message as unknown as MeshProxyResponseMessage;
+    const proxyRes = message as unknown as MeshProxyResponseMessage;
     log.meshProxy("received proxy_response via handler: %s", (proxyRes.payload as any).type);
     handleProxyResponse(proxyRes);
     return;
   }
 
   if (message.type === "mesh:reconnect") {
-    var reconnectMsg = message as { type: "mesh:reconnect"; nodeId: string };
+    const reconnectMsg = message as { type: "mesh:reconnect"; nodeId: string };
     reconnectPeer(reconnectMsg.nodeId);
     setTimeout(function () {
       broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
@@ -339,14 +339,14 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "mesh:unpair") {
-    var unpairMsg = message as MeshUnpairMessage;
-    var identity = loadOrCreateIdentity();
-    var peerWs = getPeerConnection(unpairMsg.nodeId);
+    const unpairMsg = message as MeshUnpairMessage;
+    const identity = loadOrCreateIdentity();
+    const peerWs = getPeerConnection(unpairMsg.nodeId);
     if (peerWs) {
       peerWs.send(JSON.stringify({ type: "mesh:unpaired", nodeId: identity.id }));
     }
     disconnectPeer(unpairMsg.nodeId);
-    var removed = removePeer(unpairMsg.nodeId);
+    const removed = removePeer(unpairMsg.nodeId);
     if (removed) {
       broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
     }
@@ -354,9 +354,9 @@ registerHandler("mesh", function (clientId: string, message: ClientMessage) {
   }
 
   if ((message as any).type === "mesh:unpaired") {
-    var unpaired = message as any as { type: "mesh:unpaired"; nodeId: string };
+    const unpaired = message as any as { type: "mesh:unpaired"; nodeId: string };
     disconnectPeer(unpaired.nodeId);
-    var wasRemoved = removePeer(unpaired.nodeId);
+    const wasRemoved = removePeer(unpaired.nodeId);
     if (wasRemoved) {
       broadcast({ type: "mesh:nodes", nodes: buildNodesMessage() });
     }

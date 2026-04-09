@@ -7,14 +7,14 @@ import { ThemeWizard } from "./ThemeWizard";
 import { ThemeSwatches } from "./ThemePreview";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 
-var SWATCH_KEYS = [
+const SWATCH_KEYS = [
   "base00", "base01", "base02", "base03",
   "base04", "base05", "base06", "base07",
   "base08", "base09", "base0A", "base0B",
   "base0C", "base0D", "base0E", "base0F",
 ] as const;
 
-var ThemeCard = memo(function ThemeCard({
+const ThemeCard = memo(function ThemeCard({
   entry,
   active,
   onSelect,
@@ -23,7 +23,7 @@ var ThemeCard = memo(function ThemeCard({
   active: boolean;
   onSelect: (id: string) => void;
 }) {
-  var t = entry.theme;
+  const t = entry.theme;
 
   function handleClick() {
     onSelect(entry.id);
@@ -109,19 +109,19 @@ interface CustomTheme {
 }
 
 export function Appearance() {
-  var ws = useWebSocket();
-  var [wizardOpen, setWizardOpen] = useState(false);
-  var [editTheme, setEditTheme] = useState<CustomTheme | null>(null);
-  var ctxMenu = useContextMenu<CustomTheme>();
+  const ws = useWebSocket();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [editTheme, setEditTheme] = useState<CustomTheme | null>(null);
+  const ctxMenu = useContextMenu<CustomTheme>();
 
-  var { mode, currentThemeId, toggleMode, setTheme, themes, allThemes } = useTheme();
+  const { mode, currentThemeId, toggleMode, setTheme, themes, allThemes } = useTheme();
 
-  var customThemes = useMemo(function () {
+  const customThemes = useMemo(function () {
     return allThemes
       .filter(function (e) { return e.id.startsWith("custom:"); })
       .map(function (e): CustomTheme {
-        var colors: Record<string, string> = {};
-        for (var key of Object.keys(e.theme)) {
+        const colors: Record<string, string> = {};
+        for (const key of Object.keys(e.theme)) {
           if (key.startsWith("base0")) {
             colors[key] = (e.theme as any)[key];
           }
@@ -136,15 +136,15 @@ export function Appearance() {
       });
   }, [allThemes]);
 
-  var darkThemes = useMemo(function () {
+  const darkThemes = useMemo(function () {
     return themes.filter(function (e) { return e.theme.variant === "dark"; });
   }, [themes]);
 
-  var lightThemes = useMemo(function () {
+  const lightThemes = useMemo(function () {
     return themes.filter(function (e) { return e.theme.variant === "light"; });
   }, [themes]);
 
-  var handleThemeSelect = useCallback(function (id: string) {
+  const handleThemeSelect = useCallback(function (id: string) {
     setTheme(id);
   }, [setTheme]);
 
@@ -158,17 +158,17 @@ export function Appearance() {
   }
 
   function handleExportCustom(theme: CustomTheme) {
-    var obj: Record<string, string> = {
+    const obj: Record<string, string> = {
       name: theme.name,
       author: theme.author,
       variant: theme.variant,
     };
-    for (var key of Object.keys(theme.colors)) {
+    for (const key of Object.keys(theme.colors)) {
       obj[key] = theme.colors[key];
     }
-    var blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url;
     a.download = theme.filename;
     a.click();
@@ -196,29 +196,26 @@ export function Appearance() {
           )}
         </button>
       </div>
-
       <ThemeGroup
         label="Dark Themes"
         entries={darkThemes}
         currentThemeId={currentThemeId}
         onSelect={handleThemeSelect}
       />
-
       <ThemeGroup
         label="Light Themes"
         entries={lightThemes}
         currentThemeId={currentThemeId}
         onSelect={handleThemeSelect}
       />
-
       <div className="mb-6">
         <div className="text-[11px] font-mono font-bold tracking-[0.1em] uppercase text-base-content/40 mb-3">
           Custom Themes
         </div>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
           {customThemes.map(function (ct) {
-            var customId = "custom:" + ct.filename;
-            var isActive = customId === currentThemeId;
+            const customId = "custom:" + ct.filename;
+            const isActive = customId === currentThemeId;
             return (
               <button
                 key={ct.filename}
@@ -262,7 +259,6 @@ export function Appearance() {
           </button>
         </div>
       </div>
-
       {ctxMenu.state && (
         <ContextMenu
           x={ctxMenu.state.x}
@@ -277,7 +273,6 @@ export function Appearance() {
           ]}
         />
       )}
-
       {wizardOpen && (
         <ThemeWizard
           onClose={function () { setWizardOpen(false); setEditTheme(null); }}

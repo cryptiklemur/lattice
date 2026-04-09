@@ -13,23 +13,23 @@ interface NodeSettingsModalProps {
 }
 
 export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
-  var { send, subscribe, unsubscribe } = useWebSocket();
-  var { nodes } = useMesh();
-  var save = useSaveState();
+  const { send, subscribe, unsubscribe } = useWebSocket();
+  const { nodes } = useMesh();
+  const save = useSaveState();
 
-  var localNode = nodes.find(function (n) { return n.isLocal; });
-  var nodeId = localNode ? localNode.id : "";
+  const localNode = nodes.find(function (n) { return n.isLocal; });
+  const nodeId = localNode ? localNode.id : "";
 
-  var [config, setConfig] = useState<LatticeConfig | null>(null);
-  var [name, setName] = useState("");
-  var [port, setPort] = useState(7654);
-  var [tls, setTls] = useState(false);
-  var [debug, setDebug] = useState(false);
-  var [copied, setCopied] = useState(false);
-  var [wsl, setWsl] = useState<boolean | "auto">("auto");
-  var copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var modalRef = useRef<HTMLDivElement>(null);
-  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  const [config, setConfig] = useState<LatticeConfig | null>(null);
+  const [name, setName] = useState("");
+  const [port, setPort] = useState(7654);
+  const [tls, setTls] = useState(false);
+  const [debug, setDebug] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [wsl, setWsl] = useState<boolean | "auto">("auto");
+  const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const stableOnClose = useCallback(function () { onClose(); }, [onClose]);
   useFocusTrap(modalRef, stableOnClose, isOpen);
 
   useEffect(function () {
@@ -37,8 +37,8 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
 
     function handleData(msg: ServerMessage) {
       if (msg.type !== "settings:data") return;
-      var data = msg as SettingsDataMessage;
-      var cfg = data.config;
+      const data = msg as SettingsDataMessage;
+      const cfg = data.config;
       setConfig(cfg);
 
       if (save.saving) {
@@ -85,7 +85,7 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
 
   if (!isOpen) return null;
 
-  var inputClass = "w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
+  const inputClass = "w-full h-9 px-3 bg-base-300 border border-base-content/15 rounded-xl text-base-content text-[13px] focus:border-primary focus-visible:outline-none transition-colors duration-[120ms]";
 
   return (
     <div ref={modalRef} className="fixed inset-0 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Node Settings">
@@ -139,7 +139,7 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
               type="number"
               value={port}
               onChange={function (e) {
-                var val = parseInt(e.target.value, 10);
+                const val = parseInt(e.target.value, 10);
                 if (!isNaN(val)) { setPort(val); save.markDirty(); }
               }}
               min={1}
@@ -182,7 +182,7 @@ export function NodeSettingsModal({ isOpen, onClose }: NodeSettingsModalProps) {
             <select
               value={String(wsl)}
               onChange={function (e) {
-                var val = e.target.value;
+                const val = e.target.value;
                 if (val === "true") { setWsl(true); }
                 else if (val === "false") { setWsl(false); }
                 else { setWsl("auto"); }

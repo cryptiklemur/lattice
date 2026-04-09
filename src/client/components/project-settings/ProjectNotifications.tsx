@@ -13,11 +13,11 @@ function saveMuted(slug: string, muted: boolean): void {
 }
 
 export function ProjectNotifications({ projectSlug }: ProjectNotificationsProps) {
-  var slug = projectSlug ?? "";
-  var [muted, setMuted] = useState(function () { return loadMuted(slug); });
+  const slug = projectSlug ?? "";
+  const [muted, setMuted] = useState(function () { return loadMuted(slug); });
 
   function toggle() {
-    var next = !muted;
+    const next = !muted;
     setMuted(next);
     saveMuted(slug, next);
   }

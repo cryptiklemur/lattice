@@ -21,17 +21,17 @@ function getCronPreview(expr: string): string {
 }
 
 export function TaskEditModal(props: TaskEditModalProps) {
-  var { task, onSave, onClose } = props;
-  var [name, setName] = useState(task ? task.name : "");
-  var [prompt, setPrompt] = useState(task ? task.prompt : "");
-  var [cron, setCron] = useState(task ? task.cron : "0 9 * * 1-5");
+  const { task, onSave, onClose } = props;
+  const [name, setName] = useState(task ? task.name : "");
+  const [prompt, setPrompt] = useState(task ? task.prompt : "");
+  const [cron, setCron] = useState(task ? task.cron : "0 9 * * 1-5");
 
-  var modalRef = useRef<HTMLDivElement>(null);
-  var stableOnClose = useCallback(function () { onClose(); }, [onClose]);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const stableOnClose = useCallback(function () { onClose(); }, [onClose]);
   useFocusTrap(modalRef, stableOnClose);
 
-  var cronPreview = getCronPreview(cron);
-  var cronValid = cronPreview !== "Invalid cron expression" && cronPreview !== "";
+  const cronPreview = getCronPreview(cron);
+  const cronValid = cronPreview !== "Invalid cron expression" && cronPreview !== "";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

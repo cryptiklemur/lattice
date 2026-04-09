@@ -29,14 +29,14 @@ import { buildBrainstormPrompt, buildWritePlanPrompt, buildExecutePrompt } from 
 
 registerHandler("specs", function (clientId: string, message: ClientMessage) {
   if (message.type === "specs:list") {
-    var listMsg = message as SpecsListMessage;
+    const listMsg = message as SpecsListMessage;
     sendTo(clientId, { type: "specs:list_result", specs: listSpecs(listMsg.projectSlug) });
     return;
   }
 
   if (message.type === "specs:get") {
-    var getMsg = message as SpecsGetMessage;
-    var spec = getSpec(getMsg.id);
+    const getMsg = message as SpecsGetMessage;
+    const spec = getSpec(getMsg.id);
     if (!spec) {
       sendTo(clientId, { type: "chat:error", message: "Spec not found" });
       return;
@@ -46,8 +46,8 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "specs:create") {
-    var createMsg = message as SpecsCreateMessage;
-    var created = createSpec({
+    const createMsg = message as SpecsCreateMessage;
+    const created = createSpec({
       projectSlug: createMsg.projectSlug,
       title: createMsg.title,
       tagline: createMsg.tagline,
@@ -61,13 +61,13 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "specs:create-with-brainstorm") {
-    var brainstormMsg = message as SpecsCreateWithBrainstormMessage;
-    var slug = brainstormMsg.projectSlug;
-    var newSpec = createSpec({ projectSlug: slug, title: "New Spec" });
-    var brainstormSession = createSession(slug, "brainstorm");
+    const brainstormMsg = message as SpecsCreateWithBrainstormMessage;
+    const slug = brainstormMsg.projectSlug;
+    const newSpec = createSpec({ projectSlug: slug, title: "New Spec" });
+    const brainstormSession = createSession(slug, "brainstorm");
     updateSessionInIndex(slug, brainstormSession);
     linkSession(newSpec.id, brainstormSession.id, "Brainstorm session", "brainstorm");
-    var brainstormPrompt = buildBrainstormPrompt(newSpec, slug);
+    const brainstormPrompt = buildBrainstormPrompt(newSpec, slug);
     sendTo(clientId, {
       type: "specs:brainstorm-started",
       spec: newSpec,
@@ -75,52 +75,75 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
       systemPrompt: { type: "preset", preset: "claude_code", append: brainstormPrompt },
     });
     broadcastToProject(slug, { type: "specs:created", spec: newSpec });
+    broadcastToProject(slug, {
+      type: "session:list",
+      projectSlug: slug,
+      sessions: [brainstormSession],
+      totalCount: undefined,
+      offset: 0,
+    });
     return;
   }
 
   if (message.type === "specs:start-plan") {
-    var planMsg = message as SpecsStartPlanMessage;
-    var planSpec = getSpec(planMsg.specId);
+    const planMsg = message as SpecsStartPlanMessage;
+    const planSpec = getSpec(planMsg.specId);
     if (!planSpec) {
       sendTo(clientId, { type: "chat:error", message: "Spec not found" });
       return;
     }
-    var planSession = createSession(planMsg.projectSlug, "write-plan");
+    const planSession = createSession(planMsg.projectSlug, "write-plan");
+    planSession.title = "Plan: " + planSpec.title;
     updateSessionInIndex(planMsg.projectSlug, planSession);
     linkSession(planSpec.id, planSession.id, "Write plan session", "write-plan");
-    var planPrompt = buildWritePlanPrompt(planSpec, planMsg.projectSlug);
+    const planPrompt = buildWritePlanPrompt(planSpec, planMsg.projectSlug);
     sendTo(clientId, {
       type: "specs:plan-started",
       spec: planSpec,
       sessionId: planSession.id,
       systemPrompt: { type: "preset", preset: "claude_code", append: planPrompt },
     });
+    broadcastToProject(planMsg.projectSlug, {
+      type: "session:list",
+      projectSlug: planMsg.projectSlug,
+      sessions: [planSession],
+      totalCount: undefined,
+      offset: 0,
+    });
     return;
   }
 
   if (message.type === "specs:start-execute") {
-    var execMsg = message as SpecsStartExecuteMessage;
-    var execSpec = getSpec(execMsg.specId);
+    const execMsg = message as SpecsStartExecuteMessage;
+    const execSpec = getSpec(execMsg.specId);
     if (!execSpec) {
       sendTo(clientId, { type: "chat:error", message: "Spec not found" });
       return;
     }
-    var execSession = createSession(execMsg.projectSlug, "execute");
+    const execSession = createSession(execMsg.projectSlug, "execute");
+    execSession.title = "Execute: " + execSpec.title;
     updateSessionInIndex(execMsg.projectSlug, execSession);
     linkSession(execSpec.id, execSession.id, "Execute session", "execute");
-    var execPrompt = buildExecutePrompt(execSpec, execMsg.projectSlug);
+    const execPrompt = buildExecutePrompt(execSpec, execMsg.projectSlug);
     sendTo(clientId, {
       type: "specs:execute-started",
       spec: execSpec,
       sessionId: execSession.id,
       systemPrompt: { type: "preset", preset: "claude_code", append: execPrompt },
     });
+    broadcastToProject(execMsg.projectSlug, {
+      type: "session:list",
+      projectSlug: execMsg.projectSlug,
+      sessions: [execSession],
+      totalCount: undefined,
+      offset: 0,
+    });
     return;
   }
 
   if (message.type === "specs:update") {
-    var updateMsg = message as SpecsUpdateMessage;
-    var updated = updateSpec(updateMsg.id, {
+    const updateMsg = message as SpecsUpdateMessage;
+    const updated = updateSpec(updateMsg.id, {
       title: updateMsg.title,
       tagline: updateMsg.tagline,
       status: updateMsg.status,
@@ -141,8 +164,8 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "specs:delete") {
-    var deleteMsg = message as SpecsDeleteMessage;
-    var toDelete = getSpec(deleteMsg.id);
+    const deleteMsg = message as SpecsDeleteMessage;
+    const toDelete = getSpec(deleteMsg.id);
     if (!toDelete) {
       sendTo(clientId, { type: "chat:error", message: "Spec not found" });
       return;
@@ -153,8 +176,8 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "specs:link-session") {
-    var linkMsg = message as SpecsLinkSessionMessage;
-    var linked = linkSession(linkMsg.id, linkMsg.sessionId, linkMsg.note);
+    const linkMsg = message as SpecsLinkSessionMessage;
+    const linked = linkSession(linkMsg.id, linkMsg.sessionId, linkMsg.note);
     if (!linked) {
       sendTo(clientId, { type: "chat:error", message: "Spec not found" });
       return;
@@ -164,8 +187,8 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "specs:unlink-session") {
-    var unlinkMsg = message as SpecsUnlinkSessionMessage;
-    var unlinked = unlinkSession(unlinkMsg.id, unlinkMsg.sessionId);
+    const unlinkMsg = message as SpecsUnlinkSessionMessage;
+    const unlinked = unlinkSession(unlinkMsg.id, unlinkMsg.sessionId);
     if (!unlinked) {
       sendTo(clientId, { type: "chat:error", message: "Spec not found" });
       return;
@@ -175,8 +198,8 @@ registerHandler("specs", function (clientId: string, message: ClientMessage) {
   }
 
   if (message.type === "specs:activity") {
-    var actMsg = message as SpecsActivityMessage;
-    var withActivity = addActivity(actMsg.id, actMsg.activityType, actMsg.detail, actMsg.sessionId);
+    const actMsg = message as SpecsActivityMessage;
+    const withActivity = addActivity(actMsg.id, actMsg.activityType, actMsg.detail, actMsg.sessionId);
     if (!withActivity) {
       sendTo(clientId, { type: "chat:error", message: "Spec not found" });
       return;

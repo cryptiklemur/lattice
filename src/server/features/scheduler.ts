@@ -5,12 +5,12 @@ import { getLatticeHome } from "../config";
 import { broadcast } from "../ws/broadcast";
 import type { ScheduledTask } from "#shared";
 
-var schedulesFile = "";
-var tasks: ScheduledTask[] = [];
-var timerId: ReturnType<typeof setInterval> | null = null;
-var lastTriggeredMinute: Record<string, boolean> = {};
+let schedulesFile = "";
+let tasks: ScheduledTask[] = [];
+let timerId: ReturnType<typeof setInterval> | null = null;
+const lastTriggeredMinute: Record<string, boolean> = {};
 
-var CHECK_INTERVAL = 30 * 1000;
+const CHECK_INTERVAL = 30 * 1000;
 
 function getSchedulesPath(): string {
   if (!schedulesFile) {
@@ -20,41 +20,41 @@ function getSchedulesPath(): string {
 }
 
 function parseCronField(field: string, min: number, max: number): number[] {
-  var values: number[] = [];
-  var parts = field.split(",");
+  const values: number[] = [];
+  const parts = field.split(",");
 
-  for (var i = 0; i < parts.length; i++) {
-    var part = parts[i].trim();
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
 
     if (part.indexOf("/") !== -1) {
-      var slashParts = part.split("/");
-      var step = parseInt(slashParts[1], 10);
-      var rangeStr = slashParts[0];
-      var rangeMin = min;
-      var rangeMax = max;
+      const slashParts = part.split("/");
+      const step = parseInt(slashParts[1], 10);
+      const rangeStr = slashParts[0];
+      let rangeMin = min;
+      let rangeMax = max;
       if (rangeStr !== "*") {
-        var rp = rangeStr.split("-");
+        const rp = rangeStr.split("-");
         rangeMin = parseInt(rp[0], 10);
         rangeMax = rp.length > 1 ? parseInt(rp[1], 10) : rangeMin;
       }
-      for (var v = rangeMin; v <= rangeMax; v += step) {
+      for (let v = rangeMin; v <= rangeMax; v += step) {
         values.push(v);
       }
       continue;
     }
 
     if (part === "*") {
-      for (var v = min; v <= max; v++) {
+      for (let v = min; v <= max; v++) {
         values.push(v);
       }
       continue;
     }
 
     if (part.indexOf("-") !== -1) {
-      var rangeParts = part.split("-");
-      var from = parseInt(rangeParts[0], 10);
-      var to = parseInt(rangeParts[1], 10);
-      for (var v = from; v <= to; v++) {
+      const rangeParts = part.split("-");
+      const from = parseInt(rangeParts[0], 10);
+      const to = parseInt(rangeParts[1], 10);
+      for (let v = from; v <= to; v++) {
         values.push(v);
       }
       continue;
@@ -75,7 +75,7 @@ interface ParsedCron {
 }
 
 function parseCron(expr: string): ParsedCron | null {
-  var fields = expr.trim().split(/\s+/);
+  const fields = expr.trim().split(/\s+/);
   if (fields.length !== 5) {
     return null;
   }
@@ -99,17 +99,17 @@ function cronMatches(parsed: ParsedCron, date: Date): boolean {
 }
 
 function nextRunTime(cronExpr: string, after?: number): number | null {
-  var parsed = parseCron(cronExpr);
+  const parsed = parseCron(cronExpr);
   if (!parsed) {
     return null;
   }
 
-  var d = new Date(after || Date.now());
+  const d = new Date(after || Date.now());
   d.setSeconds(0, 0);
   d.setMinutes(d.getMinutes() + 1);
 
-  var limit = 366 * 24 * 60;
-  for (var i = 0; i < limit; i++) {
+  const limit = 366 * 24 * 60;
+  for (let i = 0; i < limit; i++) {
     if (cronMatches(parsed, d)) {
       return d.getTime();
     }
@@ -119,17 +119,17 @@ function nextRunTime(cronExpr: string, after?: number): number | null {
 }
 
 export function loadSchedules(): void {
-  var path = getSchedulesPath();
+  const path = getSchedulesPath();
   if (!existsSync(path)) {
     tasks = [];
     return;
   }
   try {
-    var raw = readFileSync(path, "utf-8");
-    var parsed = JSON.parse(raw) as { tasks?: ScheduledTask[] };
+    const raw = readFileSync(path, "utf-8");
+    const parsed = JSON.parse(raw) as { tasks?: ScheduledTask[] };
     tasks = parsed.tasks || [];
-    for (var i = 0; i < tasks.length; i++) {
-      var task = tasks[i];
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
       if (task.enabled && task.cron) {
         task.nextRunAt = nextRunTime(task.cron);
       }
@@ -141,12 +141,12 @@ export function loadSchedules(): void {
 }
 
 function saveSchedules(): void {
-  var path = getSchedulesPath();
-  var dir = join(path, "..");
+  const path = getSchedulesPath();
+  const dir = join(path, "..");
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  var tmp = path + ".tmp";
+  const tmp = path + ".tmp";
   try {
     writeFileSync(tmp, JSON.stringify({ tasks }, null, 2));
     renameSync(tmp, path);
@@ -156,11 +156,11 @@ function saveSchedules(): void {
 }
 
 function tick(): void {
-  var now = Date.now();
-  var nowMinuteKey = Math.floor(now / 60000);
+  const now = Date.now();
+  const nowMinuteKey = Math.floor(now / 60000);
 
-  for (var i = 0; i < tasks.length; i++) {
-    var task = tasks[i];
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
     if (!task.enabled || !task.nextRunAt) {
       continue;
     }
@@ -168,16 +168,16 @@ function tick(): void {
       continue;
     }
 
-    var triggerKey = task.id + "_" + nowMinuteKey;
+    const triggerKey = task.id + "_" + nowMinuteKey;
     if (lastTriggeredMinute[triggerKey]) {
       continue;
     }
     lastTriggeredMinute[triggerKey] = true;
 
-    var keys = Object.keys(lastTriggeredMinute);
-    for (var k = 0; k < keys.length; k++) {
-      var keyParts = keys[k].split("_");
-      var keyMinute = parseInt(keyParts[keyParts.length - 1], 10);
+    const keys = Object.keys(lastTriggeredMinute);
+    for (let k = 0; k < keys.length; k++) {
+      const keyParts = keys[k].split("_");
+      const keyMinute = parseInt(keyParts[keyParts.length - 1], 10);
       if (keyMinute < nowMinuteKey - 1) {
         delete lastTriggeredMinute[keys[k]];
       }
@@ -221,13 +221,13 @@ export function createTask(data: {
   cron: string;
   projectSlug: string;
 }): ScheduledTask | null {
-  var parsed = parseCron(data.cron);
+  const parsed = parseCron(data.cron);
   if (!parsed) {
     return null;
   }
 
-  var now = Date.now();
-  var task: ScheduledTask = {
+  const now = Date.now();
+  const task: ScheduledTask = {
     id: "task_" + now + "_" + randomBytes(3).toString("hex"),
     name: data.name,
     prompt: data.prompt,
@@ -246,8 +246,8 @@ export function createTask(data: {
 }
 
 export function updateTask(taskId: string, data: { name?: string; prompt?: string; cron?: string }): ScheduledTask | null {
-  var task: ScheduledTask | null = null;
-  for (var i = 0; i < tasks.length; i++) {
+  let task: ScheduledTask | null = null;
+  for (let i = 0; i < tasks.length; i++) {
     if (tasks[i].id === taskId) {
       task = tasks[i];
       break;
@@ -256,7 +256,7 @@ export function updateTask(taskId: string, data: { name?: string; prompt?: strin
   if (!task) return null;
 
   if (data.cron && data.cron !== task.cron) {
-    var parsed = parseCron(data.cron);
+    const parsed = parseCron(data.cron);
     if (!parsed) return null;
     task.cron = data.cron;
     task.nextRunAt = task.enabled ? nextRunTime(data.cron) : null;
@@ -269,8 +269,8 @@ export function updateTask(taskId: string, data: { name?: string; prompt?: strin
 }
 
 export function deleteTask(taskId: string): boolean {
-  var idx = -1;
-  for (var i = 0; i < tasks.length; i++) {
+  let idx = -1;
+  for (let i = 0; i < tasks.length; i++) {
     if (tasks[i].id === taskId) {
       idx = i;
       break;
@@ -285,8 +285,8 @@ export function deleteTask(taskId: string): boolean {
 }
 
 export function toggleTask(taskId: string): ScheduledTask | null {
-  var task: ScheduledTask | null = null;
-  for (var i = 0; i < tasks.length; i++) {
+  let task: ScheduledTask | null = null;
+  for (let i = 0; i < tasks.length; i++) {
     if (tasks[i].id === taskId) {
       task = tasks[i];
       break;

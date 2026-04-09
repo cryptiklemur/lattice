@@ -6,14 +6,14 @@ import { loadConfig } from "../config";
 import { log } from "../logger";
 import { upsertFromSnapshot, addToolEventToHistory, markSessionEnded } from "../features/session-history";
 
-var sessionProjectMap = new Map<string, { projectName: string; projectSlug: string }>();
+const sessionProjectMap = new Map<string, { projectName: string; projectSlug: string }>();
 
 function matchCwdToProject(cwd: string): { projectName: string; projectSlug: string } | null {
-  var config = loadConfig();
-  var resolved = resolve(cwd);
-  for (var i = 0; i < config.projects.length; i++) {
-    var p = config.projects[i];
-    var projectPath = resolve(p.path);
+  const config = loadConfig();
+  const resolved = resolve(cwd);
+  for (let i = 0; i < config.projects.length; i++) {
+    const p = config.projects[i];
+    const projectPath = resolve(p.path);
     if (resolved === projectPath || resolved.startsWith(projectPath + "/")) {
       return { projectName: p.title, projectSlug: p.slug };
     }
@@ -106,7 +106,7 @@ export function handleHookStatusline(req: Request, res: Response): void {
     cacheCreationTokens,
   }, contextWindow);
 
-  var statusProject = sessionProjectMap.get(body.session_id) || null;
+  const statusProject = sessionProjectMap.get(body.session_id) || null;
 
   broadcast({
     type: "context:statusline",
@@ -222,7 +222,7 @@ interface RawToolUsePayload {
 
 function estimateTokens(value: unknown): number {
   if (value == null) return 0;
-  var text = typeof value === "string" ? value : JSON.stringify(value);
+  const text = typeof value === "string" ? value : JSON.stringify(value);
   return Math.ceil(text.length / 4);
 }
 
@@ -230,41 +230,41 @@ function summarizeInput(toolName: string, input: unknown): string {
   if (input == null) return "";
   if (typeof input === "string") return input.slice(0, 120);
   if (typeof input === "object") {
-    var obj = input as Record<string, unknown>;
+    const obj = input as Record<string, unknown>;
     if (obj.command) return String(obj.command).slice(0, 120);
     if (obj.file_path) return String(obj.file_path);
     if (obj.pattern) return String(obj.pattern).slice(0, 120);
     if (obj.query) return String(obj.query).slice(0, 120);
     if (obj.prompt) return String(obj.prompt).slice(0, 120);
-    var keys = Object.keys(obj);
+    const keys = Object.keys(obj);
     if (keys.length > 0) return keys.slice(0, 3).join(", ");
   }
   return "";
 }
 
 export function handleHookToolUse(req: Request, res: Response): void {
-  var body = req.body as RawToolUsePayload;
+  const body = req.body as RawToolUsePayload;
   if (!body.session_id) {
     res.status(400).json({ status: "error", message: "missing session_id" });
     return;
   }
 
-  var toolName = body.tool_name || "unknown";
-  var inputSummary = summarizeInput(toolName, body.tool_input);
-  var estInput = estimateTokens(body.tool_input);
-  var estOutput = estimateTokens(body.tool_response);
-  var now = Date.now();
+  const toolName = body.tool_name || "unknown";
+  const inputSummary = summarizeInput(toolName, body.tool_input);
+  const estInput = estimateTokens(body.tool_input);
+  const estOutput = estimateTokens(body.tool_response);
+  const now = Date.now();
 
   if (body.cwd && !sessionProjectMap.has(body.session_id)) {
-    var match = matchCwdToProject(body.cwd);
+    const match = matchCwdToProject(body.cwd);
     if (match) {
       sessionProjectMap.set(body.session_id, match);
     }
   }
-  var sessionProject = sessionProjectMap.get(body.session_id) || null;
+  const sessionProject = sessionProjectMap.get(body.session_id) || null;
 
-  var analyzer = getOrCreateAnalyzer(body.session_id);
-  var toolId = body.session_id + "-" + now;
+  const analyzer = getOrCreateAnalyzer(body.session_id);
+  const toolId = body.session_id + "-" + now;
   analyzer.onToolStart(toolId, toolName);
   analyzer.onToolResult(toolId);
 

@@ -5,15 +5,15 @@ import remarkGfm from "remark-gfm";
 import type { SkillInfo } from "#shared";
 
 function parseFrontmatter(content: string): { meta: Record<string, string>; body: string } {
-  var match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/);
   if (!match) return { meta: {}, body: content };
-  var meta: Record<string, string> = {};
-  var lines = match[1].split(/\r?\n/);
-  for (var i = 0; i < lines.length; i++) {
-    var colonIdx = lines[i].indexOf(":");
+  const meta: Record<string, string> = {};
+  const lines = match[1].split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const colonIdx = lines[i].indexOf(":");
     if (colonIdx > 0) {
-      var key = lines[i].slice(0, colonIdx).trim();
-      var value = lines[i].slice(colonIdx + 1).trim().replace(/^["']|["']$/g, "");
+      const key = lines[i].slice(0, colonIdx).trim();
+      const value = lines[i].slice(colonIdx + 1).trim().replace(/^["']|["']$/g, "");
       meta[key] = value;
     }
   }
@@ -78,7 +78,7 @@ export function SkillActions({
   isDeleting: boolean;
   isUpdating: boolean;
 }) {
-  var [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <>
@@ -123,8 +123,8 @@ export function SkillActions({
 }
 
 export function SkillViewModal({ path, content, onClose }: { path: string; content: string; onClose: () => void }) {
-  var parsed = parseFrontmatter(content);
-  var hasMeta = Object.keys(parsed.meta).length > 0;
+  const parsed = parseFrontmatter(content);
+  const hasMeta = Object.keys(parsed.meta).length > 0;
 
   useEffect(function () {
     function handleKeyDown(e: KeyboardEvent) {
