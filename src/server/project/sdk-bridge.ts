@@ -832,27 +832,15 @@ export function startChatStream(options: ChatStreamOptions): void {
     } catch (initErr) {
       log.chat("Session %s SDK initialization FAILED: %O", sessionId, initErr);
     }
-    if (!shouldResume) {
-      log.chat("Session %s pushing first message to queue", sessionId);
-      mq.push(firstMsg);
-    }
+    log.chat("Session %s pushing first message to queue", sessionId);
+    mq.push(firstMsg);
+    let retrying = false;
     try {
       log.chat("Session %s entering stream loop", sessionId);
       let msgCount = 0;
-      let replayDone = !shouldResume;
       for await (const msg of stream) {
         msgCount++;
-        if (msgCount <= 5 || msg.type === "result") {
-          log.chat("Session %s msg #%d type=%s", sessionId, msgCount, msg.type);
-        }
-        if (!replayDone && msg.type === "result") {
-          replayDone = true;
-          log.chat("Session %s replay complete at msg #%d, waiting for connection settle", sessionId, msgCount);
-          await new Promise(function (resolve) { setTimeout(resolve, 200); });
-          log.chat("Session %s pushing first message after replay", sessionId);
-          mq.push(firstMsg);
-          continue;
-        }
+        log.chat("Session %s msg #%d type=%s", sessionId, msgCount, msg.type);
         processMessage(sessionStream, msg);
       }
       log.chat("Session %s stream ended normally after %d messages", sessionId, msgCount);
@@ -861,9 +849,9 @@ export function startChatStream(options: ChatStreamOptions): void {
       log.chat("Session %s stream error: %s", sessionId, errMsg);
       if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
         log.chat("Session %s stream aborted", sessionId);
-      } else if (errMsg.includes("Sent before connected")) {
-        log.chat("Session %s SDK WebSocket race condition: %s", sessionId, errMsg);
-        sendTo(sessionStream.clientId, { type: "chat:error", message: "Connection failed. Please try again." });
+      } else if (errMsg.includes("Sent before connected") && shouldResume) {
+        log.chat("Session %s WebSocket not ready after resume, retrying in 500ms", sessionId);
+        retrying = true;
       } else {
         console.error("[lattice] SDK stream error: " + errMsg);
         sendTo(sessionStream.clientId, { type: "chat:error", message: errMsg });
@@ -873,6 +861,14 @@ export function startChatStream(options: ChatStreamOptions): void {
       pendingStreams.delete(sessionId);
       sessionStreams.delete(sessionId);
       persistStreamState();
+
+      if (retrying) {
+        log.chat("Session %s cleaning up for retry", sessionId);
+        await new Promise(function (resolve) { setTimeout(resolve, 500); });
+        startChatStream(options);
+        return;
+      }
+
       broadcast({ type: "session:busy", sessionId, busy: false }, sessionStream.clientId);
 
       const toCleanup: string[] = [];
@@ -957,6 +953,7 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
 
   if (msg.type === "assistant") {
     const assistantMsg = msg as { type: "assistant"; message: { content: unknown; model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } } };
+    log.chat("Session %s assistant message: model=%s", sessionId, assistantMsg.message.model || "unknown");
     const msgUsage = assistantMsg.message.usage;
     if (msgUsage && msgUsage.input_tokens != null) {
       const ctxWindow = guessContextWindow(assistantMsg.message.model || "");
@@ -983,6 +980,8 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
     const evt = partial.event;
 
     if (evt.type === "content_block_start") {
+      const blockInfo = (evt as { content_block: { type: string; name?: string }; index: number }).content_block;
+      log.chat("Session %s content_block_start: type=%s name=%s", sessionId, blockInfo.type, blockInfo.name || "text");
       ss.sawNewTurnContent = true;
       const block = (evt as { content_block: { type: string; id?: string; name?: string }; index: number }).content_block;
       const idx = (evt as { index: number }).index;
@@ -1118,11 +1117,12 @@ function processMessage(ss: SessionStream, msg: SDKMessage): void {
   }
 
   if (msg.type === "result") {
+    const resultMsg = msg as SDKResultMessage;
+    log.chat("Session %s result: cost=$%s, sawContent=%s", sessionId, String(resultMsg.total_cost_usd || 0), String(ss.sawNewTurnContent));
     if (!ss.sawNewTurnContent) {
       log.chat("Session %s ignoring replayed result (no new turn content seen)", sessionId);
       return;
     }
-    const resultMsg = msg as SDKResultMessage;
     const dur = Date.now() - ss.turnStartTime;
     const cost = resultMsg.total_cost_usd || 0;
 
