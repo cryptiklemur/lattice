@@ -418,23 +418,28 @@ export function useSession(): UseSessionReturn {
           });
         } else {
           getSessionStore().setState(function (state) {
+            const hasStreamingMessages = state.messages.length > 0 && state.activeSessionId === m.sessionId;
+            const historyMessages = mergeToolResults(m.messages);
+            const finalMessages = hasStreamingMessages
+              ? state.messages
+              : historyMessages;
             return {
               ...state,
               activeProjectSlug: projectSlug,
               activeSessionId: m.sessionId,
-              activeSessionTitle: m.title ?? null,
-              messages: mergeToolResults(m.messages),
-              isProcessing: false,
-              currentStatus: null,
-              pendingPermissionCount: 0,
-              lastResponseCost: null,
-              lastResponseDuration: null,
+              activeSessionTitle: m.title ?? state.activeSessionTitle,
+              messages: finalMessages,
+              isProcessing: hasStreamingMessages ? state.isProcessing : false,
+              currentStatus: hasStreamingMessages ? state.currentStatus : null,
+              pendingPermissionCount: hasStreamingMessages ? state.pendingPermissionCount : 0,
+              lastResponseCost: hasStreamingMessages ? state.lastResponseCost : null,
+              lastResponseDuration: hasStreamingMessages ? state.lastResponseDuration : null,
               lastReadIndex: null,
               historyLoading: false,
               historyHasMore: m.hasMore || false,
               historyTotalMessages: m.totalMessages || m.messages.length,
-              wasInterrupted: m.interrupted || false,
-              isPlanMode: false,
+              wasInterrupted: hasStreamingMessages ? state.wasInterrupted : (m.interrupted || false),
+              isPlanMode: hasStreamingMessages ? state.isPlanMode : false,
             };
           });
         }

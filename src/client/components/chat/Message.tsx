@@ -100,6 +100,10 @@ function MessageAnchor(props: { id: string | undefined }) {
   );
 }
 
+function stripInternalTags(text: string): string {
+  return text.replace(/<(?:spec-populate|spec-activity|plan-content)>[\s\S]*?<\/(?:spec-populate|spec-activity|plan-content)>/g, "").trim();
+}
+
 function stripMarkdown(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, function (m) { return m.replace(/```\w*\n?/g, "").replace(/```$/g, ""); })
@@ -399,7 +403,7 @@ function formatTokenCount(n: number): string {
 function AssistantMessage(props: { message: HistoryMessage; responseCost?: number | null; responseDuration?: number | null }) {
   const msg = props.message;
   const time = formatTime(msg.timestamp);
-  const text = msg.text || "";
+  const text = stripInternalTags(msg.text || "");
   const ctxMenu = useContextMenu<HistoryMessage>();
   const ws = useWebSocket();
   const bookmarkState = useStore(getBookmarkStore(), function (s) { return s.bookmarks; });
