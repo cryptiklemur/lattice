@@ -68,6 +68,7 @@ export interface SessionState {
   pendingSystemPrompt: string | { type: "preset"; preset: "claude_code"; append?: string } | null;
   pendingAutoSend: string | null;
   specContext: { specId: string; specTitle: string } | null;
+  resumeFailedText: string | null;
 }
 
 const sessionStore = new Store<SessionState>({
@@ -99,6 +100,7 @@ const sessionStore = new Store<SessionState>({
   pendingSystemPrompt: null,
   pendingAutoSend: null,
   specContext: null,
+  resumeFailedText: null,
 });
 
 export interface ModelOption {
@@ -377,6 +379,7 @@ export function clearSession(): void {
       pendingSystemPrompt: null,
       pendingAutoSend: null,
       specContext: null,
+      resumeFailedText: null,
     };
   });
 }
@@ -463,6 +466,12 @@ export function setPendingSystemPrompt(prompt: string | { type: "preset"; preset
 export function setPendingAutoSend(text: string | null): void {
   sessionStore.setState(function (state) {
     return { ...state, pendingAutoSend: text };
+  });
+}
+
+export function setResumeFailedText(text: string | null): void {
+  sessionStore.setState(function (state) {
+    return { ...state, resumeFailedText: text };
   });
 }
 

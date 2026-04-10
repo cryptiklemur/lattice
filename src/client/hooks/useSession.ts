@@ -56,6 +56,7 @@ import {
   setBudgetExceeded,
   updateRateLimit,
   setPendingSystemPrompt,
+  setResumeFailedText,
 } from "../stores/session";
 import type { SessionState, BudgetStatus } from "../stores/session";
 import {
@@ -117,6 +118,7 @@ export interface UseSessionReturn extends SessionState {
   loadMoreHistory: () => void;
   historyHasMore: boolean;
   historyLoadingFileSize: number | null;
+  clearResumeFailed: () => void;
 }
 
 export function useSession(): UseSessionReturn {
@@ -296,6 +298,20 @@ export function useSession(): UseSessionReturn {
           timestamp: Date.now(),
         } as HistoryMessage);
       }
+    },
+    "chat:resume_failed": function (msg: ServerMessage) {
+      if (isStaleStream()) return;
+      const m = msg as { type: string; message: string; originalText: string };
+      setIsProcessing(false);
+      setCurrentStatus(null);
+      setCurrentAssistantUuid(null);
+      setResumeFailedText(m.originalText);
+      addSessionMessage({
+        type: "assistant",
+        uuid: "error-" + Date.now(),
+        text: m.message,
+        timestamp: Date.now(),
+      } as HistoryMessage);
     },
     "chat:status": function (msg: ServerMessage) {
       if (isStaleStream()) return;
@@ -657,5 +673,7 @@ export function useSession(): UseSessionReturn {
     pendingSystemPrompt: state.pendingSystemPrompt,
     pendingAutoSend: state.pendingAutoSend,
     specContext: state.specContext,
+    resumeFailedText: state.resumeFailedText,
+    clearResumeFailed: function () { setResumeFailedText(null); },
   };
 }

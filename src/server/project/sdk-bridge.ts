@@ -78,7 +78,6 @@ export interface ChatStreamOptions {
   isNewSession?: boolean;
   systemPrompt?: string | { type: "preset"; preset: "claude_code"; append?: string };
   specId?: string;
-  _retryCount?: number;
 }
 
 export interface ModelEntry {
@@ -856,8 +855,7 @@ export function startChatStream(options: ChatStreamOptions): void {
     }
     log.chat("Session %s pushing first message to queue", sessionId);
     mq.push(firstMsg);
-    let retrying = false;
-    const TURN_TIMEOUT_MS = 30000;
+    const TURN_TIMEOUT_MS = 10000;
     let turnTimer: ReturnType<typeof setTimeout> | null = null;
     function resetTurnTimer() {
       if (turnTimer) clearTimeout(turnTimer);
@@ -886,19 +884,17 @@ export function startChatStream(options: ChatStreamOptions): void {
       if (turnTimer) clearTimeout(turnTimer);
       const errMsg = err instanceof Error ? err.message : String(err);
       log.chat("Session %s stream error: %s", sessionId, errMsg);
-      const retryCount = options._retryCount || 0;
-      const canRetry = shouldResume && retryCount < 1;
-      if ((errMsg.includes("aborted") || errMsg.includes("AbortError")) && canRetry && !sessionStream.sawNewTurnContent) {
-        log.chat("Session %s stream aborted after resume with no new content, retrying (attempt %d)", sessionId, retryCount + 1);
-        retrying = true;
-      } else if (errMsg.includes("aborted") || errMsg.includes("AbortError")) {
-        log.chat("Session %s stream aborted (sawContent=%s)", sessionId, String(sessionStream.sawNewTurnContent));
-        if (!sessionStream.sawNewTurnContent) {
-          sendTo(sessionStream.clientId, { type: "chat:error", message: "Failed to get a response. Try sending your message again or start a new session." });
-        }
-      } else if (errMsg.includes("Sent before connected") && canRetry) {
-        log.chat("Session %s WebSocket not ready after resume, retrying (attempt %d)", sessionId, retryCount + 1);
-        retrying = true;
+      const isAbort = errMsg.includes("aborted") || errMsg.includes("AbortError");
+      const isSentBeforeConnected = errMsg.includes("Sent before connected");
+      if ((isAbort || isSentBeforeConnected) && shouldResume && !sessionStream.sawNewTurnContent) {
+        log.chat("Session %s resume failed, prompting user to fork", sessionId);
+        sendTo(sessionStream.clientId, {
+          type: "chat:resume_failed",
+          message: "This session failed to resume. Would you like to fork it into a new session?",
+          originalText: text,
+        } as any);
+      } else if (isAbort && sessionStream.sawNewTurnContent) {
+        log.chat("Session %s stream aborted after content delivered", sessionId);
       } else {
         console.error("[lattice] SDK stream error: " + errMsg);
         sendTo(sessionStream.clientId, { type: "chat:error", message: errMsg });
@@ -908,14 +904,6 @@ export function startChatStream(options: ChatStreamOptions): void {
       pendingStreams.delete(sessionId);
       sessionStreams.delete(sessionId);
       persistStreamState();
-
-      if (retrying) {
-        const retryCount = (options._retryCount || 0) + 1;
-        log.chat("Session %s cleaning up for retry #%d", sessionId, retryCount);
-        await new Promise(function (resolve) { setTimeout(resolve, 500); });
-        startChatStream({ ...options, _retryCount: retryCount });
-        return;
-      }
 
       broadcast({ type: "session:busy", sessionId, busy: false }, sessionStream.clientId);
 

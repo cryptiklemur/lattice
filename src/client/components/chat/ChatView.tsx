@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
-import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark, RefreshCw, Loader2, Activity } from "lucide-react";
+import { Terminal, Info, ArrowDown, Pencil, Copy, Check, Menu, AlertTriangle, Zap, Square, X, Bookmark, RefreshCw, Loader2, Activity, GitFork } from "lucide-react";
 import { LatticeLogomark } from "../ui/LatticeLogomark";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSession } from "../../hooks/useSession";
@@ -62,7 +62,7 @@ function SessionLoadingState({ fileSize }: { fileSize: number | null }) {
 }
 
 export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug }: { sessionId?: string; projectSlug?: string } = {}) {
-  const { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyLoadingFileSize, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded } = useSession();
+  const { messages, isProcessing, sendMessage, activeSessionId, activeSessionTitle, currentStatus, contextUsage, contextBreakdown, lastResponseCost, lastResponseDuration, historyLoading, historyLoadingFileSize, historyHasMore, loadMoreHistory, wasInterrupted, promptSuggestion, failedInput, clearFailedInput, messageQueue, enqueueMessage, removeQueuedMessage, updateQueuedMessage, isPlanMode, pendingPrefill, activateSession, budgetStatus, budgetExceeded, sendBudgetOverride, dismissBudgetExceeded, resumeFailedText, clearResumeFailed } = useSession();
   const { activeProject } = useProjects();
   const { toggleDrawer } = useSidebar();
   const activeAnomalies = useStore(getContextAnalyzerStore(), function (s) {
@@ -1037,10 +1037,35 @@ export function ChatView({ sessionId: tabSessionId, projectSlug: tabProjectSlug 
           })}
         </div>
       )}
-      {wasInterrupted && !isProcessing && (
+      {wasInterrupted && !isProcessing && !resumeFailedText && (
         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 bg-warning/10 border-t border-warning/20">
           <AlertTriangle size={13} className="text-warning flex-shrink-0" />
           <span className="text-[12px] text-warning">Session was interrupted — send a message to continue</span>
+        </div>
+      )}
+      {resumeFailedText && !isProcessing && (
+        <div className="flex items-center gap-2 px-3 sm:px-5 py-2.5 bg-error/10 border-t border-error/20">
+          <AlertTriangle size={13} className="text-error flex-shrink-0" />
+          <span className="text-[12px] text-error/80 flex-1">This session failed to resume.</span>
+          <button
+            onClick={function () {
+              if (!activeProject?.slug) return;
+              setPendingPrefill(resumeFailedText);
+              clearResumeFailed();
+              ws.send({ type: "session:create", projectSlug: activeProject.slug });
+            }}
+            className="btn btn-xs btn-error btn-outline gap-1.5"
+          >
+            <GitFork size={12} />
+            Fork to new session
+          </button>
+          <button
+            onClick={clearResumeFailed}
+            aria-label="Dismiss"
+            className="btn btn-ghost btn-xs btn-square text-error/40 hover:text-error/80"
+          >
+            <X size={12} />
+          </button>
         </div>
       )}
       {promptSuggestion && !isProcessing && (

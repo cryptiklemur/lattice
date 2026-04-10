@@ -910,6 +910,12 @@ export interface ChatErrorMessage {
   message: string;
 }
 
+export interface ChatResumeFailedMessage {
+  type: "chat:resume_failed";
+  message: string;
+  originalText: string;
+}
+
 export interface ChatPermissionRequestMessage {
   type: "chat:permission_request";
   requestId: string;
@@ -1315,6 +1321,7 @@ export type ServerMessage =
   | ChatDoneMessage
   | ChatPromptSuggestionMessage
   | ChatErrorMessage
+  | ChatResumeFailedMessage
   | ChatPermissionRequestMessage
   | ChatStatusMessage
   | ChatContextUsageMessage
